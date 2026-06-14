@@ -1,0 +1,17 @@
+{
+  "name": "@aeroops/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Expo / React Native parity app (iOS + Android).",
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"Scaffold only — mobile-engineer wires Expo when mobile enters a slice\" && exit 0",
+    "build": "echo \"(mobile) no build configured yet\"",
+    "typecheck": "echo \"(mobile) no typecheck configured yet\"",
+    "lint": "echo \"(mobile) no lint configured yet\"",
+    "test": "echo \"(mobile) no tests yet\""
+  },
+  "dependencies": {
+    "@aeroops/core": "workspace:*"
+  }
+}

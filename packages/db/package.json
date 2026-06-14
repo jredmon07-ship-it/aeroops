@@ -1,0 +1,16 @@
+{
+  "name": "@aeroops/db",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Drizzle schema, migrations, and Row-Level-Security policies (Postgres).",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "echo \"Migrations are HUMAN-GATED — review SQL, then run drizzle-kit migrate manually\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"(db) no lint configured yet\"",
+    "test": "echo \"(db) no tests yet\""
+  }
+}

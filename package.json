@@ -1,0 +1,19 @@
+{
+  "name": "aeroops",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Multi-tenant SaaS for flight schools, clubs, and FBOs. See THE-BIBLE.md.",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @aeroops/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @aeroops/db generate",
+    "db:migrate": "pnpm --filter @aeroops/db migrate"
+  }
+}

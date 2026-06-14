@@ -1,0 +1,18 @@
+{
+  "name": "@aeroops/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Next.js (App Router) ops console for staff.",
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"Scaffold only — frontend-engineer wires Next.js in Phase 0\" && exit 0",
+    "build": "echo \"(web) no build configured yet\"",
+    "typecheck": "echo \"(web) no typecheck configured yet\"",
+    "lint": "echo \"(web) no lint configured yet\"",
+    "test": "echo \"(web) no tests yet\""
+  },
+  "dependencies": {
+    "@aeroops/core": "workspace:*",
+    "@aeroops/api": "workspace:*"
+  }
+}

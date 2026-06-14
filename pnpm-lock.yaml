@@ -1,0 +1,30 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .: {}
+
+  apps/mobile:
+    dependencies:
+      '@aeroops/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+
+  apps/web:
+    dependencies:
+      '@aeroops/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@aeroops/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+
+  packages/api: {}
+
+  packages/core: {}
+
+  packages/db: {}
