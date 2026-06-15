@@ -35,13 +35,14 @@ import { org } from '../schema/index.js';
 import type { PGlite } from '@electric-sql/pglite';
 import type { PgliteTestClient } from '../client.js';
 
+// Both migrations applied in order so pglite schema matches the full artifact.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const MIGRATION_SQL = readFileSync(
-  resolve(__dirname, '../../migrations/0000_loud_prodigy.sql'),
-  'utf-8',
-);
+const MIGRATION_SQL = [
+  readFileSync(resolve(__dirname, '../../migrations/0000_loud_prodigy.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0001_auth_credential.sql'), 'utf-8'),
+];
 
 interface TestEnv {
   db: PgliteTestClient;

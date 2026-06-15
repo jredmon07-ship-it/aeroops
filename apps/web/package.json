@@ -5,14 +5,34 @@
   "description": "Next.js (App Router) ops console for staff.",
   "type": "module",
   "scripts": {
-    "dev": "echo \"Scaffold only — frontend-engineer wires Next.js in Phase 0\" && exit 0",
-    "build": "echo \"(web) no build configured yet\"",
-    "typecheck": "echo \"(web) no typecheck configured yet\"",
-    "lint": "echo \"(web) no lint configured yet\"",
+    "dev": "next dev",
+    "build": "next build",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"(web) no lint configured yet — ESLint wiring is Slice 0.4\"",
     "test": "echo \"(web) no tests yet\""
   },
   "dependencies": {
+    "@aeroops/api": "workspace:*",
     "@aeroops/core": "workspace:*",
-    "@aeroops/api": "workspace:*"
+    "@radix-ui/react-alert-dialog": "1.1.14",
+    "@radix-ui/react-dialog": "1.1.14",
+    "@radix-ui/react-separator": "1.1.7",
+    "@radix-ui/react-slot": "1.2.3",
+    "autoprefixer": "10.4.21",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "0.511.0",
+    "next": "15.3.3",
+    "next-auth": "5.0.0-beta.31",
+    "postcss": "8.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tailwind-merge": "3.3.0",
+    "tailwindcss": "3.4.17"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.30",
+    "@types/react": "19.1.6",
+    "typescript": "5.8.3"
   }
 }

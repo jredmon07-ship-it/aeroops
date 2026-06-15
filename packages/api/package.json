@@ -7,8 +7,22 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "typecheck": "echo \"(api) no typecheck configured yet\"",
+    "typecheck": "tsc --noEmit",
     "lint": "echo \"(api) no lint configured yet\"",
-    "test": "echo \"(api) no tests yet\""
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aeroops/core": "workspace:*",
+    "@aeroops/db": "workspace:*",
+    "@node-rs/argon2": "2.0.2",
+    "drizzle-orm": "^0.45.2",
+    "next-auth": "5.0.0-beta.31",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.2",
+    "@types/node": "^25.9.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
   }
 }

@@ -92,9 +92,13 @@ export async function createTestClient(): Promise<{
 }
 
 /**
- * Applies the full migration SQL to a test client (runs as superuser).
- * The `sql` string must be the contents of the generated migration file
- * (migrations/<timestamp>.sql) to ensure tests validate the real artifact.
+ * Applies one or more migration SQL strings to a test client (runs as superuser).
+ * Pass either a single SQL string (backwards-compatible) or an ordered array of
+ * SQL strings (applied in the order given, matching the numeric filename order
+ * of migrations/0000_…sql, migrations/0001_…sql, etc.).
+ *
+ * The strings must be the raw contents of the generated migration files so that
+ * tests validate the real artifact — not a hand-rolled CREATE TABLE script.
  *
  * After calling this, you should:
  *   1. Seed any test data (still as superuser / postgres role)
@@ -102,9 +106,12 @@ export async function createTestClient(): Promise<{
  */
 export async function applyMigrationSql(
   client: { pglite: PGlite },
-  sql: string,
+  sql: string | string[],
 ): Promise<void> {
-  await client.pglite.exec(sql);
+  const migrations = Array.isArray(sql) ? sql : [sql];
+  for (const migration of migrations) {
+    await client.pglite.exec(migration);
+  }
 }
 
 /**

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@aeroops/core": [
+        "../../packages/core/src/index.ts"
+      ],
+      "@aeroops/core/*": [
+        "../../packages/core/src/*"
+      ],
+      "@aeroops/api": [
+        "../../packages/api/src/index.ts"
+      ],
+      "@aeroops/api/*": [
+        "../../packages/api/src/*"
+      ]
+    },
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "../../packages/core/src/**/*.ts",
+    "../../packages/api/src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

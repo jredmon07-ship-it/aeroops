@@ -36,5 +36,5 @@ export {
 export type { OrgContextOpts, AnyDb } from './org-context.js';
 
 // Seed
-export { seedTwoOrgs } from './seed.js';
+export { seedTwoOrgs, seedAuthCredential, seedUserWithoutMembership } from './seed.js';
 export type { SeedResult } from './seed.js';
