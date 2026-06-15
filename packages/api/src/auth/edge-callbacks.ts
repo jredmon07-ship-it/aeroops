@@ -29,6 +29,8 @@
  *   and edge config share identical callback implementations.
  */
 
+import { isMembershipRole } from '@aeroops/core';
+
 // ─── Shared JWT callback ──────────────────────────────────────────────────────
 
 /**
@@ -37,6 +39,13 @@
  *
  * Fields projected into token: userId, orgId, slug, role, email.
  * `user.id` (Auth.js canonical) is renamed to `token.userId`.
+ *
+ * ROLE VALIDATION: role is validated with isMembershipRole() before being
+ * written to the token. An invalid role (injected, SSO-supplied, or malformed)
+ * is silently dropped — the token will carry no role field, which causes
+ * sessionCallback to produce a session without a role, which in turn makes
+ * requireCapability/withSessionOrgContext throw UnauthenticatedError (clean
+ * deny, never a TypeError).
  *
  * EDGE-SAFE: pure field copy, no I/O.
  */
@@ -48,7 +57,13 @@ export async function jwtCallback({ token, user }: { token: any; user: any }): P
     token['userId'] = user.id as string;
     token['orgId'] = user.orgId as string;
     token['slug'] = user.slug as string;
-    token['role'] = user.role as string;
+    // Validate the role at the session boundary. If the value from authorize()
+    // is not a known MembershipRole, do NOT write it to the token so that
+    // downstream checks degrade to UnauthenticatedError rather than TypeError.
+    if (isMembershipRole(user.role)) {
+      token['role'] = user.role;
+    }
+    // (If role is invalid, token['role'] is left absent — no field written.)
     token['email'] = user.email as string;
   }
   return token;
@@ -63,6 +78,12 @@ export async function jwtCallback({ token, user }: { token: any; user: any }): P
  *
  * password_hash is NEVER on the token and therefore never on the session.
  *
+ * ROLE VALIDATION: token['role'] is validated with isMembershipRole() before
+ * being written to session.role. A token carrying an invalid role value (e.g.
+ * one injected via SSO or token tampering) will produce a session with no role
+ * field, causing requireCapability/withSessionOrgContext to throw
+ * UnauthenticatedError (clean deny, never a TypeError or 500).
+ *
  * EDGE-SAFE: pure field copy, no I/O.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,7 +91,14 @@ export async function sessionCallback({ session, token }: { session: any; token:
   session.userId = token['userId'] as string;
   session.orgId = token['orgId'] as string;
   session.slug = token['slug'] as string;
-  session.role = token['role'] as string;
+  // Validate the role at the session boundary. If token['role'] is not a
+  // valid MembershipRole (prototype-key, injected string, missing, etc.),
+  // omit session.role entirely so downstream guards throw UnauthenticatedError.
+  const tokenRole = token['role'];
+  if (isMembershipRole(tokenRole)) {
+    session.role = tokenRole;
+  }
+  // (If role is invalid, session.role is left absent — not written at all.)
   // user.email: Auth.js already copies token.email to session.user.email
   // in v5 beta, but we set it explicitly for clarity and safety.
   if (session.user) {
