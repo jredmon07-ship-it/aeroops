@@ -37,14 +37,16 @@ import { clearOrgContext } from '../org-context.js';
 import { location, appUser, plan, subscription } from '../schema/index.js';
 import type { PgliteTestClient } from '../client.js';
 
-// Resolve migration file path relative to THIS test file
+// Resolve migration file paths relative to THIS test file.
+// Both migrations are applied in order so the test env matches the full
+// real schema — applyMigrationSql accepts an array and applies them in sequence.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const MIGRATION_SQL = readFileSync(
-  resolve(__dirname, '../../migrations/0000_loud_prodigy.sql'),
-  'utf-8',
-);
+const MIGRATION_SQL = [
+  readFileSync(resolve(__dirname, '../../migrations/0000_loud_prodigy.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0001_auth_credential.sql'), 'utf-8'),
+];
 
 // ── Test state ─────────────────────────────────────────────────────────────────
 let db: PgliteTestClient;

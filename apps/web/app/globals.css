@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * White-label design tokens.
+ * Override these per-tenant (e.g. via a <style> tag injected from the org config).
+ * Defaults are AeroOps house style: slate surface, sky brand.
+ *
+ * Usage in Tailwind: text-[hsl(var(--color-text))], bg-[hsl(var(--color-brand))]
+ * Or via the extended theme keys: text-text-default, bg-brand, etc.
+ */
+:root {
+  /* Brand accent (buttons, links, focus rings) — sky-600 */
+  --color-brand: 199 89% 48%;
+
+  /* Page/card surface — slate-50 */
+  --color-surface: 210 40% 98%;
+
+  /* Primary text — slate-900 */
+  --color-text: 222 47% 11%;
+
+  /* Border / divider — slate-200 */
+  --color-border: 214 32% 91%;
+
+  /* Danger / destructive — red-600 */
+  --color-danger: 0 72% 51%;
+}
+
+/* Dark-mode token overrides (system) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: 222 47% 11%;
+    --color-text: 210 40% 98%;
+    --color-border: 217 33% 17%;
+  }
+}
+
+/* Smooth focus rings for keyboard nav */
+*:focus-visible {
+  outline: 2px solid hsl(var(--color-brand));
+  outline-offset: 2px;
+}

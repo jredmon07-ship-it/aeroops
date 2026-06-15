@@ -1,0 +1,80 @@
+/**
+ * middleware.ts — Auth.js session gating for /o/[slug]/* routes.
+ *
+ * SECURITY MODEL:
+ *   1. Any request to /o/[slug]/* without a valid session is redirected to
+ *      /o/[slug]/login.
+ *   2. If a session exists but session.slug !== URL slug, the user is
+ *      redirected to /o/{session.slug}/login. This prevents one tenant's
+ *      session from being used to access another tenant's routes.
+ *   3. /o/[slug]/login and /o/[slug]/no-access are public (no session required).
+ *   4. The DB is NEVER queried here — all checks rely on the signed JWT only.
+ *
+ * EDGE RUNTIME NOTE:
+ *   This middleware uses auth-edge.ts (NOT auth.ts) to stay within Edge
+ *   Runtime constraints. auth-edge.ts only decodes the JWT; it has no
+ *   DB dependencies, no native binaries, and no WebAssembly.
+ *
+ * SLUG SOURCE OF TRUTH:
+ *   org_id for data reads always comes from session.orgId (set by the
+ *   authorize callback, embedded in the JWT). The URL slug is only used for
+ *   navigation context and the tenant mismatch guard.
+ */
+import { auth } from '@/auth-edge';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export default auth(function middleware(
+  req: NextRequest & { auth: { userId?: string; slug?: string } | null },
+) {
+  const session = req.auth;
+  const { pathname } = req.nextUrl;
+
+  // Match /o/[slug]/... routes
+  const orgRouteMatch = pathname.match(/^\/o\/([^/]+)(\/.*)?$/);
+  if (!orgRouteMatch) {
+    // Not a tenant route — allow through (root /, static assets, API routes)
+    return NextResponse.next();
+  }
+
+  const urlSlug = orgRouteMatch[1]!;
+  const subPath = orgRouteMatch[2] ?? '';
+
+  // Public tenant sub-routes: login, no-access
+  const isPublicSubRoute =
+    subPath === '/login' ||
+    subPath.startsWith('/login/') ||
+    subPath === '/no-access' ||
+    subPath.startsWith('/no-access/');
+
+  if (isPublicSubRoute) {
+    return NextResponse.next();
+  }
+
+  // Protected route: require a valid session
+  if (!session || !session.userId) {
+    const loginUrl = new URL(`/o/${urlSlug}/login`, req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Slug mismatch guard: fail-closed — if slug is missing OR wrong, redirect.
+  // A valid session on a protected /o/[slug]/* route MUST carry a slug that
+  // matches the URL. A missing slug (falsy) is treated as a mismatch so that
+  // a truncated or tampered JWT can never silently pass through.
+  if (!session.slug || session.slug !== urlSlug) {
+    // If we have a known slug in the session, send the user to their real org's
+    // login; otherwise fall back to the URL slug's login page.
+    const targetSlug = session.slug || urlSlug;
+    const loginUrl = new URL(`/o/${targetSlug}/login`, req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+});
+
+export const config = {
+  // Match all routes except Next.js internals and static files
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};

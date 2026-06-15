@@ -15,8 +15,17 @@
  * NOTE: seed uses withPlatformAdminContext for org creation and
  * withOrgContext for tenant-scoped inserts, mirroring the production
  * code path and exercising the RLS policies.
+ *
+ * seedAuthCredential(db, orgId, userId, passwordHash):
+ *   Creates an auth_credential row for a seeded user.
+ *   Pass a real argon2id encoded string from the backend; for smoke tests
+ *   use any non-empty placeholder (e.g. '$argon2id$dummy').
+ *
+ * seedUserWithoutMembership(db, orgId, email):
+ *   Creates an app_user with NO membership row. Used to test the
+ *   no-membership-bounce behaviour in the auth flow (Slice 0.3).
  */
-import { org, location, appUser, membership, plan, subscription } from './schema/index.js';
+import { org, location, appUser, membership, plan, subscription, authCredential } from './schema/index.js';
 import { withOrgContext, withPlatformAdminContext } from './org-context.js';
 import type { PgliteTestClient, ProdClient } from './client.js';
 
@@ -124,4 +133,66 @@ export async function seedTwoOrgs(db: AnyDb): Promise<SeedResult> {
     subscriptionAId: subA.id,
     subscriptionBId: subB.id,
   };
+}
+
+/**
+ * seedAuthCredential — inserts an auth_credential row for an existing user.
+ *
+ * Must be called:
+ *   - AS SUPERUSER (before setTestAppRole) so that the INSERT is not blocked
+ *     by RLS during test setup. In production the backend-engineer calls this
+ *     via withOrgContext when creating the account.
+ *   - AFTER the user has been created in app_user (composite FK enforces this).
+ *
+ * @param db        - The Drizzle client (test or prod).
+ * @param orgId     - UUID of the org the user belongs to.
+ * @param userId    - UUID of the app_user row.
+ * @param passwordHash - argon2id encoded string produced by the backend.
+ *                       For smoke tests use a clearly-dummy value such as
+ *                       '$argon2id$dummy'. Never a raw password.
+ * @returns The created auth_credential row.
+ */
+export async function seedAuthCredential(
+  db: AnyDb,
+  orgId: string,
+  userId: string,
+  passwordHash: string,
+) {
+  return withOrgContext(db, orgId, async (tx) => {
+    const [row] = await tx
+      .insert(authCredential)
+      .values({ orgId, userId, passwordHash })
+      .returning();
+    return row!;
+  });
+}
+
+/**
+ * seedUserWithoutMembership — creates an app_user with NO membership row.
+ *
+ * Used to test the no-membership-bounce behavior in the auth flow (Slice 0.3):
+ * a user exists in the org but has no role assignment, so the login should
+ * bounce them rather than granting access.
+ *
+ * Must be called as SUPERUSER (before setTestAppRole).
+ *
+ * @param db    - The Drizzle client.
+ * @param orgId - UUID of the org.
+ * @param email - Email address for the user (must be unique within the org).
+ * @param fullName - Optional display name.
+ * @returns The created app_user row.
+ */
+export async function seedUserWithoutMembership(
+  db: AnyDb,
+  orgId: string,
+  email: string,
+  fullName?: string,
+) {
+  return withOrgContext(db, orgId, async (tx) => {
+    const [user] = await tx
+      .insert(appUser)
+      .values({ orgId, email, fullName: fullName ?? null })
+      .returning();
+    return user!;
+  });
 }

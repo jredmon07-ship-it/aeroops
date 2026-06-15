@@ -59,13 +59,15 @@ import { MEMBERSHIP_ROLES } from '@aeroops/core';
 import type { PgliteTestClient } from '../client.js';
 
 // ── Path resolution ───────────────────────────────────────────────────────────
+// Both migrations are applied in order to every fresh env so the pglite schema
+// always matches the full real artifact. applyMigrationSql accepts an array.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const MIGRATION_SQL = readFileSync(
-  resolve(__dirname, '../../migrations/0000_loud_prodigy.sql'),
-  'utf-8',
-);
+const MIGRATION_SQL = [
+  readFileSync(resolve(__dirname, '../../migrations/0000_loud_prodigy.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0001_auth_credential.sql'), 'utf-8'),
+];
 
 // ── Helper: set up a fresh isolated DB (one cold-start per call) ──────────────
 interface TestEnv {

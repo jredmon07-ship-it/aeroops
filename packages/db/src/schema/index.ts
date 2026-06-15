@@ -3,7 +3,8 @@
  * and inferred model types.
  *
  * Tenant-scoped tables (RLS ENABLE + FORCE in migration):
- *   org, location, appUser (table: app_user), membership, auditLog (table: audit_log)
+ *   org, location, appUser (table: app_user), membership, auditLog (table: audit_log),
+ *   authCredential (table: auth_credential)
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -27,6 +28,9 @@ export type { MembershipSelect, MembershipInsert } from './membership.js';
 
 export { auditLog } from './audit-log.js';
 export type { AuditLogSelect, AuditLogInsert } from './audit-log.js';
+
+export { authCredential } from './auth-credential.js';
+export type { AuthCredentialSelect, AuthCredentialInsert } from './auth-credential.js';
 
 // Platform / control-plane tables (NOT org-scoped)
 export { plan } from './plan.js';
