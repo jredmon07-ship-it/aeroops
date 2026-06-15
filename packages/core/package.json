@@ -9,9 +9,10 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "echo \"(core) no lint configured yet\"",
-    "test": "echo \"(core) no tests yet\""
+    "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
   }
 }

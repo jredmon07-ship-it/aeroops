@@ -21,6 +21,26 @@ export const MEMBERSHIP_ROLES = [
 export type MembershipRole = (typeof MEMBERSHIP_ROLES)[number];
 
 /**
+ * isMembershipRole — runtime type guard for MembershipRole.
+ *
+ * Returns true only when `value` is a string that is an exact member of
+ * MEMBERSHIP_ROLES. Returns false for:
+ *   - non-string values (null, undefined, numbers, objects)
+ *   - unknown/future role strings
+ *   - prototype-chain keys ('constructor', 'toString', '__proto__', etc.)
+ *
+ * Use this at session boundaries (JWT → session projection) to reject
+ * injected, malformed, or SSO-supplied role values before they reach the
+ * capability-check layer.
+ *
+ * @param value - Any unknown value from an untrusted source.
+ * @returns `true` if value is a valid MembershipRole, `false` otherwise.
+ */
+export function isMembershipRole(value: unknown): value is MembershipRole {
+  return typeof value === 'string' && (MEMBERSHIP_ROLES as readonly string[]).includes(value);
+}
+
+/**
  * Human-readable labels for each role, used in UI and reporting.
  * Kept close to the enum so they evolve together.
  */

@@ -14,3 +14,4 @@ export { withSessionOrgContext, withSessionOrgContextWithDb, UnauthenticatedErro
 export type { AppSession } from './session.js';
 export { getSessionOrg } from './get-session-org.js';
 export type { SessionOrgData } from './get-session-org.js';
+export { ForbiddenError, requireCapability, hasCapability } from './require-capability.js';

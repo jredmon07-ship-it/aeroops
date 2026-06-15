@@ -9,7 +9,7 @@
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "lint": "echo \"(web) no lint configured yet — ESLint wiring is Slice 0.4\"",
-    "test": "echo \"(web) no tests yet\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@aeroops/api": "workspace:*",
@@ -33,6 +33,7 @@
   "devDependencies": {
     "@types/node": "22.15.30",
     "@types/react": "19.1.6",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "vitest": "^4.1.8"
   }
 }
