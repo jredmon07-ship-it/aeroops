@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["node"],
+    "outDir": "./dist",
+    "paths": {
+      "@aeroops/core": ["../core/src/index.ts"],
+      "@aeroops/core/*": ["../core/src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../core" }],
+  "exclude": ["dist", "node_modules", "migrations"]
+}

@@ -10,5 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo \"(core) no lint configured yet\"",
     "test": "echo \"(core) no tests yet\""
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }
