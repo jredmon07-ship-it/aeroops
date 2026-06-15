@@ -11,6 +11,20 @@
     "migrate": "echo \"Migrations are HUMAN-GATED — review SQL, then run drizzle-kit migrate manually\"",
     "typecheck": "tsc --noEmit",
     "lint": "echo \"(db) no lint configured yet\"",
-    "test": "echo \"(db) no tests yet\""
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aeroops/core": "workspace:^",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.2",
+    "@types/node": "^25.9.3",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
+    "fast-check": "^4.8.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
   }
 }

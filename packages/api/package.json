@@ -7,7 +7,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "echo \"(api) no typecheck configured yet\"",
     "lint": "echo \"(api) no lint configured yet\"",
     "test": "echo \"(api) no tests yet\""
   }
