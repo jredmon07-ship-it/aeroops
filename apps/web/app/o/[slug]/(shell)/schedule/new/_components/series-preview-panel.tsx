@@ -104,7 +104,7 @@ function OccurrenceBadge({ occ }: { occ: PreviewSeriesOccurrenceReport }) {
   if (occ.result === 'would_create') {
     return (
       <Badge variant="default" className="shrink-0 text-xs">
-        {occ.dstAdjusted ? 'Would create (DST)' : 'Would create'}
+        Would create
       </Badge>
     );
   }

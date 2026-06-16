@@ -32,115 +32,21 @@ import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { expandRecurrence } from '@aeroops/core';
 import type { RecurrenceRule, ZonedToUtc } from '@aeroops/core';
-import { ValidationError, gatedCreateOccurrence, toIso } from './internal.js';
+import {
+  ValidationError,
+  OccurrenceRaceError,
+  gatedCreateOccurrence,
+  runConflictProbe,
+  makeApiZonedToUtcResolver,
+  isValidIanaTz,
+} from './internal.js';
 import type {
+  CreateReservationResult,
   CreateSeriesInput,
   CreateSeriesResult,
   SeriesOccurrenceReport,
   SeriesRow,
 } from './types.js';
-
-// ─── Production tz resolver (INJECTED into expandRecurrence) ─────────────────
-//
-// Implements ZonedToUtc using platform Intl APIs only (no tz library dep).
-// Adapted from the test-side makeIntlResolver in recurrence.test.ts.
-//
-// DST handling (ADR-0006 §2):
-//   - spring-forward gap (local time skipped)  → status 'nonexistent'
-//   - fall-back (local time occurs twice)       → status 'ambiguous', utcMs = earlier instant
-//   - normal                                    → status 'valid'
-//
-// Cached per tz string so the Intl.DateTimeFormat object is reused across
-// the N occurrence resolutions within one createSeries call.
-
-function makeApiZonedToUtcResolver(): ZonedToUtc {
-  const fmtCache = new Map<string, Intl.DateTimeFormat>();
-
-  const getFmt = (tz: string): Intl.DateTimeFormat => {
-    let f = fmtCache.get(tz);
-    if (!f) {
-      f = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      });
-      fmtCache.set(tz, f);
-    }
-    return f;
-  };
-
-  // Render a UTC instant into local civil parts in `tz`.
-  const partsAt = (utcMs: number, tz: string) => {
-    const parts = getFmt(tz).formatToParts(new Date(utcMs));
-    const get = (t: string) => Number(parts.find((p) => p.type === t)!.value);
-    let hour = get('hour');
-    if (hour === 24) hour = 0; // some engines emit 24 for midnight
-    return { year: get('year'), month: get('month'), day: get('day'), hour, minute: get('minute') };
-  };
-
-  // Offset (minutes, UTC = local - offset) at a given UTC instant in `tz`.
-  const offsetAt = (utcMs: number, tz: string): number => {
-    const p = partsAt(utcMs, tz);
-    const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
-    return Math.round((asUtc - utcMs) / 60_000);
-  };
-
-  return ({ year, month, day, hour, minute, tz }) => {
-    const targetLocal = Date.UTC(year, month - 1, day, hour, minute);
-
-    // Two probe offsets to find all UTC instants that render back to this local time.
-    const off1 = offsetAt(targetLocal, tz);
-    const cand1 = targetLocal - off1 * 60_000;
-    const off2 = offsetAt(cand1, tz);
-    const cand2 = targetLocal - off2 * 60_000;
-
-    const matches = (utcMs: number): boolean => {
-      const p = partsAt(utcMs, tz);
-      return (
-        p.year === year &&
-        p.month === month &&
-        p.day === day &&
-        p.hour === hour &&
-        p.minute === minute
-      );
-    };
-
-    const valid: number[] = [];
-    for (const c of [cand1, cand2]) {
-      if (matches(c) && !valid.includes(c)) valid.push(c);
-    }
-
-    if (valid.length === 0) {
-      // Spring-forward gap: this local time does not exist.
-      return { utcMs: cand1, status: 'nonexistent' as const };
-    }
-    if (valid.length >= 2) {
-      // Fall-back: ambiguous. Return the EARLIER instant (ADR-0006 §2).
-      return { utcMs: Math.min(...valid), status: 'ambiguous' as const };
-    }
-    return { utcMs: valid[0]!, status: 'valid' as const };
-  };
-}
-
-// ─── IANA tz validation ────────────────────────────────────────────────────────
-
-/**
- * isValidIanaTz — true iff the Intl subsystem accepts this tz string.
- * Uses Intl.DateTimeFormat constructor; throws on an invalid zone.
- */
-function isValidIanaTz(tz: string): boolean {
-  try {
-    Intl.DateTimeFormat(undefined, { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // ─── Input validation schema ──────────────────────────────────────────────────
 
@@ -374,6 +280,20 @@ async function _createSeriesImpl(
 
     // 5c. Per-occurrence: run gatedCreateOccurrence inside a SAVEPOINT.
     //     A skip rolls back only the savepoint; the outer tx stays alive.
+    //
+    //     RACE SEMANTICS (ADR-0006 §3):
+    //     If the INSERT inside the savepoint raises 23P01 (EXCLUDE violation),
+    //     gatedCreateOccurrence throws OccurrenceRaceError. This throw propagates
+    //     out of the tx.transaction() callback, causing Drizzle to emit
+    //     ROLLBACK TO SAVEPOINT — which un-poisons the outer tx back to the
+    //     pre-savepoint state. We then catch OccurrenceRaceError in the loop and
+    //     re-probe on the LIVE parent tx (now clean) to build the rich
+    //     ConflictHit, record the occurrence as skipped/conflict, and CONTINUE
+    //     the loop. The outer tx stays alive and commits all prior and subsequent
+    //     created occurrences.
+    //
+    //     ValidationError (cross-org resource, inactive resource, wrong kind)
+    //     propagates as a whole-request failure (ADR-0006 invariant 9).
     const occurrenceReports: SeriesOccurrenceReport[] = [];
     let createdCount = 0;
     let skippedCount = 0;
@@ -385,9 +305,12 @@ async function _createSeriesImpl(
 
       let report: SeriesOccurrenceReport;
 
+      // tx.transaction() emits a SAVEPOINT — per ADR-0006 Option B.
+      // OccurrenceRaceError propagates out here → Drizzle emits ROLLBACK TO
+      // SAVEPOINT, then we catch it below and re-probe on the clean parent tx.
+      let result: CreateReservationResult | null = null;
       try {
-        // tx.transaction() emits a SAVEPOINT — per ADR-0006 Option B.
-        const result = await (tx as AnyDb).transaction(async (sp: AnyDb) => {
+        result = await (tx as AnyDb).transaction(async (sp: AnyDb) => {
           return gatedCreateOccurrence(
             sp,
             sess,
@@ -396,36 +319,52 @@ async function _createSeriesImpl(
             now,
           );
         });
-
-        if (result.ok) {
-          createdCount++;
-          report = {
-            index: i,
-            startAt,
-            endAt,
-            result: 'created',
-            reservationId: result.reservation.id,
-          };
-        } else {
+      } catch (err) {
+        if (err instanceof OccurrenceRaceError) {
+          // Drizzle has already emitted ROLLBACK TO SAVEPOINT; the outer tx
+          // is now clean. Re-probe on the live parent tx to build a rich
+          // ConflictHit (the winning committed row is now visible here).
+          const hits = await runConflictProbe(tx, startAt, endAt, resourceIds);
           skippedCount++;
           report = {
             index: i,
             startAt,
             endAt,
             result: 'skipped',
-            reason: result.reason,
-            ...(result.reason === 'conflict' || result.reason === 'conflict_and_policy'
-              ? { conflicts: result.conflicts }
-              : {}),
-            ...(result.reason === 'policy' || result.reason === 'conflict_and_policy'
-              ? { violations: result.violations }
-              : {}),
+            reason: 'conflict',
+            conflicts: hits,
           };
+          occurrenceReports.push(report);
+          continue;
         }
-      } catch (err) {
-        // A ValidationError from gatedCreateOccurrence (cross-org resource, etc.)
-        // should propagate as a whole-request failure (ADR-0006 invariant 9).
+        // ValidationError and any other error: propagate as whole-request failure.
         throw err;
+      }
+
+      if (result!.ok) {
+        createdCount++;
+        report = {
+          index: i,
+          startAt,
+          endAt,
+          result: 'created',
+          reservationId: result!.reservation.id,
+        };
+      } else {
+        skippedCount++;
+        report = {
+          index: i,
+          startAt,
+          endAt,
+          result: 'skipped',
+          reason: result!.reason,
+          ...(result!.reason === 'conflict' || result!.reason === 'conflict_and_policy'
+            ? { conflicts: result!.conflicts }
+            : {}),
+          ...(result!.reason === 'policy' || result!.reason === 'conflict_and_policy'
+            ? { violations: result!.violations }
+            : {}),
+        };
       }
 
       occurrenceReports.push(report);

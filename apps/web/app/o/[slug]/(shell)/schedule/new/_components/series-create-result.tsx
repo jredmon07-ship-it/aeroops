@@ -153,7 +153,7 @@ function OccurrenceResultRow({
         <div className="shrink-0 flex flex-col items-end gap-1">
           {occ.result === 'created' ? (
             <Badge variant="default" className="text-xs">
-              {occ.dstAdjusted ? 'Created (DST)' : 'Created'}
+              Created
             </Badge>
           ) : (
             <Badge variant="destructive" className="text-xs">

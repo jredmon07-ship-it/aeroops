@@ -23,7 +23,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi, afterEach } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import {
   createTestClient,
@@ -34,7 +34,7 @@ import {
 } from '@aeroops/db';
 import { auditLog, reservation, reservationSeries } from '@aeroops/db';
 import { eq, and } from 'drizzle-orm';
-import type { PgliteTestClient } from '@aeroops/db';
+import type { PgliteTestClient, AnyDb } from '@aeroops/db';
 
 import { createReservationWithDb } from '../scheduling/create-reservation.js';
 import { createResourceWithDb } from '../scheduling/resource-commands.js';
@@ -44,6 +44,7 @@ import { listSeriesOccurrencesWithDb } from '../scheduling/list-series-occurrenc
 import { previewSeriesWithDb } from '../scheduling/preview-series.js';
 import { createBlackoutWithDb } from '../scheduling/blackout-commands.js';
 import { ValidationError } from '../scheduling/internal.js';
+import * as internalModule from '../scheduling/internal.js';
 import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
@@ -1043,6 +1044,334 @@ describe('previewSeries: read-only advisory preview', () => {
       tx.select().from(reservation).execute(),
     );
     expect(after.length).toBe(before.length);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SECTION 15 — SERIES RACE: post-INSERT 23P01 → ROLLBACK TO SAVEPOINT + re-probe
+//
+// This test verifies the ADR-0006 §3 race-safety fix in the series path.
+//
+// The scenario being tested:
+//   A race occurs when a concurrent transaction commits a conflicting booked row
+//   AFTER the series loop's pre-check (runConflictProbe) passes but BEFORE the
+//   occurrence's reservation_resource INSERT. In production this is a true
+//   concurrent race; in pglite (single-threaded) we construct the equivalent:
+//
+//   CONSTRUCTION:
+//     We call gatedCreateOccurrence inside a savepoint DIRECTLY (bypassing the
+//     series loop) with a window that has a REAL pre-booked collision. We also
+//     bypass the pre-check by calling gatedCreateOccurrence with a tx that has
+//     a "pre-cleared" state — specifically by using withOrgContext (the outer tx)
+//     and injecting the INSERT in a controlled way.
+//
+//     Two sub-tests:
+//
+//   TEST 15a — OccurrenceRaceError from gatedCreateOccurrence:
+//     1. Pre-book occurrence's window (real booked row in DB).
+//     2. Open an outer tx (withOrgContext). Inside it:
+//        a. Open a savepoint (tx.transaction).
+//        b. Inside the savepoint, call gatedCreateOccurrence with the same window.
+//           The pre-check WILL find the collision (returns {ok:false, reason:'conflict'})
+//           before the INSERT — so no 23P01 here. This test exercises the PRE-CHECK
+//           path within a savepoint, verifying savepoint isolation.
+//     Note: This is the "pre-check catches it" path tested in Section 2 already.
+//
+//   APPROACH — Direct 23P01 via raw INSERT:
+//     To force a post-INSERT 23P01 without a real concurrent tx:
+//     1. Open an outer withOrgContext tx.
+//     2. Inside the outer tx, open savepoint A:
+//        - INSERT a reservation row + reservation_resource row for occ1's window.
+//        - RELEASE savepoint A (commit to outer tx).
+//     3. Inside the outer tx, open savepoint B (simulating gatedCreateOccurrence
+//        for occ1 after a race — pre-check ran BEFORE step 2, now INSERT fires):
+//        - INSERT a second reservation_resource for the same window → 23P01.
+//        - The 23P01 aborts savepoint B.
+//     4. Outer tx is still alive after savepoint B is rolled back.
+//     5. Verify outer tx can commit other work.
+//
+//   This directly exercises the ROLLBACK TO SAVEPOINT mechanism and proves the
+//   outer tx survives a 23P01 inside a savepoint.
+//
+//   TEST 15b — createSeries with forced 23P01 via interception:
+//     We monkey-patch `gatedCreateOccurrence` in the `internalModule` namespace
+//     for a single occurrence to throw OccurrenceRaceError directly (simulating
+//     what the real gatedCreateOccurrence would do on 23P01). This directly tests
+//     the series loop's OccurrenceRaceError catch path:
+//     - Does the series loop correctly catch OccurrenceRaceError?
+//     - Does it re-probe and record skipped/conflict?
+//     - Does the outer tx survive and commit occ 0 and occ 2?
+//
+//   FAIL vs OLD CODE (for TEST 15b):
+//     Old code did not export OccurrenceRaceError and handled 23P01 internally.
+//     The series loop's catch block was `throw err;` (no-op). If gatedCreate-
+//     Occurrence internally caught 23P01 and called reProbeInFreshTx while the
+//     savepoint was aborted, subsequent DB ops would hit "current transaction is
+//     aborted", causing a whole-series failure. The series loop's old no-op
+//     catch (`catch (err) { throw err; }`) would rethrow that, aborting the
+//     entire series → the outer tx would not commit occ 0 or occ 2.
+//     OLD CODE result: createSeries throws (whole-series failure) → FAILS.
+//
+//   PASS with NEW code (for TEST 15b):
+//     New code: OccurrenceRaceError is thrown by gatedCreateOccurrence (no
+//     internal re-probe). The series loop catches it, re-probes on the live
+//     parent tx, records occ 1 as skipped/conflict, and continues. Occ 0 and
+//     occ 2 are committed in the outer tx.
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('SERIES RACE: post-INSERT 23P01 → ROLLBACK TO SAVEPOINT + re-probe on live tx', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('15a — savepoint absorbs a raw 23P01: outer tx survives and can commit further work', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+
+    // Create a resource for this test.
+    const aircraft = await createResourceWithDb(db, sess, {
+      kind: 'aircraft',
+      displayName: 'N-RaceA',
+      tailNumber: 'N-RA1',
+    });
+
+    const occ1Start = '2026-01-12T10:00:00Z';
+    const occ1End   = '2026-01-12T11:00:00Z';
+
+    // We use withOrgContext to open an outer tx and exercise the savepoint
+    // ROLLBACK mechanism directly. Inside the outer tx:
+    //   savepoint A: insert a real booked reservation_resource row (occ1).
+    //   savepoint B: try to insert a DUPLICATE → 23P01 → savepoint B aborted.
+    //   After ROLLBACK TO SAVEPOINT B, the outer tx is still alive.
+    //   Insert a sentinel row (unrelated resource) to prove outer tx is clean.
+    const { sql: coreSql } = await import('drizzle-orm');
+
+    let outerTxSurvived = false;
+
+    await withOrgContext(db, orgAId, async (tx: AnyDb) => {
+      // savepoint A: insert reservation + reservation_resource for occ1.
+      // This commits into the outer tx (RELEASE SAVEPOINT A).
+      const resv1 = await (tx as AnyDb).transaction(async (sp: AnyDb) => {
+        // INSERT a reservation row.
+        const { sql } = await import('drizzle-orm');
+        const r = await sp.execute(sql`
+          INSERT INTO reservation (org_id, start_at, end_at, status, created_by)
+          VALUES (
+            ${sess.orgId}::uuid,
+            ${occ1Start}::timestamptz,
+            ${occ1End}::timestamptz,
+            'booked'::"reservation_status",
+            ${sess.userId}::uuid
+          )
+          RETURNING id
+        `);
+        const rows = (r.rows ?? r) as Array<{ id: string }>;
+        const reservationId = rows[0]!.id;
+        // INSERT reservation_resource (booked).
+        await sp.execute(sql`
+          INSERT INTO reservation_resource (org_id, reservation_id, resource_id, during, status)
+          VALUES (
+            ${sess.orgId}::uuid,
+            ${reservationId}::uuid,
+            ${aircraft.id}::uuid,
+            tstzrange(${occ1Start}::timestamptz, ${occ1End}::timestamptz, '[)'),
+            'booked'::"reservation_status"
+          )
+        `);
+        return reservationId;
+      });
+
+      expect(resv1).toBeTruthy(); // savepoint A committed
+
+      // savepoint B: try to insert another booked row for the same resource+window.
+      // This must trigger the EXCLUDE constraint → 23P01 → savepoint B aborted.
+      // We expect tx.transaction() to throw here.
+      let savepointBError: unknown = null;
+      try {
+        await (tx as AnyDb).transaction(async (sp: AnyDb) => {
+          const { sql } = await import('drizzle-orm');
+          // INSERT a second reservation row (for the "duplicate" occurrence).
+          const r2 = await sp.execute(sql`
+            INSERT INTO reservation (org_id, start_at, end_at, status, created_by)
+            VALUES (
+              ${sess.orgId}::uuid,
+              ${occ1Start}::timestamptz,
+              ${occ1End}::timestamptz,
+              'booked'::"reservation_status",
+              ${sess.userId}::uuid
+            )
+            RETURNING id
+          `);
+          const rows2 = (r2.rows ?? r2) as Array<{ id: string }>;
+          const reservationId2 = rows2[0]!.id;
+          // This INSERT collides with savepoint A's row → 23P01.
+          await sp.execute(sql`
+            INSERT INTO reservation_resource (org_id, reservation_id, resource_id, during, status)
+            VALUES (
+              ${sess.orgId}::uuid,
+              ${reservationId2}::uuid,
+              ${aircraft.id}::uuid,
+              tstzrange(${occ1Start}::timestamptz, ${occ1End}::timestamptz, '[)'),
+              'booked'::"reservation_status"
+            )
+          `);
+        });
+      } catch (err) {
+        // Expected: 23P01 exclusion_violation (or a wrapping error).
+        savepointBError = err;
+      }
+
+      // The savepoint must have thrown.
+      expect(savepointBError).not.toBeNull();
+
+      // The outer tx must still be alive (not poisoned). Prove it by executing
+      // a simple query on `tx`. If the outer tx were aborted, this would throw
+      // "current transaction is aborted".
+      const { sql } = await import('drizzle-orm');
+      const check = await tx.execute(sql`SELECT 1 AS alive`);
+      const checkRows = (check.rows ?? check) as Array<{ alive: number }>;
+      expect(checkRows[0]?.alive).toBe(1);
+
+      outerTxSurvived = true;
+      // Outer tx commits here (withOrgContext resolves).
+    });
+
+    expect(outerTxSurvived).toBe(true);
+  });
+
+  it('15b — series loop OccurrenceRaceError: mocked 23P01 on occ1 → outer tx commits occ0+occ2', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+
+    // Create a fresh aircraft.
+    const aircraft = await createResourceWithDb(db, sess, {
+      kind: 'aircraft',
+      displayName: 'N-RaceB',
+      tailNumber: 'N-RB1',
+    });
+
+    // 3-occurrence series: Mon Jan 5, 12, 19 2026 at 10:00–11:00Z.
+    const occ0Start = new Date('2026-01-05T10:00:00Z');
+    const occ1Start = new Date('2026-01-12T10:00:00Z');
+    const occ2Start = new Date('2026-01-19T10:00:00Z');
+
+    // Mock gatedCreateOccurrence to throw OccurrenceRaceError ONLY for occ1's
+    // window. This simulates what gatedCreateOccurrence would do if the
+    // EXCLUDE constraint fired post-INSERT (23P01) for that occurrence.
+    // For occ 0 and occ 2, the real gatedCreateOccurrence runs normally.
+    //
+    // Why this test would FAIL against old code:
+    //   Old code had no OccurrenceRaceError. The series loop's catch block was
+    //   `catch (err) { throw err; }` — a no-op rethrow. Any error escaping
+    //   the savepoint callback would propagate as a whole-series failure.
+    //   With the OLD code, if gatedCreateOccurrence threw OccurrenceRaceError
+    //   (which it didn't exist then), the series would abort rather than
+    //   catching it and continuing.
+    //
+    //   The OLD code's actual behavior for 23P01 was to catch 23P01 INSIDE
+    //   gatedCreateOccurrence, call reProbeInFreshTx on the already-aborted
+    //   savepoint, which poisoned the outer tx, and then the RELEASE SAVEPOINT
+    //   or next DB op would throw "current transaction is aborted".
+    //   OLD CODE result: whole series fails (throws), occ 0 and occ 2 NOT
+    //   committed → assertions fail.
+    //
+    // Why this test PASSES with new code:
+    //   New code: OccurrenceRaceError thrown from inside the savepoint callback.
+    //   Drizzle emits ROLLBACK TO SAVEPOINT. Series loop catches OccurrenceRace-
+    //   Error, re-probes on live parent tx, records occ 1 as skipped/conflict,
+    //   continues. Occ 0 and occ 2 committed in the outer tx.
+
+    // We spy on gatedCreateOccurrence in the internal module. Vitest's module
+    // mocking with vi.spyOn works when the test file imports the module as a
+    // namespace (`import * as internalModule`). Since the production module
+    // calls gatedCreateOccurrence directly (not via the namespace object),
+    // the spy won't intercept internal calls — BUT gatedCreateOccurrence IS
+    // called through the import in create-series.ts, which imports it by name.
+    // In vitest's ESM-aware mode with module hoisting, the spy intercepts the
+    // binding in the consuming module (create-series.ts) because vitest rewrites
+    // the module to use live bindings.
+    //
+    // If spying on the internal function cannot intercept the call in the
+    // consuming module, we use an alternative: spy on `internalModule.gatedCreate-
+    // Occurrence` which IS the function called from create-series.ts's import
+    // (same binding after vitest's module rewrite). We wrap it to throw
+    // OccurrenceRaceError for occ1's startAt only.
+
+    const realGatedCreateOccurrence = internalModule.gatedCreateOccurrence;
+    let callCount = 0;
+
+    vi.spyOn(internalModule, 'gatedCreateOccurrence').mockImplementation(
+      async (tx, sessionArg, dbArg, input, nowArg) => {
+        callCount++;
+        if (input.startAt.getTime() === occ1Start.getTime()) {
+          // Simulate the 23P01 race: throw OccurrenceRaceError.
+          throw new internalModule.OccurrenceRaceError(
+            input.startAt,
+            input.endAt,
+            input.resourceIds,
+            new Error('simulated 23P01'),
+          );
+        }
+        // All other occurrences: use the real implementation.
+        return realGatedCreateOccurrence(tx, sessionArg, dbArg, input, nowArg);
+      },
+    );
+
+    const result = await createSeriesWithDb(
+      db,
+      sess,
+      makeSeriesInput([aircraft.id], {
+        weekdays: [1], // Monday only
+        end: { kind: 'count', count: 3 },
+      }),
+      { now: BASE_NOW },
+    );
+
+    // The mock must have been called (3 occurrences).
+    expect(callCount).toBe(3);
+
+    // Primary assertion: series succeeded (no whole-tx abort).
+    expect(result.ok).toBe(true);
+
+    // Occ 1 (Jan 12) must be skipped with reason:'conflict'.
+    const occ1Report = result.occurrences.find(
+      (o) => o.startAt.getTime() === occ1Start.getTime(),
+    );
+    expect(occ1Report).toBeDefined();
+    expect(occ1Report!.result).toBe('skipped');
+    expect(occ1Report!.reason).toBe('conflict');
+    expect(occ1Report!.conflicts).toBeDefined();
+
+    // Occ 0 (Jan 5) and occ 2 (Jan 19) must be created.
+    const occ0Report = result.occurrences.find(
+      (o) => o.startAt.getTime() === occ0Start.getTime(),
+    );
+    const occ2Report = result.occurrences.find(
+      (o) => o.startAt.getTime() === occ2Start.getTime(),
+    );
+    expect(occ0Report).toBeDefined();
+    expect(occ0Report!.result).toBe('created');
+    expect(occ2Report).toBeDefined();
+    expect(occ2Report!.result).toBe('created');
+
+    expect(result.createdCount).toBe(2);
+    expect(result.skippedCount).toBe(1);
+
+    // Durability: both created occurrences persisted in the DB.
+    const resvRows = await withOrgContext(db, orgAId, (tx) =>
+      tx.select().from(reservation).where(eq(reservation.seriesId, result.series.id)).execute(),
+    );
+    expect(resvRows).toHaveLength(2);
+    for (const r of resvRows) {
+      expect(r.status).toBe('booked');
+    }
+
+    // Series row exists and is active.
+    const seriesRows = await withOrgContext(db, orgAId, (tx) =>
+      tx.select().from(reservationSeries).where(eq(reservationSeries.id, result.series.id)).execute(),
+    );
+    expect(seriesRows).toHaveLength(1);
+    expect(seriesRows[0]!.status).toBe('active');
   });
 });
 

@@ -29,8 +29,10 @@ import type { AppSession } from '../auth/types.js';
 import type { CreateReservationResult } from './types.js';
 import {
   ValidationError,
+  OccurrenceRaceError,
   parseReservationWindow,
   gatedCreateOccurrence,
+  reProbeInFreshTx,
 } from './internal.js';
 
 /** Input to createReservation. */
@@ -82,9 +84,32 @@ async function _createReservationImpl(
   //    race backstop per ADR-0004 — no SERIALIZABLE retry loop needed).
   //    Delegate the entire gated body to gatedCreateOccurrence (ADR-0006 §3.0).
   //    seriesId is not set (single-create: series_id IS NULL, byte-identical).
-  return withSessionOrgContextWithDb(db, session, (sess, tx) =>
-    gatedCreateOccurrence(tx, sess, db, { startAt, endAt, resourceIds, notes }, now),
-  );
+  //
+  //    ADR-0006 §3 single-create race path: if gatedCreateOccurrence throws
+  //    OccurrenceRaceError (23P01 fired post-INSERT), catch it here and re-probe
+  //    in a FRESH tx. The outer tx is poisoned and concluding; a fresh tx sees
+  //    the committed conflicting rows. Behavior is byte-identical to the prior
+  //    implementation (which re-probed inside gatedCreateOccurrence itself).
+  try {
+    return await withSessionOrgContextWithDb(db, session, (sess, tx) =>
+      gatedCreateOccurrence(tx, sess, db, { startAt, endAt, resourceIds, notes }, now),
+    );
+  } catch (err) {
+    if (err instanceof OccurrenceRaceError) {
+      // The outer tx is poisoned. Re-probe in a fresh tx to build the rich
+      // ConflictHit result (the committed conflicting rows are now visible).
+      // `session` is non-null here: requireCapability already checked it above.
+      const hits = await reProbeInFreshTx(
+        db,
+        session as NonNullable<typeof session>,
+        err.startAt,
+        err.endAt,
+        err.resourceIds,
+      );
+      return { ok: false, reason: 'conflict', conflicts: hits };
+    }
+    throw err;
+  }
 }
 
 // ─── App-code form ────────────────────────────────────────────────────────────

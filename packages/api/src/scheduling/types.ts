@@ -187,8 +187,6 @@ export interface SeriesOccurrenceReport {
   conflicts?: ConflictHit[];
   /** Populated when reason includes policy. */
   violations?: PolicyViolationView[];
-  /** True when the occurrence's UTC instant was resolved as DST-ambiguous. */
-  dstAdjusted?: boolean;
 }
 
 /**
@@ -228,7 +226,6 @@ export interface PreviewSeriesOccurrenceReport {
   reason?: 'conflict' | 'policy' | 'conflict_and_policy';
   conflicts?: ConflictHit[];
   violations?: PolicyViolationView[];
-  dstAdjusted?: boolean;
 }
 
 /**
