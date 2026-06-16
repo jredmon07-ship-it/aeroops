@@ -70,3 +70,43 @@ export function isReservationStatus(value: unknown): value is ReservationStatus 
     typeof value === 'string' && (RESERVATION_STATUSES as readonly string[]).includes(value)
   );
 }
+
+/**
+ * POLICY_VIOLATION_KINDS — canonical list of booking-policy violation kinds.
+ *
+ * Order matters and is the deterministic surfacing order of the policy
+ * predicate (see scheduling/policy.ts): duration → advance → lead → blackout.
+ *
+ * RUNTIME/CORE ONLY — this is NOT a pgEnum and is NEVER stored. A policy
+ * violation is an advisory, computed-at-evaluation result of
+ * `evaluateBookingPolicy`, not a persisted column (ADR-0005 invariant 2).
+ *
+ * SCOPE AMENDMENT (2026-06-16, founder): Slice 2a ships FOUR rules only.
+ * Required-tags / booking eligibility (and its `'missing_required_tag'` kind)
+ * is DEFERRED to a follow-up slice — do NOT add it here until then.
+ */
+export const POLICY_VIOLATION_KINDS = [
+  'max_duration_exceeded',
+  'too_far_in_advance',
+  'insufficient_lead_time',
+  'blackout_overlap',
+] as const;
+
+/** Union type of all valid policy-violation-kind strings. */
+export type PolicyViolationKind = (typeof POLICY_VIOLATION_KINDS)[number];
+
+/**
+ * isPolicyViolationKind — runtime type guard for PolicyViolationKind.
+ *
+ * Same contract as isResourceKind, over POLICY_VIOLATION_KINDS. Returns true
+ * only for an exact string member; false for non-strings, future/unknown
+ * kinds, and prototype-chain keys.
+ *
+ * @param value - Any unknown value from an untrusted source.
+ * @returns `true` if value is a valid PolicyViolationKind, `false` otherwise.
+ */
+export function isPolicyViolationKind(value: unknown): value is PolicyViolationKind {
+  return (
+    typeof value === 'string' && (POLICY_VIOLATION_KINDS as readonly string[]).includes(value)
+  );
+}

@@ -14,9 +14,33 @@
  *     cross-org resource) is a programmer/UX error and is THROWN as a
  *     ValidationError — distinct from a conflict so the caller can tell them
  *     apart (ADR-0004: conflict ≠ validation).
+ *   - A *policy violation* is a returned value `{ ok: false, reason: 'policy' }`,
+ *     never thrown (ADR-0005 invariant 9). Enriched with resourceDisplayName at
+ *     this layer ([DEFER-G] = yes); core stays resourceId-only.
  *   - authz / auth failures are thrown as ForbiddenError / UnauthenticatedError
  *     (from @aeroops/api) before any data access.
+ *
+ * ADDITIVE EXTENSION (SCHED-2a / ADR-0005):
+ *   CreateReservationResult gains two new arms ('policy', 'conflict_and_policy').
+ *   The existing 'conflict' arm is BYTE-IDENTICAL — no existing consumer breaks.
+ *   CheckConflictsResult extended with same two new arms in check-conflicts.ts.
  */
+
+import type { PolicyViolation } from '@aeroops/core';
+
+// Re-export PolicyViolation (sourced from @aeroops/core) so API callers do not
+// need to depend on @aeroops/core directly.
+export type { PolicyViolation };
+
+/**
+ * PolicyViolationView — core PolicyViolation enriched with resourceDisplayName
+ * at the API layer (ADR-0005 [DEFER-G]). Core stays resourceId-only; this view
+ * is what the UI and API test consumers see.
+ */
+export type PolicyViolationView = PolicyViolation & {
+  /** Human-readable resource name (resource.display_name). */
+  resourceDisplayName: string;
+};
 
 /**
  * ConflictHit — one colliding (resourceId × existing booked window) pair.
@@ -53,14 +77,23 @@ export interface CreatedReservation {
 }
 
 /**
- * CreateReservationResult — discriminated union.
- *   ok:true  → the reservation + all its join rows were committed.
- *   ok:false → at least one requested resource collided; NOTHING was written
- *              (all-or-nothing). `conflicts` names every colliding resource.
+ * CreateReservationResult — discriminated union (SCHED-1 arms BYTE-IDENTICAL).
+ *
+ *   ok:true                         → reservation + join rows committed.
+ *   ok:false reason:'conflict'      → at least one resource collided (FROZEN Slice-1 arm).
+ *                                     Nothing written. conflicts[] names every hit.
+ *   ok:false reason:'policy'        → policy gate refused; no conflict. (Slice-2a)
+ *                                     Nothing written. violations[] names every rule.
+ *   ok:false reason:'conflict_and_policy' → both gates fired. (Slice-2a)
+ *                                     Nothing written. Both arrays populated.
+ *
+ * Back-compat: callers checking `reason === 'conflict'` keep working unchanged.
  */
 export type CreateReservationResult =
   | { ok: true; reservation: CreatedReservation }
-  | { ok: false; reason: 'conflict'; conflicts: ConflictHit[] };
+  | { ok: false; reason: 'conflict'; conflicts: ConflictHit[] }
+  | { ok: false; reason: 'policy'; violations: PolicyViolationView[] }
+  | { ok: false; reason: 'conflict_and_policy'; conflicts: ConflictHit[]; violations: PolicyViolationView[] };
 
 /**
  * CancelResult — discriminated union.

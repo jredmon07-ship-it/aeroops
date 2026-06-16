@@ -58,6 +58,9 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0000_loud_prodigy.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0001_auth_credential.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0002_scheduling.sql'), 'utf-8'),
+  // 0003 required: createReservation now probes booking_policy + resource_blackout
+  // (SCHED-2a policy gate runs on every create; absent policy = open booking, Slice-1 preserved).
+  readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'), 'utf-8'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────
@@ -676,6 +679,7 @@ describe('CONFLICT: double-book rejected by EXCLUDE constraint', () => {
     expect(r2.ok).toBe(false);
     if (r2.ok) throw new Error('expected ok:false');
     expect(r2.reason).toBe('conflict');
+    if (r2.reason !== 'conflict') throw new Error('expected reason:conflict');
     expect(r2.conflicts).toHaveLength(1);
     expect(r2.conflicts[0]!.resourceId).toBe(aircraft.id);
     expect(r2.conflicts[0]!.resourceDisplayName).toBe('N-DoubleBook');
@@ -894,6 +898,7 @@ describe('CONFLICT: checkConflicts (advisory) — pure preview, no write', () =>
     expect(check.ok).toBe(false);
     if (check.ok) throw new Error('expected ok:false');
     expect(check.reason).toBe('conflict');
+    if (check.reason !== 'conflict') throw new Error('expected reason:conflict');
     expect(check.conflicts[0]!.resourceId).toBe(aircraft.id);
 
     // Assert row counts unchanged

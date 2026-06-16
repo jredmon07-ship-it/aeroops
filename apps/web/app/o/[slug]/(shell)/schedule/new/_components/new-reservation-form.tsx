@@ -30,7 +30,7 @@ import { ConflictBanner } from './conflict-banner';
 import { useConflictCheck } from '../_hooks/use-conflict-check';
 import { createReservationAction } from '../../actions';
 import { toDateInputValue } from '../../_utils/format-time';
-import type { ResourceRow, ConflictHit } from '@aeroops/api';
+import type { ResourceRow, ConflictHit, PolicyViolationView } from '@aeroops/api';
 
 interface NewReservationFormProps {
   resources: ResourceRow[];
@@ -71,6 +71,7 @@ export function NewReservationForm({
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [submitConflicts, setSubmitConflicts] = React.useState<ConflictHit[]>([]);
+  const [submitViolations, setSubmitViolations] = React.useState<PolicyViolationView[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
 
   // Dirty-form guard state
@@ -95,8 +96,8 @@ export function NewReservationForm({
     return ids;
   }, [aircraftId, instructorId]);
 
-  // Live conflict preview
-  const { state: conflictState, conflicts } = useConflictCheck({
+  // Live combined conflict + policy preview
+  const { state: conflictState, conflicts, policyViolations } = useConflictCheck({
     date,
     startTime,
     endTime,
@@ -172,6 +173,7 @@ export function NewReservationForm({
     e.preventDefault();
     setServerError(null);
     setSubmitConflicts([]);
+    setSubmitViolations([]);
 
     if (!validate()) return;
 
@@ -200,8 +202,18 @@ export function NewReservationForm({
       }
 
       if (!result.ok) {
-        // ok:false conflict result
-        setSubmitConflicts(result.conflicts);
+        // Map all four ok:false arms — render via banner with hard-block framing
+        if (result.reason === 'conflict_and_policy') {
+          setSubmitConflicts(result.conflicts);
+          setSubmitViolations(result.violations);
+        } else if (result.reason === 'policy') {
+          setSubmitConflicts([]);
+          setSubmitViolations(result.violations);
+        } else {
+          // reason === 'conflict' — FROZEN Slice-1 arm
+          setSubmitConflicts(result.conflicts);
+          setSubmitViolations([]);
+        }
         return;
       }
 
@@ -316,12 +328,13 @@ export function NewReservationForm({
           </Alert>
         )}
 
-        {/* Submit-conflict banner */}
-        {submitConflicts.length > 0 && (
+        {/* Submit-blocked banner (conflict and/or policy) */}
+        {(submitConflicts.length > 0 || submitViolations.length > 0) && (
           <ConflictBanner
             state="conflict"
             conflicts={[]}
             submitConflicts={submitConflicts}
+            submitViolations={submitViolations}
           />
         )}
 
@@ -464,9 +477,13 @@ export function NewReservationForm({
           />
         </div>
 
-        {/* Live conflict preview banner */}
-        {submitConflicts.length === 0 && (
-          <ConflictBanner state={conflictState} conflicts={conflicts} />
+        {/* Live combined conflict + policy preview banner */}
+        {submitConflicts.length === 0 && submitViolations.length === 0 && (
+          <ConflictBanner
+            state={conflictState}
+            conflicts={conflicts}
+            policyViolations={policyViolations}
+          />
         )}
 
         {/* Actions */}

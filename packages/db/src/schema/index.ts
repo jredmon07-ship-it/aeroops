@@ -4,7 +4,8 @@
  * Tenant-scoped tables (RLS ENABLE + FORCE in migration):
  *   org, location, appUser (table: app_user), membership, auditLog (table: audit_log),
  *   authCredential (table: auth_credential),
- *   resource, reservation, reservationResource (table: reservation_resource)
+ *   resource, reservation, reservationResource (table: reservation_resource),
+ *   bookingPolicy (table: booking_policy), resourceBlackout (table: resource_blackout)
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -51,3 +52,11 @@ export type {
   ReservationResourceSelect,
   ReservationResourceInsert,
 } from './reservation-resource.js';
+
+// Booking policies — tenant-scoped (SCHED-2a / Phase 1 Slice 2a)
+// NOTE: required_tags is DEFERRED (scope amendment 2026-06-16) — no required_tags column.
+export { bookingPolicy } from './booking-policy.js';
+export type { BookingPolicySelect, BookingPolicyInsert } from './booking-policy.js';
+
+export { resourceBlackout } from './resource-blackout.js';
+export type { ResourceBlackoutSelect, ResourceBlackoutInsert } from './resource-blackout.js';

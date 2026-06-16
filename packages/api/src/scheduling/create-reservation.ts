@@ -33,6 +33,7 @@ import {
   ValidationError,
   parseReservationWindow,
   runConflictProbe,
+  runPolicyProbe,
   isExclusionViolation,
   toIso,
 } from './internal.js';
@@ -45,6 +46,15 @@ export interface CreateReservationInput {
   notes?: string;
 }
 
+/**
+ * CreateReservationOptions — internal options bag.
+ * `now` is injected (epoch ms) for deterministic tests; defaults to Date.now()
+ * in the app-code form. See ADR-0005 invariant 2 (pure core, injected clock).
+ */
+interface CreateReservationOptions {
+  now?: number;
+}
+
 // Kinds that are bookable in Slice 1. sim/room/vehicle are forward-compat data
 // but are rejected here until their slice ships (ADR-0004 §Forward-compat).
 const BOOKABLE_KINDS = new Set<string>(['aircraft', 'instructor']);
@@ -55,7 +65,12 @@ async function _createReservationImpl(
   db: AnyDb,
   session: AppSession | null | undefined,
   input: CreateReservationInput,
+  opts?: CreateReservationOptions,
 ): Promise<CreateReservationResult> {
+  // Capture `now` once at impl top. Default to Date.now(); injectable for tests
+  // (ADR-0005 invariant 2 — core stays pure, clock injected at this boundary).
+  const now = opts?.now ?? Date.now();
+
   // 1. AUTHZ FIRST — before any data access. Throws Forbidden/Unauthenticated.
   requireCapability(session, 'schedule:create_reservation');
 
@@ -98,9 +113,34 @@ async function _createReservationImpl(
       }
     }
 
+    // The ordered list of valid resource rows (id + displayName) for the probe.
+    const validResourceRows = resourceIds.map((id) => {
+      const r = byId.get(id)!;
+      return { id: r.id, displayName: r.displayName };
+    });
+
     // 3b. PRE-CHECK conflicts via the overlap probe (for a rich message + to not
     //     rely solely on the constraint). If any hit → roll back / no write.
     const preHits = await runConflictProbe(tx, startAt, endAt, resourceIds);
+
+    // 3a.5 POLICY PROBE — runs alongside the conflict pre-check (ADR-0005).
+    //     Per resource: load booking_policy (0..1) + resource_blackout rows
+    //     overlapping [start, end); call evaluateBookingPolicy with injected now.
+    //     Returns all violations enriched with resourceDisplayName.
+    //     NO actor-tag load (required_tags DEFERRED — Scope Amendment 2026-06-16).
+    const violations = await runPolicyProbe(tx, startAt, endAt, validResourceRows, now);
+
+    // Refusal precedence: if EITHER gate fires, refuse before any INSERT.
+    //   conflict only     → existing Slice-1 arm (BYTE-IDENTICAL, FROZEN).
+    //   policy only       → new Slice-2a arm.
+    //   conflict + policy → new Slice-2a arm reporting both arrays.
+    //   both clean        → fall through to INSERT (step 3c).
+    if (preHits.length > 0 && violations.length > 0) {
+      return { ok: false, reason: 'conflict_and_policy', conflicts: preHits, violations };
+    }
+    if (violations.length > 0) {
+      return { ok: false, reason: 'policy', violations };
+    }
     if (preHits.length > 0) {
       return { ok: false, reason: 'conflict', conflicts: preHits };
     }
@@ -196,7 +236,7 @@ async function _createReservationImpl(
 }
 
 /**
- * rePropbeAfterRace — re-run the conflict probe in a FRESH transaction after a
+ * reProbeAfterRace — re-run the conflict probe in a FRESH transaction after a
  * 23P01. The original transaction is aborted (poisoned by the failed INSERT),
  * so we cannot query inside it; we open a new withSessionOrgContext to read the
  * now-committed colliding rows.
@@ -221,7 +261,7 @@ async function reProbeAfterRace(
  * @param session - AppSession from auth(); null/undefined → UnauthenticatedError.
  * @param input   - window + resourceIds (+ optional notes).
  * @returns CreateReservationResult — ok:true with the reservation, or
- *          ok:false reason:'conflict' with the colliding resource(s).
+ *          ok:false reason:'conflict'|'policy'|'conflict_and_policy'.
  * @throws  UnauthenticatedError | ForbiddenError | ValidationError.
  */
 export async function createReservation(
@@ -234,11 +274,15 @@ export async function createReservation(
 
 // ─── Test/injectable form ─────────────────────────────────────────────────────
 
-/** createReservationWithDb — test form; inject a pglite client. */
+/**
+ * createReservationWithDb — test form; inject a pglite client.
+ * `opts.now` accepts an injected epoch-ms clock for deterministic policy tests.
+ */
 export async function createReservationWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   input: CreateReservationInput,
+  opts?: { now?: number },
 ): Promise<CreateReservationResult> {
-  return _createReservationImpl(db, session, input);
+  return _createReservationImpl(db, session, input, opts);
 }

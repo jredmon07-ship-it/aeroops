@@ -102,4 +102,49 @@ export type {
   CreatedReservation,
   CreateReservationResult,
   CancelResult,
+  // Policy types — re-exported from @aeroops/core (via types.ts) for API callers.
+  PolicyViolation,
+  PolicyViolationView,
 } from './scheduling/types.js';
+
+// ─── Booking policies + blackouts (Slice 2a — SCHED-2a, ADR-0005) ────────────
+// Admin commands for per-resource booking policies and blackout windows.
+// Both fn (app code) + fnWithDb (tests) forms. Authz: schedule:manage_resources.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  getBookingPolicy,
+  getBookingPolicyWithDb,
+  upsertBookingPolicy,
+  upsertBookingPolicyWithDb,
+  clearBookingPolicy,
+  clearBookingPolicyWithDb,
+} from './scheduling/booking-policy-commands.js';
+export type {
+  BookingPolicyView,
+  GetBookingPolicyInput,
+  UpsertBookingPolicyInput,
+  UpsertBookingPolicyResult,
+  ClearBookingPolicyInput,
+  ClearBookingPolicyResult,
+} from './scheduling/booking-policy-commands.js';
+
+export {
+  listBlackouts,
+  listBlackoutsWithDb,
+  createBlackout,
+  createBlackoutWithDb,
+  deleteBlackout,
+  deleteBlackoutWithDb,
+} from './scheduling/blackout-commands.js';
+export type {
+  BlackoutView,
+  ListBlackoutsInput,
+  CreateBlackoutInput,
+  CreateBlackoutResult,
+  DeleteBlackoutInput,
+  DeleteBlackoutResult,
+} from './scheduling/blackout-commands.js';
+
+// NOTE: CheckConflictsResult (now four-arm) is already re-exported at line 75
+// via the checkConflicts export block — no duplicate needed here.

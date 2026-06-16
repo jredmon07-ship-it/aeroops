@@ -16,10 +16,28 @@ export type { Capability } from './capabilities.js';
 export {
   RESOURCE_KINDS,
   RESERVATION_STATUSES,
+  POLICY_VIOLATION_KINDS,
   isResourceKind,
   isReservationStatus,
+  isPolicyViolationKind,
 } from './scheduling/enums.js';
-export type { ResourceKind, ReservationStatus } from './scheduling/enums.js';
+export type {
+  ResourceKind,
+  ReservationStatus,
+  PolicyViolationKind,
+} from './scheduling/enums.js';
 
 export { intervalsOverlap, findConflicts } from './scheduling/overlap.js';
 export type { ConflictCandidate, ExistingBooking } from './scheduling/overlap.js';
+
+export { evaluateBookingPolicy } from './scheduling/policy.js';
+export type {
+  BookingPolicy,
+  BlackoutWindow,
+  PolicyCandidate,
+  PolicyViolation,
+  MaxDurationExceededViolation,
+  TooFarInAdvanceViolation,
+  InsufficientLeadTimeViolation,
+  BlackoutOverlapViolation,
+} from './scheduling/policy.js';
