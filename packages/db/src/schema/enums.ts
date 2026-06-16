@@ -12,6 +12,11 @@
  * RECURRENCE_FREQS, RECURRENCE_END_KINDS, RESERVATION_SERIES_STATUSES are
  * imported from @aeroops/core for the Slice 2b recurrence schema (ADR-0006).
  * The DB pgEnums and application-layer types are guaranteed in sync.
+ *
+ * DISPATCH_STATUSES is imported from @aeroops/core for the Slice 3a dispatch
+ * schema (ADR-0007). The DB pgEnum and application-layer types are guaranteed
+ * in sync. Three values: 'open' (checked out), 'closed' (checked in),
+ * 'voided' (mistaken check-out abandoned while open).
  */
 import { pgEnum } from 'drizzle-orm/pg-core';
 import {
@@ -21,6 +26,7 @@ import {
   RECURRENCE_FREQS,
   RECURRENCE_END_KINDS,
   RESERVATION_SERIES_STATUSES,
+  DISPATCH_STATUSES,
 } from '@aeroops/core';
 
 /**
@@ -72,3 +78,20 @@ export const reservationSeriesStatus = pgEnum(
   'reservation_series_status',
   RESERVATION_SERIES_STATUSES,
 );
+
+/**
+ * dispatchStatus — Postgres enum `dispatch_status`.
+ * Derived from the @aeroops/core DISPATCH_STATUSES tuple (ADR-0007, Slice 3a).
+ * Three values: 'open' (checked out, aircraft released), 'closed' (checked in,
+ * meters IN + derived flight time recorded), 'voided' (mistaken check-out
+ * abandoned while open — audited tombstone, frees the aircraft).
+ *
+ * The only valid transitions are open→closed and open→voided. Meters are
+ * write-once; closed→voided correction is NOT in 3a (deferred to a future
+ * append-only dispatch_ticket_correction table — ADR-0007 §1).
+ *
+ * The partial UNIQUE index on (resource_id) WHERE (status='open') enforces the
+ * one-open-per-aircraft backstop using only 'open' — 'closed' and 'voided'
+ * rows never participate (ADR-0007 §2).
+ */
+export const dispatchStatus = pgEnum('dispatch_status', DISPATCH_STATUSES);

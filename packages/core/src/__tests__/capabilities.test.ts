@@ -138,30 +138,36 @@ describe('7. ROLE_CAPABILITIES exhaustiveness', () => {
 // ─── 8. capabilitiesForRole ──────────────────────────────────────────────────
 
 describe('8. capabilitiesForRole', () => {
-  it('owner returns app + org + all three schedule capabilities', () => {
+  it('owner returns app + dispatch:access + dispatch:create + org + all three schedule capabilities', () => {
     const caps = capabilitiesForRole('owner');
     expect(caps).toContain('app:access');
+    expect(caps).toContain('dispatch:access');
+    expect(caps).toContain('dispatch:create');
     expect(caps).toContain('org:manage_settings');
     expect(caps).toContain('schedule:access');
     expect(caps).toContain('schedule:create_reservation');
     expect(caps).toContain('schedule:manage_resources');
-    expect(caps.length).toBe(5);
+    expect(caps.length).toBe(7);
   });
 
-  it('manager returns app + org + all three schedule capabilities', () => {
+  it('manager returns app + dispatch:access + dispatch:create + org + all three schedule capabilities', () => {
     const caps = capabilitiesForRole('manager');
     expect(caps).toContain('app:access');
+    expect(caps).toContain('dispatch:access');
+    expect(caps).toContain('dispatch:create');
     expect(caps).toContain('org:manage_settings');
     expect(caps).toContain('schedule:access');
     expect(caps).toContain('schedule:create_reservation');
     expect(caps).toContain('schedule:manage_resources');
-    expect(caps.length).toBe(5);
+    expect(caps.length).toBe(7);
   });
 
   it('student returns only app:access', () => {
     const caps = capabilitiesForRole('student');
     expect(caps).toContain('app:access');
     expect(caps).not.toContain('org:manage_settings');
+    expect(caps).not.toContain('dispatch:access');
+    expect(caps).not.toContain('dispatch:create');
     expect(caps.length).toBe(1);
   });
 
@@ -210,12 +216,22 @@ describe('10. CAPABILITIES array', () => {
     expect(CAPABILITIES).toContain('schedule:manage_resources');
   });
 
-  it('has exactly 5 capabilities (Phase 0 + SCHED-1 schedule:*)', () => {
-    expect(CAPABILITIES.length).toBe(5);
+  it('contains the two DISPATCH-3a dispatch capabilities', () => {
+    expect(CAPABILITIES).toContain('dispatch:access');
+    expect(CAPABILITIES).toContain('dispatch:create');
+  });
+
+  it('has exactly 7 capabilities (Phase 0 + SCHED-1 schedule:* + DISPATCH-3a dispatch:*)', () => {
+    expect(CAPABILITIES.length).toBe(7);
   });
 
   it('has no duplicate capabilities', () => {
     expect(new Set(CAPABILITIES).size).toBe(CAPABILITIES.length);
+  });
+
+  it('is sorted alphabetically', () => {
+    const sorted = [...CAPABILITIES].sort();
+    expect([...CAPABILITIES]).toEqual(sorted);
   });
 });
 
@@ -240,6 +256,8 @@ describe('11. Adversarial: prototype-key and empty-string roles are fail-closed 
     });
 
     for (const cap of [
+      'dispatch:access',
+      'dispatch:create',
       'schedule:access',
       'schedule:create_reservation',
       'schedule:manage_resources',
@@ -299,6 +317,58 @@ describe('12. isMembershipRole', () => {
   it('returns false for boolean', () => {
     expect(isMembershipRole(true)).toBe(false);
     expect(isMembershipRole(false)).toBe(false);
+  });
+});
+
+// ─── 13. DISPATCH-3a dispatch:* capabilities — exact grants ──────────────────
+
+describe('13b. DISPATCH-3a dispatch:* capabilities', () => {
+  const DISPATCH_GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'cfi'];
+  const DISPATCH_EXCLUDED: MembershipRole[] = ['mechanic', 'renter', 'student', 'accountant'];
+
+  describe('dispatch:access', () => {
+    for (const role of DISPATCH_GRANTED) {
+      it(`${role} HAS dispatch:access`, () => {
+        expect(can(role, 'dispatch:access')).toBe(true);
+      });
+    }
+    for (const role of DISPATCH_EXCLUDED) {
+      it(`${role} does NOT have dispatch:access`, () => {
+        expect(can(role, 'dispatch:access')).toBe(false);
+      });
+    }
+  });
+
+  describe('dispatch:create', () => {
+    for (const role of DISPATCH_GRANTED) {
+      it(`${role} HAS dispatch:create`, () => {
+        expect(can(role, 'dispatch:create')).toBe(true);
+      });
+    }
+    for (const role of DISPATCH_EXCLUDED) {
+      it(`${role} does NOT have dispatch:create`, () => {
+        expect(can(role, 'dispatch:create')).toBe(false);
+      });
+    }
+  });
+
+  it('dispatch:access grant set equals dispatch:create grant set', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'dispatch:access')).toBe(can(role, 'dispatch:create'));
+    }
+  });
+
+  it('dispatch:access grant set equals schedule:access grant set', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'dispatch:access')).toBe(can(role, 'schedule:access'));
+    }
+  });
+
+  it('excluded roles (mechanic/renter/student/accountant) have NEITHER dispatch cap', () => {
+    for (const role of DISPATCH_EXCLUDED) {
+      expect(can(role, 'dispatch:access')).toBe(false);
+      expect(can(role, 'dispatch:create')).toBe(false);
+    }
   });
 });
 

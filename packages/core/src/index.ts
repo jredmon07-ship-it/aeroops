@@ -54,6 +54,8 @@ export type {
   BlackoutOverlapViolation,
 } from './scheduling/policy.js';
 
+export { deriveFlightTime } from './dispatch/flight-time.js';
+
 export { expandRecurrence } from './scheduling/recurrence.js';
 export type {
   ZonedToUtc,
