@@ -7,6 +7,10 @@
  *  - Optimistic move → rescheduleAction → ok:true confirm / ok:false snap-back
  *  - "Move to…" dialog (keyboard/mobile path; fully functional fallback)
  *  - Live regions for a11y feedback
+ *  - Dispatch dialogs (Slice 3a — ADDITIVE, 2c wiring untouched):
+ *      CheckOutDialog, CheckInDialog, VoidDispatchDialog
+ *  - Local dispatch ticket map — updated optimistically on dialog success
+ *    then confirmed by router.refresh() (or local state update).
  *
  * BOUNDARY: imports only from '@aeroops/api'; never '@aeroops/db'.
  * DnD: native HTML5 only, no npm dependency.
@@ -22,6 +26,9 @@ import { BoardTimeAxis, TRACK_WIDTH_PX } from './board-time-axis';
 import { BoardGutter } from './board-gutter';
 import { BoardResourceRow } from './board-resource-row';
 import { MoveReservationDialog } from './move-reservation-dialog';
+import { CheckOutDialog } from './check-out-dialog';
+import { CheckInDialog } from './check-in-dialog';
+import { VoidDispatchDialog } from './void-dispatch-dialog';
 import {
   fanOutBlocks,
   groupResourcesByKind,
@@ -29,7 +36,7 @@ import {
 import { rescheduleAction } from '../../actions';
 import { formatDate, formatTimeRange } from '../../_utils/format-time';
 import { reservationHue } from './board-block';
-import type { ReservationRow, ResourceRow, ConflictHit, PolicyViolationView } from '@aeroops/api';
+import type { ReservationRow, ResourceRow, ConflictHit, PolicyViolationView, DispatchTicketView } from '@aeroops/api';
 import type { BoardBlock } from '../_utils/board-layout';
 
 // ─── DnD transfer data ────────────────────────────────────────────────────────
@@ -60,6 +67,14 @@ interface DispatchBoardProps {
   resources: ResourceRow[];
   date: Date;
   canDrag: boolean;
+  /** Whether the current user has dispatch:create. Controls action button visibility. */
+  canDispatch: boolean;
+  /**
+   * Serialized dispatch ticket map from the RSC page: array of
+   * [reservationId, DispatchTicketView|null] pairs (JSON-serializable).
+   * The client reconstructs a Map<string, DispatchTicketView|null> from this.
+   */
+  initialDispatchTickets: Array<[string, DispatchTicketView | null]>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -69,6 +84,8 @@ export function DispatchBoard({
   resources,
   date,
   canDrag,
+  canDispatch,
+  initialDispatchTickets,
 }: DispatchBoardProps) {
   const router = useRouter();
 
@@ -80,6 +97,13 @@ export function DispatchBoard({
   const [ariaSuccess, setAriaSuccess] = React.useState('');
   const [ariaRefused, setAriaRefused] = React.useState('');
   const [isBoardBusy, setIsBoardBusy] = React.useState(false);
+
+  // ── Dispatch ticket map (Slice 3a) ─────────────────────────────────────────
+  // Reconstructed from the serialized RSC prop; updated locally on dialog success
+  // then confirmed by router.refresh() which re-fetches from the server.
+  const [dispatchTickets, setDispatchTickets] = React.useState<
+    Map<string, DispatchTicketView | null>
+  >(() => new Map(initialDispatchTickets));
 
   // ── DnD state ──────────────────────────────────────────────────────────────
   const [dragPayload, setDragPayload] = React.useState<DragPayload | null>(null);
@@ -100,6 +124,21 @@ export function DispatchBoard({
   const [dialogConflicts, setDialogConflicts] = React.useState<ConflictHit[] | null>(null);
   const [dialogViolations, setDialogViolations] = React.useState<PolicyViolationView[] | null>(null);
   const [dialogSubmitting, setDialogSubmitting] = React.useState(false);
+
+  // ── Dispatch dialog state (Slice 3a) ───────────────────────────────────────
+  // Check-out dialog
+  const [checkOutOpen, setCheckOutOpen] = React.useState(false);
+  const [checkOutBlock, setCheckOutBlock] = React.useState<BoardBlock | null>(null);
+
+  // Check-in dialog
+  const [checkInOpen, setCheckInOpen] = React.useState(false);
+  const [checkInBlock, setCheckInBlock] = React.useState<BoardBlock | null>(null);
+  const [checkInTicket, setCheckInTicket] = React.useState<DispatchTicketView | null>(null);
+
+  // Void dialog
+  const [voidOpen, setVoidOpen] = React.useState(false);
+  const [voidBlock, setVoidBlock] = React.useState<BoardBlock | null>(null);
+  const [voidTicket, setVoidTicket] = React.useState<DispatchTicketView | null>(null);
 
   // ── Computed ───────────────────────────────────────────────────────────────
   const dayStartMs = React.useMemo(() => {
@@ -543,6 +582,60 @@ export function DispatchBoard({
     }
   }
 
+  // ── Dispatch dialog handlers (Slice 3a, additive) ─────────────────────────
+
+  function handleCheckOut(block: BoardBlock) {
+    setCheckOutBlock(block);
+    setCheckOutOpen(true);
+  }
+
+  function handleCheckIn(block: BoardBlock, ticket: DispatchTicketView) {
+    setCheckInBlock(block);
+    setCheckInTicket(ticket);
+    setCheckInOpen(true);
+  }
+
+  function handleVoidClick(block: BoardBlock, ticket: DispatchTicketView) {
+    setVoidBlock(block);
+    setVoidTicket(ticket);
+    setVoidOpen(true);
+  }
+
+  function handleCheckOutSuccess(ticket: DispatchTicketView) {
+    // Update local map optimistically; router.refresh() syncs from server.
+    setDispatchTickets((prev) => {
+      const next = new Map(prev);
+      next.set(ticket.reservationId, ticket);
+      return next;
+    });
+    setAriaSuccess('Aircraft checked out.');
+    router.refresh();
+  }
+
+  function handleCheckInSuccess(ticket: DispatchTicketView) {
+    setDispatchTickets((prev) => {
+      const next = new Map(prev);
+      next.set(ticket.reservationId, ticket);
+      return next;
+    });
+    setAriaSuccess('Aircraft checked in.');
+    router.refresh();
+  }
+
+  function handleVoidSuccess() {
+    // The voided reservation's ticket is now voided (getDispatchForReservation
+    // returns null for voided tickets per spec §3.4 "latest non-voided").
+    if (voidBlock) {
+      setDispatchTickets((prev) => {
+        const next = new Map(prev);
+        next.set(voidBlock.reservationId, null);
+        return next;
+      });
+    }
+    setAriaSuccess('Check-out voided. Aircraft is now free.');
+    router.refresh();
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   const isDragActive = dragPayload !== null;
 
@@ -671,6 +764,7 @@ export function DispatchBoard({
                     resource={resource}
                     blocks={blocksByResource.get(resource.id) ?? []}
                     canDrag={canDrag}
+                    canDispatch={canDispatch}
                     isDragActive={isDragActive}
                     draggedReservationId={draggedReservationId}
                     hoveredReservationId={hoveredReservationId}
@@ -681,11 +775,15 @@ export function DispatchBoard({
                       hoveredDropResourceId === resource.id ? snapPreview : null
                     }
                     dayStartMs={dayStartMs}
+                    dispatchTickets={dispatchTickets}
                     onBlockDragStart={handleBlockDragStart}
                     onBlockDragEnd={handleBlockDragEnd}
                     onHoverEnter={(id) => setHoveredReservationId(id)}
                     onHoverLeave={() => setHoveredReservationId(null)}
                     onMoveClick={handleMoveClick}
+                    onCheckOut={handleCheckOut}
+                    onCheckIn={handleCheckIn}
+                    onVoid={handleVoidClick}
                     onDropZoneDragOver={handleDropZoneDragOver}
                     onDropZoneDrop={handleDropZoneDrop}
                     onDropZoneDragLeave={handleDropZoneDragLeave}
@@ -715,6 +813,7 @@ export function DispatchBoard({
                     resource={resource}
                     blocks={blocksByResource.get(resource.id) ?? []}
                     canDrag={canDrag}
+                    canDispatch={canDispatch}
                     isDragActive={isDragActive}
                     draggedReservationId={draggedReservationId}
                     hoveredReservationId={hoveredReservationId}
@@ -725,11 +824,15 @@ export function DispatchBoard({
                       hoveredDropResourceId === resource.id ? snapPreview : null
                     }
                     dayStartMs={dayStartMs}
+                    dispatchTickets={dispatchTickets}
                     onBlockDragStart={handleBlockDragStart}
                     onBlockDragEnd={handleBlockDragEnd}
                     onHoverEnter={(id) => setHoveredReservationId(id)}
                     onHoverLeave={() => setHoveredReservationId(null)}
                     onMoveClick={handleMoveClick}
+                    onCheckOut={handleCheckOut}
+                    onCheckIn={handleCheckIn}
+                    onVoid={handleVoidClick}
                     onDropZoneDragOver={handleDropZoneDragOver}
                     onDropZoneDrop={handleDropZoneDrop}
                     onDropZoneDragLeave={handleDropZoneDragLeave}
@@ -760,6 +863,39 @@ export function DispatchBoard({
           setDialogViolations(null);
         }}
       />
+
+      {/* ── Dispatch dialogs (Slice 3a, additive) ─────────────────────── */}
+
+      {/* Check-out dialog — open when canDispatch + no current ticket */}
+      {checkOutBlock && (
+        <CheckOutDialog
+          open={checkOutOpen}
+          onOpenChange={setCheckOutOpen}
+          reservationId={checkOutBlock.reservationId}
+          resourceId={checkOutBlock.resourceId}
+          onSuccess={handleCheckOutSuccess}
+        />
+      )}
+
+      {/* Check-in dialog — open when canDispatch + ticket is 'open' */}
+      {checkInBlock && checkInTicket && (
+        <CheckInDialog
+          open={checkInOpen}
+          onOpenChange={setCheckInOpen}
+          ticket={checkInTicket}
+          onSuccess={handleCheckInSuccess}
+        />
+      )}
+
+      {/* Void dialog — open when canDispatch + ticket is 'open' */}
+      {voidBlock && voidTicket && (
+        <VoidDispatchDialog
+          open={voidOpen}
+          onOpenChange={setVoidOpen}
+          ticketId={voidTicket.id}
+          onSuccess={handleVoidSuccess}
+        />
+      )}
     </div>
   );
 }

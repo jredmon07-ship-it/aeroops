@@ -166,3 +166,26 @@ export function isReservationSeriesStatus(value: unknown): value is ReservationS
     (RESERVATION_SERIES_STATUSES as readonly string[]).includes(value)
   );
 }
+
+/**
+ * DISPATCH_STATUSES — lifecycle status of a dispatch ticket (Slice 3a, ADR-0007).
+ *
+ * Order matters (pgEnum insertion order; never reorder without a migration). The
+ * schema-engineer builds the `dispatch_status` pgEnum FROM this tuple.
+ *
+ * 'open' = checked out (aircraft released; meters OUT recorded; blocks a second
+ * open on the same aircraft via the partial-UNIQUE backstop). 'closed' = checked
+ * in (meters IN + derived flight time recorded; immutable). 'voided' = a mistaken
+ * check-out abandoned while open (audited tombstone; frees the aircraft). Meters
+ * are write-once; the only transitions are open→closed and open→voided (ADR-0007
+ * invariant 1).
+ */
+export const DISPATCH_STATUSES = ['open', 'closed', 'voided'] as const;
+
+/** Union type of all valid dispatch-status strings. */
+export type DispatchStatus = (typeof DISPATCH_STATUSES)[number];
+
+/** Runtime guard for DispatchStatus (same contract as isResourceKind). */
+export function isDispatchStatus(value: unknown): value is DispatchStatus {
+  return typeof value === 'string' && (DISPATCH_STATUSES as readonly string[]).includes(value);
+}

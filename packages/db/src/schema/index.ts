@@ -7,6 +7,7 @@
  *   resource, reservation, reservationResource (table: reservation_resource),
  *   bookingPolicy (table: booking_policy), resourceBlackout (table: resource_blackout),
  *   reservationSeries (table: reservation_series) — Slice 2b / ADR-0006
+ *   dispatchTicket (table: dispatch_ticket) — Slice 3a / ADR-0007
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -20,6 +21,7 @@ export {
   recurrenceFreq,
   recurrenceEndKind,
   reservationSeriesStatus,
+  dispatchStatus,
 } from './enums.js';
 
 // Tenant-scoped tables
@@ -75,3 +77,10 @@ export type {
   ReservationSeriesSelect,
   ReservationSeriesInsert,
 } from './reservation-series.js';
+
+// Dispatch tickets — tenant-scoped (DISPATCH-3a / Phase 1 Slice 3a, ADR-0007)
+export { dispatchTicket } from './dispatch-ticket.js';
+export type {
+  DispatchTicketSelect,
+  DispatchTicketInsert,
+} from './dispatch-ticket.js';

@@ -196,3 +196,38 @@ export type {
   RescheduleReservationInput,
   RescheduleResult,
 } from './scheduling/types.js';
+
+// ─── Slice 3a — Dispatch (DISPATCH-3a, ADR-0007) ──────────────────────────────
+// Dispatch ticket check-out (open) / check-in (close) / void + board read.
+// All write paths: authz dispatch:create FIRST; org_id from session; one audit
+// row each; meters write-once; 23505 (one-open) mapped to already_open.
+// Board read: authz dispatch:access; single ANY() query; RLS-scoped.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export { openDispatch, openDispatchWithDb } from './dispatch/open-dispatch.js';
+export type { OpenDispatchInput } from './dispatch/open-dispatch.js';
+
+export { closeDispatch, closeDispatchWithDb } from './dispatch/close-dispatch.js';
+export type { CloseDispatchInput } from './dispatch/close-dispatch.js';
+
+export { voidDispatch, voidDispatchWithDb } from './dispatch/void-dispatch.js';
+export type { VoidDispatchInput } from './dispatch/void-dispatch.js';
+
+export {
+  getDispatchForReservation,
+  getDispatchForReservationWithDb,
+  listDispatchPilots,
+  listDispatchPilotsWithDb,
+} from './dispatch/list-dispatch.js';
+export type {
+  GetDispatchForReservationInput,
+  DispatchPilotRow,
+} from './dispatch/list-dispatch.js';
+
+// Dispatch result/IO types (consumed by apps/web board actions + UI).
+export type {
+  DispatchTicketView,
+  OpenDispatchResult,
+  CloseDispatchResult,
+  VoidDispatchResult,
+} from './dispatch/types.js';

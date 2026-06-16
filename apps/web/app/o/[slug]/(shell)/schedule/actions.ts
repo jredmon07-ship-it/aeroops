@@ -35,6 +35,11 @@ import {
   listSeriesOccurrences,
   previewSeries,
   rescheduleReservation,
+  openDispatch,
+  closeDispatch,
+  voidDispatch,
+  getDispatchForReservation,
+  listDispatchPilots,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -45,6 +50,7 @@ import type {
   CheckConflictsResult,
   ResourceRow,
   OrgMemberRow,
+  DispatchPilotRow,
   BookingPolicyView,
   UpsertBookingPolicyResult,
   ClearBookingPolicyResult,
@@ -56,6 +62,10 @@ import type {
   ListSeriesOccurrencesResponse,
   PreviewSeriesResult,
   RescheduleResult,
+  OpenDispatchResult,
+  CloseDispatchResult,
+  VoidDispatchResult,
+  DispatchTicketView,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -289,6 +299,27 @@ export async function listOrgMembersAction(opts?: {
   }
 }
 
+// ─── listDispatchPilotsAction ─────────────────────────────────────────────────
+// Pilot picker for the dispatch check-out dialog, gated on dispatch:access so
+// CFIs (who lack schedule:manage_resources) can populate it.
+
+export type ListDispatchPilotsActionResult =
+  | { ok: true; pilots: DispatchPilotRow[] }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function listDispatchPilotsAction(): Promise<ListDispatchPilotsActionResult> {
+  const session = await auth();
+  try {
+    const pilots = await listDispatchPilots(session);
+    return { ok: true, pilots };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
 // ─── getBookingPolicyAction ───────────────────────────────────────────────────
 
 export type GetBookingPolicyActionResult =
@@ -509,6 +540,158 @@ export async function listSeriesOccurrencesAction(input: {
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── openDispatchAction ───────────────────────────────────────────────────────
+
+export type OpenDispatchActionResult =
+  | OpenDispatchResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * openDispatchAction — check out an aircraft (open a dispatch ticket).
+ *
+ * Maps:
+ *   ForbiddenError       → { error: 'forbidden' }
+ *   UnauthenticatedError → { error: 'unauthenticated' }
+ *   ValidationError      → { error: 'validation', message } (prefix stripped)
+ *   OpenDispatchResult   → passed through as-is (ok:true / ok:false arms)
+ *
+ * Capability gate enforced server-side by openDispatch (dispatch:create).
+ * canDispatch on the client is UI hide/show only.
+ */
+export async function openDispatchAction(input: {
+  reservationId: string;
+  resourceId: string;
+  pilotUserId: string;
+  hobbsOut: number;
+  tachOut: number;
+  notes?: string;
+}): Promise<OpenDispatchActionResult> {
+  const session = await auth();
+  try {
+    return await openDispatch(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── closeDispatchAction ──────────────────────────────────────────────────────
+
+export type CloseDispatchActionResult =
+  | CloseDispatchResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * closeDispatchAction — check in an aircraft (close a dispatch ticket).
+ *
+ * Maps:
+ *   ForbiddenError        → { error: 'forbidden' }
+ *   UnauthenticatedError  → { error: 'unauthenticated' }
+ *   ValidationError       → { error: 'validation', message } (prefix stripped;
+ *                           includes "Hobbs in must be >= Hobbs out" guard)
+ *   CloseDispatchResult   → passed through as-is
+ *
+ * Capability gate enforced server-side by closeDispatch (dispatch:create).
+ */
+export async function closeDispatchAction(input: {
+  ticketId: string;
+  hobbsIn: number;
+  tachIn: number;
+}): Promise<CloseDispatchActionResult> {
+  const session = await auth();
+  try {
+    return await closeDispatch(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── voidDispatchAction ───────────────────────────────────────────────────────
+
+export type VoidDispatchActionResult =
+  | VoidDispatchResult
+  | AuthErrorResult
+  | ServerErrorResult;
+
+/**
+ * voidDispatchAction — void a mistaken check-out (open → voided).
+ *
+ * Maps:
+ *   ForbiddenError       → { error: 'forbidden' }
+ *   UnauthenticatedError → { error: 'unauthenticated' }
+ *   VoidDispatchResult   → passed through as-is
+ *
+ * Capability gate enforced server-side by voidDispatch (dispatch:create).
+ * Requires an explicit confirm step in the UI (destructive action).
+ */
+export async function voidDispatchAction(input: {
+  ticketId: string;
+  reason: string;
+}): Promise<VoidDispatchActionResult> {
+  const session = await auth();
+  try {
+    return await voidDispatch(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── getDispatchForReservationAction ─────────────────────────────────────────
+
+export type GetDispatchForReservationActionResult =
+  | { ok: true; tickets: Array<[string, DispatchTicketView | null]> }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * getDispatchForReservationAction — fetch the latest non-voided dispatch ticket
+ * for each reservation on the board.
+ *
+ * Returns a serializable representation (array of [reservationId, ticket|null]
+ * pairs) so the RSC page can pass it through as JSON to the client component.
+ * The caller reconstructs a Map<string, DispatchTicketView|null> if needed.
+ *
+ * Maps:
+ *   ForbiddenError       → { error: 'forbidden' }
+ *   UnauthenticatedError → { error: 'unauthenticated' }
+ *   ValidationError      → { error: 'validation', message }
+ *
+ * Capability gate enforced server-side by getDispatchForReservation
+ * (dispatch:access — owner/manager/dispatcher/cfi).
+ */
+export async function getDispatchForReservationAction(input: {
+  reservationIds: string[];
+}): Promise<GetDispatchForReservationActionResult> {
+  const session = await auth();
+  try {
+    const map = await getDispatchForReservation(session, input);
+    return { ok: true, tickets: [...map.entries()] };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
     return { error: 'server' };
   }
 }
