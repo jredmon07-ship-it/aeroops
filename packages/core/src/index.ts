@@ -20,12 +20,14 @@ export {
   RECURRENCE_FREQS,
   RECURRENCE_END_KINDS,
   RESERVATION_SERIES_STATUSES,
+  DISPATCH_STATUSES,
   isResourceKind,
   isReservationStatus,
   isPolicyViolationKind,
   isRecurrenceFreq,
   isRecurrenceEndKind,
   isReservationSeriesStatus,
+  isDispatchStatus,
 } from './scheduling/enums.js';
 export type {
   ResourceKind,
@@ -34,6 +36,7 @@ export type {
   RecurrenceFreq,
   RecurrenceEndKind,
   ReservationSeriesStatus,
+  DispatchStatus,
 } from './scheduling/enums.js';
 
 export { intervalsOverlap, findConflicts } from './scheduling/overlap.js';
