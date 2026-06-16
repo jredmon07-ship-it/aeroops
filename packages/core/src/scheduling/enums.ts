@@ -110,3 +110,59 @@ export function isPolicyViolationKind(value: unknown): value is PolicyViolationK
     typeof value === 'string' && (POLICY_VIOLATION_KINDS as readonly string[]).includes(value)
   );
 }
+
+/**
+ * RECURRENCE_FREQS — recurrence frequency (Slice 2b, ADR-0006).
+ *
+ * Order matters (pgEnum insertion order; never reorder without a migration).
+ * The schema-engineer builds the `recurrence_freq` pgEnum FROM this tuple.
+ *
+ * SCOPE: Slice 2b supports WEEKLY only (daily = the all-7-weekdays subset of
+ * weekly). The tuple is single-valued on purpose; adding 'monthly'/'yearly'
+ * later is a data change, not an engine change — but is explicitly OUT of 2b.
+ */
+export const RECURRENCE_FREQS = ['weekly'] as const;
+
+/** Union type of all valid recurrence-frequency strings. */
+export type RecurrenceFreq = (typeof RECURRENCE_FREQS)[number];
+
+/**
+ * RECURRENCE_END_KINDS — how a recurrence series is bounded (ADR-0006).
+ *
+ * Exactly one of `count` (number of occurrences, ≤52) or `until` (a local
+ * calendar end date) bounds a series; this enum discriminates which.
+ * Backs the `recurrence_end_kind` pgEnum.
+ */
+export const RECURRENCE_END_KINDS = ['count', 'until'] as const;
+
+/** Union type of all valid recurrence-end-kind strings. */
+export type RecurrenceEndKind = (typeof RECURRENCE_END_KINDS)[number];
+
+/**
+ * RESERVATION_SERIES_STATUSES — lifecycle status of a recurrence series.
+ *
+ * 'active' on create; 'cancelled' after cancelSeries (which also cancels the
+ * future booked occurrences). Backs the `reservation_series_status` pgEnum.
+ */
+export const RESERVATION_SERIES_STATUSES = ['active', 'cancelled'] as const;
+
+/** Union type of all valid reservation-series-status strings. */
+export type ReservationSeriesStatus = (typeof RESERVATION_SERIES_STATUSES)[number];
+
+/** Runtime guard for RecurrenceFreq (same contract as isResourceKind). */
+export function isRecurrenceFreq(value: unknown): value is RecurrenceFreq {
+  return typeof value === 'string' && (RECURRENCE_FREQS as readonly string[]).includes(value);
+}
+
+/** Runtime guard for RecurrenceEndKind. */
+export function isRecurrenceEndKind(value: unknown): value is RecurrenceEndKind {
+  return typeof value === 'string' && (RECURRENCE_END_KINDS as readonly string[]).includes(value);
+}
+
+/** Runtime guard for ReservationSeriesStatus. */
+export function isReservationSeriesStatus(value: unknown): value is ReservationSeriesStatus {
+  return (
+    typeof value === 'string' &&
+    (RESERVATION_SERIES_STATUSES as readonly string[]).includes(value)
+  );
+}
