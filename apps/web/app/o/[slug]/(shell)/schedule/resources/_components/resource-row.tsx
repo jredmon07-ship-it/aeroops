@@ -1,8 +1,12 @@
 /**
  * resource-row.tsx — Single resource row in the resource admin list.
  *
- * Spec §5: compact Card p-4, tail number in font-mono, status badge,
+ * Spec §5 (Slice 1): compact Card p-4, tail number in font-mono, status badge,
  * Deactivate button on active rows only.
+ *
+ * Spec §3.1 (Slice 2a): "Booking rules" button opens the per-resource policy
+ * editor (BookingRulesDialog). Shown on ALL rows (active + inactive) so an
+ * inactive resource's existing rules remain visible and editable.
  */
 'use client';
 
@@ -11,6 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DeactivateResourceDialog } from './deactivate-resource-dialog';
+import { BookingRulesDialog } from './booking-rules-dialog';
 import type { ResourceRow } from '@aeroops/api';
 
 interface ResourceRowProps {
@@ -51,11 +56,16 @@ export function ResourceRowCard({ resource, onDeactivated }: ResourceRowProps) {
           </div>
         </div>
 
-        {/* Status + action */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Status + actions */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           <Badge variant={resource.active ? 'default' : 'secondary'}>
             {resource.active ? 'Active' : 'Inactive'}
           </Badge>
+          {/* Booking rules button — shown on all rows (active + inactive) */}
+          <BookingRulesDialog
+            resourceId={resource.id}
+            displayName={resource.displayName}
+          />
           {resource.active && (
             <DeactivateResourceDialog
               resourceId={resource.id}

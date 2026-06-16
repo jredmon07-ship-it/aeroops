@@ -24,6 +24,12 @@ import {
   createResource,
   deactivateResource,
   listOrgMembers,
+  getBookingPolicy,
+  upsertBookingPolicy,
+  clearBookingPolicy,
+  listBlackouts,
+  createBlackout,
+  deleteBlackout,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -34,6 +40,12 @@ import type {
   CheckConflictsResult,
   ResourceRow,
   OrgMemberRow,
+  BookingPolicyView,
+  UpsertBookingPolicyResult,
+  ClearBookingPolicyResult,
+  BlackoutView,
+  CreateBlackoutResult,
+  DeleteBlackoutResult,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -260,6 +272,142 @@ export async function listOrgMembersAction(opts?: {
   try {
     const members = await listOrgMembers(session, opts);
     return { ok: true, members };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── getBookingPolicyAction ───────────────────────────────────────────────────
+
+export type GetBookingPolicyActionResult =
+  | { ok: true; policy: BookingPolicyView | null }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function getBookingPolicyAction(input: {
+  resourceId: string;
+}): Promise<GetBookingPolicyActionResult> {
+  const session = await auth();
+  try {
+    const policy = await getBookingPolicy(session, input);
+    return { ok: true, policy };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── upsertBookingPolicyAction ────────────────────────────────────────────────
+
+export type UpsertBookingPolicyActionResult =
+  | UpsertBookingPolicyResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function upsertBookingPolicyAction(input: {
+  resourceId: string;
+  maxDurationMinutes?: number | null;
+  maxAdvanceDays?: number | null;
+  minAdvanceMinutes?: number | null;
+}): Promise<UpsertBookingPolicyActionResult> {
+  const session = await auth();
+  try {
+    return await upsertBookingPolicy(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── clearBookingPolicyAction ─────────────────────────────────────────────────
+
+export type ClearBookingPolicyActionResult =
+  | ClearBookingPolicyResult
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function clearBookingPolicyAction(input: {
+  resourceId: string;
+}): Promise<ClearBookingPolicyActionResult> {
+  const session = await auth();
+  try {
+    return await clearBookingPolicy(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── listBlackoutsAction ──────────────────────────────────────────────────────
+
+export type ListBlackoutsActionResult =
+  | { ok: true; blackouts: BlackoutView[] }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function listBlackoutsAction(input: {
+  resourceId: string;
+}): Promise<ListBlackoutsActionResult> {
+  const session = await auth();
+  try {
+    const blackouts = await listBlackouts(session, input);
+    return { ok: true, blackouts };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── createBlackoutAction ─────────────────────────────────────────────────────
+
+export type CreateBlackoutActionResult =
+  | CreateBlackoutResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function createBlackoutAction(input: {
+  resourceId: string;
+  startAt: Date;
+  endAt: Date;
+  reason?: string;
+}): Promise<CreateBlackoutActionResult> {
+  const session = await auth();
+  try {
+    return await createBlackout(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── deleteBlackoutAction ─────────────────────────────────────────────────────
+
+export type DeleteBlackoutActionResult =
+  | DeleteBlackoutResult
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function deleteBlackoutAction(input: {
+  blackoutId: string;
+}): Promise<DeleteBlackoutActionResult> {
+  const session = await auth();
+  try {
+    return await deleteBlackout(session, input);
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

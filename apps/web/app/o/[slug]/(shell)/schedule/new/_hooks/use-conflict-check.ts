@@ -1,27 +1,37 @@
 /**
- * use-conflict-check.ts — Debounced conflict preview hook.
+ * use-conflict-check.ts — Debounced combined conflict + policy preview hook.
  *
  * Fires checkConflictsAction with a 400ms debounce when date+start+end are
  * set, end > start, and at least one resource is selected.
  *
- * Returns { state, conflicts } where state is one of:
- *   'idle'     — form incomplete; no check fired.
- *   'checking' — debounce pending or request in-flight.
- *   'clear'    — check returned ok:true.
- *   'conflict' — check returned ok:false with conflicts[].
- *   'error'    — network/server error; submit stays enabled.
+ * Returns { state, conflicts, policyViolations } where state is one of:
+ *   'idle'              — form incomplete; no check fired.
+ *   'checking'          — debounce pending or request in-flight.
+ *   'clear'             — check returned ok:true (no conflicts, no violations).
+ *   'conflict'          — conflicts only (no policy violations).
+ *   'policy'            — policy violations only (no conflicts).
+ *   'conflict_and_policy' — both conflicts and policy violations present.
+ *   'error'             — network/server error; submit stays enabled.
  */
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { checkConflictsAction } from '../../actions';
-import type { ConflictHit } from '@aeroops/api';
+import type { ConflictHit, PolicyViolationView } from '@aeroops/api';
 
-export type ConflictCheckState = 'idle' | 'checking' | 'clear' | 'conflict' | 'error';
+export type ConflictCheckState =
+  | 'idle'
+  | 'checking'
+  | 'clear'
+  | 'conflict'
+  | 'policy'
+  | 'conflict_and_policy'
+  | 'error';
 
 export interface ConflictCheckResult {
   state: ConflictCheckState;
   conflicts: ConflictHit[];
+  policyViolations: PolicyViolationView[];
 }
 
 interface UseConflictCheckInput {
@@ -40,6 +50,7 @@ const DEBOUNCE_MS = 400;
 export function useConflictCheck(input: UseConflictCheckInput): ConflictCheckResult {
   const [state, setState] = useState<ConflictCheckState>('idle');
   const [conflicts, setConflicts] = useState<ConflictHit[]>([]);
+  const [policyViolations, setPolicyViolations] = useState<PolicyViolationView[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -58,6 +69,7 @@ export function useConflictCheck(input: UseConflictCheckInput): ConflictCheckRes
     if (!hasDate || !hasStart || !hasEnd || !hasResources) {
       setState('idle');
       setConflicts([]);
+      setPolicyViolations([]);
       return;
     }
 
@@ -68,6 +80,7 @@ export function useConflictCheck(input: UseConflictCheckInput): ConflictCheckRes
     if (isNaN(startAt.getTime()) || isNaN(endAt.getTime()) || endAt <= startAt) {
       setState('idle');
       setConflicts([]);
+      setPolicyViolations([]);
       return;
     }
 
@@ -88,20 +101,33 @@ export function useConflictCheck(input: UseConflictCheckInput): ConflictCheckRes
         if ('error' in result) {
           setState('error');
           setConflicts([]);
+          setPolicyViolations([]);
           return;
         }
 
         if (result.ok) {
           setState('clear');
           setConflicts([]);
+          setPolicyViolations([]);
+        } else if (result.reason === 'conflict_and_policy') {
+          setState('conflict_and_policy');
+          setConflicts(result.conflicts);
+          setPolicyViolations(result.violations);
+        } else if (result.reason === 'policy') {
+          setState('policy');
+          setConflicts([]);
+          setPolicyViolations(result.violations);
         } else {
+          // reason === 'conflict' — FROZEN Slice-1 arm
           setState('conflict');
           setConflicts(result.conflicts);
+          setPolicyViolations([]);
         }
       } catch {
         if (controller.signal.aborted) return;
         setState('error');
         setConflicts([]);
+        setPolicyViolations([]);
       }
     }, DEBOUNCE_MS);
 
@@ -111,5 +137,5 @@ export function useConflictCheck(input: UseConflictCheckInput): ConflictCheckRes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, startTime, endTime, resourceIds.join(',')]);
 
-  return { state, conflicts };
+  return { state, conflicts, policyViolations };
 }

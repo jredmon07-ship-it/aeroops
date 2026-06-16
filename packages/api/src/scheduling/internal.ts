@@ -2,21 +2,32 @@
  * scheduling/internal.ts — shared internals for the reservation write path.
  *
  * NOT exported from @aeroops/api. Holds:
- *   - ValidationError (distinct from conflict — see types.ts)
+ *   - ValidationError (distinct from conflict/policy — see types.ts)
  *   - the Zod input schema for create/check
- *   - buildDuringLiteral — the ONE sanctioned tstzrange '[)' representation
+ *   - toIso — Date → ISO-8601 string (the sanctioned clock boundary)
  *   - runConflictProbe — the core overlap query (powers preview + rich result)
  *   - isExclusionViolation — robust 23P01 detection across driver wrappings
+ *   - loadBookingPolicy — load 0..1 booking_policy row as core BookingPolicy
+ *   - loadBlackouts — load resource_blackout rows overlapping [start,end)
+ *   - runPolicyProbe — per-resource policy+blackout load + evaluateBookingPolicy;
+ *       returns PolicyViolationView[] (enriched with resourceDisplayName)
  *
  * ADR-0004: the EXCLUDE constraint is the authoritative no-double-book
  * guarantee; this probe is for UX/messaging and to avoid relying solely on the
  * constraint. Both use the identical half-open `[)` overlap definition so the
  * preview and the DB verdict cannot disagree.
+ *
+ * ADR-0005: the policy probe is the authoritative policy gate (single write
+ * path). Pure-core evaluateBookingPolicy receives an injected `now` (epoch ms)
+ * so it stays deterministic and testable.
  */
 import { z } from 'zod';
-import { sql } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
+import { bookingPolicy, resourceBlackout } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
-import type { ConflictHit } from './types.js';
+import { evaluateBookingPolicy } from '@aeroops/core';
+import type { BookingPolicy, BlackoutWindow } from '@aeroops/core';
+import type { ConflictHit, PolicyViolationView } from './types.js';
 
 // RFC-4122 UUID, version-agnostic (mirrors @aeroops/db's UUID_RE). zod v4's
 // z.uuid() strictly validates version/variant nibbles and would reject some
@@ -210,4 +221,128 @@ export function isExclusionViolation(err: unknown): boolean {
     cur = (cur as { cause?: unknown }).cause;
   }
   return false;
+}
+
+// ─── Policy probe (ADR-0005 — the second gate beside conflict detection) ───────
+
+/**
+ * loadBookingPolicy — load the optional booking_policy row for a resource,
+ * mapping it to the pure-core BookingPolicy shape (or null for open booking).
+ *
+ * Must run INSIDE withSessionOrgContext (RLS scopes rows to the session org).
+ * Returns null when no policy row exists → open booking, Slice-1 behaviour.
+ */
+export async function loadBookingPolicy(
+  tx: AnyDb,
+  resourceId: string,
+): Promise<BookingPolicy | null> {
+  const rows = await tx
+    .select({
+      maxDurationMinutes: bookingPolicy.maxDurationMinutes,
+      maxAdvanceDays: bookingPolicy.maxAdvanceDays,
+      minAdvanceMinutes: bookingPolicy.minAdvanceMinutes,
+    })
+    .from(bookingPolicy)
+    .where(eq(bookingPolicy.resourceId, resourceId))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    maxDurationMinutes: row.maxDurationMinutes ?? null,
+    maxAdvanceDays: row.maxAdvanceDays ?? null,
+    minAdvanceMinutes: row.minAdvanceMinutes ?? null,
+  };
+}
+
+/**
+ * loadBlackouts — load resource_blackout rows whose `during` overlaps the
+ * candidate window [startAt, endAt), returning them as BlackoutWindow[].
+ *
+ * Filter: `during && tstzrange($start, $end, '[)')` — same half-open semantics
+ * as the conflict probe's reservation_resource query.
+ *
+ * Must run INSIDE withSessionOrgContext (RLS scopes rows to the session org).
+ * ADR-0005 §4: blackouts are evaluated even when no policy row exists.
+ */
+export async function loadBlackouts(
+  tx: AnyDb,
+  resourceId: string,
+  startAt: Date,
+  endAt: Date,
+): Promise<BlackoutWindow[]> {
+  const startIso = toIso(startAt);
+  const endIso = toIso(endAt);
+
+  const result = await tx.execute(sql`
+    SELECT
+      lower(during) AS blackout_start,
+      upper(during) AS blackout_end
+    FROM resource_blackout
+    WHERE resource_id = ${resourceId}::uuid
+      AND during && tstzrange(${startIso}::timestamptz, ${endIso}::timestamptz, '[)')
+    ORDER BY lower(during)
+  `);
+
+  const rows = (result.rows ?? result) as unknown as Array<{
+    blackout_start: string | Date;
+    blackout_end: string | Date;
+  }>;
+
+  return rows.map((row) => ({
+    start:
+      row.blackout_start instanceof Date
+        ? row.blackout_start.getTime()
+        : new Date(row.blackout_start).getTime(),
+    end:
+      row.blackout_end instanceof Date
+        ? row.blackout_end.getTime()
+        : new Date(row.blackout_end).getTime(),
+  }));
+}
+
+/**
+ * runPolicyProbe — for each of the candidate's resources, load policy +
+ * blackouts (both RLS-scoped) and run evaluateBookingPolicy with the injected
+ * `now`. Returns all violations as PolicyViolationView[] (enriched with
+ * resourceDisplayName). Returns [] when all resources are policy-clean.
+ *
+ * @param tx           - Transaction (inside withSessionOrgContext).
+ * @param startAt      - Candidate window start.
+ * @param endAt        - Candidate window end.
+ * @param resourceRows - Already-loaded resource rows (id + displayName), from
+ *                       step 3a of create-reservation (avoids a second SELECT).
+ * @param now          - Injected current time in epoch ms (never Date.now() here).
+ */
+export async function runPolicyProbe(
+  tx: AnyDb,
+  startAt: Date,
+  endAt: Date,
+  resourceRows: Array<{ id: string; displayName: string }>,
+  now: number,
+): Promise<PolicyViolationView[]> {
+  const violations: PolicyViolationView[] = [];
+
+  for (const res of resourceRows) {
+    const [policy, blackouts] = await Promise.all([
+      loadBookingPolicy(tx, res.id),
+      loadBlackouts(tx, res.id, startAt, endAt),
+    ]);
+
+    const candidate = {
+      resourceId: res.id,
+      start: startAt.getTime(),
+      end: endAt.getTime(),
+    };
+
+    const rawViolations = evaluateBookingPolicy(candidate, policy, blackouts, now);
+
+    // Enrich each violation with the human-readable display name (ADR-0005 [DEFER-G]).
+    for (const v of rawViolations) {
+      violations.push({ ...v, resourceDisplayName: res.displayName });
+    }
+  }
+
+  return violations;
 }
