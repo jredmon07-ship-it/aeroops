@@ -63,5 +63,8 @@ RRULE string (rejected — opaque, unbounded surface); materialize-only without 
 ## Open question routed to compliance (non-blocking)
 **[VERIFY] Part 141:** does a *series-level* create/cancel need its own retained record beyond the per-occurrence `reservation.created`/`reservation.cancelled` audit rows we already write? Belief: per-occurrence audit suffices (each occurrence is a normal reservation); compliance confirms at the QA gate. Do not invent the rule.
 
+## Addendum — Slice 2c reschedule (2026-06-16)
+Per §6 forward-compat, **rescheduling one reservation = cancel-original + recreate through the shared `gatedCreateOccurrence`**, recorded here rather than in a new ADR (no new write path, no new gate, no schema change; `series_id` already nullable). Atomicity rule: in ONE `withSessionOrgContext` tx, cancel the original (freeing its window so an overlapping-self move does not self-conflict), then recreate at the new window/resources; if either gate refuses, **throw-to-rollback** so the original stays intact and booked (a plain return would commit the cancel). A rescheduled occurrence **detaches** from its series (`series_id` NULL). Audit linkage: `reservation.cancelled` (metadata `reason:'reschedule', rescheduledTo`) + the create's `reservation.created` + a dedicated `reservation.rescheduled` row carrying `rescheduledFrom`/window deltas. See `docs/specs/slice-2c-reschedule-board.md`.
+
 ## Links
 ADR-0001, ADR-0003, ADR-0004 (FROZEN), ADR-0005 (FROZEN; §6 seeds this), THE-BIBLE §2.1/§10.
