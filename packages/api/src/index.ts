@@ -59,3 +59,47 @@ export type {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export { getDashboardSummary, getDashboardSummaryWithDb } from './dashboard/get-dashboard-summary.js';
 export type { DashboardSummary } from './dashboard/get-dashboard-summary.js';
+
+// ─── Scheduling (Slice 1 — SCHED-1, ADR-0004) ─────────────────────────────────
+// Reservation write path (createReservation is the ONLY sanctioned insert path;
+// cancelReservation the only cancel path), the advisory conflict preview
+// (checkConflicts — commits nothing), resource management, and the read surface.
+// *WithDb forms are for test code only (inject a pglite client).
+export { createReservation, createReservationWithDb } from './scheduling/create-reservation.js';
+export type { CreateReservationInput } from './scheduling/create-reservation.js';
+
+export { cancelReservation, cancelReservationWithDb } from './scheduling/cancel-reservation.js';
+export type { CancelReservationInput } from './scheduling/cancel-reservation.js';
+
+export { checkConflicts, checkConflictsWithDb } from './scheduling/check-conflicts.js';
+export type { CheckConflictsInput, CheckConflictsResult } from './scheduling/check-conflicts.js';
+
+export {
+  createResource,
+  createResourceWithDb,
+  deactivateResource,
+  deactivateResourceWithDb,
+} from './scheduling/resource-commands.js';
+export type {
+  CreateResourceInput,
+  CreatedResource,
+  DeactivateResourceInput,
+  DeactivateResult,
+} from './scheduling/resource-commands.js';
+
+export { listResources, listResourcesWithDb } from './scheduling/list-resources.js';
+export type { ListResourcesOptions, ResourceRow } from './scheduling/list-resources.js';
+
+export { listReservations, listReservationsWithDb } from './scheduling/list-reservations.js';
+export type { ListReservationsInput, ReservationRow } from './scheduling/list-reservations.js';
+
+export { listOrgMembers, listOrgMembersWithDb } from './scheduling/list-org-members.js';
+export type { ListOrgMembersOptions, OrgMemberRow } from './scheduling/list-org-members.js';
+
+// Shared scheduling result/IO types (consumed by apps/web route handlers + UI).
+export type {
+  ConflictHit,
+  CreatedReservation,
+  CreateReservationResult,
+  CancelResult,
+} from './scheduling/types.js';

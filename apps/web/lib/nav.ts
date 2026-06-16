@@ -36,13 +36,25 @@ export interface NavItem {
  *
  * Order is intentional:
  *   1. Dashboard — always first; visible to all authenticated roles.
- *   2. Org settings — owner + manager only (org:manage_settings).
+ *   2. Reservations — Schedule hub entry point (schedule:access).
+ *   3. Resources — Resource admin (schedule:manage_resources only).
+ *   4. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {
     label: 'Dashboard',
     href: '/o/[slug]',
     requiredCapability: 'app:access',
+  },
+  {
+    label: 'Reservations',
+    href: '/o/[slug]/schedule',
+    requiredCapability: 'schedule:access',
+  },
+  {
+    label: 'Resources',
+    href: '/o/[slug]/schedule/resources',
+    requiredCapability: 'schedule:manage_resources',
   },
   {
     label: 'Org settings',
