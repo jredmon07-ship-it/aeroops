@@ -21,6 +21,15 @@
  * .references() cannot express multi-column FKs, so created_by and
  * cancelled_by carry NO .references().
  *
+ * series_id (nullable, Slice 2b / ADR-0006):
+ *   Links this occurrence to its parent reservation_series row.
+ *   NULL means a one-off reservation (single-create path — unchanged).
+ *   Composite FK (series_id, org_id) → reservation_series(id, org_id)
+ *   ON DELETE SET NULL is hand-written in migration 0004; Drizzle cannot
+ *   express multi-column FKs, so series_id carries NO .references() here.
+ *   ON DELETE SET NULL preserves audited occurrence rows if the series
+ *   is hard-deleted (records integrity — ADR-0006 §4).
+ *
  * cancelled_at / cancelled_by — populated when status transitions to
  * 'cancelled'. The EXCLUDE constraint WHERE (status='booked') means
  * cancelled rows never cause false conflicts.
@@ -55,6 +64,10 @@ export const reservation = pgTable(
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     // cancelled_by carries no .references() — composite FK hand-written in migration.
     cancelledBy: uuid('cancelled_by'),
+    // series_id carries no .references() — composite FK (series_id, org_id) →
+    // reservation_series(id, org_id) ON DELETE SET NULL is hand-written in
+    // migration 0004 (Slice 2b, ADR-0006). NULL = one-off reservation.
+    seriesId: uuid('series_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

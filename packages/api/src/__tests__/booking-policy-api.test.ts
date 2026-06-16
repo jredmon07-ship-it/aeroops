@@ -60,6 +60,9 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0001_auth_credential.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0002_scheduling.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'), 'utf-8'),
+  // 0004 required: reservation schema now includes series_id column (ADR-0006 Slice 2b).
+  // The Drizzle INSERT always emits series_id (DEFAULT) so the column must exist.
+  readFileSync(resolve(__dirname, '../../../db/migrations/0004_recurrence.sql'), 'utf-8'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────

@@ -22,12 +22,14 @@
  * so it stays deterministic and testable.
  */
 import { z } from 'zod';
-import { sql, eq, and } from 'drizzle-orm';
-import { bookingPolicy, resourceBlackout } from '@aeroops/db';
+import { sql, eq } from 'drizzle-orm';
+import { reservation, reservationResource, auditLog, bookingPolicy, resourceBlackout, resource } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
+import { withOrgContext } from '@aeroops/db';
 import { evaluateBookingPolicy } from '@aeroops/core';
 import type { BookingPolicy, BlackoutWindow } from '@aeroops/core';
-import type { ConflictHit, PolicyViolationView } from './types.js';
+import type { ConflictHit, PolicyViolationView, CreateReservationResult } from './types.js';
+import type { AppSession } from '../auth/types.js';
 
 // RFC-4122 UUID, version-agnostic (mirrors @aeroops/db's UUID_RE). zod v4's
 // z.uuid() strictly validates version/variant nibbles and would reject some
@@ -345,4 +347,202 @@ export async function runPolicyProbe(
   }
 
   return violations;
+}
+
+// ─── Bookable kinds (mirrors create-reservation.ts) ───────────────────────────
+
+/** Resource kinds that are bookable in Slice 1/2a/2b. */
+const BOOKABLE_KINDS = new Set<string>(['aircraft', 'instructor']);
+
+// ─── gatedCreateOccurrence ────────────────────────────────────────────────────
+
+/**
+ * GatedCreateInput — input to gatedCreateOccurrence.
+ * All fields come from the caller (createReservation or createSeries loop).
+ */
+export interface GatedCreateInput {
+  startAt: Date;
+  endAt: Date;
+  resourceIds: string[];
+  notes?: string;
+  /** Set by createSeries for each occurrence (NULL for single-create). */
+  seriesId?: string;
+}
+
+/**
+ * gatedCreateOccurrence — the shared per-occurrence gated create body.
+ *
+ * RUNS INSIDE A PROVIDED TX OR SAVEPOINT — does NOT open its own transaction.
+ * Shared by createReservation (1× in its own tx) and createSeries (N× in
+ * per-occurrence savepoints inside a single outer tx).
+ *
+ * Gates:
+ *   1. Resource validation: each resourceId must be visible, active, bookable kind.
+ *   2. Conflict pre-check (runConflictProbe).
+ *   3. Policy probe (runPolicyProbe).
+ *   4. Refusal precedence: conflict_and_policy > policy > conflict > INSERT.
+ *   5. INSERT reservation (with optional series_id) + join rows + audit_log.
+ *   6. 23P01 catch: re-probe in a FRESH tx via `db`, return conflict result.
+ *
+ * @param tx   - The current tx or savepoint (already has org GUC set).
+ * @param sess - The authenticated session (org_id, user_id, role).
+ * @param db   - The raw db handle (for 23P01 re-probe in a fresh tx).
+ * @param input - Window + resourceIds + optional notes/seriesId.
+ * @param now  - Injected epoch ms (never Date.now() inside this function).
+ */
+export async function gatedCreateOccurrence(
+  tx: AnyDb,
+  sess: AppSession,
+  db: AnyDb,
+  input: GatedCreateInput,
+  now: number,
+): Promise<CreateReservationResult> {
+  const { startAt, endAt, resourceIds, notes, seriesId } = input;
+
+  // Step A — load requested resources (RLS scopes to org via tx GUC).
+  const resourceRows = await tx
+    .select({
+      id: resource.id,
+      kind: resource.kind,
+      displayName: resource.displayName,
+      active: resource.active,
+    })
+    .from(resource);
+
+  const byId = new Map(resourceRows.map((r) => [r.id, r]));
+  for (const id of resourceIds) {
+    const r = byId.get(id);
+    if (!r) {
+      throw new ValidationError(
+        `[scheduling] resource ${id} not found in this org (or not visible).`,
+      );
+    }
+    if (!r.active) {
+      throw new ValidationError(`[scheduling] resource ${id} is inactive and cannot be booked.`);
+    }
+    if (!BOOKABLE_KINDS.has(r.kind)) {
+      throw new ValidationError(
+        `[scheduling] resource ${id} has kind '${r.kind}' which is not bookable in this slice ` +
+          `(only aircraft + instructor).`,
+      );
+    }
+  }
+
+  const validResourceRows = resourceIds.map((id) => {
+    const r = byId.get(id)!;
+    return { id: r.id, displayName: r.displayName };
+  });
+
+  // Step B — conflict pre-check.
+  const preHits = await runConflictProbe(tx, startAt, endAt, resourceIds);
+
+  // Step C — policy probe.
+  const violations = await runPolicyProbe(tx, startAt, endAt, validResourceRows, now);
+
+  // Step D — refusal precedence (byte-identical to create-reservation.ts).
+  if (preHits.length > 0 && violations.length > 0) {
+    return { ok: false, reason: 'conflict_and_policy', conflicts: preHits, violations };
+  }
+  if (violations.length > 0) {
+    return { ok: false, reason: 'policy', violations };
+  }
+  if (preHits.length > 0) {
+    return { ok: false, reason: 'conflict', conflicts: preHits };
+  }
+
+  // Step E — INSERT.
+  try {
+    const [resv] = await tx
+      .insert(reservation)
+      .values({
+        orgId: sess.orgId,
+        startAt,
+        endAt,
+        status: 'booked',
+        notes: notes ?? null,
+        createdBy: sess.userId,
+        seriesId: seriesId ?? null,
+      })
+      .returning({
+        id: reservation.id,
+        orgId: reservation.orgId,
+        startAt: reservation.startAt,
+        endAt: reservation.endAt,
+        notes: reservation.notes,
+        createdBy: reservation.createdBy,
+      });
+
+    const reservationId = resv!.id;
+    const startIso = toIso(startAt);
+    const endIso = toIso(endAt);
+
+    for (const resourceId of resourceIds) {
+      await tx.execute(sql`
+        INSERT INTO reservation_resource (org_id, reservation_id, resource_id, during, status)
+        VALUES (
+          ${sess.orgId}::uuid,
+          ${reservationId}::uuid,
+          ${resourceId}::uuid,
+          tstzrange(${startIso}::timestamptz, ${endIso}::timestamptz, '[)'),
+          'booked'
+        )
+      `);
+    }
+
+    await tx.insert(auditLog).values({
+      orgId: sess.orgId,
+      actorUserId: sess.userId,
+      action: 'reservation.created',
+      entityType: 'reservation',
+      entityId: reservationId,
+      metadata: {
+        resourceIds,
+        startAt: startIso,
+        endAt: endIso,
+        ...(seriesId ? { seriesId } : {}),
+      },
+    });
+
+    return {
+      ok: true,
+      reservation: {
+        id: reservationId,
+        orgId: resv!.orgId,
+        startAt: resv!.startAt,
+        endAt: resv!.endAt,
+        status: 'booked',
+        notes: resv!.notes,
+        createdBy: resv!.createdBy,
+        resourceIds,
+      },
+    };
+  } catch (err) {
+    // Step F — 23P01 catch-and-requery (ADR-0004).
+    // The tx/savepoint is poisoned. Re-probe in a fresh transaction so we can
+    // see the committed conflicting rows. Works for both single-create (whole tx
+    // is done) and savepoint paths (the caller rolls back the savepoint after we
+    // return; the outer tx stays alive for subsequent occurrences).
+    if (isExclusionViolation(err)) {
+      const hits = await reProbeInFreshTx(db, sess, startAt, endAt, resourceIds);
+      return { ok: false, reason: 'conflict', conflicts: hits };
+    }
+    throw err;
+  }
+}
+
+/**
+ * reProbeInFreshTx — re-run the conflict probe in a FRESH transaction.
+ * Used after a 23P01 exclusion violation poisons the current tx/savepoint.
+ * Opens a new withOrgContext(db) transaction so the probe sees committed rows.
+ */
+export async function reProbeInFreshTx(
+  db: AnyDb,
+  sess: AppSession,
+  startAt: Date,
+  endAt: Date,
+  resourceIds: string[],
+): Promise<ConflictHit[]> {
+  return withOrgContext(db, sess.orgId, (tx) =>
+    runConflictProbe(tx, startAt, endAt, resourceIds),
+  );
 }

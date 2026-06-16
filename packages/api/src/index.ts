@@ -148,3 +148,37 @@ export type {
 
 // NOTE: CheckConflictsResult (now four-arm) is already re-exported at line 75
 // via the checkConflicts export block — no duplicate needed here.
+
+// ─── Recurring reservations (Slice 2b — SCHED-2b, ADR-0006) ──────────────────
+// createSeries / cancelSeries / listSeriesOccurrences / previewSeries.
+// All gates (conflict + policy) reused via gatedCreateOccurrence.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export { createSeries, createSeriesWithDb } from './scheduling/create-series.js';
+
+export { cancelSeries, cancelSeriesWithDb } from './scheduling/cancel-series.js';
+export type { CancelSeriesInput } from './scheduling/cancel-series.js';
+
+export {
+  listSeriesOccurrences,
+  listSeriesOccurrencesWithDb,
+} from './scheduling/list-series-occurrences.js';
+export type {
+  ListSeriesOccurrencesInput,
+  ListSeriesOccurrencesResult,
+  ListSeriesOccurrencesResponse,
+} from './scheduling/list-series-occurrences.js';
+
+export { previewSeries, previewSeriesWithDb } from './scheduling/preview-series.js';
+
+// Additive series types (frozen Slice-1/2a types above unchanged).
+export type {
+  SeriesRow,
+  CreateSeriesInput,
+  SeriesOccurrenceReport,
+  CreateSeriesResult,
+  CancelSeriesResult,
+  PreviewSeriesOccurrenceReport,
+  PreviewSeriesResult,
+  SkippedLocalDate,
+} from './scheduling/types.js';

@@ -50,3 +50,14 @@ export type {
   InsufficientLeadTimeViolation,
   BlackoutOverlapViolation,
 } from './scheduling/policy.js';
+
+export { expandRecurrence } from './scheduling/recurrence.js';
+export type {
+  ZonedToUtc,
+  RecurrenceEnd,
+  RecurrenceRule,
+  ExpansionOptions,
+  Occurrence,
+  SkippedLocalDate,
+  ExpansionResult,
+} from './scheduling/recurrence.js';

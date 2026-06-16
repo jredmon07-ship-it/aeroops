@@ -61,6 +61,9 @@ const MIGRATION_SQL = [
   // 0003 required: createReservation now probes booking_policy + resource_blackout
   // (SCHED-2a policy gate runs on every create; absent policy = open booking, Slice-1 preserved).
   readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'), 'utf-8'),
+  // 0004 required: reservation schema now includes series_id column (ADR-0006 Slice 2b).
+  // The Drizzle INSERT always emits series_id (DEFAULT) so the column must exist.
+  readFileSync(resolve(__dirname, '../../../db/migrations/0004_recurrence.sql'), 'utf-8'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────
