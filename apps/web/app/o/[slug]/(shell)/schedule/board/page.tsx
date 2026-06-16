@@ -31,7 +31,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateNav } from '../_components/date-nav';
 import { DispatchBoard } from './_components/dispatch-board';
-import { listReservationsAction, listResourcesAction } from '../actions';
+import {
+  listReservationsAction,
+  listResourcesAction,
+  getDispatchForReservationAction,
+} from '../actions';
+import type { DispatchTicketView } from '@aeroops/api';
 import {
   parseDateParam,
   startOfDay,
@@ -68,6 +73,7 @@ interface BoardContentProps {
   canDrag: boolean;
   canCreate: boolean;
   canManageResources: boolean;
+  canDispatch: boolean;
 }
 
 async function BoardContent({
@@ -77,8 +83,10 @@ async function BoardContent({
   canDrag,
   canCreate,
   canManageResources,
+  canDispatch,
 }: BoardContentProps) {
-  // Parallel fetch — same pattern as schedule/page.tsx
+  // Parallel fetch — same pattern as schedule/page.tsx.
+  // Step 1: fetch reservations + resources in parallel.
   const [reservationsResult, resourcesResult] = await Promise.all([
     listReservationsAction({ from: startOfDay(date), to: endOfDay(date) }),
     listResourcesAction({}),
@@ -107,6 +115,25 @@ async function BoardContent({
 
   const reservations = reservationsResult.ok ? reservationsResult.reservations : [];
   const resources = resourcesResult.ok ? resourcesResult.resources : [];
+
+  // Step 2: fetch dispatch tickets for the day's reservations (additive — only
+  // attempted when there are booked reservations; guard against empty array which
+  // would fail the API's min(1) validation).
+  //
+  // The read-gate here is dispatch:access (owner/manager/dispatcher/cfi).
+  // If the session role lacks dispatch:access the action returns { error:
+  // 'forbidden' } — we treat that as "no tickets" so viewers see the board
+  // without dispatch state (they lack dispatch:access by design in 3a).
+  let dispatchTickets: Map<string, DispatchTicketView | null> = new Map();
+  if (reservations.length > 0) {
+    const reservationIds = reservations.map((r) => r.id);
+    const dispatchResult = await getDispatchForReservationAction({ reservationIds });
+    if ('ok' in dispatchResult && dispatchResult.ok) {
+      dispatchTickets = new Map(dispatchResult.tickets);
+    }
+    // Forbidden / unauthenticated / server-error → leave dispatchTickets empty
+    // (board still renders; dispatch actions enforce their own gate).
+  }
 
   // Empty — no resources at all
   if (resources.length === 0) {
@@ -157,12 +184,16 @@ async function BoardContent({
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const DispatchBoardAny = DispatchBoard as React.ComponentType<any>;
   return (
-    <DispatchBoard
+    <DispatchBoardAny
       initialReservations={reservations}
       resources={resources}
       date={date}
       canDrag={canDrag}
+      canDispatch={canDispatch}
+      initialDispatchTickets={[...dispatchTickets.entries()]}
     />
   );
 }
@@ -201,6 +232,9 @@ export default async function BoardPage({
   const canDrag = hasCapability(session, 'schedule:create_reservation');
   const canCreate = hasCapability(session, 'schedule:create_reservation');
   const canManageResources = hasCapability(session, 'schedule:manage_resources');
+  // canDispatch controls hide/show of Check-out / Check-in / Void buttons.
+  // The server-side action enforces dispatch:create independently.
+  const canDispatch = hasCapability(session, 'dispatch:create');
 
   // ── Resolve date ──────────────────────────────────────────────────────────
   const date = parseDateParam(dateParam) ?? new Date();
@@ -264,6 +298,7 @@ export default async function BoardPage({
           canDrag={canDrag}
           canCreate={canCreate}
           canManageResources={canManageResources}
+          canDispatch={canDispatch}
         />
       </Suspense>
     </div>

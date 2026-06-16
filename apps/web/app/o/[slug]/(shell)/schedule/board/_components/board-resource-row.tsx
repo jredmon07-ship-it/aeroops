@@ -9,7 +9,7 @@
 'use client';
 
 import * as React from 'react';
-import type { ResourceRow } from '@aeroops/api';
+import type { ResourceRow, DispatchTicketView } from '@aeroops/api';
 import type { BoardBlock as BoardBlockData } from '../_utils/board-layout';
 import { BoardBlock } from './board-block';
 import { BoardDropZones } from './board-drop-zones';
@@ -21,6 +21,8 @@ interface BoardResourceRowProps {
   resource: ResourceRow;
   blocks: BoardBlockData[];
   canDrag: boolean;
+  /** Whether the current user has dispatch:create. */
+  canDispatch: boolean;
   isDragActive: boolean;
   draggedReservationId: string | null;
   hoveredReservationId: string | null;
@@ -31,11 +33,16 @@ interface BoardResourceRowProps {
   /** Snap-preview slot (only shown when isDropTarget). */
   snapPreview: { newStartAt: Date; newEndAt: Date; hue: number } | null;
   dayStartMs: number;
+  /** Map from reservationId → dispatch ticket (or null) for this day. */
+  dispatchTickets: Map<string, DispatchTicketView | null>;
   onBlockDragStart: (e: React.DragEvent<HTMLDivElement>, block: BoardBlockData) => void;
   onBlockDragEnd: () => void;
   onHoverEnter: (reservationId: string) => void;
   onHoverLeave: () => void;
   onMoveClick: (block: BoardBlockData) => void;
+  onCheckOut: (block: BoardBlockData) => void;
+  onCheckIn: (block: BoardBlockData, ticket: DispatchTicketView) => void;
+  onVoid: (block: BoardBlockData, ticket: DispatchTicketView) => void;
   onDropZoneDragOver: (e: React.DragEvent<HTMLDivElement>, cellIndex: number, resourceId: string) => void;
   onDropZoneDrop: (e: React.DragEvent<HTMLDivElement>, cellIndex: number, resourceId: string) => void;
   onDropZoneDragLeave: () => void;
@@ -47,6 +54,7 @@ export function BoardResourceRow({
   resource,
   blocks,
   canDrag,
+  canDispatch,
   isDragActive,
   draggedReservationId,
   hoveredReservationId,
@@ -55,11 +63,15 @@ export function BoardResourceRow({
   isDropTarget,
   snapPreview,
   dayStartMs,
+  dispatchTickets,
   onBlockDragStart,
   onBlockDragEnd,
   onHoverEnter,
   onHoverLeave,
   onMoveClick,
+  onCheckOut,
+  onCheckIn,
+  onVoid,
   onDropZoneDragOver,
   onDropZoneDrop,
   onDropZoneDragLeave,
@@ -103,16 +115,21 @@ export function BoardResourceRow({
           key={`${block.reservationId}-${block.resourceId}`}
           block={block}
           canDrag={canDrag}
+          canDispatch={canDispatch}
           draggedReservationId={draggedReservationId}
           hoveredReservationId={hoveredReservationId}
           resources={resources}
           isPending={pendingReservationIds.has(block.reservationId)}
           isSubmitting={submittingReservationIds.has(block.reservationId)}
+          dispatchTicket={dispatchTickets.get(block.reservationId)}
           onDragStart={onBlockDragStart}
           onDragEnd={onBlockDragEnd}
           onHoverEnter={onHoverEnter}
           onHoverLeave={onHoverLeave}
           onMoveClick={onMoveClick}
+          onCheckOut={onCheckOut}
+          onCheckIn={onCheckIn}
+          onVoid={onVoid}
         />
       ))}
     </div>

@@ -216,8 +216,13 @@ export type { VoidDispatchInput } from './dispatch/void-dispatch.js';
 export {
   getDispatchForReservation,
   getDispatchForReservationWithDb,
+  listDispatchPilots,
+  listDispatchPilotsWithDb,
 } from './dispatch/list-dispatch.js';
-export type { GetDispatchForReservationInput } from './dispatch/list-dispatch.js';
+export type {
+  GetDispatchForReservationInput,
+  DispatchPilotRow,
+} from './dispatch/list-dispatch.js';
 
 // Dispatch result/IO types (consumed by apps/web board actions + UI).
 export type {

@@ -48,7 +48,10 @@ import { cancelReservationWithDb } from '../scheduling/cancel-reservation.js';
 import { openDispatchWithDb } from '../dispatch/open-dispatch.js';
 import { closeDispatchWithDb } from '../dispatch/close-dispatch.js';
 import { voidDispatchWithDb } from '../dispatch/void-dispatch.js';
-import { getDispatchForReservationWithDb } from '../dispatch/list-dispatch.js';
+import {
+  getDispatchForReservationWithDb,
+  listDispatchPilotsWithDb,
+} from '../dispatch/list-dispatch.js';
 import { deriveFlightTime } from '@aeroops/core';
 import { ValidationError } from '../scheduling/internal.js';
 import { UnauthenticatedError } from '../auth/session.js';
@@ -236,6 +239,26 @@ describe('AUTHZ: openDispatch capability gates', () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe('not_found');
+  });
+
+  it('listDispatchPilots: cfi (dispatch:access, NOT schedule:manage_resources) → returns members', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'cfi');
+    const pilots = await listDispatchPilotsWithDb(db, sess);
+    // CFI can load the pilot picker; the seeded org member is present.
+    expect(Array.isArray(pilots)).toBe(true);
+    expect(pilots.some((p) => p.userId === userAId)).toBe(true);
+  });
+
+  it('listDispatchPilots: renter (no dispatch:access) → ForbiddenError', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'renter');
+    await expect(listDispatchPilotsWithDb(db, sess)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('listDispatchPilots: null session → UnauthenticatedError', async () => {
+    const { db } = sharedEnv;
+    await expect(listDispatchPilotsWithDb(db, null)).rejects.toBeInstanceOf(UnauthenticatedError);
   });
 
   it('closeDispatch: null session → UnauthenticatedError', async () => {

@@ -21,8 +21,10 @@
  *   getDispatchForReservationWithDb(db, session, in) — tests.
  */
 import { z } from 'zod';
-import { sql } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
+import { membership, appUser } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
+import type { MembershipRole } from '@aeroops/core';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
@@ -166,4 +168,71 @@ export async function getDispatchForReservationWithDb(
   input: unknown,
 ): Promise<Map<string, DispatchTicketView | null>> {
   return _getDispatchForReservationImpl(db, session, input);
+}
+
+// ─── listDispatchPilots ───────────────────────────────────────────────────────
+//
+// The dispatch check-out dialog needs a pilot picker, but the existing
+// listOrgMembers gates on `schedule:manage_resources` — which a CFI (a primary
+// dispatch role) does NOT have. This read is gated on `dispatch:access` so any
+// dispatch role can populate the picker. Any org member may be the pilot (a
+// renter/student flies; the composite-FK on dispatch_ticket.pilot_user_id is the
+// structural backstop). RLS-scoped; never crosses orgs.
+
+/** Pilot row for the dispatch check-out picker. */
+export interface DispatchPilotRow {
+  userId: string;
+  /** appUser.fullName when present, else appUser.email (fullName is nullable). */
+  displayName: string;
+  email: string;
+  role: MembershipRole;
+}
+
+async function _listDispatchPilotsImpl(
+  db: AnyDb,
+  session: AppSession | null | undefined,
+): Promise<DispatchPilotRow[]> {
+  // AUTHZ FIRST — the dispatch read gate (not the resource-admin gate).
+  requireCapability(session, 'dispatch:access');
+
+  return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
+    const rows = await tx
+      .select({
+        userId: membership.userId,
+        fullName: appUser.fullName,
+        email: appUser.email,
+        role: membership.role,
+      })
+      .from(membership)
+      .innerJoin(appUser, eq(membership.userId, appUser.id))
+      .orderBy(asc(appUser.fullName), asc(appUser.email));
+
+    return rows.map((r) => ({
+      userId: r.userId,
+      displayName: r.fullName ?? r.email,
+      email: r.email,
+      role: r.role as MembershipRole,
+    }));
+  });
+}
+
+/**
+ * listDispatchPilots — org members eligible to be selected as a dispatch pilot,
+ * gated on `dispatch:access` (so CFIs can populate the check-out picker).
+ *
+ * @throws UnauthenticatedError | ForbiddenError.
+ */
+export async function listDispatchPilots(
+  session: AppSession | null | undefined,
+): Promise<DispatchPilotRow[]> {
+  const db = await getDb();
+  return _listDispatchPilotsImpl(db, session);
+}
+
+/** listDispatchPilotsWithDb — test form; inject a pglite client. */
+export async function listDispatchPilotsWithDb(
+  db: AnyDb,
+  session: AppSession | null | undefined,
+): Promise<DispatchPilotRow[]> {
+  return _listDispatchPilotsImpl(db, session);
 }
