@@ -239,3 +239,50 @@ export interface PreviewSeriesResult {
   wouldCreateCount: number;
   wouldSkipCount: number;
 }
+
+// ─── Slice 2c — Reschedule types (additive; frozen types above unchanged) ─────
+
+/**
+ * RescheduleReservationInput — move one reservation to a new window/resources.
+ *
+ *   reservationId   — the reservation to move.
+ *   newStartAt/End  — the new window (validated endAt > startAt).
+ *   newResourceIds  — optional; when omitted the reservation keeps its current
+ *                     resources (a pure time shift). When provided it REPLACES
+ *                     the resource set (de-duplicated, ≥1) — this is how a
+ *                     cross-row drag swaps a resource.
+ *
+ * Notes are preserved from the original; only window + resources are editable.
+ */
+export interface RescheduleReservationInput {
+  reservationId: string;
+  newStartAt: Date;
+  newEndAt: Date;
+  newResourceIds?: string[];
+}
+
+/**
+ * RescheduleResult — discriminated union (ADR-0006 §6 / Addendum; reuses the
+ * FROZEN ConflictHit / PolicyViolationView shapes and CreatedReservation).
+ *
+ *   ok:true                          → original cancelled + a NEW reservation
+ *                                      booked at the new window (series_id NULL —
+ *                                      a rescheduled occurrence detaches from its
+ *                                      series). `reservation` is the new row.
+ *   ok:false reason:'not_found'      → the reservation is not visible in this org
+ *                                      (RLS) OR already cancelled. No write.
+ *   ok:false reason:'conflict'       → a target gate refused on overlap. The
+ *                                      original stays booked + intact (rollback).
+ *   ok:false reason:'policy'         → a target gate refused on policy. Intact.
+ *   ok:false reason:'conflict_and_policy' → both gates fired. Intact.
+ *
+ * Atomicity invariant: every ok:false arm leaves the DB byte-identical to the
+ * pre-call state — the cancel is rolled back via throw-to-rollback so the
+ * original remains booked.
+ */
+export type RescheduleResult =
+  | { ok: true; reservation: CreatedReservation }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'conflict'; conflicts: ConflictHit[] }
+  | { ok: false; reason: 'policy'; violations: PolicyViolationView[] }
+  | { ok: false; reason: 'conflict_and_policy'; conflicts: ConflictHit[]; violations: PolicyViolationView[] };

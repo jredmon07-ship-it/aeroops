@@ -182,3 +182,17 @@ export type {
   PreviewSeriesResult,
   SkippedLocalDate,
 } from './scheduling/types.js';
+
+// ─── Reschedule (Slice 2c — SCHED-2c, ADR-0006 §6 + Addendum) ─────────────────
+// rescheduleReservation = atomic cancel-original + recreate through the shared
+// gatedCreateOccurrence (no new write path, no new gate, no schema change).
+// Throw-to-rollback keeps the original intact on any gate refusal/race.
+// *WithDb form is for test code only (inject a pglite client).
+export {
+  rescheduleReservation,
+  rescheduleReservationWithDb,
+} from './scheduling/reschedule-reservation.js';
+export type {
+  RescheduleReservationInput,
+  RescheduleResult,
+} from './scheduling/types.js';
