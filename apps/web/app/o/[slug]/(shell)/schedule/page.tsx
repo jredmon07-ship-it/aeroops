@@ -157,8 +157,37 @@ export default async function SchedulePage({
         )}
       </div>
 
-      {/* ── Date navigation bar ───────────────────────────────────────────── */}
-      <DateNav date={date} basePath={`/o/${slug}/schedule`} />
+      {/* ── Toolbar: DateNav + List/Board view toggle ─────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <DateNav date={date} basePath={`/o/${slug}/schedule`} />
+
+        {/* List / Board view toggle */}
+        <div
+          role="group"
+          aria-label="View"
+          className="flex rounded-md border border-slate-200 overflow-hidden"
+        >
+          <Button
+            variant="default"
+            size="sm"
+            className="rounded-none border-r border-slate-200"
+            aria-current="page"
+            disabled
+          >
+            List
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="rounded-none"
+          >
+            <Link href={`/o/${slug}/schedule/board?date=${dateStr}`}>
+              Board
+            </Link>
+          </Button>
+        </div>
+      </div>
 
       {/* ── Reservation list under Suspense ──────────────────────────────── */}
       <Suspense fallback={<ScheduleSkeleton />}>

@@ -56,17 +56,18 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 ];
 
 // Expected nav labels per role, derived from the RBAC matrix (packages/core
-// capabilities.ts) against the Slice-1 NAV_ITEMS:
+// capabilities.ts) against the Slice-2c NAV_ITEMS:
 //   Dashboard      app:access              → all roles
 //   Reservations   schedule:access         → owner, manager, dispatcher, cfi
+//   Board          schedule:access         → owner, manager, dispatcher, cfi
 //   Resources      schedule:manage_resources → owner, manager, dispatcher
 //   Org settings   org:manage_settings     → owner, manager
 // Order matches NAV_ITEMS order.
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner: ['Dashboard', 'Reservations', 'Resources', 'Org settings'],
-  manager: ['Dashboard', 'Reservations', 'Resources', 'Org settings'],
-  dispatcher: ['Dashboard', 'Reservations', 'Resources'],
-  cfi: ['Dashboard', 'Reservations'],
+  owner: ['Dashboard', 'Reservations', 'Board', 'Resources', 'Org settings'],
+  manager: ['Dashboard', 'Reservations', 'Board', 'Resources', 'Org settings'],
+  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Resources'],
+  cfi: ['Dashboard', 'Reservations', 'Board'],
   mechanic: ['Dashboard'],
   renter: ['Dashboard'],
   student: ['Dashboard'],
@@ -103,8 +104,8 @@ describe('2. owner gets Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 4 items (full Slice-1 nav)', () => {
-    expect(result.length).toBe(4);
+  it('returns exactly 5 items (full Slice-2c nav)', () => {
+    expect(result.length).toBe(5);
   });
 
   it('includes Dashboard', () => {
@@ -133,8 +134,8 @@ describe('3. manager gets Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 4 items (full Slice-1 nav)', () => {
-    expect(result.length).toBe(4);
+  it('returns exactly 5 items (full Slice-2c nav)', () => {
+    expect(result.length).toBe(5);
   });
 
   it('includes Dashboard', () => {
@@ -373,8 +374,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 4 items (Slice 1 — Dashboard, Reservations, Resources, Org settings)', () => {
-    expect(NAV_ITEMS.length).toBe(4);
+  it('NAV_ITEMS has exactly 5 items (Slice 2c — Dashboard, Reservations, Board, Resources, Org settings)', () => {
+    expect(NAV_ITEMS.length).toBe(5);
   });
 
   it('first item is Dashboard with app:access', () => {
@@ -387,6 +388,15 @@ describe('11. NAV_ITEMS registry', () => {
     const reservations = NAV_ITEMS.find((i) => i.label === 'Reservations');
     expect(reservations?.requiredCapability).toBe('schedule:access');
     expect(reservations?.href).toBe('/o/[slug]/schedule');
+  });
+
+  it('Board item is gated by schedule:access and placed after Reservations', () => {
+    const board = NAV_ITEMS.find((i) => i.label === 'Board');
+    expect(board?.requiredCapability).toBe('schedule:access');
+    expect(board?.href).toBe('/o/[slug]/schedule/board');
+    const reservationsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Reservations');
+    const boardIdx = NAV_ITEMS.findIndex((i) => i.label === 'Board');
+    expect(boardIdx).toBeGreaterThan(reservationsIdx);
   });
 
   it('Resources item is gated by schedule:manage_resources', () => {
