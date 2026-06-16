@@ -4,13 +4,17 @@
  * Client component. Fed initial resources + slug from the RSC page.
  * Spec §4: date, start/end times, aircraft select, optional instructor select,
  * notes textarea, conflict banner, dirty-form guard, submit handling.
+ *
+ * Slice 2b extension: "Repeat" toggle. OFF → existing single-create path
+ * (UNCHANGED). ON → recurrence controls + live previewSeriesAction debounce
+ * + createSeriesAction submit → create-result screen.
  */
 'use client';
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { PlaneTakeoff } from 'lucide-react';
+import { PlaneTakeoff, Repeat2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,10 +31,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ConflictBanner } from './conflict-banner';
+import { RecurrenceControls } from './recurrence-controls';
+import { SeriesPreviewPanel } from './series-preview-panel';
+import { SeriesCreateResult } from './series-create-result';
 import { useConflictCheck } from '../_hooks/use-conflict-check';
-import { createReservationAction } from '../../actions';
+import { useSeriesPreview } from '../_hooks/use-series-preview';
+import { createReservationAction, createSeriesAction } from '../../actions';
 import { toDateInputValue } from '../../_utils/format-time';
-import type { ResourceRow, ConflictHit, PolicyViolationView } from '@aeroops/api';
+import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult } from '@aeroops/api';
+import type { RecurrenceValue, RecurrenceFieldErrors } from './recurrence-controls';
 
 interface NewReservationFormProps {
   resources: ResourceRow[];
@@ -48,6 +57,25 @@ interface FieldErrors {
   endTime?: string;
   resources?: string;
   notes?: string;
+}
+
+/** Derive the ISO weekday (1=Mon..7=Sun) from a YYYY-MM-DD string. */
+function isoWeekdayFromDate(dateStr: string): number {
+  if (!dateStr || dateStr.length !== 10) return 1;
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (isNaN(d.getTime())) return 1;
+  // getDay(): 0=Sun..6=Sat → map to ISO 1=Mon..7=Sun
+  const day = d.getDay();
+  return day === 0 ? 7 : day;
+}
+
+/** Get the browser's IANA timezone. */
+function browserTz(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return 'UTC';
+  }
 }
 
 export function NewReservationForm({
@@ -74,6 +102,18 @@ export function NewReservationForm({
   const [submitViolations, setSubmitViolations] = React.useState<PolicyViolationView[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
 
+  // ── Recurrence (Slice 2b) ──────────────────────────────────────────────────
+  const [repeatEnabled, setRepeatEnabled] = React.useState(false);
+  const [recurrence, setRecurrence] = React.useState<RecurrenceValue>(() => ({
+    weekdays: [isoWeekdayFromDate(initialDate || toDateInputValue(new Date()))],
+    intervalWeeks: 1,
+    end: { kind: 'count', count: 4 },
+    tz: browserTz(),
+  }));
+  const [recurrenceErrors, setRecurrenceErrors] = React.useState<RecurrenceFieldErrors>({});
+  // Post-submit result screen state
+  const [seriesResult, setSeriesResult] = React.useState<CreateSeriesResult | null>(null);
+
   // Dirty-form guard state
   const [pendingNav, setPendingNav] = React.useState<string | null>(null);
 
@@ -96,12 +136,25 @@ export function NewReservationForm({
     return ids;
   }, [aircraftId, instructorId]);
 
-  // Live combined conflict + policy preview
+  // Live combined conflict + policy preview (single-create path, Repeat OFF)
   const { state: conflictState, conflicts, policyViolations } = useConflictCheck({
     date,
     startTime,
     endTime,
     resourceIds,
+  });
+
+  // Series preview (Repeat ON)
+  const { state: previewState, preview, errorMessage: previewError } = useSeriesPreview({
+    date,
+    startTime,
+    endTime,
+    resourceIds,
+    weekdays: recurrence.weekdays,
+    intervalWeeks: recurrence.intervalWeeks,
+    end: recurrence.end,
+    tz: recurrence.tz,
+    repeatEnabled,
   });
 
   // Is form "dirty" (has user entered anything)?
@@ -111,7 +164,8 @@ export function NewReservationForm({
     endTime ||
     aircraftId ||
     instructorId ||
-    notes
+    notes ||
+    repeatEnabled
   );
 
   // beforeunload: guard on refresh / tab-close when form is dirty (spec §4)
@@ -132,8 +186,8 @@ export function NewReservationForm({
     dateRef.current?.focus();
   }, []);
 
-  // Client-side validation
-  function validate(): boolean {
+  // Client-side validation for the base fields (shared by both paths)
+  function validateBase(): boolean {
     const errors: FieldErrors = {};
 
     if (!date) {
@@ -161,12 +215,41 @@ export function NewReservationForm({
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      // Focus first error field
       if (errors.date) dateRef.current?.focus();
       return false;
     }
 
     return true;
+  }
+
+  // Client-side validation for recurrence fields (Repeat ON path)
+  function validateRecurrence(): boolean {
+    const errors: RecurrenceFieldErrors = {};
+
+    if (recurrence.weekdays.length === 0) {
+      errors.weekdays = 'Choose at least one weekday.';
+    }
+
+    if (recurrence.intervalWeeks < 1) {
+      errors.intervalWeeks = 'Interval must be at least 1 week.';
+    }
+
+    if (recurrence.end.kind === 'count') {
+      if (recurrence.end.count < 1 || recurrence.end.count > 52) {
+        errors.count = 'Count must be between 1 and 52.';
+      }
+    } else {
+      if (!recurrence.end.untilDate || recurrence.end.untilDate.length !== 10) {
+        errors.untilDate = 'Enter a valid end date.';
+      }
+    }
+
+    if (!recurrence.tz.trim()) {
+      errors.tz = 'Timezone is required.';
+    }
+
+    setRecurrenceErrors(errors);
+    return Object.keys(errors).length === 0;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -175,8 +258,55 @@ export function NewReservationForm({
     setSubmitConflicts([]);
     setSubmitViolations([]);
 
-    if (!validate()) return;
+    if (!validateBase()) return;
 
+    // ── Repeat ON: series path ───────────────────────────────────────────────
+    if (repeatEnabled) {
+      if (!validateRecurrence()) return;
+
+      setSubmitting(true);
+      try {
+        const startAt = new Date(`${date}T${startTime}:00`);
+        const endAt = new Date(`${date}T${endTime}:00`);
+        const durationMinutes = Math.round((endAt.getTime() - startAt.getTime()) / 60_000);
+
+        const result = await createSeriesAction({
+          weekdays: recurrence.weekdays,
+          intervalWeeks: recurrence.intervalWeeks,
+          end: recurrence.end,
+          localStartTime: startTime,
+          durationMinutes,
+          tz: recurrence.tz,
+          resourceIds,
+          notes: notes.trim() || undefined,
+        });
+
+        if ('error' in result) {
+          if (result.error === 'validation') {
+            setServerError(`Invalid series: ${result.message}`);
+            errorRef.current?.focus();
+          } else if (result.error === 'forbidden' || result.error === 'unauthenticated') {
+            setServerError('You do not have permission to create reservations.');
+            errorRef.current?.focus();
+          } else {
+            setServerError('Something went wrong. Please try again.');
+            errorRef.current?.focus();
+          }
+          return;
+        }
+
+        // ok:true — show result screen (partial-create is normal; result always ok:true)
+        setSeriesResult(result);
+      } catch {
+        setServerError('Something went wrong. Please try again.');
+        errorRef.current?.focus();
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // ── Repeat OFF: single-create path (UNCHANGED) ───────────────────────────
     setSubmitting(true);
 
     try {
@@ -247,6 +377,28 @@ export function NewReservationForm({
 
   function handleBackClick(e: React.MouseEvent) {
     handleGuardedNav(e, backHref);
+  }
+
+  // ── Series create result screen ────────────────────────────────────────────
+  if (seriesResult) {
+    return (
+      <SeriesCreateResult
+        result={seriesResult}
+        slug={slug}
+        onReset={() => {
+          setSeriesResult(null);
+          setRepeatEnabled(false);
+          setDate(toDateInputValue(new Date()));
+          setStartTime('');
+          setEndTime('');
+          setAircraftId('');
+          setInstructorId('');
+          setNotes('');
+          setRecurrenceErrors({});
+          setServerError(null);
+        }}
+      />
+    );
   }
 
   // Empty state: no resources to book
@@ -349,8 +501,22 @@ export function NewReservationForm({
             type="date"
             value={date}
             onChange={(e) => {
-              setDate(e.target.value);
+              const newDate = e.target.value;
+              setDate(newDate);
               setFieldErrors((prev) => ({ ...prev, date: undefined }));
+              // When Repeat is OFF and weekdays haven't been customised (still
+              // matches the old date's weekday), track the new date's weekday.
+              const oldWeekday = isoWeekdayFromDate(date);
+              if (
+                !repeatEnabled &&
+                recurrence.weekdays.length === 1 &&
+                recurrence.weekdays[0] === oldWeekday
+              ) {
+                setRecurrence((prev) => ({
+                  ...prev,
+                  weekdays: [isoWeekdayFromDate(newDate)],
+                }));
+              }
             }}
             required
             aria-required="true"
@@ -477,8 +643,71 @@ export function NewReservationForm({
           />
         </div>
 
-        {/* Live combined conflict + policy preview banner */}
-        {submitConflicts.length === 0 && submitViolations.length === 0 && (
+        {/* ── Repeat toggle (Slice 2b) ────────────────────────────────────── */}
+        <div className="flex items-center gap-3">
+          <button
+            id="repeatToggle"
+            type="button"
+            role="switch"
+            aria-checked={repeatEnabled}
+            aria-label="Repeat this reservation weekly"
+            onClick={() => {
+              const next = !repeatEnabled;
+              setRepeatEnabled(next);
+              if (next) {
+                // Default weekday to today's anchor date when first enabled
+                setRecurrence((prev) => ({
+                  ...prev,
+                  weekdays: prev.weekdays.length > 0
+                    ? prev.weekdays
+                    : [isoWeekdayFromDate(date)],
+                }));
+              }
+            }}
+            className={[
+              'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2',
+              repeatEnabled ? 'bg-sky-600' : 'bg-slate-200',
+            ].join(' ')}
+          >
+            <span
+              aria-hidden="true"
+              className={[
+                'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform',
+                repeatEnabled ? 'translate-x-5' : 'translate-x-0',
+              ].join(' ')}
+            />
+          </button>
+          <Label htmlFor="repeatToggle" className="flex items-center gap-1.5 cursor-pointer select-none">
+            <Repeat2 className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            Repeat weekly
+          </Label>
+        </div>
+
+        {/* Recurrence controls — visible when Repeat ON */}
+        {repeatEnabled && (
+          <RecurrenceControls
+            value={recurrence}
+            onChange={setRecurrence}
+            errors={recurrenceErrors}
+            onClearError={(field) =>
+              setRecurrenceErrors((prev) => ({ ...prev, [field]: undefined }))
+            }
+          />
+        )}
+
+        {/* Live preview panel (Repeat ON) */}
+        {repeatEnabled && (
+          <SeriesPreviewPanel
+            state={previewState}
+            preview={preview}
+            errorMessage={previewError}
+            tz={recurrence.tz}
+          />
+        )}
+
+        {/* Live single-reservation conflict/policy banner (Repeat OFF only) */}
+        {!repeatEnabled && submitConflicts.length === 0 && submitViolations.length === 0 && (
           <ConflictBanner
             state={conflictState}
             conflicts={conflicts}
@@ -501,7 +730,9 @@ export function NewReservationForm({
             )}
           </Button>
           <Button type="submit" disabled={submitting}>
-            {submitting ? 'Booking…' : 'Book Reservation'}
+            {submitting
+              ? repeatEnabled ? 'Creating series…' : 'Booking…'
+              : repeatEnabled ? 'Preview & create series' : 'Book Reservation'}
           </Button>
         </div>
       </form>

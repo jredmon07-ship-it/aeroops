@@ -104,3 +104,138 @@ export type CreateReservationResult =
  *                                  the caller's org (RLS-scoped).
  */
 export type CancelResult = { ok: true } | { ok: false; reason: 'not_found' };
+
+// ─── Slice 2b — Series types (additive; frozen types above unchanged) ─────────
+
+import type { SkippedLocalDate } from '@aeroops/core';
+export type { SkippedLocalDate };
+
+/**
+ * SeriesRow — the reservation_series row as returned from the API.
+ * Mirrors the DB columns; snake_case variants accepted from raw SQL rows.
+ */
+export interface SeriesRow {
+  id: string;
+  orgId?: string;
+  org_id?: string;
+  freq: string;
+  weekdays: number[];
+  intervalWeeks?: number;
+  interval_weeks?: number;
+  endKind?: 'count' | 'until';
+  end_kind?: 'count' | 'until';
+  count?: number | null;
+  untilDate?: string | null;
+  until_date?: string | null;
+  localStartTime?: string;
+  local_start_time?: string;
+  durationMinutes?: number;
+  duration_minutes?: number;
+  ianaTz?: string;
+  iana_tz?: string;
+  resourceIds?: string[];
+  resource_ids?: string[];
+  notes?: string | null;
+  status: 'active' | 'cancelled';
+  createdBy?: string;
+  created_by?: string;
+  cancelledAt?: Date | string | null;
+  cancelled_at?: Date | string | null;
+  cancelledBy?: string | null;
+  cancelled_by?: string | null;
+  createdAt?: Date | string;
+  created_at?: Date | string;
+  updatedAt?: Date | string;
+  updated_at?: Date | string;
+}
+
+/**
+ * CreateSeriesInput — the validated shape used internally after Zod parsing.
+ * Raw external input is `unknown`; callers use `createSeries(session, rawInput)`.
+ */
+export interface CreateSeriesInput {
+  weekdays: number[];
+  intervalWeeks: number;
+  end: { kind: 'count'; count: number } | { kind: 'until'; untilDate: string };
+  localStartTime: string;
+  durationMinutes: number;
+  tz: string;
+  resourceIds: string[];
+  notes?: string;
+}
+
+/**
+ * SeriesOccurrenceReport — per-occurrence outcome in a createSeries response.
+ *
+ *   result:'created'  → occurrence was committed. reservationId is set.
+ *   result:'skipped'  → a gate refused the occurrence. reason + payload set.
+ *
+ * reason + conflicts + violations mirror the CreateReservationResult refusal arms
+ * (additive — frozen shapes from Slice 1/2a are reused as-is).
+ */
+export interface SeriesOccurrenceReport {
+  /** 0-based index into the expanded occurrence list. */
+  index: number;
+  startAt: Date;
+  endAt: Date;
+  result: 'created' | 'skipped';
+  /** Set when result is 'created'. */
+  reservationId?: string;
+  /** Set when result is 'skipped'. */
+  reason?: 'conflict' | 'policy' | 'conflict_and_policy';
+  /** Populated when reason includes conflict. */
+  conflicts?: ConflictHit[];
+  /** Populated when reason includes policy. */
+  violations?: PolicyViolationView[];
+}
+
+/**
+ * CreateSeriesResult — always ok:true (partial-create is normal).
+ * auth/validation errors are thrown, not returned.
+ */
+export interface CreateSeriesResult {
+  ok: true;
+  series: SeriesRow;
+  occurrences: SeriesOccurrenceReport[];
+  truncatedByCap: boolean;
+  skippedLocalDates: SkippedLocalDate[];
+  createdCount: number;
+  skippedCount: number;
+}
+
+/**
+ * CancelSeriesResult — discriminated union.
+ *   ok:true                      → series cancelled; cancelledCount future occurrences
+ *                                  cancelled. Idempotent on already-cancelled series.
+ *   ok:false reason:'not_found'  → series not visible in this org (RLS-scoped).
+ */
+export type CancelSeriesResult =
+  | { ok: true; cancelledCount: number }
+  | { ok: false; reason: 'not_found' };
+
+/**
+ * PreviewSeriesOccurrenceReport — per-occurrence outcome in a previewSeries response.
+ * Read-only (no writes). Uses 'would_create' / 'would_skip' to distinguish from the
+ * committed 'created'/'skipped' results of createSeries.
+ */
+export interface PreviewSeriesOccurrenceReport {
+  index: number;
+  startAt: Date;
+  endAt: Date;
+  result: 'would_create' | 'would_skip';
+  reason?: 'conflict' | 'policy' | 'conflict_and_policy';
+  conflicts?: ConflictHit[];
+  violations?: PolicyViolationView[];
+}
+
+/**
+ * PreviewSeriesResult — advisory preview of what createSeries would produce.
+ * Nothing is written.
+ */
+export interface PreviewSeriesResult {
+  occurrences: PreviewSeriesOccurrenceReport[];
+  truncatedByCap: boolean;
+  skippedLocalDates: SkippedLocalDate[];
+  wouldCreateCount: number;
+  wouldSkipCount: number;
+}

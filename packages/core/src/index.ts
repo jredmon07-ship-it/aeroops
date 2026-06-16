@@ -17,14 +17,23 @@ export {
   RESOURCE_KINDS,
   RESERVATION_STATUSES,
   POLICY_VIOLATION_KINDS,
+  RECURRENCE_FREQS,
+  RECURRENCE_END_KINDS,
+  RESERVATION_SERIES_STATUSES,
   isResourceKind,
   isReservationStatus,
   isPolicyViolationKind,
+  isRecurrenceFreq,
+  isRecurrenceEndKind,
+  isReservationSeriesStatus,
 } from './scheduling/enums.js';
 export type {
   ResourceKind,
   ReservationStatus,
   PolicyViolationKind,
+  RecurrenceFreq,
+  RecurrenceEndKind,
+  ReservationSeriesStatus,
 } from './scheduling/enums.js';
 
 export { intervalsOverlap, findConflicts } from './scheduling/overlap.js';
@@ -41,3 +50,14 @@ export type {
   InsufficientLeadTimeViolation,
   BlackoutOverlapViolation,
 } from './scheduling/policy.js';
+
+export { expandRecurrence } from './scheduling/recurrence.js';
+export type {
+  ZonedToUtc,
+  RecurrenceEnd,
+  RecurrenceRule,
+  ExpansionOptions,
+  Occurrence,
+  SkippedLocalDate,
+  ExpansionResult,
+} from './scheduling/recurrence.js';

@@ -5,14 +5,22 @@
  *   org, location, appUser (table: app_user), membership, auditLog (table: audit_log),
  *   authCredential (table: auth_credential),
  *   resource, reservation, reservationResource (table: reservation_resource),
- *   bookingPolicy (table: booking_policy), resourceBlackout (table: resource_blackout)
+ *   bookingPolicy (table: booking_policy), resourceBlackout (table: resource_blackout),
+ *   reservationSeries (table: reservation_series) — Slice 2b / ADR-0006
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
  */
 
 // Enums (derived from @aeroops/core tuples — DB and app types cannot drift)
-export { membershipRole, resourceKind, reservationStatus } from './enums.js';
+export {
+  membershipRole,
+  resourceKind,
+  reservationStatus,
+  recurrenceFreq,
+  recurrenceEndKind,
+  reservationSeriesStatus,
+} from './enums.js';
 
 // Tenant-scoped tables
 export { org } from './org.js';
@@ -60,3 +68,10 @@ export type { BookingPolicySelect, BookingPolicyInsert } from './booking-policy.
 
 export { resourceBlackout } from './resource-blackout.js';
 export type { ResourceBlackoutSelect, ResourceBlackoutInsert } from './resource-blackout.js';
+
+// Recurring reservations — tenant-scoped (SCHED-2b / Phase 1 Slice 2b, ADR-0006)
+export { reservationSeries } from './reservation-series.js';
+export type {
+  ReservationSeriesSelect,
+  ReservationSeriesInsert,
+} from './reservation-series.js';

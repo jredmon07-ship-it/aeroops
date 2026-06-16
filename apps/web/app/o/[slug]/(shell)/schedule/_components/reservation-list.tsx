@@ -149,6 +149,8 @@ export function ReservationList({
                 resourceMap={resourceMap}
                 canCancel={canCreate}
                 onCancelled={handleCancelled}
+                seriesId={r.seriesId}
+                slug={slug}
               />
             ))}
           </div>

@@ -3,8 +3,14 @@
  *
  * NOT exported from @aeroops/api. Holds:
  *   - ValidationError (distinct from conflict/policy — see types.ts)
+ *   - OccurrenceRaceError — thrown by gatedCreateOccurrence on 23P01; the
+ *       caller decides whether to re-probe in a fresh tx (single-create) or on
+ *       the live outer tx after Drizzle rolls back the savepoint (series path).
  *   - the Zod input schema for create/check
  *   - toIso — Date → ISO-8601 string (the sanctioned clock boundary)
+ *   - makeApiZonedToUtcResolver — Intl-based ZonedToUtc resolver (shared by
+ *       create-series + preview-series so DST-critical logic has ONE copy).
+ *   - isValidIanaTz — tz string validation helper (shared).
  *   - runConflictProbe — the core overlap query (powers preview + rich result)
  *   - isExclusionViolation — robust 23P01 detection across driver wrappings
  *   - loadBookingPolicy — load 0..1 booking_policy row as core BookingPolicy
@@ -20,14 +26,28 @@
  * ADR-0005: the policy probe is the authoritative policy gate (single write
  * path). Pure-core evaluateBookingPolicy receives an injected `now` (epoch ms)
  * so it stays deterministic and testable.
+ *
+ * ADR-0006 §3 race semantics:
+ *   - Single-create: gatedCreateOccurrence throws OccurrenceRaceError on 23P01.
+ *     The caller (createReservation) catches it and re-probes in a FRESH tx via
+ *     reProbeInFreshTx — correct because the single outer tx is already poisoned
+ *     and concluding.
+ *   - Series path: gatedCreateOccurrence throws OccurrenceRaceError on 23P01.
+ *     The throw propagates out of the tx.transaction() savepoint callback, which
+ *     causes Drizzle to emit ROLLBACK TO SAVEPOINT (un-poisoning the outer tx
+ *     back to the pre-savepoint state). The series loop catches OccurrenceRaceError
+ *     and re-probes on the LIVE PARENT tx (now clean), then records the occurrence
+ *     as skipped/conflict. The outer tx remains alive and commits other occurrences.
  */
 import { z } from 'zod';
-import { sql, eq, and } from 'drizzle-orm';
-import { bookingPolicy, resourceBlackout } from '@aeroops/db';
+import { sql, eq } from 'drizzle-orm';
+import { reservation, reservationResource, auditLog, bookingPolicy, resourceBlackout, resource } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
+import { withOrgContext } from '@aeroops/db';
 import { evaluateBookingPolicy } from '@aeroops/core';
-import type { BookingPolicy, BlackoutWindow } from '@aeroops/core';
-import type { ConflictHit, PolicyViolationView } from './types.js';
+import type { BookingPolicy, BlackoutWindow, ZonedToUtc } from '@aeroops/core';
+import type { ConflictHit, PolicyViolationView, CreateReservationResult } from './types.js';
+import type { AppSession } from '../auth/types.js';
 
 // RFC-4122 UUID, version-agnostic (mirrors @aeroops/db's UUID_RE). zod v4's
 // z.uuid() strictly validates version/variant nibbles and would reject some
@@ -52,6 +72,39 @@ export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ValidationError';
+  }
+}
+
+// ─── OccurrenceRaceError ─────────────────────────────────────────────────────
+
+/**
+ * OccurrenceRaceError — thrown by gatedCreateOccurrence when the INSERT raises
+ * a 23P01 exclusion_violation (a concurrent commit won the race AFTER our
+ * pre-check passed).
+ *
+ * This error signals a race to the CALLER so it can re-probe in the correct
+ * context:
+ *   - Single-create (createReservation): re-probe in a FRESH tx via
+ *     reProbeInFreshTx (the outer tx is poisoned and concluding).
+ *   - Series path (createSeries loop): let this propagate out of the savepoint
+ *     callback; Drizzle emits ROLLBACK TO SAVEPOINT, then catch in the loop and
+ *     re-probe on the LIVE PARENT tx (which is now clean back to the savepoint).
+ *
+ * Carries the window + resource ids needed for the re-probe.
+ */
+export class OccurrenceRaceError extends Error {
+  readonly code = 'OCCURRENCE_RACE' as const;
+  constructor(
+    public readonly startAt: Date,
+    public readonly endAt: Date,
+    public readonly resourceIds: string[],
+    cause?: unknown,
+  ) {
+    super('[scheduling] 23P01 exclusion_violation: concurrent booking won the race');
+    this.name = 'OccurrenceRaceError';
+    if (cause !== undefined) {
+      (this as { cause?: unknown }).cause = cause;
+    }
   }
 }
 
@@ -128,6 +181,113 @@ export function parseReservationWindow(input: unknown): {
  */
 export function toIso(d: Date): string {
   return d.toISOString();
+}
+
+// ─── Shared tz helpers (L2: single canonical copy; imported by create-series + preview-series) ──
+
+/**
+ * makeApiZonedToUtcResolver — create a ZonedToUtc resolver backed by Intl APIs.
+ *
+ * Implements ZonedToUtc using platform Intl APIs only (no tz library dep).
+ * DST handling (ADR-0006 §2):
+ *   - spring-forward gap (local time skipped)  → status 'nonexistent'
+ *   - fall-back (local time occurs twice)       → status 'ambiguous', utcMs = earlier instant
+ *   - normal                                    → status 'valid'
+ *
+ * Cached per tz string so the Intl.DateTimeFormat object is reused across
+ * the N occurrence resolutions within one createSeries/previewSeries call.
+ *
+ * THIS IS THE SINGLE AUTHORITATIVE COPY. Both create-series.ts and
+ * preview-series.ts import it from here so DST-critical logic has one source.
+ */
+export function makeApiZonedToUtcResolver(): ZonedToUtc {
+  const fmtCache = new Map<string, Intl.DateTimeFormat>();
+
+  const getFmt = (tz: string): Intl.DateTimeFormat => {
+    let f = fmtCache.get(tz);
+    if (!f) {
+      f = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+      fmtCache.set(tz, f);
+    }
+    return f;
+  };
+
+  // Render a UTC instant into local civil parts in `tz`.
+  const partsAt = (utcMs: number, tz: string) => {
+    const parts = getFmt(tz).formatToParts(new Date(utcMs));
+    const get = (t: string) => Number(parts.find((p) => p.type === t)!.value);
+    let hour = get('hour');
+    if (hour === 24) hour = 0; // some engines emit 24 for midnight
+    return { year: get('year'), month: get('month'), day: get('day'), hour, minute: get('minute') };
+  };
+
+  // Offset (minutes, UTC = local - offset) at a given UTC instant in `tz`.
+  const offsetAt = (utcMs: number, tz: string): number => {
+    const p = partsAt(utcMs, tz);
+    const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+    return Math.round((asUtc - utcMs) / 60_000);
+  };
+
+  return ({ year, month, day, hour, minute, tz }) => {
+    const targetLocal = Date.UTC(year, month - 1, day, hour, minute);
+
+    // Two probe offsets to find all UTC instants that render back to this local time.
+    const off1 = offsetAt(targetLocal, tz);
+    const cand1 = targetLocal - off1 * 60_000;
+    const off2 = offsetAt(cand1, tz);
+    const cand2 = targetLocal - off2 * 60_000;
+
+    const matches = (utcMs: number): boolean => {
+      const p = partsAt(utcMs, tz);
+      return (
+        p.year === year &&
+        p.month === month &&
+        p.day === day &&
+        p.hour === hour &&
+        p.minute === minute
+      );
+    };
+
+    const valid: number[] = [];
+    for (const c of [cand1, cand2]) {
+      if (matches(c) && !valid.includes(c)) valid.push(c);
+    }
+
+    if (valid.length === 0) {
+      // Spring-forward gap: this local time does not exist.
+      return { utcMs: cand1, status: 'nonexistent' as const };
+    }
+    if (valid.length >= 2) {
+      // Fall-back: ambiguous. Return the EARLIER instant (ADR-0006 §2).
+      return { utcMs: Math.min(...valid), status: 'ambiguous' as const };
+    }
+    return { utcMs: valid[0]!, status: 'valid' as const };
+  };
+}
+
+/**
+ * isValidIanaTz — true iff the Intl subsystem accepts this tz string.
+ * Uses Intl.DateTimeFormat constructor; throws on an invalid zone.
+ *
+ * THIS IS THE SINGLE AUTHORITATIVE COPY. Both create-series.ts and
+ * preview-series.ts import it from here.
+ */
+export function isValidIanaTz(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ─── Conflict probe (the core overlap query) ──────────────────────────────────
@@ -345,4 +505,216 @@ export async function runPolicyProbe(
   }
 
   return violations;
+}
+
+// ─── Bookable kinds (mirrors create-reservation.ts) ───────────────────────────
+
+/** Resource kinds that are bookable in Slice 1/2a/2b. */
+const BOOKABLE_KINDS = new Set<string>(['aircraft', 'instructor']);
+
+// ─── gatedCreateOccurrence ────────────────────────────────────────────────────
+
+/**
+ * GatedCreateInput — input to gatedCreateOccurrence.
+ * All fields come from the caller (createReservation or createSeries loop).
+ */
+export interface GatedCreateInput {
+  startAt: Date;
+  endAt: Date;
+  resourceIds: string[];
+  notes?: string;
+  /** Set by createSeries for each occurrence (NULL for single-create). */
+  seriesId?: string;
+}
+
+/**
+ * gatedCreateOccurrence — the shared per-occurrence gated create body.
+ *
+ * RUNS INSIDE A PROVIDED TX OR SAVEPOINT — does NOT open its own transaction.
+ * Shared by createReservation (1× in its own tx) and createSeries (N× in
+ * per-occurrence savepoints inside a single outer tx).
+ *
+ * Gates:
+ *   1. Resource validation: each resourceId must be visible, active, bookable kind.
+ *   2. Conflict pre-check (runConflictProbe).
+ *   3. Policy probe (runPolicyProbe).
+ *   4. Refusal precedence: conflict_and_policy > policy > conflict > INSERT.
+ *   5. INSERT reservation (with optional series_id) + join rows + audit_log.
+ *   6. 23P01 detection: on exclusion_violation, throw OccurrenceRaceError so the
+ *      CALLER can re-probe in the correct context (ADR-0006 §3):
+ *        - Single-create: caller re-probes in a fresh tx (outer tx poisoned).
+ *        - Series path: throw propagates out of the savepoint callback → Drizzle
+ *          emits ROLLBACK TO SAVEPOINT → caller catches OccurrenceRaceError and
+ *          re-probes on the LIVE parent tx (which is now clean).
+ *      NOTE: `db` parameter is retained for API compatibility but is NOT used
+ *      internally; the caller is responsible for re-probing.
+ *
+ * @param tx   - The current tx or savepoint (already has org GUC set).
+ * @param sess - The authenticated session (org_id, user_id, role).
+ * @param db   - The raw db handle (retained for caller compat; not used here).
+ * @param input - Window + resourceIds + optional notes/seriesId.
+ * @param now  - Injected epoch ms (never Date.now() inside this function).
+ */
+export async function gatedCreateOccurrence(
+  tx: AnyDb,
+  sess: AppSession,
+  db: AnyDb,
+  input: GatedCreateInput,
+  now: number,
+): Promise<CreateReservationResult> {
+  const { startAt, endAt, resourceIds, notes, seriesId } = input;
+
+  // Step A — load requested resources (RLS scopes to org via tx GUC).
+  const resourceRows = await tx
+    .select({
+      id: resource.id,
+      kind: resource.kind,
+      displayName: resource.displayName,
+      active: resource.active,
+    })
+    .from(resource);
+
+  const byId = new Map(resourceRows.map((r) => [r.id, r]));
+  for (const id of resourceIds) {
+    const r = byId.get(id);
+    if (!r) {
+      throw new ValidationError(
+        `[scheduling] resource ${id} not found in this org (or not visible).`,
+      );
+    }
+    if (!r.active) {
+      throw new ValidationError(`[scheduling] resource ${id} is inactive and cannot be booked.`);
+    }
+    if (!BOOKABLE_KINDS.has(r.kind)) {
+      throw new ValidationError(
+        `[scheduling] resource ${id} has kind '${r.kind}' which is not bookable in this slice ` +
+          `(only aircraft + instructor).`,
+      );
+    }
+  }
+
+  const validResourceRows = resourceIds.map((id) => {
+    const r = byId.get(id)!;
+    return { id: r.id, displayName: r.displayName };
+  });
+
+  // Step B — conflict pre-check.
+  const preHits = await runConflictProbe(tx, startAt, endAt, resourceIds);
+
+  // Step C — policy probe.
+  const violations = await runPolicyProbe(tx, startAt, endAt, validResourceRows, now);
+
+  // Step D — refusal precedence (byte-identical to create-reservation.ts).
+  if (preHits.length > 0 && violations.length > 0) {
+    return { ok: false, reason: 'conflict_and_policy', conflicts: preHits, violations };
+  }
+  if (violations.length > 0) {
+    return { ok: false, reason: 'policy', violations };
+  }
+  if (preHits.length > 0) {
+    return { ok: false, reason: 'conflict', conflicts: preHits };
+  }
+
+  // Step E — INSERT.
+  try {
+    const [resv] = await tx
+      .insert(reservation)
+      .values({
+        orgId: sess.orgId,
+        startAt,
+        endAt,
+        status: 'booked',
+        notes: notes ?? null,
+        createdBy: sess.userId,
+        seriesId: seriesId ?? null,
+      })
+      .returning({
+        id: reservation.id,
+        orgId: reservation.orgId,
+        startAt: reservation.startAt,
+        endAt: reservation.endAt,
+        notes: reservation.notes,
+        createdBy: reservation.createdBy,
+      });
+
+    const reservationId = resv!.id;
+    const startIso = toIso(startAt);
+    const endIso = toIso(endAt);
+
+    for (const resourceId of resourceIds) {
+      await tx.execute(sql`
+        INSERT INTO reservation_resource (org_id, reservation_id, resource_id, during, status)
+        VALUES (
+          ${sess.orgId}::uuid,
+          ${reservationId}::uuid,
+          ${resourceId}::uuid,
+          tstzrange(${startIso}::timestamptz, ${endIso}::timestamptz, '[)'),
+          'booked'
+        )
+      `);
+    }
+
+    await tx.insert(auditLog).values({
+      orgId: sess.orgId,
+      actorUserId: sess.userId,
+      action: 'reservation.created',
+      entityType: 'reservation',
+      entityId: reservationId,
+      metadata: {
+        resourceIds,
+        startAt: startIso,
+        endAt: endIso,
+        ...(seriesId ? { seriesId } : {}),
+      },
+    });
+
+    return {
+      ok: true,
+      reservation: {
+        id: reservationId,
+        orgId: resv!.orgId,
+        startAt: resv!.startAt,
+        endAt: resv!.endAt,
+        status: 'booked',
+        notes: resv!.notes,
+        createdBy: resv!.createdBy,
+        resourceIds,
+      },
+    };
+  } catch (err) {
+    // Step F — 23P01 detection (ADR-0006 §3 race semantics).
+    // The INSERT raised an exclusion_violation. Throw OccurrenceRaceError so the
+    // CALLER can re-probe in the correct context:
+    //   - Single-create (createReservation): re-probe in a fresh tx because the
+    //     outer tx is poisoned and concluding.
+    //   - Series path (createSeries loop): this throw propagates out of the
+    //     tx.transaction() savepoint callback; Drizzle emits ROLLBACK TO
+    //     SAVEPOINT (un-poisoning the outer tx back to the pre-savepoint state);
+    //     the series loop catches OccurrenceRaceError and re-probes on the LIVE
+    //     parent tx (which is now clean).
+    // In either case we do NOT re-probe here — the tx/savepoint context is
+    // wrong for a re-probe (poisoned for single-create; still-open savepoint for
+    // series that Drizzle has not rolled back yet at this call stack frame).
+    if (isExclusionViolation(err)) {
+      throw new OccurrenceRaceError(startAt, endAt, resourceIds, err);
+    }
+    throw err;
+  }
+}
+
+/**
+ * reProbeInFreshTx — re-run the conflict probe in a FRESH transaction.
+ * Used after a 23P01 exclusion violation poisons the current tx/savepoint.
+ * Opens a new withOrgContext(db) transaction so the probe sees committed rows.
+ */
+export async function reProbeInFreshTx(
+  db: AnyDb,
+  sess: AppSession,
+  startAt: Date,
+  endAt: Date,
+  resourceIds: string[],
+): Promise<ConflictHit[]> {
+  return withOrgContext(db, sess.orgId, (tx) =>
+    runConflictProbe(tx, startAt, endAt, resourceIds),
+  );
 }
