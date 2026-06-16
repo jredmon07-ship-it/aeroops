@@ -2,11 +2,12 @@ import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
 /**
- * vitest.config.ts — Slice 0.3 unit-test config for apps/web pure helpers.
+ * vitest.config.ts — Unit-test config for apps/web pure helpers.
  *
- * Tests ONLY the pure, framework-agnostic helpers in apps/web/lib/:
+ * Covers:
  *   - lib/nav.ts           (filterNavForSession — no DOM, no Next.js)
  *   - lib/auth-errors.ts   (mapAuthErrorToResponse — no DOM, no Next.js)
+ *   - schedule/board/_utils/board-layout.ts   (pure layout math — Slice 2c)
  *
  * Full Next.js route / browser e2e tests are deferred to Slice 0.4 (CI/CD phase).
  *
@@ -30,7 +31,11 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     testTimeout: 10000,
-    // Only run pure-helper tests. Next.js page/layout tests are Slice 0.4.
-    include: ['lib/__tests__/**/*.test.ts'],
+    // Pure-helper tests: lib helpers + board layout utils (Slice 2c).
+    // Next.js page/layout tests deferred to Slice 0.4.
+    include: [
+      'lib/__tests__/**/*.test.ts',
+      'app/o/\\[slug\\]/\\(shell\\)/schedule/board/_utils/**/*.test.ts',
+    ],
   },
 });

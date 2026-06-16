@@ -34,6 +34,7 @@ import {
   cancelSeries,
   listSeriesOccurrences,
   previewSeries,
+  rescheduleReservation,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -54,6 +55,7 @@ import type {
   CancelSeriesResult,
   ListSeriesOccurrencesResponse,
   PreviewSeriesResult,
+  RescheduleResult,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -507,6 +509,46 @@ export async function listSeriesOccurrencesAction(input: {
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── rescheduleAction ─────────────────────────────────────────────────────────
+
+export type RescheduleActionResult =
+  | RescheduleResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * rescheduleAction — move a reservation to a new window and/or resource set.
+ *
+ * Maps:
+ *   ForbiddenError       → { error: 'forbidden' }
+ *   UnauthenticatedError → { error: 'unauthenticated' }
+ *   ValidationError      → { error: 'validation', message } (prefix stripped)
+ *   RescheduleResult     → passed through as-is (including ok:false arms)
+ *
+ * The capability gate is enforced server-side by rescheduleReservation
+ * (requireCapability('schedule:create_reservation')). The client's canDrag prop
+ * is UI-only.
+ */
+export async function rescheduleAction(input: {
+  reservationId: string;
+  newStartAt: Date;
+  newEndAt: Date;
+  newResourceIds?: string[];
+}): Promise<RescheduleActionResult> {
+  const session = await auth();
+  try {
+    return await rescheduleReservation(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
     return { error: 'server' };
   }
 }
