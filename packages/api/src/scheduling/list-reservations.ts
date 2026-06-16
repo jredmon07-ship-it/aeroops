@@ -53,6 +53,11 @@ export interface ReservationRow {
   createdBy: string;
   cancelledAt: Date | null;
   cancelledBy: string | null;
+  /**
+   * The recurrence series this reservation belongs to, or null for a one-off
+   * (SCHED-2b). The web list renders a "Repeats" badge when non-null.
+   */
+  seriesId: string | null;
   /** Resource ids linked to this reservation (from reservation_resource). */
   resourceIds: string[];
 }
@@ -90,6 +95,7 @@ async function _listReservationsImpl(
         createdBy: reservation.createdBy,
         cancelledAt: reservation.cancelledAt,
         cancelledBy: reservation.cancelledBy,
+        seriesId: reservation.seriesId,
       })
       .from(reservation)
       .where(
@@ -147,6 +153,7 @@ async function _listReservationsImpl(
       createdBy: r.createdBy,
       cancelledAt: r.cancelledAt ?? null,
       cancelledBy: r.cancelledBy ?? null,
+      seriesId: r.seriesId ?? null,
       resourceIds: resourceIdsByReservation.get(r.id) ?? [],
     }));
   });

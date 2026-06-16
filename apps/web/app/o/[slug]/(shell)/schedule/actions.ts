@@ -30,6 +30,10 @@ import {
   listBlackouts,
   createBlackout,
   deleteBlackout,
+  createSeries,
+  cancelSeries,
+  listSeriesOccurrences,
+  previewSeries,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -46,6 +50,10 @@ import type {
   BlackoutView,
   CreateBlackoutResult,
   DeleteBlackoutResult,
+  CreateSeriesResult,
+  CancelSeriesResult,
+  ListSeriesOccurrencesResponse,
+  PreviewSeriesResult,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -408,6 +416,94 @@ export async function deleteBlackoutAction(input: {
   const session = await auth();
   try {
     return await deleteBlackout(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── createSeriesAction ───────────────────────────────────────────────────────
+
+export type CreateSeriesActionResult =
+  | CreateSeriesResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function createSeriesAction(
+  input: unknown,
+): Promise<CreateSeriesActionResult> {
+  const session = await auth();
+  try {
+    return await createSeries(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── previewSeriesAction ──────────────────────────────────────────────────────
+
+export type PreviewSeriesActionResult =
+  | PreviewSeriesResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function previewSeriesAction(
+  input: unknown,
+): Promise<PreviewSeriesActionResult> {
+  const session = await auth();
+  try {
+    return await previewSeries(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── cancelSeriesAction ───────────────────────────────────────────────────────
+
+export type CancelSeriesActionResult =
+  | CancelSeriesResult
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function cancelSeriesAction(input: {
+  seriesId: string;
+}): Promise<CancelSeriesActionResult> {
+  const session = await auth();
+  try {
+    return await cancelSeries(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── listSeriesOccurrencesAction ──────────────────────────────────────────────
+
+export type ListSeriesOccurrencesActionResult =
+  | ListSeriesOccurrencesResponse
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function listSeriesOccurrencesAction(input: {
+  seriesId: string;
+}): Promise<ListSeriesOccurrencesActionResult> {
+  const session = await auth();
+  try {
+    return await listSeriesOccurrences(session, input);
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

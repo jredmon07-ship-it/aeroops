@@ -119,6 +119,8 @@ async function _listSeriesOccurrencesImpl(
       createdBy: r.createdBy,
       cancelledAt: r.cancelledAt ?? null,
       cancelledBy: r.cancelledBy ?? null,
+      // Every row here is an occurrence of this series (WHERE series_id = input).
+      seriesId: input.seriesId,
       resourceIds: resourceIdsByReservation.get(r.id) ?? [],
     }));
 
