@@ -1,15 +1,18 @@
 /** @type {import('next').NextConfig} */
 
 // ─── Build-phase-only env guard ───────────────────────────────────────────────
-// AUTH_SECRET must be set at runtime. During `next build` (CI/CD environments
-// where the real secret is intentionally absent), we set a dummy value ONLY
-// when NEXT_PHASE === 'phase-production-build' so the build-time module graph
-// can be evaluated without a real secret.
+// AUTH_SECRET must be set at runtime. During `next build` (local dev and CI/CD
+// environments where the real secret may be absent from the Next.js project dir),
+// we set a dummy value so the build-time module graph can be evaluated without
+// a real secret.
 //
-// CRITICAL: This guard MUST NOT fire at runtime (server start / request time).
-// Next.js sets NEXT_PHASE='phase-production-build' exclusively during `next build`;
-// it is undefined at runtime. A missing AUTH_SECRET at runtime must cause
-// buildAuthConfig() / the runtime assertion in auth.ts to throw (fail-loud).
+// CRITICAL: next.config.mjs is evaluated BEFORE Next.js sets NEXT_PHASE, so we
+// cannot rely on NEXT_PHASE to gate this. Instead we set a placeholder whenever
+// AUTH_SECRET is missing. next.config.mjs is not re-evaluated at runtime (server
+// start / request time) — the real runtime env comes from the deployment env or
+// .env.local in the project root. auth.ts has a separate runtime assertion that
+// rejects the placeholder value at request time, ensuring fail-loud behaviour if
+// the server starts without a real secret.
 //
 // DATABASE_URL is not set at build time — no DB connection is made during build.
 // Pages that call getDb() are server components / server actions and are only
@@ -17,10 +20,7 @@
 const BUILD_PHASE_PLACEHOLDER =
   'build-time-placeholder-not-a-real-secret-replace-me';
 
-if (
-  !process.env.AUTH_SECRET &&
-  process.env.NEXT_PHASE === 'phase-production-build'
-) {
+if (!process.env.AUTH_SECRET) {
   process.env.AUTH_SECRET = BUILD_PHASE_PLACEHOLDER;
 }
 

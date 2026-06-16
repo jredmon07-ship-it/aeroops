@@ -45,7 +45,7 @@ function makeSession(role: MembershipRole, overrides?: Partial<AppSession>): App
 // The two roles that should see Org settings in nav
 const PERMITTED_ROLES: MembershipRole[] = ['owner', 'manager'];
 
-// The six restricted roles that should NOT see Org settings in nav
+// The six roles that should NOT see Org settings in nav (lack org:manage_settings)
 const RESTRICTED_ROLES: MembershipRole[] = [
   'dispatcher',
   'cfi',
@@ -54,6 +54,24 @@ const RESTRICTED_ROLES: MembershipRole[] = [
   'student',
   'accountant',
 ];
+
+// Expected nav labels per role, derived from the RBAC matrix (packages/core
+// capabilities.ts) against the Slice-1 NAV_ITEMS:
+//   Dashboard      app:access              → all roles
+//   Reservations   schedule:access         → owner, manager, dispatcher, cfi
+//   Resources      schedule:manage_resources → owner, manager, dispatcher
+//   Org settings   org:manage_settings     → owner, manager
+// Order matches NAV_ITEMS order.
+const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
+  owner: ['Dashboard', 'Reservations', 'Resources', 'Org settings'],
+  manager: ['Dashboard', 'Reservations', 'Resources', 'Org settings'],
+  dispatcher: ['Dashboard', 'Reservations', 'Resources'],
+  cfi: ['Dashboard', 'Reservations'],
+  mechanic: ['Dashboard'],
+  renter: ['Dashboard'],
+  student: ['Dashboard'],
+  accountant: ['Dashboard'],
+};
 
 // ═════════════════════════════════════════════════════════════════════════════
 // 1. Null/undefined session
@@ -85,8 +103,8 @@ describe('2. owner gets Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 2 items', () => {
-    expect(result.length).toBe(2);
+  it('returns exactly 4 items (full Slice-1 nav)', () => {
+    expect(result.length).toBe(4);
   });
 
   it('includes Dashboard', () => {
@@ -115,8 +133,8 @@ describe('3. manager gets Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 2 items', () => {
-    expect(result.length).toBe(2);
+  it('returns exactly 4 items (full Slice-1 nav)', () => {
+    expect(result.length).toBe(4);
   });
 
   it('includes Dashboard', () => {
@@ -134,17 +152,17 @@ describe('3. manager gets Dashboard and Org settings', () => {
 // 4. Restricted roles → Dashboard only, no Org settings
 // ═════════════════════════════════════════════════════════════════════════════
 
-describe('4. Restricted roles get Dashboard only (no Org settings in nav)', () => {
+describe('4. Roles without org:manage_settings never get Org settings in nav', () => {
   for (const role of RESTRICTED_ROLES) {
     describe(`role: ${role}`, () => {
       const session = makeSession(role);
       const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-      it(`${role} gets exactly 1 nav item`, () => {
-        expect(result.length).toBe(1);
+      it(`${role} gets exactly its RBAC-derived nav items`, () => {
+        expect(result.map((i) => i.label)).toEqual(EXPECTED_LABELS[role]);
       });
 
-      it(`${role} gets Dashboard`, () => {
+      it(`${role} always gets Dashboard first`, () => {
         expect(result[0]?.label).toBe('Dashboard');
       });
 
@@ -154,7 +172,7 @@ describe('4. Restricted roles get Dashboard only (no Org settings in nav)', () =
       });
 
       it(`${role} Org settings item is completely absent from result array`, () => {
-        const settingsItem = result.find((i) => i.href.includes('settings'));
+        const settingsItem = result.find((i) => i.href.endsWith('/settings'));
         expect(settingsItem).toBeUndefined();
       });
     });
@@ -334,17 +352,17 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
       const result = filterNavForSession(session, NAV_ITEMS, 'acme');
       const labels = result.map((i) => i.label);
 
-      // All 8 roles have app:access → always get Dashboard
+      // Exact, order-preserving match against the RBAC-derived expectation.
+      expect(labels).toEqual(EXPECTED_LABELS[role]);
+
+      // All 8 roles have app:access → always get Dashboard.
       expect(labels).toContain('Dashboard');
 
+      // Org settings visibility tracks org:manage_settings (owner + manager only).
       if (PERMITTED_ROLES.includes(role)) {
-        // owner + manager: have org:manage_settings → Org settings visible
         expect(labels).toContain('Org settings');
-        expect(result.length).toBe(2);
       } else {
-        // The other 6: no org:manage_settings → no Org settings in nav
         expect(labels).not.toContain('Org settings');
-        expect(result.length).toBe(1);
       }
     });
   }
@@ -355,8 +373,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 2 items (Phase 0 — no Hub nav yet)', () => {
-    expect(NAV_ITEMS.length).toBe(2);
+  it('NAV_ITEMS has exactly 4 items (Slice 1 — Dashboard, Reservations, Resources, Org settings)', () => {
+    expect(NAV_ITEMS.length).toBe(4);
   });
 
   it('first item is Dashboard with app:access', () => {
@@ -365,11 +383,24 @@ describe('11. NAV_ITEMS registry', () => {
     expect(NAV_ITEMS[0]?.href).toContain('[slug]');
   });
 
-  it('second item is Org settings with org:manage_settings', () => {
-    expect(NAV_ITEMS[1]?.label).toBe('Org settings');
-    expect(NAV_ITEMS[1]?.requiredCapability).toBe('org:manage_settings');
-    expect(NAV_ITEMS[1]?.href).toContain('[slug]');
-    expect(NAV_ITEMS[1]?.href).toContain('settings');
+  it('Reservations item is gated by schedule:access', () => {
+    const reservations = NAV_ITEMS.find((i) => i.label === 'Reservations');
+    expect(reservations?.requiredCapability).toBe('schedule:access');
+    expect(reservations?.href).toBe('/o/[slug]/schedule');
+  });
+
+  it('Resources item is gated by schedule:manage_resources', () => {
+    const resources = NAV_ITEMS.find((i) => i.label === 'Resources');
+    expect(resources?.requiredCapability).toBe('schedule:manage_resources');
+    expect(resources?.href).toBe('/o/[slug]/schedule/resources');
+  });
+
+  it('last item is Org settings with org:manage_settings', () => {
+    const last = NAV_ITEMS[NAV_ITEMS.length - 1];
+    expect(last?.label).toBe('Org settings');
+    expect(last?.requiredCapability).toBe('org:manage_settings');
+    expect(last?.href).toContain('[slug]');
+    expect(last?.href).toContain('settings');
   });
 
   it('all NAV_ITEMS have [slug] placeholder in href', () => {

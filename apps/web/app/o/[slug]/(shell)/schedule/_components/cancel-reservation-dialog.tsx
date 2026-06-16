@@ -1,0 +1,97 @@
+/**
+ * cancel-reservation-dialog.tsx — AlertDialog confirmation for cancelling a reservation.
+ *
+ * Spec §7: Title "Cancel this reservation?", safer default "Keep reservation".
+ * Calls cancelReservationAction and notifies parent via onSuccess/onError.
+ */
+'use client';
+
+import * as React from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { cancelReservationAction } from '../actions';
+
+interface CancelReservationDialogProps {
+  reservationId: string;
+  timeRange: string;
+  resourceNames: string;
+  onSuccess: () => void;
+  onError: (message: string) => void;
+}
+
+export function CancelReservationDialog({
+  reservationId,
+  timeRange,
+  resourceNames,
+  onSuccess,
+  onError,
+}: CancelReservationDialogProps) {
+  const [pending, setPending] = React.useState(false);
+
+  const handleCancel = async () => {
+    setPending(true);
+    try {
+      const result = await cancelReservationAction({ reservationId });
+      if ('error' in result) {
+        onError('Could not cancel the reservation. Please try again.');
+        return;
+      }
+      if (!result.ok && result.reason === 'not_found') {
+        onError('Reservation not found. It may have already been cancelled.');
+        return;
+      }
+      onSuccess();
+    } catch {
+      onError('Something went wrong. Please try again.');
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          aria-label={`Cancel reservation ${timeRange}`}
+        >
+          Cancel
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancel this reservation?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will cancel the {timeRange} reservation for {resourceNames}. This
+            action is recorded.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel autoFocus disabled={pending}>
+            Keep reservation
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              void handleCancel();
+            }}
+            disabled={pending}
+          >
+            {pending ? 'Cancelling…' : 'Cancel reservation'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

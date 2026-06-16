@@ -19,6 +19,7 @@ import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
+import { btree_gist } from '@electric-sql/pglite/contrib/btree_gist';
 import postgres from 'postgres';
 import * as schema from './schema/index.js';
 
@@ -86,7 +87,14 @@ export async function createTestClient(): Promise<{
 }> {
   // pgcrypto must be passed as an extension so PGlite loads its WASM bundle.
   // This enables gen_random_uuid() which every table PK uses.
-  const pglite = await PGlite.create({ extensions: { pgcrypto } });
+  //
+  // btree_gist provides the GiST operator class for scalar types (uuid, etc.)
+  // so they can participate in a GiST multi-column index alongside range types.
+  // Required for the EXCLUDE USING gist (resource_id WITH =, during WITH &&)
+  // constraint on reservation_resource (ADR-0004). Without this registration
+  // the 0002 migration's EXCLUDE constraint will fail with "data type uuid has
+  // no default operator class for access method gist".
+  const pglite = await PGlite.create({ extensions: { pgcrypto, btree_gist } });
   const db = drizzlePglite(pglite, { schema });
   return { db, pglite };
 }

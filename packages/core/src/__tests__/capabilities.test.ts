@@ -15,6 +15,7 @@
  *  10. CAPABILITIES array completeness.
  *  11. Adversarial: prototype-key roles never throw and are fail-closed.
  *  12. isMembershipRole type guard.
+ *  13. SCHED-1 schedule:* capabilities — exact grants per role.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -137,18 +138,24 @@ describe('7. ROLE_CAPABILITIES exhaustiveness', () => {
 // ─── 8. capabilitiesForRole ──────────────────────────────────────────────────
 
 describe('8. capabilitiesForRole', () => {
-  it('owner returns both capabilities', () => {
+  it('owner returns app + org + all three schedule capabilities', () => {
     const caps = capabilitiesForRole('owner');
     expect(caps).toContain('app:access');
     expect(caps).toContain('org:manage_settings');
-    expect(caps.length).toBe(2);
+    expect(caps).toContain('schedule:access');
+    expect(caps).toContain('schedule:create_reservation');
+    expect(caps).toContain('schedule:manage_resources');
+    expect(caps.length).toBe(5);
   });
 
-  it('manager returns both capabilities', () => {
+  it('manager returns app + org + all three schedule capabilities', () => {
     const caps = capabilitiesForRole('manager');
     expect(caps).toContain('app:access');
     expect(caps).toContain('org:manage_settings');
-    expect(caps.length).toBe(2);
+    expect(caps).toContain('schedule:access');
+    expect(caps).toContain('schedule:create_reservation');
+    expect(caps).toContain('schedule:manage_resources');
+    expect(caps.length).toBe(5);
   });
 
   it('student returns only app:access', () => {
@@ -197,8 +204,18 @@ describe('10. CAPABILITIES array', () => {
     expect(CAPABILITIES).toContain('org:manage_settings');
   });
 
-  it('has exactly 2 capabilities (Phase 0 — no Hub capabilities yet)', () => {
-    expect(CAPABILITIES.length).toBe(2);
+  it('contains the three SCHED-1 schedule capabilities', () => {
+    expect(CAPABILITIES).toContain('schedule:access');
+    expect(CAPABILITIES).toContain('schedule:create_reservation');
+    expect(CAPABILITIES).toContain('schedule:manage_resources');
+  });
+
+  it('has exactly 5 capabilities (Phase 0 + SCHED-1 schedule:*)', () => {
+    expect(CAPABILITIES.length).toBe(5);
+  });
+
+  it('has no duplicate capabilities', () => {
+    expect(new Set(CAPABILITIES).size).toBe(CAPABILITIES.length);
   });
 });
 
@@ -221,6 +238,17 @@ describe('11. Adversarial: prototype-key and empty-string roles are fail-closed 
       expect(() => can(role as MembershipRole, 'org:manage_settings')).not.toThrow();
       expect(can(role as MembershipRole, 'org:manage_settings')).toBe(false);
     });
+
+    for (const cap of [
+      'schedule:access',
+      'schedule:create_reservation',
+      'schedule:manage_resources',
+    ] as const) {
+      it(`can('${role}', '${cap}') === false (no throw)`, () => {
+        expect(() => can(role as MembershipRole, cap)).not.toThrow();
+        expect(can(role as MembershipRole, cap)).toBe(false);
+      });
+    }
 
     it(`capabilitiesForRole('${role}') deep-equals [] (no throw)`, () => {
       expect(() => capabilitiesForRole(role as MembershipRole)).not.toThrow();
@@ -271,5 +299,72 @@ describe('12. isMembershipRole', () => {
   it('returns false for boolean', () => {
     expect(isMembershipRole(true)).toBe(false);
     expect(isMembershipRole(false)).toBe(false);
+  });
+});
+
+// ─── 13. SCHED-1 schedule:* capabilities — exact grants ──────────────────────
+//
+// Per ADR-0004 / SCHED-1:
+//   schedule:access             → owner, manager, dispatcher, cfi
+//   schedule:create_reservation → owner, manager, dispatcher, cfi (also gates cancel)
+//   schedule:manage_resources   → owner, manager, dispatcher
+//   renter, student, mechanic, accountant get NONE of the three.
+
+describe('13. SCHED-1 schedule:* capabilities', () => {
+  const GRANTED: Record<
+    'schedule:access' | 'schedule:create_reservation' | 'schedule:manage_resources',
+    MembershipRole[]
+  > = {
+    'schedule:access': ['owner', 'manager', 'dispatcher', 'cfi'],
+    'schedule:create_reservation': ['owner', 'manager', 'dispatcher', 'cfi'],
+    'schedule:manage_resources': ['owner', 'manager', 'dispatcher'],
+  };
+
+  const EXCLUDED: MembershipRole[] = ['renter', 'student', 'mechanic', 'accountant'];
+
+  for (const [cap, grantedRoles] of Object.entries(GRANTED) as [
+    keyof typeof GRANTED,
+    MembershipRole[],
+  ][]) {
+    describe(cap, () => {
+      for (const role of grantedRoles) {
+        it(`${role} HAS ${cap}`, () => {
+          expect(can(role, cap)).toBe(true);
+        });
+      }
+
+      for (const role of MEMBERSHIP_ROLES) {
+        if (grantedRoles.includes(role)) continue;
+        it(`${role} does NOT have ${cap}`, () => {
+          expect(can(role, cap)).toBe(false);
+        });
+      }
+    });
+  }
+
+  it('excluded roles (renter/student/mechanic/accountant) have NONE of the three', () => {
+    for (const role of EXCLUDED) {
+      expect(can(role, 'schedule:access')).toBe(false);
+      expect(can(role, 'schedule:create_reservation')).toBe(false);
+      expect(can(role, 'schedule:manage_resources')).toBe(false);
+      // They retain exactly app:access and nothing else.
+      expect(capabilitiesForRole(role)).toEqual(['app:access']);
+    }
+  });
+
+  it('schedule:access grant set equals create_reservation grant set (cfi gets both)', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'schedule:access')).toBe(can(role, 'schedule:create_reservation'));
+    }
+  });
+
+  it('manage_resources is a strict subset of access (cfi can access but not manage)', () => {
+    expect(can('cfi', 'schedule:access')).toBe(true);
+    expect(can('cfi', 'schedule:manage_resources')).toBe(false);
+    for (const role of MEMBERSHIP_ROLES) {
+      if (can(role, 'schedule:manage_resources')) {
+        expect(can(role, 'schedule:access')).toBe(true);
+      }
+    }
   });
 });

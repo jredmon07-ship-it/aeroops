@@ -35,6 +35,9 @@ import type { MembershipRole } from './roles.js';
 export const CAPABILITIES = [
   'app:access',
   'org:manage_settings',
+  'schedule:access',
+  'schedule:create_reservation',
+  'schedule:manage_resources',
 ] as const;
 
 /** Union type of all valid capability strings. */
@@ -52,22 +55,24 @@ export type Capability = (typeof CAPABILITIES)[number];
  *
  * Matrix (rows = roles, columns = capabilities):
  *
- *   Role          | app:access | org:manage_settings |
- *   --------------|------------|---------------------|
- *   owner         |     ✓      |         ✓           |
- *   manager       |     ✓      |         ✓           |
- *   dispatcher    |     ✓      |                     |
- *   cfi           |     ✓      |                     |
- *   mechanic      |     ✓      |                     |
- *   renter        |     ✓      |                     |
- *   student       |     ✓      |                     |
- *   accountant    |     ✓      |                     |
+ *   Role          | app:access | org:manage_settings | schedule:access | schedule:create_reservation | schedule:manage_resources |
+ *   --------------|------------|---------------------|-----------------|-----------------------------|---------------------------|
+ *   owner         |     ✓      |         ✓           |        ✓        |              ✓              |             ✓             |
+ *   manager       |     ✓      |         ✓           |        ✓        |              ✓              |             ✓             |
+ *   dispatcher    |     ✓      |                     |        ✓        |              ✓              |             ✓             |
+ *   cfi           |     ✓      |                     |        ✓        |              ✓              |                           |
+ *   mechanic      |     ✓      |                     |                 |                             |                           |
+ *   renter        |     ✓      |                     |                 |                             |                           |
+ *   student       |     ✓      |                     |                 |                             |                           |
+ *   accountant    |     ✓      |                     |                 |                             |                           |
+ *
+ * NOTE: schedule:create_reservation also gates reservation cancel in Slice 1.
  */
 export const ROLE_CAPABILITIES = {
-  owner:      ['app:access', 'org:manage_settings'] as const,
-  manager:    ['app:access', 'org:manage_settings'] as const,
-  dispatcher: ['app:access'] as const,
-  cfi:        ['app:access'] as const,
+  owner:      ['app:access', 'org:manage_settings', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
+  manager:    ['app:access', 'org:manage_settings', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
+  dispatcher: ['app:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
+  cfi:        ['app:access', 'schedule:access', 'schedule:create_reservation'] as const,
   mechanic:   ['app:access'] as const,
   renter:     ['app:access'] as const,
   student:    ['app:access'] as const,
