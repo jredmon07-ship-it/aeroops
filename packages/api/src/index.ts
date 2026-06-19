@@ -37,6 +37,7 @@ export {
   buildEdgeAuthConfig,
   jwtCallback,
   sessionCallback,
+  loginSchema,
   resolveOrgBySlug,
   verifyCredential,
   hashPassword,
@@ -47,6 +48,12 @@ export {
   ForbiddenError,
   requireCapability,
   hasCapability,
+  // Slice 4M.1 — Mobile auth pipeline
+  verifyLoginAndIssueClaims,
+  verifyLoginAndIssueClaimsWithDb,
+  signMobileToken,
+  verifyMobileToken,
+  sessionFromMobileClaims,
 } from './auth/index.js';
 
 export type {
@@ -54,6 +61,8 @@ export type {
   ResolvedOrg,
   VerifiedCredential,
   SessionOrgData,
+  // Slice 4M.1 — Mobile claims type
+  MobileClaims,
 } from './auth/index.js';
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

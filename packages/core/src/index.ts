@@ -115,3 +115,19 @@ export type {
   BalanceCheckResult,
   BalanceSeam,
 } from './dispatch-gate/balance-seam.js';
+
+// ─── Slice 4M.2 — Mobile DTOs, mappers, and window schema ─────────────────────
+// RN-safe; shared by apps/web route handlers and apps/mobile.
+// SECURITY: org_id ABSENT from all DTOs; Dates → ISO strings.
+export {
+  mobileScheduleWindowSchema,
+  toMobileReservationDTO,
+  toMobileResourceDTO,
+} from './mobile/dto.js';
+export type {
+  MobileScheduleWindow,
+  MobileReservationDTO,
+  MobileResourceDTO,
+  MobileScheduleResponse,
+  MobileApiError,
+} from './mobile/dto.js';

@@ -64,8 +64,7 @@
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { getDb } from '../db.js';
-import { resolveOrgBySlug } from './resolve-org.js';
-import { verifyCredential } from './verify-credential.js';
+import { verifyLoginAndIssueClaims } from './verify-login.js';
 
 // ─── Re-export edge-safe callbacks and edge config ───────────────────────────
 //
@@ -93,8 +92,11 @@ import { jwtCallback, sessionCallback } from './edge-callbacks.js';
  *
  * All three fields must be present; missing/invalid input returns null
  * (auth failure) rather than an error to avoid leaking input validation state.
+ *
+ * Exported so the mobile login route and verifyLoginAndIssueClaims can reuse
+ * the SAME schema — never reimplemented.
  */
-const loginSchema = z.object({
+export const loginSchema = z.object({
   slug: z.string().min(1).trim(),
   email: z.string().email().trim().toLowerCase(),
   password: z.string().min(1),
@@ -153,37 +155,25 @@ export function buildAuthConfig(): any {
             return null;
           }
 
-          const { slug, email, password } = parsed.data;
-
           // Step 2: Obtain the DB client lazily (memoized — resolves instantly
           //   after the first successful connection).
           const db = await getDb();
 
-          // Step 3: Resolve org by slug (platform-admin read — see resolve-org.ts).
-          const resolvedOrg = await resolveOrgBySlug(db, slug);
-          if (!resolvedOrg) {
+          // Step 3–6: Shared login pipeline (resolveOrgBySlug → status==='active'
+          //   → verifyCredential). Returns claims on success, null on any failure.
+          const claims = await verifyLoginAndIssueClaims(db, parsed.data);
+          if (!claims) {
             return null;
           }
 
-          // Step 4: Reject suspended or inactive orgs.
-          if (resolvedOrg.status !== 'active') {
-            return null;
-          }
-
-          // Step 5: Verify credential (tenant-scoped, anti-enumeration, RLS).
-          const verified = await verifyCredential(db, resolvedOrg.id, email, password);
-          if (!verified) {
-            return null;
-          }
-
-          // Step 6: Return the user object for Auth.js to embed in the JWT.
+          // Return the user object for Auth.js to embed in the JWT.
           // `id` is Auth.js's canonical user identifier field (maps to userId).
           return {
-            id: verified.userId,
-            orgId: resolvedOrg.id,
-            slug: resolvedOrg.slug,
-            role: verified.role,
-            email: verified.email,
+            id: claims.userId,
+            orgId: claims.orgId,
+            slug: claims.slug,
+            role: claims.role,
+            email: claims.email,
           };
         },
       }),
