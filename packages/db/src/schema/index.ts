@@ -19,6 +19,19 @@
  *   scheduleOptimizationRun (table: schedule_optimization_run) — Slice 4b (migration 0011)
  *     Audited optimizer-run header. Per-proposal outcomes reconstructable from each
  *     created reservation's audit row (metadata.optimizationRunId). NO money.
+ *   course (table: course) — Slice T1.1 / Training (migration 0012)
+ *     Operator-defined training curriculum. Title + status are operator content only.
+ *     NO FAA/Part-141 determination computed. [VERIFY-T1-B]
+ *   courseLesson (table: course_lesson) — Slice T1.1 / Training (migration 0012)
+ *     Ordered lesson within a course. stage_label = FREE-TEXT operator grouping,
+ *     NOT a Part-141 stage. [VERIFY-T1-G]
+ *   enrollment (table: enrollment) — Slice T1.1 / Training (migration 0012)
+ *     Student enrolled in a course. 'completed' = operator flag, NOT graduation.
+ *     [VERIFY-T1-B/F/E]
+ *   lessonRecord (table: lesson_record) — Slice T1.1 / Training (migration 0012)
+ *     WRITE-ONCE lesson-completion fact. Voided via tombstone, never deleted.
+ *     grade_label = FREE-TEXT only, NOT a computed ACS/Part-61/141 verdict.
+ *     [VERIFY-T1-A/C/D]
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -36,6 +49,8 @@ export {
   groundingState,
   squawkStatus,
   squawkSeverity,
+  enrollmentStatus,
+  lessonRecordStatus,
 } from './enums.js';
 
 // Tenant-scoped tables
@@ -139,3 +154,24 @@ export type {
   ScheduleOptimizationRunSelect,
   ScheduleOptimizationRunInsert,
 } from './schedule-optimization-run.js';
+
+// Training — tenant-scoped (Slice T1.1 / ADR-0011 / migration 0012)
+// course: operator-defined curriculum. NO FAA/Part-141 determination. [VERIFY-T1-B]
+// courseLesson: ordered lesson. stage_label = FREE-TEXT grouping, NOT a Part-141 stage.
+//   [VERIFY-T1-G]. Hard-delete blocked when lesson_records exist (has_records + RESTRICT FK).
+// enrollment: student enrolled in course. 'completed' = operator flag, NOT graduation.
+//   [VERIFY-T1-B/F/E]. No re-enroll after withdraw in T1.
+// lessonRecord: WRITE-ONCE completion fact. Void = tombstone; never deleted.
+//   grade_label = FREE-TEXT only, NOT ACS/Part-61/141 verdict. [VERIFY-T1-A/C/D].
+//   voided_by SET NULL: durable "who" in audit_log, NOT the column.
+export { course } from './course.js';
+export type { CourseSelect, CourseInsert } from './course.js';
+
+export { courseLesson } from './course-lesson.js';
+export type { CourseLessonSelect, CourseLessonInsert } from './course-lesson.js';
+
+export { enrollment } from './enrollment.js';
+export type { EnrollmentSelect, EnrollmentInsert } from './enrollment.js';
+
+export { lessonRecord } from './lesson-record.js';
+export type { LessonRecordSelect, LessonRecordInsert } from './lesson-record.js';

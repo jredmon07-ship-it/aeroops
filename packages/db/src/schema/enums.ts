@@ -26,6 +26,14 @@
  *   MEL/airworthiness construct. [VERIFY-3b-A]
  * squawk_severity: operator triage label; 'grounding' is a UI hint only —
  *   it does NOT auto-ground. [VERIFY-3b-B]
+ *
+ * ENROLLMENT_STATUSES, LESSON_RECORD_STATUSES are imported from @aeroops/core
+ * for the Slice T1.1 training schema (ADR-0011). The DB pgEnums and application-
+ * layer types are guaranteed in sync.
+ * enrollment_status: operator lifecycle flag only. 'completed' ≠ Part-141
+ *   graduation or regulatory completion. [VERIFY-T1-B]
+ * lesson_record_status: append-only audit posture. 'voided' = tombstone,
+ *   NOT a deletion or e-signature removal. [VERIFY-T1-C]
  */
 import { pgEnum } from 'drizzle-orm/pg-core';
 import {
@@ -39,6 +47,8 @@ import {
   GROUNDING_STATES,
   SQUAWK_STATUSES,
   SQUAWK_SEVERITIES,
+  ENROLLMENT_STATUSES,
+  LESSON_RECORD_STATUSES,
 } from '@aeroops/core';
 
 /**
@@ -136,3 +146,24 @@ export const squawkStatus = pgEnum('squawk_status', SQUAWK_STATUSES);
  * only — it does NOT auto-ground the aircraft. [VERIFY-3b-B]
  */
 export const squawkSeverity = pgEnum('squawk_severity', SQUAWK_SEVERITIES);
+
+/**
+ * enrollmentStatus — Postgres enum `enrollment_status`.
+ * Derived from the @aeroops/core ENROLLMENT_STATUSES tuple (ADR-0011, Slice T1.1).
+ * Three values: 'active' (enrolled and participating), 'completed' (operator-
+ * toggled content-state flag — NOT a Part-141 graduation or reg determination
+ * [VERIFY-T1-B]), 'withdrawn' (roster management only — no re-enroll restriction
+ * in T1 [VERIFY-T1-F]).
+ * Valid transitions (API-enforced): active→completed | active→withdrawn only.
+ */
+export const enrollmentStatus = pgEnum('enrollment_status', ENROLLMENT_STATUSES);
+
+/**
+ * lessonRecordStatus — Postgres enum `lesson_record_status`.
+ * Derived from the @aeroops/core LESSON_RECORD_STATUSES tuple (ADR-0011, Slice T1.1).
+ * Two values: 'recorded' (the lesson-completion fact, write-once at INSERT),
+ * 'voided' (append-only tombstone — the record is preserved, not deleted).
+ * voided_by SET NULL on user hard-delete: the durable "who" lives in audit_log.
+ * [VERIFY-T1-C]: this void-tombstone is NOT an e-signature removal.
+ */
+export const lessonRecordStatus = pgEnum('lesson_record_status', LESSON_RECORD_STATUSES);

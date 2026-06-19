@@ -505,3 +505,84 @@ export type {
   GetAircraftUtilizationInput,
   AircraftUtilizationRow,
 } from './reporting/get-aircraft-utilization.js';
+
+// ─── Slice T1.2 — Training (TRAINING-T1, ADR-0011) ────────────────────────────
+// Course + lesson + enrollment + lesson-record lifecycle. Pure content-ratio
+// progress (NOT a Part-141 or FAA determination of any kind).
+// training:access → owner/manager/dispatcher/cfi (read).
+// training:manage → owner/manager/cfi (build/enroll/record/void). Student gets
+//   NEITHER cap in T1 (self-service portal is Phase 6). [VERIFY-T1-H]
+// All write paths: ONE audit row; lesson_record WRITE-ONCE (void-only correction).
+// NO money; NO computed FAA determination. [MONEY BOUNDARY] [VERIFY-T1-A/B/C]
+// *WithDb forms are for test code only (inject a pglite client).
+
+export { listCourses, listCoursesWithDb } from './training/list-courses.js';
+export type { ListCoursesOptions } from './training/list-courses.js';
+
+export { getCourseDetail, getCourseDetailWithDb } from './training/get-course-detail.js';
+export type { GetCourseDetailInput } from './training/get-course-detail.js';
+
+export { listEnrollments, listEnrollmentsWithDb } from './training/list-enrollments.js';
+export type { ListEnrollmentsOptions } from './training/list-enrollments.js';
+
+export {
+  getEnrollmentDetail,
+  getEnrollmentDetailWithDb,
+} from './training/get-enrollment-detail.js';
+export type { GetEnrollmentDetailInput } from './training/get-enrollment-detail.js';
+
+export {
+  listEnrollmentsForMember,
+  listEnrollmentsForMemberWithDb,
+} from './training/list-enrollments-for-member.js';
+export type { ListEnrollmentsForMemberInput } from './training/list-enrollments-for-member.js';
+
+export { createCourse, createCourseWithDb } from './training/create-course.js';
+export type { CreateCourseInput } from './training/create-course.js';
+
+export { addCourseLesson, addCourseLessonWithDb } from './training/add-course-lesson.js';
+export type { AddCourseLessonInput } from './training/add-course-lesson.js';
+
+export {
+  removeCourseLesson,
+  removeCourseLessonWithDb,
+} from './training/remove-course-lesson.js';
+export type { RemoveCourseLessonInput } from './training/remove-course-lesson.js';
+
+export { enrollMember, enrollMemberWithDb } from './training/enroll-member.js';
+export type { EnrollMemberInput } from './training/enroll-member.js';
+
+export {
+  setEnrollmentStatus,
+  setEnrollmentStatusWithDb,
+} from './training/set-enrollment-status.js';
+export type { SetEnrollmentStatusInput } from './training/set-enrollment-status.js';
+
+export { recordLesson, recordLessonWithDb } from './training/record-lesson.js';
+export type { RecordLessonInput } from './training/record-lesson.js';
+
+export { voidLessonRecord, voidLessonRecordWithDb } from './training/void-lesson-record.js';
+export type { VoidLessonRecordInput } from './training/void-lesson-record.js';
+
+// Training result/IO types.
+export type {
+  CourseListRow,
+  CourseDetail,
+  EnrollmentListRow,
+  EnrollmentDetail,
+  LessonProgressRow,
+  LessonRecordView,
+  MemberEnrollmentRow,
+  ListCoursesResult,
+  GetCourseDetailResult,
+  ListEnrollmentsResult,
+  GetEnrollmentDetailResult,
+  ListEnrollmentsForMemberResult,
+  CreateCourseResult,
+  AddCourseLessonResult,
+  RemoveCourseLessonResult,
+  EnrollMemberResult,
+  SetEnrollmentStatusResult,
+  RecordLessonResult,
+  VoidLessonRecordResult,
+} from './training/types.js';

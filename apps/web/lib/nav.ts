@@ -41,10 +41,11 @@ export interface NavItem {
  *   4. Auto-schedule — Intelligent auto-scheduler (schedule:create_reservation);
  *      after Board, before Resources — scheduling operators only.
  *   5. Resources — Resource admin (schedule:manage_resources only).
- *   6. People — Roster management (people:access); after Resources, before Fleet.
- *   7. Fleet — Aircraft detail hub (fleet:access); after People, before Maintenance.
- *   8. Maintenance — Squawks + grounding (maintenance:access).
- *   9. Org settings — owner + manager only (org:manage_settings).
+ *   6. People — Roster management (people:access); after Resources, before Training.
+ *   7. Training — Training hub (training:access); after People, before Fleet.
+ *   8. Fleet — Aircraft detail hub (fleet:access); after Training, before Maintenance.
+ *   9. Maintenance — Squawks + grounding (maintenance:access).
+ *  10. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {
@@ -78,6 +79,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'People',
     href: '/o/[slug]/people',
     requiredCapability: 'people:access',
+  },
+  // Slice T1.3: Training hub — gated by training:access (owner/manager/cfi/dispatcher).
+  // Placed after People and before Fleet per the breadth re-sequence (approved 2026-06-18).
+  {
+    label: 'Training',
+    href: '/o/[slug]/training',
+    requiredCapability: 'training:access',
   },
   {
     label: 'Fleet',

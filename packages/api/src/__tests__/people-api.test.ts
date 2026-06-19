@@ -87,6 +87,7 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'),    'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0010_civil_twilight.sql'),    'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0011_optimizer_run.sql'),    'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0012_training.sql'),           'utf-8'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────
@@ -833,8 +834,8 @@ describe('T23 — Capability exhaustiveness + new caps', () => {
     expect(MEMBERSHIP_ROLES.length).toBe(8);
   });
 
-  it('CAPABILITIES has exactly 16 entries (12 existing + people:access + people:manage + reporting:access + dispatch:manage_requirements)', () => {
-    expect(CAPABILITIES.length).toBe(16);
+  it('CAPABILITIES has exactly 18 entries (16 existing + training:access + training:manage — Slice T1.2)', () => {
+    expect(CAPABILITIES.length).toBe(18);
   });
 
   it('CAPABILITIES is sorted alphabetically', () => {

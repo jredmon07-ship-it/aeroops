@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getMemberDetailAction } from '../actions';
 import type { SerializedMemberDetail } from '../actions';
 import { MemberDetailClient } from '../_components/member-detail-client';
+import { MemberTrainingCard } from '../_components/member-training-card';
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -313,6 +314,22 @@ async function DetailContent({ userId, slug, canManage }: DetailContentProps) {
       <StaticContactCard member={member} />
       <StaticUpcomingReservationsCard member={member} />
       <StaticDispatchCard member={member} />
+
+      {/* ── Training card (Slice T1.3) — fetched in Suspense ────────────── */}
+      {/* Renders for people:access holders; [VERIFY-T1-B] applies. */}
+      <Suspense
+        fallback={
+          <div className="rounded-lg border border-slate-200 bg-white p-4 animate-pulse" aria-busy="true">
+            <div className="h-4 w-20 bg-slate-200 rounded mb-3" />
+            <div className="space-y-2">
+              <div className="h-8 w-full bg-slate-100 rounded" />
+              <div className="h-8 w-full bg-slate-100 rounded" />
+            </div>
+          </div>
+        }
+      >
+        <MemberTrainingCard userId={member.userId} slug={slug} />
+      </Suspense>
     </div>
   );
 }

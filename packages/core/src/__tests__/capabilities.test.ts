@@ -140,7 +140,7 @@ describe('7. ROLE_CAPABILITIES exhaustiveness', () => {
 // ─── 8. capabilitiesForRole ──────────────────────────────────────────────────
 
 describe('8. capabilitiesForRole', () => {
-  it('owner returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities', () => {
+  it('owner returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
     const caps = capabilitiesForRole('owner');
     expect(caps).toContain('app:access');
     expect(caps).toContain('dispatch:access');
@@ -158,10 +158,12 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('schedule:access');
     expect(caps).toContain('schedule:create_reservation');
     expect(caps).toContain('schedule:manage_resources');
-    expect(caps.length).toBe(16);
+    expect(caps).toContain('training:access');
+    expect(caps).toContain('training:manage');
+    expect(caps.length).toBe(18);
   });
 
-  it('manager returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities', () => {
+  it('manager returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
     const caps = capabilitiesForRole('manager');
     expect(caps).toContain('app:access');
     expect(caps).toContain('dispatch:access');
@@ -179,7 +181,9 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('schedule:access');
     expect(caps).toContain('schedule:create_reservation');
     expect(caps).toContain('schedule:manage_resources');
-    expect(caps.length).toBe(16);
+    expect(caps).toContain('training:access');
+    expect(caps).toContain('training:manage');
+    expect(caps.length).toBe(18);
   });
 
   it('student returns only app:access', () => {
@@ -279,8 +283,13 @@ describe('10. CAPABILITIES array', () => {
     expect(CAPABILITIES).toContain('reporting:access');
   });
 
-  it('has exactly 16 capabilities (Phase 0 + SCHED-1 schedule:* + DISPATCH-3a dispatch:* + DISPATCH-3c dispatch:manage_requirements + MAINTENANCE-3b maintenance:* + FLEET-5 fleet:* + PEOPLE-6 people:* + REPORTING-7 reporting:*)', () => {
-    expect(CAPABILITIES.length).toBe(16);
+  it('has exactly 18 capabilities (16 existing + training:access + training:manage — Slice T1.2)', () => {
+    expect(CAPABILITIES.length).toBe(18);
+  });
+
+  it('contains the two TRAINING-T1.2 training capabilities', () => {
+    expect(CAPABILITIES).toContain('training:access');
+    expect(CAPABILITIES).toContain('training:manage');
   });
 
   it('has no duplicate capabilities', () => {

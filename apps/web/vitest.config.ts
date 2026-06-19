@@ -10,6 +10,7 @@ import { resolve } from 'path';
  *   - schedule/board/_utils/board-layout.ts   (pure layout math — Slice 2c)
  *   - schedule/new/_components/__tests__/    (twilight indicator — Slice 4a)
  *   - schedule/auto/_components/__tests__/   (auto-schedule utils — Slice 4b)
+ *   - training/__tests__/                    (training display helpers — Slice T1.3)
  *
  * Full Next.js route / browser e2e tests are deferred to Slice 0.4 (CI/CD phase).
  *
@@ -42,6 +43,8 @@ export default defineConfig({
       'app/o/\\[slug\\]/\\(shell\\)/schedule/new/_components/__tests__/**/*.test.ts',
       // Slice 4b — auto-schedule UI helper tests (pure, no DOM/Next.js).
       'app/o/\\[slug\\]/\\(shell\\)/schedule/auto/_components/__tests__/**/*.test.ts',
+      // Slice T1.3 — training display helper tests (pure, no DOM/Next.js).
+      'app/o/\\[slug\\]/\\(shell\\)/training/__tests__/**/*.test.ts',
     ],
   },
 });

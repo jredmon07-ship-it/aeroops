@@ -53,6 +53,10 @@ import { openDispatchWithDb } from '../dispatch/open-dispatch.js';
 import { closeDispatchWithDb } from '../dispatch/close-dispatch.js';
 import { reportSquawkWithDb } from '../maintenance/report-squawk.js';
 import { groundAircraftWithDb } from '../maintenance/ground-aircraft.js';
+import { createCourseWithDb } from '../training/create-course.js';
+import { addCourseLessonWithDb } from '../training/add-course-lesson.js';
+import { enrollMemberWithDb } from '../training/enroll-member.js';
+import { recordLessonWithDb } from '../training/record-lesson.js';
 
 /** The org address used in the URL: /o/alpha/login */
 export const DEMO_SLUG = 'alpha';
@@ -370,6 +374,60 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   });
   if (!minorSquawk.ok) {
     throw new Error('[demo] report minor squawk failed — seed cannot continue.');
+  }
+
+  // ── 8. Training (Slice T1) ──────────────────────────────────────────────
+  // An operator-defined Private Pilot course with five lessons, the student
+  // enrolled, and the first two lessons recorded as complete by the CFI — so
+  // the Training surface shows a populated enrollment at 2/5 (40%) progress.
+  // Operator content + instructor data entry; NO computed FAA determination.
+  const cfiUserId = ids.userIdByEmail.get('cfi@alpha.aero')!;
+
+  const courseRes = await createCourseWithDb(db, ownerSession, {
+    title: 'Private Pilot — Part 61',
+    description: 'Operator syllabus: pre-solo fundamentals through cross-country.',
+  });
+  if (!courseRes.ok) throw new Error('[demo] create course failed — seed cannot continue.');
+  const courseId = courseRes.course.courseId;
+
+  const lessonPlan = [
+    { title: 'Preflight, taxi & runup', stageLabel: 'Pre-solo' },
+    { title: 'Four fundamentals',       stageLabel: 'Pre-solo' },
+    { title: 'Slow flight & stalls',    stageLabel: 'Pre-solo' },
+    { title: 'Takeoffs & landings',     stageLabel: 'Solo prep' },
+    { title: 'Cross-country planning',  stageLabel: 'Cross-country' },
+  ];
+  let ppCourse = courseRes.course;
+  for (const lesson of lessonPlan) {
+    const added = await addCourseLessonWithDb(db, ownerSession, {
+      courseId,
+      title: lesson.title,
+      stageLabel: lesson.stageLabel,
+    });
+    if (!added.ok) throw new Error(`[demo] add lesson "${lesson.title}" failed — seed cannot continue.`);
+    ppCourse = added.course;
+  }
+
+  const enrollRes = await enrollMemberWithDb(db, ownerSession, {
+    courseId,
+    studentUserId: ids.studentId,
+  });
+  if (!enrollRes.ok) {
+    throw new Error(`[demo] enroll student failed (${enrollRes.reason}) — seed cannot continue.`);
+  }
+  const enrollmentId = enrollRes.enrollment.enrollmentId;
+
+  // Record the first two lessons complete (CFI as instructor) → 2/5 progress.
+  for (const lesson of ppCourse.lessons.slice(0, 2)) {
+    const recorded = await recordLessonWithDb(db, ownerSession, {
+      enrollmentId,
+      lessonId: lesson.lessonId,
+      instructorUserId: cfiUserId,
+      gradeLabel: 'Complete',
+    });
+    if (!recorded.ok) {
+      throw new Error(`[demo] record lesson failed (${recorded.reason}) — seed cannot continue.`);
+    }
   }
 }
 

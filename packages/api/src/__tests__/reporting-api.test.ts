@@ -96,6 +96,7 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'),    'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0010_civil_twilight.sql'),    'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0011_optimizer_run.sql'),    'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0012_training.sql'),           'utf-8'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────
@@ -296,8 +297,8 @@ describe('Capability: reporting:access', () => {
     expect([...CAPABILITIES]).toEqual(sorted);
   });
 
-  it('capability count is now 16 (15 + dispatch:manage_requirements)', () => {
-    expect(CAPABILITIES.length).toBe(16);
+  it('capability count is now 18 (16 + training:access + training:manage — Slice T1.2)', () => {
+    expect(CAPABILITIES.length).toBe(18);
   });
 
   it('ROLE_CAPABILITIES keys still equal MEMBERSHIP_ROLES (exhaustive)', async () => {

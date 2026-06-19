@@ -116,6 +116,21 @@ export type {
   BalanceSeam,
 } from './dispatch-gate/balance-seam.js';
 
+// ─── Slice T1.1 — Training enum tuples (single source of truth for DB + app) ──
+export {
+  ENROLLMENT_STATUSES,
+  LESSON_RECORD_STATUSES,
+  isEnrollmentStatus,
+  isLessonRecordStatus,
+} from './training/enums.js';
+export type { EnrollmentStatus, LessonRecordStatus } from './training/enums.js';
+
+// ─── Slice T1.2 — Training progress ratio (pure content ratio, NOT a reg determination) ──
+// [VERIFY-T1-B]: progress = completedLessons / totalLessons, operator content ratio ONLY.
+// NOT a Part-141 80%-completion-rate, graduation, or certificate determination.
+export { progressRatioFromCounts } from './training/progress.js';
+export type { ProgressRatioResult } from './training/progress.js';
+
 // ─── Slice 4M.2 — Mobile DTOs, mappers, and window schema ─────────────────────
 // RN-safe; shared by apps/web route handlers and apps/mobile.
 // SECURITY: org_id ABSENT from all DTOs; Dates → ISO strings.
