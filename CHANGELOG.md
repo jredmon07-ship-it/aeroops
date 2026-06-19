@@ -6,6 +6,28 @@ All notable changes to AeroOps are documented here. Format based on
 
 ## [Unreleased] — Phase 1 (Scheduling + Dispatch)
 
+### Slice 4M — Mobile foundation: auth + schedule API (build-complete, awaiting merge)
+
+**Added**
+
+- **The server-side foundation for the native (Expo/iOS) app** — a token-based mobile auth + a read-only
+  schedule API, built so a device never touches the database and never holds a long-lived secret.
+  `POST /api/mobile/v1/auth/login` issues a short-lived (8h) signed token (same secret + claim shape as the
+  web session, via the same JWT primitives) after running the **identical** password-verification pipeline
+  the web uses (argon2 + anti-enumeration + org resolution — now extracted into one shared function the web
+  login also calls, so there's a single source of truth). `GET /api/mobile/v1/schedule` verifies the token
+  and returns the org's reservations through the existing gated read — org scoping, RLS, and capability checks
+  are identical to the web. Mobile DTOs (org id never on the wire; dates as ISO strings) live in the shared
+  pure package so the future app and the API agree.
+
+**Notes**
+
+- The auth + schedule API is fully integration-tested (login failure-matrix → one generic 401, token
+  round-trip, a web-parity guard against drift, and a tenant-isolation test proving an Org-A token only ever
+  returns Org-A data). The native Expo app itself and an on-device demo are the remaining mobile work — they
+  need a simulator/device and (for an end-to-end demo) a deployed backend, both outside this build environment.
+  No writes, no money, no schema change; the web cookie-session auth and the frozen engines are byte-untouched.
+
 ### Slice 4b — Intelligent auto-scheduler (build-complete, awaiting merge)
 
 **Added**
