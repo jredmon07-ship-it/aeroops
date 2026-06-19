@@ -14,14 +14,14 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-sky-600 text-white hover:bg-sky-700 focus-visible:ring-sky-600',
+          'bg-brand text-white shadow-sm hover:bg-brand-ink active:translate-y-px focus-visible:ring-brand',
         destructive:
-          'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600',
+          'bg-danger text-white shadow-sm hover:bg-red-700 active:translate-y-px focus-visible:ring-danger',
         outline:
-          'border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 focus-visible:ring-slate-400',
+          'border border-slate-300 bg-white shadow-xs hover:bg-slate-50 hover:border-slate-400 text-slate-900 focus-visible:ring-slate-400',
         ghost:
-          'hover:bg-slate-100 text-slate-900 focus-visible:ring-slate-400',
-        link: 'text-sky-600 underline-offset-4 hover:underline focus-visible:ring-sky-600',
+          'hover:bg-slate-100 text-slate-700 hover:text-slate-900 focus-visible:ring-slate-400',
+        link: 'text-brand underline-offset-4 hover:underline focus-visible:ring-brand',
       },
       size: {
         default: 'h-10 px-4 py-2',

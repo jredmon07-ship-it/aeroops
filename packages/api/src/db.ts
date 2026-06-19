@@ -28,6 +28,7 @@
  *   // Rarely needed: prefer withSessionOrgContext which calls getDb internally.
  */
 import { createProdClient } from '@aeroops/db';
+import { getDemoDb } from './demo/bootstrap.js';
 
 /**
  * Db — the resolved production Drizzle client type.
@@ -64,6 +65,12 @@ let _dbPromise: Promise<Db> | null = null;
  * @throws  If DATABASE_URL is unset or the connecting role is a superuser.
  */
 export function getDb(): Promise<Db> {
+  // DEMO MODE: serve the in-process PGlite client (migrations + seed in memory)
+  // instead of connecting to a real Postgres. Strictly gated on AEROOPS_DEMO=1,
+  // which only the `pnpm demo` launcher sets — the production path is untouched.
+  if (process.env['AEROOPS_DEMO'] === '1') {
+    return getDemoDb();
+  }
   if (_dbPromise === null) {
     _dbPromise = createProdClient();
   }
