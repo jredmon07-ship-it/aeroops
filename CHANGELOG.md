@@ -4,6 +4,30 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] — Phase 3 (Training)
+
+### Slice T1 — Training hub foundation (build-complete, awaiting merge)
+
+**Added**
+
+- **The Training hub** — operators can build a course (an operator-named syllabus with ordered,
+  optionally stage-grouped lessons), enroll a member, record a lesson as completed by an instructor,
+  and see at-a-glance progress (completed / total). A `/training` surface (courses list + detail,
+  enrollments list + the per-student enrollment detail with a per-lesson checklist and a full record
+  log), plus a "Training" card on each member's People page. Recorded lessons are write-once; a
+  mistake is voided (kept in the log, struck-through), never edited.
+
+**Notes**
+
+- **The whole hub is operator content + instructor data entry — it computes NO FAA determination.**
+  Grades and stage labels are free-text; "progress" is a content-coverage ratio (not a Part-141
+  completion); a lesson record is data entry, not an e-signature; enrollment "completed" is an operator
+  flag, not graduation. Every regulation-adjacent surface carries a verbatim disclaimer, and the
+  digitally-signed records / stage-check enforcement / 80%-completion / endorsements / qualification-
+  gating are explicitly deferred (forward seams only). New capabilities `training:access` /
+  `training:manage`; ADR-0011; migration `0012` staged + human-gated. No money, no meter access.
+  2,780 tests green; reviewer APPROVE + compliance PASS.
+
 ## [Unreleased] — Phase 1 (Scheduling + Dispatch)
 
 ### Slice 4M — Mobile foundation: auth + schedule API (build-complete, awaiting merge)
