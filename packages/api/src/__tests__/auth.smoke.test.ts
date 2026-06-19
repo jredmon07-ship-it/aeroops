@@ -56,6 +56,19 @@ const MIGRATION_0001 = readFileSync(
   resolve(__dirname, '../../../db/migrations/0001_auth_credential.sql'),
   'utf-8',
 );
+// 0002–0008 required: Drizzle ORM INSERT on app_user now emits phone+status columns.
+const MIGRATIONS_0002_0008 = [
+  readFileSync(resolve(__dirname, '../../../db/migrations/0002_scheduling.sql'),        'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'),  'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0004_recurrence.sql'),        'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0005_dispatch.sql'),          'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0006_squawks_grounding.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0007_fleet.sql'),             'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0008_people.sql'),            'utf-8'),
+  // 0009 required: dispatch_requirement + dispatch_config tables (Slice 3c / ADR-0009).
+  // openDispatch now queries dispatch_requirement; tables must exist in test DB.
+  readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'),    'utf-8'),
+];
 
 // ─── Test state ───────────────────────────────────────────────────────────────
 let db: PgliteTestClient;
@@ -71,7 +84,7 @@ const PASSWORD_NO_MEMBER = 'AlsoStrong!NoMember42';
 beforeAll(async () => {
   // 1. Fresh in-memory PGlite with both migrations applied.
   ({ db, pglite } = await createTestClient());
-  await applyMigrationSql({ pglite }, [MIGRATION_0000, MIGRATION_0001]);
+  await applyMigrationSql({ pglite }, [MIGRATION_0000, MIGRATION_0001, ...MIGRATIONS_0002_0008]);
 
   // 2. Seed two orgs with users (as superuser — RLS bypassed during setup).
   const seed = await seedTwoOrgs(db);

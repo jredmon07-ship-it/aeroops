@@ -24,13 +24,27 @@
  *   CreateReservationResult gains two new arms ('policy', 'conflict_and_policy').
  *   The existing 'conflict' arm is BYTE-IDENTICAL — no existing consumer breaks.
  *   CheckConflictsResult extended with same two new arms in check-conflicts.ts.
+ *
+ * ADDITIVE EXTENSION (SCHED-3b Wave 3b / ADR-0008 §2.3 Option A):
+ *   The ok:true arm of CreateReservationResult gains an OPTIONAL
+ *   `groundingWarnings?: GroundingHit[]` field. Grounding is WARN-ONLY at create
+ *   in 3b — a grounded aircraft does NOT block the create; the warning rides along
+ *   on the success result. The field is OPTIONAL and only present when there is at
+ *   least one warning, so the ok:true shape is BYTE-IDENTICAL when no aircraft is
+ *   grounded and no existing consumer breaks. The refusal arms are UNCHANGED:
+ *   grounding is evaluated ONLY on the success path, never on a refusal.
  */
 
-import type { PolicyViolation } from '@aeroops/core';
+import type { PolicyViolation, GroundingHit } from '@aeroops/core';
 
 // Re-export PolicyViolation (sourced from @aeroops/core) so API callers do not
 // need to depend on @aeroops/core directly.
 export type { PolicyViolation };
+
+// Re-export GroundingHit (sourced from @aeroops/core) so API callers do not need
+// to depend on @aeroops/core directly. Carried on the ok:true create arms as the
+// optional `groundingWarnings` field (Slice 3b Wave 3b, ADR-0008 §2.3 Option A).
+export type { GroundingHit };
 
 /**
  * PolicyViolationView — core PolicyViolation enriched with resourceDisplayName
@@ -90,7 +104,7 @@ export interface CreatedReservation {
  * Back-compat: callers checking `reason === 'conflict'` keep working unchanged.
  */
 export type CreateReservationResult =
-  | { ok: true; reservation: CreatedReservation }
+  | { ok: true; reservation: CreatedReservation; groundingWarnings?: GroundingHit[] }
   | { ok: false; reason: 'conflict'; conflicts: ConflictHit[] }
   | { ok: false; reason: 'policy'; violations: PolicyViolationView[] }
   | { ok: false; reason: 'conflict_and_policy'; conflicts: ConflictHit[]; violations: PolicyViolationView[] };
@@ -181,6 +195,12 @@ export interface SeriesOccurrenceReport {
   result: 'created' | 'skipped';
   /** Set when result is 'created'. */
   reservationId?: string;
+  /**
+   * Set when result is 'created' AND the created occurrence booked a grounded
+   * aircraft (Slice 3b Wave 3b, warn-only). Absent when no aircraft is grounded
+   * so existing report shapes stay byte-identical.
+   */
+  groundingWarnings?: GroundingHit[];
   /** Set when result is 'skipped'. */
   reason?: 'conflict' | 'policy' | 'conflict_and_policy';
   /** Populated when reason includes conflict. */
@@ -281,7 +301,7 @@ export interface RescheduleReservationInput {
  * original remains booked.
  */
 export type RescheduleResult =
-  | { ok: true; reservation: CreatedReservation }
+  | { ok: true; reservation: CreatedReservation; groundingWarnings?: GroundingHit[] }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'conflict'; conflicts: ConflictHit[] }
   | { ok: false; reason: 'policy'; violations: PolicyViolationView[] }

@@ -7,10 +7,16 @@
  * Fields: Hobbs OUT (step 0.1), Tach OUT (step 0.1), Pilot select (populated
  * via listDispatchPilotsAction on open), optional Notes.
  *
- * Result mapping:
+ * Result mapping (Slice 3c additive — existing arms byte-identical):
  *   ok:true                       → close + onSuccess(ticket)
+ *   ok:true + eligibilityWarnings → close + onSuccess(ticket) + non-blocking notice
  *   ok:false reason:'already_open' → inline "This aircraft is already checked out"
  *   ok:false reason:'not_found'   → inline "Reservation no longer available"
+ *   ok:false reason:'grounded'    → inline "Aircraft is grounded" (blocking)
+ *   ok:false reason:'ineligible'  → blocking inline error listing missingTags
+ *                                   [VERIFY-3c-A] operator labels, no FAR
+ *   ok:false reason:'balance_block' → generic blocking message (reserved/stub)
+ *                                   [VERIFY-3c-MONEY] no money concept
  *   { error: 'validation' }       → inline field error
  *   { error: 'forbidden' }        → inline auth error
  *   { error: 'server' }           → generic inline error
@@ -27,7 +33,7 @@
 'use client';
 
 import * as React from 'react';
-import { XCircle } from 'lucide-react';
+import { XCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -215,11 +221,39 @@ export function CheckOutDialog({
           setDialogError('Reservation no longer available.');
           return;
         }
+        if (result.reason === 'grounded') {
+          // Blocking error — no write occurred. Show tail # from grounding data if available.
+          const reasonText = result.grounding?.reason
+            ? `: ${result.grounding.reason}`
+            : '';
+          setDialogError(
+            `This aircraft is grounded and cannot be dispatched${reasonText}. Release it first.`,
+          );
+          return;
+        }
+        if (result.reason === 'ineligible') {
+          // Pre-flight eligibility gate (Slice 3c) — operator-set free-text required
+          // tag(s) the pilot doesn't carry. No write occurred. Operator-data framing
+          // (NOT an FAA/currency determination).
+          const tags = result.missingTags?.join(', ') ?? '';
+          setDialogError(
+            `This pilot is missing required tag(s): ${tags}. ` +
+              `Add the tag to the pilot, choose a qualified pilot, or remove the requirement.`,
+          );
+          return;
+        }
+        if (result.reason === 'balance_block') {
+          // Reserved for Phase 2 billing — unreachable with the Phase-1 stub seam.
+          setDialogError('Dispatch is blocked by an account-balance hold.');
+          return;
+        }
         setDialogError('Something went wrong. Please try again.');
         return;
       }
 
-      // ok:true
+      // ok:true — dispatch succeeded. In WARN mode the pilot may be missing a
+      // required tag (result.eligibilityWarnings); dispatch correctly proceeds
+      // regardless. Surfacing that as a non-blocking toast is a tracked polish item.
       onSuccess(result.ticket);
       onOpenChange(false);
     } catch {

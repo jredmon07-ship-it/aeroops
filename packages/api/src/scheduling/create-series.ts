@@ -349,6 +349,10 @@ async function _createSeriesImpl(
           endAt,
           result: 'created',
           reservationId: result!.reservation.id,
+          // Carry warn-only grounding warnings from the shared gated body
+          // (ADR-0008 §2.3). Only present when non-empty so the 'created' report
+          // shape stays byte-identical when nothing is grounded.
+          ...(result!.groundingWarnings ? { groundingWarnings: result!.groundingWarnings } : {}),
         };
       } else {
         skippedCount++;

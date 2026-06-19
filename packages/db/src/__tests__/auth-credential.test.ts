@@ -49,6 +49,42 @@ const MIGRATION_0001 = readFileSync(
   resolve(__dirname, '../../migrations/0001_auth_credential.sql'),
   'utf-8',
 );
+// 0002–0008 must follow because the Drizzle schema now includes columns
+// (phone, status on app_user) that were added in migration 0008.
+// Applying the full chain ensures the ORM-generated INSERT statements
+// match the actual table definition in the test DB.
+const MIGRATION_0002 = readFileSync(
+  resolve(__dirname, '../../migrations/0002_scheduling.sql'),
+  'utf-8',
+);
+const MIGRATION_0003 = readFileSync(
+  resolve(__dirname, '../../migrations/0003_booking_policies.sql'),
+  'utf-8',
+);
+const MIGRATION_0004 = readFileSync(
+  resolve(__dirname, '../../migrations/0004_recurrence.sql'),
+  'utf-8',
+);
+const MIGRATION_0005 = readFileSync(
+  resolve(__dirname, '../../migrations/0005_dispatch.sql'),
+  'utf-8',
+);
+const MIGRATION_0006 = readFileSync(
+  resolve(__dirname, '../../migrations/0006_squawks_grounding.sql'),
+  'utf-8',
+);
+const MIGRATION_0007 = readFileSync(
+  resolve(__dirname, '../../migrations/0007_fleet.sql'),
+  'utf-8',
+);
+const MIGRATION_0008 = readFileSync(
+  resolve(__dirname, '../../migrations/0008_people.sql'),
+  'utf-8',
+);
+const MIGRATION_0009 = readFileSync(
+  resolve(__dirname, '../../migrations/0009_dispatch_gate.sql'),
+  'utf-8',
+);
 
 // Dummy hash — clearly not a real password, visibly a placeholder.
 const DUMMY_HASH = '$argon2id$dummy$placeholder$not-a-real-hash';
@@ -66,7 +102,18 @@ beforeAll(async () => {
   // 1. Spin up a fresh in-memory PGlite and apply BOTH migrations in order.
   //    This validates the real migration artifacts work together in sequence.
   ({ db, pglite } = await createTestClient());
-  await applyMigrationSql({ pglite }, [MIGRATION_0000, MIGRATION_0001]);
+  await applyMigrationSql({ pglite }, [
+    MIGRATION_0000,
+    MIGRATION_0001,
+    MIGRATION_0002,
+    MIGRATION_0003,
+    MIGRATION_0004,
+    MIGRATION_0005,
+    MIGRATION_0006,
+    MIGRATION_0007,
+    MIGRATION_0008,
+    MIGRATION_0009,
+  ]);
 
   // 2. Seed two orgs with users (runs as superuser — RLS bypassed during setup).
   const seed = await seedTwoOrgs(db);

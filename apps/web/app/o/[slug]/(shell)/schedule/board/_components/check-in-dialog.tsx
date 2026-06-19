@@ -41,6 +41,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { deriveFlightTime } from '@aeroops/core';
 import { closeDispatchAction } from '../../actions';
+import { reportSquawkAction } from '../../../maintenance/actions';
 import type { DispatchTicketView } from '@aeroops/api';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -76,6 +77,15 @@ export function CheckInDialog({
   // ── Submission state ───────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
+  // ── Squawk-on-return state (Slice 3b.3) ───────────────────────────────────
+  const [squawkOpen, setSquawkOpen] = React.useState(false);
+  const [squawkTitle, setSquawkTitle] = React.useState('');
+  const [squawkDescription, setSquawkDescription] = React.useState('');
+  const [squawkSeverity, setSquawkSeverity] = React.useState<'low' | 'medium' | 'high' | 'grounding'>('low');
+  const [squawkTitleError, setSquawkTitleError] = React.useState<string | null>(null);
+  // Non-blocking squawk result message (shown after check-in succeeds)
+  const [squawkMessage, setSquawkMessage] = React.useState<string | null>(null);
+
   // ── Reset form when dialog opens ───────────────────────────────────────────
   React.useEffect(() => {
     if (open) {
@@ -84,6 +94,12 @@ export function CheckInDialog({
       setHobbsError(null);
       setTachError(null);
       setDialogError(null);
+      setSquawkOpen(false);
+      setSquawkTitle('');
+      setSquawkDescription('');
+      setSquawkSeverity('low');
+      setSquawkTitleError(null);
+      setSquawkMessage(null);
     }
   }, [open]);
 
@@ -183,8 +199,31 @@ export function CheckInDialog({
         return;
       }
 
-      // ok:true
-      onSuccess(result.ticket);
+      // ok:true — check-in succeeded
+      const closedTicket = result.ticket;
+
+      // Squawk-on-return (3b.3): fire reportSquawkAction after close succeeds.
+      // Independent — a squawk failure does NOT un-close the ticket.
+      if (squawkOpen && squawkTitle.trim()) {
+        try {
+          const squawkResult = await reportSquawkAction({
+            resourceId: closedTicket.resourceId,
+            title: squawkTitle.trim(),
+            description: squawkDescription.trim() || undefined,
+            severity: squawkSeverity,
+            dispatchTicketId: closedTicket.id,
+          });
+          if ('ok' in squawkResult && squawkResult.ok) {
+            setSquawkMessage('Squawk reported.');
+          } else {
+            setSquawkMessage('Check-in saved; squawk could not be saved (try again from Maintenance).');
+          }
+        } catch {
+          setSquawkMessage('Check-in saved; squawk could not be saved (try again from Maintenance).');
+        }
+      }
+
+      onSuccess(closedTicket);
       onOpenChange(false);
     } catch {
       setDialogError('Something went wrong. Please try again.');
@@ -304,6 +343,99 @@ export function CheckInDialog({
               <XCircle className="h-4 w-4" aria-hidden="true" />
               <AlertDescription>{dialogError}</AlertDescription>
             </Alert>
+          )}
+
+          {/* ── Squawk-on-return (Slice 3b.3) ─────────────────────────────── */}
+          <div className="border border-slate-200 rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setSquawkOpen((v) => !v)}
+              aria-expanded={squawkOpen}
+              aria-controls="ci-squawk-section"
+              className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors"
+            >
+              <span className="font-medium">Report a squawk? (optional)</span>
+              <span aria-hidden="true" className="text-slate-400">
+                {squawkOpen ? '▲' : '▼'}
+              </span>
+            </button>
+
+            {squawkOpen && (
+              <div id="ci-squawk-section" className="p-3 space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="ci-squawk-title">
+                    Title{' '}
+                    <span aria-hidden="true" className="text-destructive">
+                      *
+                    </span>
+                  </Label>
+                  <Input
+                    id="ci-squawk-title"
+                    type="text"
+                    placeholder="Brief description of the issue"
+                    value={squawkTitle}
+                    onChange={(e) => {
+                      setSquawkTitle(e.target.value);
+                      if (squawkTitleError) setSquawkTitleError(null);
+                    }}
+                    aria-required="true"
+                    aria-invalid={squawkTitleError ? 'true' : undefined}
+                    aria-describedby={squawkTitleError ? 'ci-squawk-title-err' : undefined}
+                    disabled={isSubmitting}
+                    maxLength={200}
+                  />
+                  {squawkTitleError && (
+                    <p
+                      id="ci-squawk-title-err"
+                      role="alert"
+                      className="text-xs text-destructive"
+                    >
+                      {squawkTitleError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="ci-squawk-desc">Description (optional)</Label>
+                  <textarea
+                    id="ci-squawk-desc"
+                    rows={2}
+                    maxLength={1000}
+                    placeholder="Additional details…"
+                    value={squawkDescription}
+                    onChange={(e) => setSquawkDescription(e.target.value)}
+                    disabled={isSubmitting}
+                    className="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="ci-squawk-severity">Severity</Label>
+                  <select
+                    id="ci-squawk-severity"
+                    value={squawkSeverity}
+                    onChange={(e) => setSquawkSeverity(e.target.value as typeof squawkSeverity)}
+                    disabled={isSubmitting}
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="grounding">Grounding (advisory label only)</option>
+                  </select>
+                  <p className="text-xs text-slate-500">
+                    Severity is an operator triage label. Squawks do not automatically ground aircraft.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Non-blocking squawk message (shown briefly before dialog closes) */}
+          {squawkMessage && (
+            <p role="status" aria-live="polite" className="text-xs text-slate-600">
+              {squawkMessage}
+            </p>
           )}
 
           <DialogFooter>

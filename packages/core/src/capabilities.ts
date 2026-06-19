@@ -36,7 +36,16 @@ export const CAPABILITIES = [
   'app:access',
   'dispatch:access',
   'dispatch:create',
+  'dispatch:manage_requirements',
+  'fleet:access',
+  'fleet:manage',
+  'maintenance:access',
+  'maintenance:ground',
+  'maintenance:squawk',
   'org:manage_settings',
+  'people:access',
+  'people:manage',
+  'reporting:access',
   'schedule:access',
   'schedule:create_reservation',
   'schedule:manage_resources',
@@ -57,30 +66,46 @@ export type Capability = (typeof CAPABILITIES)[number];
  *
  * Matrix (rows = roles, columns = capabilities):
  *
- *   Role          | app:access | dispatch:access | dispatch:create | org:manage_settings | schedule:access | schedule:create_reservation | schedule:manage_resources |
- *   --------------|------------|-----------------|-----------------|---------------------|-----------------|-----------------------------|---------------------------|
- *   owner         |     ✓      |        ✓        |        ✓        |          ✓          |        ✓        |              ✓              |             ✓             |
- *   manager       |     ✓      |        ✓        |        ✓        |          ✓          |        ✓        |              ✓              |             ✓             |
- *   dispatcher    |     ✓      |        ✓        |        ✓        |                     |        ✓        |              ✓              |             ✓             |
- *   cfi           |     ✓      |        ✓        |        ✓        |                     |        ✓        |              ✓              |                           |
- *   mechanic      |     ✓      |                 |                 |                     |                 |                             |                           |
- *   renter        |     ✓      |                 |                 |                     |                 |                             |                           |
- *   student       |     ✓      |                 |                 |                     |                 |                             |                           |
- *   accountant    |     ✓      |                 |                 |                     |                 |                             |                           |
+ *   Role          | app:access | dispatch:access | dispatch:create | dispatch:manage_requirements | fleet:access | fleet:manage | maintenance:access | maintenance:ground | maintenance:squawk | org:manage_settings | people:access | people:manage | reporting:access | schedule:access | schedule:create_reservation | schedule:manage_resources |
+ *   --------------|------------|-----------------|-----------------|------------------------------|--------------|--------------|--------------------|--------------------|--------------------|--------------------|---------------|---------------|------------------|--------------------|-----------------------------|---------------------------|
+ *   owner         |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |          ✓          |       ✓       |       ✓       |        ✓         |        ✓        |              ✓              |             ✓             |
+ *   manager       |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |          ✓          |       ✓       |       ✓       |        ✓         |        ✓        |              ✓              |             ✓             |
+ *   dispatcher    |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |                     |       ✓       |               |        ✓         |        ✓        |              ✓              |             ✓             |
+ *   cfi           |     ✓      |        ✓        |        ✓        |                              |      ✓       |              |         ✓          |                    |         ✓          |                     |       ✓       |               |        ✓         |        ✓        |              ✓              |                           |
+ *   mechanic      |     ✓      |                 |                 |                              |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |                     |               |               |                  |                 |                             |                           |
+ *   renter        |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                     |               |               |                  |                 |                             |                           |
+ *   student       |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                     |               |               |                  |                 |                             |                           |
+ *   accountant    |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                     |               |               |        ✓         |                 |                             |                           |
  *
  * NOTE: schedule:create_reservation also gates reservation cancel in Slice 1.
  * NOTE: dispatch:access + dispatch:create granted to owner/manager/dispatcher/cfi
  *       (parity with schedule:access; ADR-0007 §6 / Slice 3a).
+ * NOTE: dispatch:manage_requirements → owner/manager/dispatcher (NOT cfi/mechanic/
+ *       renter/student/accountant; conductor decision 2026-06-19, Slice 3c ADR-0009).
+ * NOTE: maintenance:access → owner/manager/dispatcher/cfi/mechanic (Slice 3b).
+ *       maintenance:ground → owner/manager/dispatcher/mechanic (NOT cfi, Slice 3b).
+ *       maintenance:squawk → owner/manager/dispatcher/cfi/mechanic (NOT renter/student, Slice 3b).
+ * NOTE: fleet:access → owner/manager/dispatcher/cfi/mechanic (Slice 5).
+ *       fleet:manage → owner/manager/dispatcher/mechanic (NOT cfi — CFI reads, can't edit
+ *       identity; decision (b) 2026-06-18).
+ *       renter/student/accountant get neither fleet cap.
+ * NOTE: people:access → owner/manager/dispatcher/cfi (read roster). Slice 6.
+ *       people:manage → owner/manager ONLY (NOT dispatcher/cfi — they read but can't
+ *       change roles/status/tags; decision 2026-06-19).
+ *       mechanic/renter/student/accountant get neither people cap.
+ * NOTE: reporting:access → owner/manager/dispatcher/cfi/accountant (Slice 7 D3).
+ *       mechanic/renter/student do NOT get reporting:access.
+ *       accountant included — utilization closest to their domain; carries zero money.
  */
 export const ROLE_CAPABILITIES = {
-  owner:      ['app:access', 'dispatch:access', 'dispatch:create', 'org:manage_settings', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
-  manager:    ['app:access', 'dispatch:access', 'dispatch:create', 'org:manage_settings', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
-  dispatcher: ['app:access', 'dispatch:access', 'dispatch:create', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
-  cfi:        ['app:access', 'dispatch:access', 'dispatch:create', 'schedule:access', 'schedule:create_reservation'] as const,
-  mechanic:   ['app:access'] as const,
+  owner:      ['app:access', 'dispatch:access', 'dispatch:create', 'dispatch:manage_requirements', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'org:manage_settings', 'people:access', 'people:manage', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
+  manager:    ['app:access', 'dispatch:access', 'dispatch:create', 'dispatch:manage_requirements', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'org:manage_settings', 'people:access', 'people:manage', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
+  dispatcher: ['app:access', 'dispatch:access', 'dispatch:create', 'dispatch:manage_requirements', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'people:access', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources'] as const,
+  cfi:        ['app:access', 'dispatch:access', 'dispatch:create', 'fleet:access', 'maintenance:access', 'maintenance:squawk', 'people:access', 'reporting:access', 'schedule:access', 'schedule:create_reservation'] as const,
+  mechanic:   ['app:access', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk'] as const,
   renter:     ['app:access'] as const,
   student:    ['app:access'] as const,
-  accountant: ['app:access'] as const,
+  accountant: ['app:access', 'reporting:access'] as const,
 } satisfies Record<MembershipRole, readonly Capability[]>;
 
 // Compile-time check: every role in MEMBERSHIP_ROLES must appear as a key.

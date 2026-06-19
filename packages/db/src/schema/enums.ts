@@ -17,6 +17,15 @@
  * schema (ADR-0007). The DB pgEnum and application-layer types are guaranteed
  * in sync. Three values: 'open' (checked out), 'closed' (checked in),
  * 'voided' (mistaken check-out abandoned while open).
+ *
+ * GROUNDING_STATES, SQUAWK_STATUSES, SQUAWK_SEVERITIES are imported from
+ * @aeroops/core for the Slice 3b squawks + grounding schema (ADR-0008).
+ * The DB pgEnums and application-layer types are guaranteed in sync.
+ * grounding_state: operator-set event state (never a computed reg verdict).
+ * squawk_status: lifecycle status; 'deferred' is operator triage, NOT an
+ *   MEL/airworthiness construct. [VERIFY-3b-A]
+ * squawk_severity: operator triage label; 'grounding' is a UI hint only —
+ *   it does NOT auto-ground. [VERIFY-3b-B]
  */
 import { pgEnum } from 'drizzle-orm/pg-core';
 import {
@@ -27,6 +36,9 @@ import {
   RECURRENCE_END_KINDS,
   RESERVATION_SERIES_STATUSES,
   DISPATCH_STATUSES,
+  GROUNDING_STATES,
+  SQUAWK_STATUSES,
+  SQUAWK_SEVERITIES,
 } from '@aeroops/core';
 
 /**
@@ -95,3 +107,32 @@ export const reservationSeriesStatus = pgEnum(
  * rows never participate (ADR-0007 §2).
  */
 export const dispatchStatus = pgEnum('dispatch_status', DISPATCH_STATUSES);
+
+/**
+ * groundingState — Postgres enum `grounding_state`.
+ * Derived from the @aeroops/core GROUNDING_STATES tuple (ADR-0008, Slice 3b).
+ * Two values: 'grounded' (operator set not available for dispatch),
+ * 'released' (grounding cleared). Current state per aircraft = the state of
+ * its latest event row (append-only event table; no silent mutation).
+ * This is operator data, NEVER a computed FAR/Part-91/43 reg verdict.
+ */
+export const groundingState = pgEnum('grounding_state', GROUNDING_STATES);
+
+/**
+ * squawkStatus — Postgres enum `squawk_status`.
+ * Derived from the @aeroops/core SQUAWK_STATUSES tuple (ADR-0008, Slice 3b).
+ * Three values: 'open' (reported; unaddressed), 'deferred' (acknowledged,
+ * noted for later — operator triage status only, NOT an MEL/airworthiness
+ * construct [VERIFY-3b-A]), 'resolved' (addressed and signed off).
+ * Transitions: open→resolved | open→deferred. No reopen path ([VERIFY-3b-D]).
+ */
+export const squawkStatus = pgEnum('squawk_status', SQUAWK_STATUSES);
+
+/**
+ * squawkSeverity — Postgres enum `squawk_severity`.
+ * Derived from the @aeroops/core SQUAWK_SEVERITIES tuple (ADR-0008, Slice 3b).
+ * Four values: 'low', 'medium', 'high', 'grounding'. This is an operator
+ * triage label, not a computed airworthiness class. 'grounding' is a UI hint
+ * only — it does NOT auto-ground the aircraft. [VERIFY-3b-B]
+ */
+export const squawkSeverity = pgEnum('squawk_severity', SQUAWK_SEVERITIES);

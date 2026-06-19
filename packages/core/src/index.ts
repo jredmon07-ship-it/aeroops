@@ -56,6 +56,26 @@ export type {
 
 export { deriveFlightTime } from './dispatch/flight-time.js';
 
+export {
+  GROUNDING_STATES,
+  SQUAWK_STATUSES,
+  SQUAWK_SEVERITIES,
+  isGroundingState,
+  isSquawkStatus,
+  isSquawkSeverity,
+} from './maintenance/enums.js';
+export type {
+  GroundingState,
+  SquawkStatus,
+  SquawkSeverity,
+} from './maintenance/enums.js';
+
+export { evaluateGroundingGate } from './maintenance/grounding-gate.js';
+export type {
+  GroundingHit,
+  GroundingGateResult,
+} from './maintenance/grounding-gate.js';
+
 export { expandRecurrence } from './scheduling/recurrence.js';
 export type {
   ZonedToUtc,
@@ -66,3 +86,13 @@ export type {
   SkippedLocalDate,
   ExpansionResult,
 } from './scheduling/recurrence.js';
+
+export { evaluateEligibilityGate } from './dispatch-gate/eligibility-gate.js';
+export type { EligibilityGateResult } from './dispatch-gate/eligibility-gate.js';
+
+export { stubBalanceSeam } from './dispatch-gate/balance-seam.js';
+export type {
+  BalanceCheckRequest,
+  BalanceCheckResult,
+  BalanceSeam,
+} from './dispatch-gate/balance-seam.js';

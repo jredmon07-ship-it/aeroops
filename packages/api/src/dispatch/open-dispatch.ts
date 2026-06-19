@@ -45,6 +45,10 @@ import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { isUniqueViolation, toDispatchTicketView } from './internal.js';
+import { loadGroundingProbe } from '../maintenance/internal.js';
+import { evaluateEligibilityGate, stubBalanceSeam } from '@aeroops/core';
+import type { BalanceSeam } from '@aeroops/core';
+import { loadRequiredTags, loadPilotTags, loadDispatchConfig } from '../dispatch-gate/internal.js';
 import type { OpenDispatchResult } from './types.js';
 
 // ─── UUID validation ──────────────────────────────────────────────────────────
@@ -107,6 +111,7 @@ async function _openDispatchImpl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: unknown,
+  balanceSeam: BalanceSeam = stubBalanceSeam,
 ): Promise<OpenDispatchResult> {
   // 1. AUTHZ FIRST — before any data access.
   requireCapability(session, 'dispatch:create');
@@ -181,7 +186,20 @@ async function _openDispatchImpl(
         );
       }
 
-      // 3d. Verify pilot is an org member.
+      // 3d. Grounding block — check current grounding state BEFORE INSERT.
+      //     If the aircraft is grounded, RETURN the 'grounded' refusal arm.
+      //     No write/audit occurs for a grounded block. ([VERIFY-3b-H])
+      const groundingProbe = await loadGroundingProbe(tx, [resourceId]);
+      const groundingState = groundingProbe.get(resourceId)!;
+      if (groundingState.grounded) {
+        return {
+          ok: false,
+          reason: 'grounded',
+          grounding: { resourceId, reason: groundingState.reason },
+        } as const;
+      }
+
+      // 3e. Verify pilot is an org member.
       const memberRows = await tx
         .select({ userId: membership.userId })
         .from(membership)
@@ -199,7 +217,46 @@ async function _openDispatchImpl(
         );
       }
 
-      // 3e. INSERT ticket + audit. On 23505, throw DispatchAlreadyOpenError
+      // 3g. Eligibility gate — AFTER pilot-membership, BEFORE INSERT.
+      //     Load requiredTags for this aircraft. If empty → skip (no gate, no
+      //     pilot-tag query). [VERIFY-3c-A] tags are FREE-TEXT opaque labels.
+      //
+      //     Load config once; used by both eligibility and balance gates.
+      const requiredTags = await loadRequiredTags(tx, resourceId);
+      const gateCfg      = await loadDispatchConfig(tx, sess.orgId);
+      let eligibilityWarnings: string[] | undefined;
+      if (requiredTags.length > 0) {
+        const pilotTags = await loadPilotTags(tx, pilotUserId);
+        const gate = evaluateEligibilityGate(requiredTags, pilotTags, gateCfg.eligibilityMode);
+        if (gate.blocked) {
+          // block mode + missing tags → refuse dispatch; NO write/audit.
+          return {
+            ok: false,
+            reason: 'ineligible',
+            missingTags: gate.missingTags,
+          } as const;
+        }
+        if (gate.warnings.length > 0) {
+          // warn mode + missing tags → proceed but carry warnings onto ok:true.
+          eligibilityWarnings = gate.warnings;
+        }
+      }
+
+      // 3h. Balance gate — AFTER eligibility, BEFORE INSERT.
+      //     [VERIFY-3c-MONEY]: stubBalanceSeam ALWAYS returns {ok:true} in Phase 1.
+      //     Only a test-injected fake seam can trigger balance_block.
+      if (gateCfg.balanceCheckEnabled) {
+        const balanceResult = await balanceSeam.check({
+          orgId: sess.orgId,
+          pilotUserId,
+        });
+        if (!balanceResult.ok) {
+          // Balance refused — NO write/audit.
+          return { ok: false, reason: 'balance_block' } as const;
+        }
+      }
+
+      // 3f. INSERT ticket + audit. On 23505, throw DispatchAlreadyOpenError
       //     to the outer try/catch so the re-query runs in a fresh tx.
       try {
         const [ticket] = await tx
@@ -232,7 +289,11 @@ async function _openDispatchImpl(
           },
         });
 
-        return { ok: true, ticket: toDispatchTicketView(ticket!) };
+        return {
+          ok: true,
+          ticket: toDispatchTicketView(ticket!),
+          ...(eligibilityWarnings !== undefined ? { eligibilityWarnings } : {}),
+        };
       } catch (insertErr) {
         if (isUniqueViolation(insertErr)) {
           // The tx is now poisoned. Throw a signal to the outer level where
@@ -273,7 +334,8 @@ export async function openDispatch(
   input: unknown,
 ): Promise<OpenDispatchResult> {
   const db = await getDb();
-  return _openDispatchImpl(db, session, input);
+  // Always uses stubBalanceSeam in app code (Phase 1 money boundary).
+  return _openDispatchImpl(db, session, input, stubBalanceSeam);
 }
 
 // ─── Test/injectable form ─────────────────────────────────────────────────────
@@ -282,6 +344,7 @@ export async function openDispatchWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   input: unknown,
+  balanceSeam: BalanceSeam = stubBalanceSeam,
 ): Promise<OpenDispatchResult> {
-  return _openDispatchImpl(db, session, input);
+  return _openDispatchImpl(db, session, input, balanceSeam);
 }

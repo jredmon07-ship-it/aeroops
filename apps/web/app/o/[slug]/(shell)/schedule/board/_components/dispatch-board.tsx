@@ -29,6 +29,7 @@ import { MoveReservationDialog } from './move-reservation-dialog';
 import { CheckOutDialog } from './check-out-dialog';
 import { CheckInDialog } from './check-in-dialog';
 import { VoidDispatchDialog } from './void-dispatch-dialog';
+import { GroundAircraftDialog, ReleaseAircraftDialog } from './ground-aircraft-dialog';
 import {
   fanOutBlocks,
   groupResourcesByKind,
@@ -36,7 +37,7 @@ import {
 import { rescheduleAction } from '../../actions';
 import { formatDate, formatTimeRange } from '../../_utils/format-time';
 import { reservationHue } from './board-block';
-import type { ReservationRow, ResourceRow, ConflictHit, PolicyViolationView, DispatchTicketView } from '@aeroops/api';
+import type { ReservationRow, ResourceRow, ConflictHit, PolicyViolationView, DispatchTicketView, GroundingStatusView } from '@aeroops/api';
 import type { BoardBlock } from '../_utils/board-layout';
 
 // ─── DnD transfer data ────────────────────────────────────────────────────────
@@ -75,6 +76,22 @@ interface DispatchBoardProps {
    * The client reconstructs a Map<string, DispatchTicketView|null> from this.
    */
   initialDispatchTickets: Array<[string, DispatchTicketView | null]>;
+  /** Whether the current user has maintenance:access (controls grounding + squawk badges). */
+  canMaintenanceAccess: boolean;
+  /** Whether the current user has maintenance:ground (controls Ground/Release buttons). */
+  canGround: boolean;
+  /** Org slug for maintenance nav links. */
+  slug: string;
+  /**
+   * Serialized grounding status map: Array<[resourceId, GroundingStatusView]>.
+   * Empty array when fetch failed or user lacks maintenance:access.
+   */
+  initialGroundingStatus: Array<[string, GroundingStatusView]>;
+  /**
+   * Serialized open-squawk count map: Array<[resourceId, number]>.
+   * Empty array when fetch failed or user lacks maintenance:access.
+   */
+  initialOpenSquawkCounts: Array<[string, number]>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -86,6 +103,11 @@ export function DispatchBoard({
   canDrag,
   canDispatch,
   initialDispatchTickets,
+  canMaintenanceAccess,
+  canGround,
+  slug,
+  initialGroundingStatus,
+  initialOpenSquawkCounts,
 }: DispatchBoardProps) {
   const router = useRouter();
 
@@ -104,6 +126,25 @@ export function DispatchBoard({
   const [dispatchTickets, setDispatchTickets] = React.useState<
     Map<string, DispatchTicketView | null>
   >(() => new Map(initialDispatchTickets));
+
+  // ── Grounding + squawk state (Slice 3b) ────────────────────────────────────
+  const [groundingStatus, setGroundingStatus] = React.useState<
+    Map<string, GroundingStatusView>
+  >(() => new Map(initialGroundingStatus));
+
+  const [openSquawkCounts, setOpenSquawkCounts] = React.useState<
+    Map<string, number>
+  >(() => new Map(initialOpenSquawkCounts));
+
+  // Ground dialog state
+  const [groundDialogOpen, setGroundDialogOpen] = React.useState(false);
+  const [groundDialogResourceId, setGroundDialogResourceId] = React.useState<string | null>(null);
+  const [groundDialogDisplayName, setGroundDialogDisplayName] = React.useState('');
+
+  // Release dialog state
+  const [releaseDialogOpen, setReleaseDialogOpen] = React.useState(false);
+  const [releaseDialogResourceId, setReleaseDialogResourceId] = React.useState<string | null>(null);
+  const [releaseDialogDisplayName, setReleaseDialogDisplayName] = React.useState('');
 
   // ── DnD state ──────────────────────────────────────────────────────────────
   const [dragPayload, setDragPayload] = React.useState<DragPayload | null>(null);
@@ -636,6 +677,63 @@ export function DispatchBoard({
     router.refresh();
   }
 
+  // ── Ground / Release handlers (Slice 3b) ───────────────────────────────────
+
+  function handleGroundClick(resource: ResourceRow) {
+    const name = resource.tailNumber ?? resource.displayName;
+    setGroundDialogResourceId(resource.id);
+    setGroundDialogDisplayName(name);
+    setGroundDialogOpen(true);
+  }
+
+  function handleReleaseClick(resource: ResourceRow) {
+    const name = resource.tailNumber ?? resource.displayName;
+    setReleaseDialogResourceId(resource.id);
+    setReleaseDialogDisplayName(name);
+    setReleaseDialogOpen(true);
+  }
+
+  function handleGroundSuccess() {
+    setAriaSuccess(`${groundDialogDisplayName} grounded.`);
+    // Optimistic: mark the resource as grounded (reason shown on refresh)
+    if (groundDialogResourceId) {
+      setGroundingStatus((prev) => {
+        const next = new Map(prev);
+        next.set(groundDialogResourceId, {
+          grounded: true,
+          reason: 'Grounded',
+          since: new Date(),
+          groundedBy: null,
+          eventId: null,
+        });
+        return next;
+      });
+    }
+    router.refresh();
+  }
+
+  function handleReleaseSuccess() {
+    setAriaSuccess(`${releaseDialogDisplayName} released.`);
+    // Optimistic: mark the resource as released
+    if (releaseDialogResourceId) {
+      setGroundingStatus((prev) => {
+        const next = new Map(prev);
+        next.set(releaseDialogResourceId, {
+          grounded: false,
+          reason: null,
+          since: null,
+          groundedBy: null,
+          eventId: null,
+        });
+        return next;
+      });
+    }
+    router.refresh();
+  }
+
+  // Unused — satisfies type (squawk counts updated on refresh)
+  void setOpenSquawkCounts;
+
   // ── Render ─────────────────────────────────────────────────────────────────
   const isDragActive = dragPayload !== null;
 
@@ -733,8 +831,16 @@ export function DispatchBoard({
         {/* Left gutter (sticky) */}
         <div className="flex-shrink-0 sticky left-0 z-30">
           {/* Axis header spacer */}
-          <div className="h-8 bg-white border-b border-slate-200 w-36" />
-          <BoardGutter grouped={grouped} />
+          <div className="h-8 bg-white border-b border-slate-200 w-40" />
+          <BoardGutter
+            grouped={grouped}
+            groundingStatus={groundingStatus}
+            openSquawkCounts={openSquawkCounts}
+            canMaintenanceAccess={canMaintenanceAccess}
+            canGround={canGround}
+            onGroundClick={handleGroundClick}
+            onReleaseClick={handleReleaseClick}
+          />
         </div>
 
         {/* Scrollable time track */}
@@ -894,6 +1000,28 @@ export function DispatchBoard({
           onOpenChange={setVoidOpen}
           ticketId={voidTicket.id}
           onSuccess={handleVoidSuccess}
+        />
+      )}
+
+      {/* Ground aircraft dialog (Slice 3b) */}
+      {groundDialogResourceId && (
+        <GroundAircraftDialog
+          open={groundDialogOpen}
+          onOpenChange={setGroundDialogOpen}
+          resourceId={groundDialogResourceId}
+          displayName={groundDialogDisplayName}
+          onSuccess={handleGroundSuccess}
+        />
+      )}
+
+      {/* Release aircraft dialog (Slice 3b) */}
+      {releaseDialogResourceId && (
+        <ReleaseAircraftDialog
+          open={releaseDialogOpen}
+          onOpenChange={setReleaseDialogOpen}
+          resourceId={releaseDialogResourceId}
+          displayName={releaseDialogDisplayName}
+          onSuccess={handleReleaseSuccess}
         />
       )}
     </div>

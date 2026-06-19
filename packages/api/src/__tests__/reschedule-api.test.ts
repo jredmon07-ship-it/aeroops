@@ -72,6 +72,20 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0002_scheduling.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0004_recurrence.sql'), 'utf-8'),
+  // 0005 required: 0006 references dispatch_ticket(id, org_id) (FK candidate key).
+  readFileSync(resolve(__dirname, '../../../db/migrations/0005_dispatch.sql'), 'utf-8'),
+  // 0006 required: gatedCreateOccurrence's warn-only grounding step (ADR-0008
+  // §2.3) reads aircraft_grounding on the success path; the table must exist.
+  readFileSync(resolve(__dirname, '../../../db/migrations/0006_squawks_grounding.sql'), 'utf-8'),
+  // 0007 required: resource schema now includes fleet columns (Slice 5.1).
+  // Drizzle ORM INSERT emits all columns so they must exist in the test DB.
+  readFileSync(resolve(__dirname, '../../../db/migrations/0007_fleet.sql'), 'utf-8'),
+  // 0008 required: app_user now includes phone/status columns (Slice 6.1).
+  // Drizzle ORM INSERT on app_user emits all columns including phone + status.
+  readFileSync(resolve(__dirname, '../../../db/migrations/0008_people.sql'), 'utf-8'),
+  // 0009 required: dispatch_requirement + dispatch_config tables (Slice 3c / ADR-0009).
+  // openDispatch now queries dispatch_requirement; tables must exist in test DB.
+  readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'), 'utf-8'),
 ];
 
 interface TestEnv {

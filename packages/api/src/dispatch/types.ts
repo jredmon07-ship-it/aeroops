@@ -69,16 +69,36 @@ export interface DispatchTicketView {
  * OpenDispatchResult — discriminated union for openDispatch.
  *
  *   ok:true                            → ticket inserted (status='open').
+ *   ok:true + eligibilityWarnings      → ticket inserted but pilot is missing
+ *                                        required tags (mode='warn'; advisory only).
  *   ok:false reason:'not_found'        → the reservation is not visible in the
  *                                        session org OR is not in 'booked' status.
  *   ok:false reason:'already_open'     → a ticket for this aircraft is already
  *                                        open; openTicketId names the blocking row.
  *                                        Caught from DB 23505 (partial-UNIQUE).
+ *   ok:false reason:'grounded'         → the aircraft has an active grounding event;
+ *                                        dispatch is blocked (ADR-0008 §2.3 Integration B).
+ *                                        grounding.reason is the operator-set reason.
+ *                                        [VERIFY-3b-H] operator enforcement only, no FAR.
+ *   ok:false reason:'ineligible'       → the aircraft has required tags and the pilot
+ *                                        is missing some (mode='block'). missingTags
+ *                                        lists the absent tags. No write/audit occurs.
+ *                                        [VERIFY-3c-A] operator enforcement only, no FAR.
+ *   ok:false reason:'balance_block'    → RESERVED (Phase 1 unreachable via stub).
+ *                                        The balance seam returned { ok:false }.
+ *                                        No write/audit occurs. [VERIFY-3c-MONEY]
+ *
+ * ADDITIVE: existing arms (not_found / already_open / grounded) are byte-identical.
+ * New arms (ineligible / balance_block) and the eligibilityWarnings optional field
+ * are the only additions (ADR-0009 §2).
  */
 export type OpenDispatchResult =
-  | { ok: true; ticket: DispatchTicketView }
+  | { ok: true; ticket: DispatchTicketView; eligibilityWarnings?: string[] }
   | { ok: false; reason: 'not_found' }
-  | { ok: false; reason: 'already_open'; openTicketId: string };
+  | { ok: false; reason: 'already_open'; openTicketId: string }
+  | { ok: false; reason: 'grounded'; grounding: { resourceId: string; reason: string | null } }
+  | { ok: false; reason: 'ineligible'; missingTags: string[] }
+  | { ok: false; reason: 'balance_block' };
 
 // ─── closeDispatch result union ───────────────────────────────────────────────
 

@@ -46,6 +46,12 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../migrations/0001_auth_credential.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0002_scheduling.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0003_booking_policies.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0004_recurrence.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0005_dispatch.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0006_squawks_grounding.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0007_fleet.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0008_people.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0009_dispatch_gate.sql'), 'utf-8'),
 ];
 
 // ── Test environment ──────────────────────────────────────────────────────────

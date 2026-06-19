@@ -19,11 +19,22 @@
  *
  * INDEX (org_id, kind) — covers the common "fetch all aircraft for org"
  * query pattern used by the scheduling board.
+ *
+ * Slice 5 (Fleet) adds aircraft-identity columns: make, model, year,
+ * serialNumber, homeBaseLocationId, hasHobbs, hasTach.
+ * homeBaseLocationId carries NO .references() — the composite FK
+ * (home_base_location_id, org_id) → location(id, org_id) is hand-written
+ * in migration 0007 (same composite-FK pattern as instructor_user_id).
+ *
+ * Phase 4 maintenance will add nullable inspection columns here —
+ * documented forward seam, NOT built in Slice 5 (no inspection/AD/
+ * airworthiness computation in Phase 1).
  */
 import {
   pgTable,
   uuid,
   text,
+  integer,
   boolean,
   timestamp,
   uniqueIndex,
@@ -47,6 +58,21 @@ export const resource = pgTable(
     // in the migration SQL (same pattern as auth_credential / membership).
     instructorUserId: uuid('instructor_user_id'),
     active: boolean('active').notNull().default(true),
+    // ── Slice 5 (Fleet) aircraft-identity columns ─────────────────────────
+    // All nullable so existing inserts that omit them continue to succeed.
+    // resource_kind_shape_check is NOT widened — these columns are outside it.
+    make: text('make'),
+    model: text('model'),
+    year: integer('year'),  // CHECK (year IS NULL OR year BETWEEN 1900 AND 2200) in migration
+    serialNumber: text('serial_number'),
+    // homeBaseLocationId carries no .references() — the composite FK
+    // (home_base_location_id, org_id) → location(id, org_id) ON DELETE SET NULL
+    // is hand-written in migration 0007 to prevent cross-org home-base linkage.
+    homeBaseLocationId: uuid('home_base_location_id'),
+    // Display/config only — do NOT alter the FROZEN ADR-0007 dispatch meter-capture path.
+    hasHobbs: boolean('has_hobbs').notNull().default(true),
+    hasTach: boolean('has_tach').notNull().default(true),
+    // ── End Slice 5 columns ───────────────────────────────────────────────
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

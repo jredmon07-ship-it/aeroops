@@ -231,3 +231,235 @@ export type {
   CloseDispatchResult,
   VoidDispatchResult,
 } from './dispatch/types.js';
+
+// ─── Slice 3b — Maintenance: Squawks + Grounding (DISPATCH-3b, ADR-0008) ──────
+// groundAircraft / unGroundAircraft — operator-set grounding events (append-only).
+// getGroundingStatus — current grounding state per aircraft (DISTINCT ON probe).
+// reportSquawk / updateSquawkStatus — squawk lifecycle (open→resolved|deferred).
+// listSquawks / getOpenSquawkCounts — squawk read surface.
+// All write paths: authz maintenance:* FIRST; org_id from session; one audit row each.
+// maintenance:ground → owner/manager/dispatcher/mechanic (NOT cfi).
+// maintenance:squawk → owner/manager/dispatcher/cfi/mechanic.
+// maintenance:access → owner/manager/dispatcher/cfi/mechanic.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  groundAircraft,
+  groundAircraftWithDb,
+  unGroundAircraft,
+  unGroundAircraftWithDb,
+} from './maintenance/ground-aircraft.js';
+export type {
+  GroundAircraftInput,
+  UnGroundAircraftInput,
+} from './maintenance/ground-aircraft.js';
+
+export {
+  getGroundingStatus,
+  getGroundingStatusWithDb,
+} from './maintenance/grounding-status.js';
+export type {
+  GetGroundingStatusInput,
+} from './maintenance/grounding-status.js';
+
+export {
+  reportSquawk,
+  reportSquawkWithDb,
+} from './maintenance/report-squawk.js';
+export type {
+  ReportSquawkInput,
+} from './maintenance/report-squawk.js';
+
+export {
+  updateSquawkStatus,
+  updateSquawkStatusWithDb,
+} from './maintenance/update-squawk-status.js';
+export type {
+  UpdateSquawkStatusInput,
+} from './maintenance/update-squawk-status.js';
+
+export {
+  listSquawks,
+  listSquawksWithDb,
+  getOpenSquawkCounts,
+  getOpenSquawkCountsWithDb,
+} from './maintenance/list-squawks.js';
+export type {
+  ListSquawksInput,
+  GetOpenSquawkCountsInput,
+} from './maintenance/list-squawks.js';
+
+// Maintenance result/IO types.
+export type {
+  GroundingEventView,
+  GroundingStatusView,
+  SquawkView,
+  GroundAircraftResult,
+  UnGroundResult,
+  ReportSquawkResult,
+  UpdateSquawkStatusResult,
+} from './maintenance/types.js';
+
+// ─── Slice 5 — Fleet (FLEET-5.2) ──────────────────────────────────────────────
+// Aircraft list + detail aggregation + identity edit + location picker.
+// fleet:access → owner/manager/dispatcher/cfi/mechanic.
+// fleet:manage → owner/manager/dispatcher/mechanic (NOT cfi).
+// renter/student/accountant get neither.
+// All reads: authz fleet:access FIRST; org_id from session; RLS-scoped.
+// updateAircraft: authz fleet:manage; ONE audit row; never touches meters/records.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  listAircraft,
+  listAircraftWithDb,
+} from './fleet/list-aircraft.js';
+export type { ListAircraftOptions } from './fleet/list-aircraft.js';
+
+export {
+  getAircraftDetail,
+  getAircraftDetailWithDb,
+} from './fleet/get-aircraft-detail.js';
+export type {
+  GetAircraftDetailInput,
+  GetAircraftDetailResult,
+} from './fleet/get-aircraft-detail.js';
+
+export {
+  updateAircraft,
+  updateAircraftWithDb,
+} from './fleet/update-aircraft.js';
+export type { UpdateAircraftInput } from './fleet/update-aircraft.js';
+
+export {
+  listLocations,
+  listLocationsWithDb,
+} from './fleet/list-locations.js';
+
+// Fleet result/IO types.
+export type {
+  AircraftListRow,
+  AircraftDetail,
+  UpdateAircraftResult,
+  LocationOption,
+  UpcomingReservationRow,
+} from './fleet/types.js';
+
+// ─── Slice 6.2 — People / Members (PEOPLE-6.2) ────────────────────────────────
+// Roster management: list, detail, update identity/role, toggle status, tags,
+// add new member (roster-only — NO auth_credential). people:access = read;
+// people:manage = owner/manager mutations.
+// *WithDb forms are for test code only (inject a pglite client).
+//
+// [VERIFY-6-A]: member_tag is free-text only; no FAA/currency/medical meaning.
+// [VERIFY-6-C]: upcomingReservations = reservation.created_by, not flight assignment.
+// [VERIFY-6-D]: status is a roster flag, NOT a login gate in this slice.
+
+export { listMembers, listMembersWithDb } from './people/list-members.js';
+export type { ListMembersOptions } from './people/list-members.js';
+
+export { getMemberDetail, getMemberDetailWithDb } from './people/get-member-detail.js';
+export type { GetMemberDetailInput } from './people/get-member-detail.js';
+
+export { updateMember, updateMemberWithDb } from './people/update-member.js';
+export type { UpdateMemberInput } from './people/update-member.js';
+
+export { setMemberStatus, setMemberStatusWithDb } from './people/set-member-status.js';
+export type { SetMemberStatusInput } from './people/set-member-status.js';
+
+export { addMemberTag, addMemberTagWithDb } from './people/add-member-tag.js';
+export type { AddMemberTagInput } from './people/add-member-tag.js';
+
+export { removeMemberTag, removeMemberTagWithDb } from './people/remove-member-tag.js';
+export type { RemoveMemberTagInput } from './people/remove-member-tag.js';
+
+export { addMember, addMemberWithDb } from './people/add-member.js';
+export type { AddMemberInput } from './people/add-member.js';
+
+// People result/IO types.
+export type {
+  OrgMemberListRow,
+  MemberDetail,
+  MemberTagView,
+  UpcomingMemberReservationRow,
+  GetMemberDetailResult,
+  UpdateMemberResult,
+  SetMemberStatusResult,
+  AddMemberTagResult,
+  RemoveMemberTagResult,
+  AddMemberResult,
+} from './people/types.js';
+
+// ─── Slice 3c — Dispatch gate (DISPATCH-3c, ADR-0009) ────────────────────────
+// Per-aircraft free-text required tags + per-org dispatch gate config.
+// getResourceRequiredTags / addResourceRequiredTag / removeResourceRequiredTag:
+//   dispatch:access (read) / dispatch:manage_requirements (owner/manager/dispatcher) write.
+// getDispatchConfig / updateDispatchConfig:
+//   dispatch:access (read) / dispatch:manage_requirements write.
+// openDispatch is additive: new ineligible/balance_block arms + eligibilityWarnings.
+// [VERIFY-3c-A] requiredTag is FREE-TEXT only; no FAA/currency/medical meaning.
+// [VERIFY-3c-MONEY] balance is a stub; no Stripe/dollar/payment anywhere.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  getResourceRequiredTags,
+  getResourceRequiredTagsWithDb,
+  addResourceRequiredTag,
+  addResourceRequiredTagWithDb,
+  removeResourceRequiredTag,
+  removeResourceRequiredTagWithDb,
+} from './dispatch-gate/requirements.js';
+export type {
+  GetResourceRequiredTagsInput,
+  AddResourceRequiredTagInput,
+  RemoveResourceRequiredTagInput,
+} from './dispatch-gate/requirements.js';
+
+export {
+  getDispatchConfig,
+  getDispatchConfigWithDb,
+  updateDispatchConfig,
+  updateDispatchConfigWithDb,
+} from './dispatch-gate/config.js';
+export type {
+  UpdateDispatchConfigInput,
+} from './dispatch-gate/config.js';
+
+// Dispatch gate result/IO types.
+export type {
+  RequiredTagView,
+  DispatchConfigView,
+  GetResourceRequiredTagsResult,
+  AddResourceRequiredTagResult,
+  RemoveResourceRequiredTagResult,
+  GetDispatchConfigResult,
+  UpdateDispatchConfigResult,
+} from './dispatch-gate/types.js';
+
+// ─── Slice 7.1 — Reporting (REPORTING-7.1) ────────────────────────────────────
+// Read-only aggregation over existing tables. NO schema change, NO migration.
+// reporting:access → owner/manager/dispatcher/cfi/accountant (D3, Slice 7).
+// All reads: authz reporting:access FIRST; org_id from session only; RLS-scoped.
+// Tenant isolation is the primary risk: every aggregate inside
+//   withSessionOrgContextWithDb, no N+1 across orgs.
+// getOrgDashboardMetrics: range-scoped + point-in-time metric bundle.
+// getAircraftUtilization: ONE LEFT-JOIN query; zero-flight tails appear (0/0).
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  getOrgDashboardMetrics,
+  getOrgDashboardMetricsWithDb,
+} from './reporting/get-org-dashboard-metrics.js';
+export type {
+  GetOrgDashboardMetricsInput,
+  OrgDashboardMetrics,
+  OrgDashboardMetricsRange,
+} from './reporting/get-org-dashboard-metrics.js';
+
+export {
+  getAircraftUtilization,
+  getAircraftUtilizationWithDb,
+} from './reporting/get-aircraft-utilization.js';
+export type {
+  GetAircraftUtilizationInput,
+  AircraftUtilizationRow,
+} from './reporting/get-aircraft-utilization.js';

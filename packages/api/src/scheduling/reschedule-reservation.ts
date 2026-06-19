@@ -236,7 +236,14 @@ async function _rescheduleReservationImpl(
         },
       });
 
-      return { ok: true, reservation: created.reservation };
+      // Carry the warn-only grounding warnings through from the shared gated
+      // create body (ADR-0008 §2.3). Only present when non-empty so the ok:true
+      // shape stays byte-identical when nothing is grounded.
+      return {
+        ok: true,
+        reservation: created.reservation,
+        ...(created.groundingWarnings ? { groundingWarnings: created.groundingWarnings } : {}),
+      };
     });
   } catch (err) {
     // Gate refusal sentinel: the tx rolled back (original preserved) — return

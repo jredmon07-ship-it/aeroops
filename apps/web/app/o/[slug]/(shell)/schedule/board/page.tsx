@@ -31,12 +31,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateNav } from '../_components/date-nav';
 import { DispatchBoard } from './_components/dispatch-board';
+import { GateSettingsDialog } from './_components/gate-settings-dialog';
 import {
   listReservationsAction,
   listResourcesAction,
   getDispatchForReservationAction,
 } from '../actions';
-import type { DispatchTicketView } from '@aeroops/api';
+import {
+  getGroundingStatusAction,
+  getOpenSquawkCountsAction,
+} from '../../maintenance/actions';
+import type { DispatchTicketView, GroundingStatusView } from '@aeroops/api';
 import {
   parseDateParam,
   startOfDay,
@@ -74,6 +79,8 @@ interface BoardContentProps {
   canCreate: boolean;
   canManageResources: boolean;
   canDispatch: boolean;
+  canMaintenanceAccess: boolean;
+  canGround: boolean;
 }
 
 async function BoardContent({
@@ -84,6 +91,8 @@ async function BoardContent({
   canCreate,
   canManageResources,
   canDispatch,
+  canMaintenanceAccess,
+  canGround,
 }: BoardContentProps) {
   // Parallel fetch — same pattern as schedule/page.tsx.
   // Step 1: fetch reservations + resources in parallel.
@@ -133,6 +142,28 @@ async function BoardContent({
     }
     // Forbidden / unauthenticated / server-error → leave dispatchTickets empty
     // (board still renders; dispatch actions enforce their own gate).
+  }
+
+  // Step 3: fetch grounding status + open-squawk counts for aircraft (non-fatal).
+  // Gate: maintenance:access. On forbidden or error → chips off, board still renders.
+  let groundingStatus: Map<string, GroundingStatusView> = new Map();
+  let openSquawkCounts: Map<string, number> = new Map();
+  const aircraftIds = resources
+    .filter((r) => r.kind === 'aircraft' && r.active)
+    .map((r) => r.id);
+
+  if (aircraftIds.length > 0 && canMaintenanceAccess) {
+    const [groundingResult, squawkCountResult] = await Promise.all([
+      getGroundingStatusAction({ resourceIds: aircraftIds }),
+      getOpenSquawkCountsAction({ resourceIds: aircraftIds }),
+    ]);
+    if ('ok' in groundingResult && groundingResult.ok) {
+      groundingStatus = new Map(groundingResult.entries);
+    }
+    if ('ok' in squawkCountResult && squawkCountResult.ok) {
+      openSquawkCounts = new Map(squawkCountResult.entries);
+    }
+    // Forbidden / unauthenticated / server-error → leave maps empty (non-fatal).
   }
 
   // Empty — no resources at all
@@ -194,6 +225,11 @@ async function BoardContent({
       canDrag={canDrag}
       canDispatch={canDispatch}
       initialDispatchTickets={[...dispatchTickets.entries()]}
+      canMaintenanceAccess={canMaintenanceAccess}
+      canGround={canGround}
+      slug={slug}
+      initialGroundingStatus={[...groundingStatus.entries()]}
+      initialOpenSquawkCounts={[...openSquawkCounts.entries()]}
     />
   );
 }
@@ -235,6 +271,12 @@ export default async function BoardPage({
   // canDispatch controls hide/show of Check-out / Check-in / Void buttons.
   // The server-side action enforces dispatch:create independently.
   const canDispatch = hasCapability(session, 'dispatch:create');
+  // Maintenance caps (UI-only; server-side gate in maintenance actions).
+  const canMaintenanceAccess = hasCapability(session, 'maintenance:access');
+  const canGround = hasCapability(session, 'maintenance:ground');
+  // Gate settings: dispatch:manage_requirements → owner/manager/dispatcher.
+  // Control is absent when missing; server action re-gates independently.
+  const canManageRequirements = hasCapability(session, 'dispatch:manage_requirements');
 
   // ── Resolve date ──────────────────────────────────────────────────────────
   const date = parseDateParam(dateParam) ?? new Date();
@@ -245,13 +287,17 @@ export default async function BoardPage({
       {/* ── Header row ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900">Dispatch Board</h1>
-        {canCreate && (
-          <Button asChild>
-            <Link href={`/o/${slug}/schedule/new?date=${dateStr}`}>
-              + New Reservation
-            </Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Gate settings — dispatch:manage_requirements only (absent otherwise) */}
+          <GateSettingsDialog canManageRequirements={canManageRequirements} />
+          {canCreate && (
+            <Button asChild>
+              <Link href={`/o/${slug}/schedule/new?date=${dateStr}`}>
+                + New Reservation
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── Toolbar: DateNav + List/Board toggle ─────────────────────────── */}
@@ -299,6 +345,8 @@ export default async function BoardPage({
           canCreate={canCreate}
           canManageResources={canManageResources}
           canDispatch={canDispatch}
+          canMaintenanceAccess={canMaintenanceAccess}
+          canGround={canGround}
         />
       </Suspense>
     </div>

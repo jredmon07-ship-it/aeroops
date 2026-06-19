@@ -56,19 +56,22 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 ];
 
 // Expected nav labels per role, derived from the RBAC matrix (packages/core
-// capabilities.ts) against the Slice-2c NAV_ITEMS:
+// capabilities.ts) against the Slice-6.3 NAV_ITEMS:
 //   Dashboard      app:access              → all roles
 //   Reservations   schedule:access         → owner, manager, dispatcher, cfi
 //   Board          schedule:access         → owner, manager, dispatcher, cfi
 //   Resources      schedule:manage_resources → owner, manager, dispatcher
+//   People         people:access           → owner, manager, dispatcher, cfi
+//   Fleet          fleet:access            → owner, manager, dispatcher, cfi, mechanic
+//   Maintenance    maintenance:access      → owner, manager, dispatcher, cfi, mechanic
 //   Org settings   org:manage_settings     → owner, manager
 // Order matches NAV_ITEMS order.
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner: ['Dashboard', 'Reservations', 'Board', 'Resources', 'Org settings'],
-  manager: ['Dashboard', 'Reservations', 'Board', 'Resources', 'Org settings'],
-  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Resources'],
-  cfi: ['Dashboard', 'Reservations', 'Board'],
-  mechanic: ['Dashboard'],
+  owner: ['Dashboard', 'Reservations', 'Board', 'Resources', 'People', 'Fleet', 'Maintenance', 'Org settings'],
+  manager: ['Dashboard', 'Reservations', 'Board', 'Resources', 'People', 'Fleet', 'Maintenance', 'Org settings'],
+  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Resources', 'People', 'Fleet', 'Maintenance'],
+  cfi: ['Dashboard', 'Reservations', 'Board', 'People', 'Fleet', 'Maintenance'],
+  mechanic: ['Dashboard', 'Fleet', 'Maintenance'],
   renter: ['Dashboard'],
   student: ['Dashboard'],
   accountant: ['Dashboard'],
@@ -104,8 +107,8 @@ describe('2. owner gets Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 5 items (full Slice-2c nav)', () => {
-    expect(result.length).toBe(5);
+  it('returns exactly 8 items (full nav incl. People + Fleet + Maintenance)', () => {
+    expect(result.length).toBe(8);
   });
 
   it('includes Dashboard', () => {
@@ -134,8 +137,8 @@ describe('3. manager gets Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 5 items (full Slice-2c nav)', () => {
-    expect(result.length).toBe(5);
+  it('returns exactly 8 items (full nav incl. People + Fleet + Maintenance)', () => {
+    expect(result.length).toBe(8);
   });
 
   it('includes Dashboard', () => {
@@ -374,8 +377,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 5 items (Slice 2c — Dashboard, Reservations, Board, Resources, Org settings)', () => {
-    expect(NAV_ITEMS.length).toBe(5);
+  it('NAV_ITEMS has exactly 8 items (Dashboard, Reservations, Board, Resources, People, Fleet, Maintenance, Org settings)', () => {
+    expect(NAV_ITEMS.length).toBe(8);
   });
 
   it('first item is Dashboard with app:access', () => {
@@ -403,6 +406,28 @@ describe('11. NAV_ITEMS registry', () => {
     const resources = NAV_ITEMS.find((i) => i.label === 'Resources');
     expect(resources?.requiredCapability).toBe('schedule:manage_resources');
     expect(resources?.href).toBe('/o/[slug]/schedule/resources');
+  });
+
+  it('People item is gated by people:access and placed after Resources and before Fleet', () => {
+    const people = NAV_ITEMS.find((i) => i.label === 'People');
+    expect(people?.requiredCapability).toBe('people:access');
+    expect(people?.href).toBe('/o/[slug]/people');
+    const resourcesIdx = NAV_ITEMS.findIndex((i) => i.label === 'Resources');
+    const peopleIdx = NAV_ITEMS.findIndex((i) => i.label === 'People');
+    const fleetIdx = NAV_ITEMS.findIndex((i) => i.label === 'Fleet');
+    expect(peopleIdx).toBeGreaterThan(resourcesIdx);
+    expect(peopleIdx).toBeLessThan(fleetIdx);
+  });
+
+  it('Fleet item is gated by fleet:access and placed after People and before Maintenance', () => {
+    const fleet = NAV_ITEMS.find((i) => i.label === 'Fleet');
+    expect(fleet?.requiredCapability).toBe('fleet:access');
+    expect(fleet?.href).toBe('/o/[slug]/fleet');
+    const peopleIdx = NAV_ITEMS.findIndex((i) => i.label === 'People');
+    const fleetIdx = NAV_ITEMS.findIndex((i) => i.label === 'Fleet');
+    const maintenanceIdx = NAV_ITEMS.findIndex((i) => i.label === 'Maintenance');
+    expect(fleetIdx).toBeGreaterThan(peopleIdx);
+    expect(fleetIdx).toBeLessThan(maintenanceIdx);
   });
 
   it('last item is Org settings with org:manage_settings', () => {

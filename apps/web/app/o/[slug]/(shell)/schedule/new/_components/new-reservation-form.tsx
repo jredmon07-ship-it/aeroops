@@ -37,8 +37,9 @@ import { SeriesCreateResult } from './series-create-result';
 import { useConflictCheck } from '../_hooks/use-conflict-check';
 import { useSeriesPreview } from '../_hooks/use-series-preview';
 import { createReservationAction, createSeriesAction } from '../../actions';
+import { getGroundingStatusAction } from '../../../maintenance/actions';
 import { toDateInputValue } from '../../_utils/format-time';
-import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult } from '@aeroops/api';
+import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView } from '@aeroops/api';
 import type { RecurrenceValue, RecurrenceFieldErrors } from './recurrence-controls';
 
 interface NewReservationFormProps {
@@ -101,6 +102,10 @@ export function NewReservationForm({
   const [submitConflicts, setSubmitConflicts] = React.useState<ConflictHit[]>([]);
   const [submitViolations, setSubmitViolations] = React.useState<PolicyViolationView[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
+  const [groundingWarnings, setGroundingWarnings] = React.useState<Array<{ resourceId: string; reason: string | null }>>([]);
+
+  // Grounding status for aircraft — fetched once on mount, used for inline wedge badge.
+  const [groundingStatus, setGroundingStatus] = React.useState<Map<string, GroundingStatusView>>(new Map());
 
   // ── Recurrence (Slice 2b) ──────────────────────────────────────────────────
   const [repeatEnabled, setRepeatEnabled] = React.useState(false);
@@ -185,6 +190,21 @@ export function NewReservationForm({
   React.useEffect(() => {
     dateRef.current?.focus();
   }, []);
+
+  // Fetch grounding status for aircraft on mount (non-fatal — badge shown to all who can book).
+  React.useEffect(() => {
+    const aircraftIds = aircraft.map((r) => r.id);
+    if (aircraftIds.length === 0) return;
+    let cancelled = false;
+    getGroundingStatusAction({ resourceIds: aircraftIds }).then((result) => {
+      if (cancelled) return;
+      if ('ok' in result && result.ok) {
+        setGroundingStatus(new Map(result.entries));
+      }
+    }).catch(() => { /* non-fatal */ });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount — resources don't change during session
 
   // Client-side validation for the base fields (shared by both paths)
   function validateBase(): boolean {
@@ -347,6 +367,14 @@ export function NewReservationForm({
         return;
       }
 
+      // Surface any grounding warnings before navigating away.
+      // The reservation was created successfully; this is a non-blocking advisory.
+      if (result.groundingWarnings && result.groundingWarnings.length > 0) {
+        setGroundingWarnings(result.groundingWarnings);
+        // Don't redirect yet — show the warning and let the user dismiss.
+        return;
+      }
+
       // Success — redirect to list with date+start+end for spec §4 copy
       router.push(
         `/o/${slug}/schedule?date=${date}&success=1&start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}`,
@@ -468,6 +496,42 @@ export function NewReservationForm({
       </AlertDialog>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-6 max-w-lg">
+        {/* Grounding warning banner — shown when create succeeded with groundingWarnings */}
+        {groundingWarnings.length > 0 && (
+          <Alert className="border-amber-200 bg-amber-50" role="alert">
+            <AlertDescription className="space-y-2">
+              <p className="font-medium text-amber-900">
+                Reservation created — but one or more aircraft are grounded:
+              </p>
+              <ul className="list-disc list-inside text-sm text-amber-800 space-y-0.5">
+                {groundingWarnings.map((w) => {
+                  const res = aircraft.find((r) => r.id === w.resourceId);
+                  const name = res?.tailNumber ?? res?.displayName ?? w.resourceId;
+                  return (
+                    <li key={w.resourceId}>
+                      <span className="nums font-mono">{name}</span>
+                      {w.reason ? `: ${w.reason}` : ''}
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      `/o/${slug}/schedule?date=${date}&success=1&start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}`,
+                    )
+                  }
+                  className="text-sm text-amber-800 underline"
+                >
+                  Continue to schedule
+                </button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Server / validation error */}
         {serverError && (
           <Alert
@@ -595,16 +659,50 @@ export function NewReservationForm({
               setAircraftId(e.target.value);
               setFieldErrors((prev) => ({ ...prev, resources: undefined }));
             }}
-            aria-describedby={fieldErrors.resources ? 'resources-error' : undefined}
+            aria-describedby={
+              [
+                fieldErrors.resources ? 'resources-error' : null,
+                aircraftId && groundingStatus.get(aircraftId)?.grounded ? 'aircraft-grounded-warning' : null,
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined
+            }
             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="">— Select —</option>
-            {aircraft.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.tailNumber ? `${r.tailNumber} — ${r.displayName}` : r.displayName}
-              </option>
-            ))}
+            {aircraft.map((r) => {
+              const grounded = groundingStatus.get(r.id)?.grounded === true;
+              const label = r.tailNumber ? `${r.tailNumber} — ${r.displayName}` : r.displayName;
+              return (
+                <option key={r.id} value={r.id}>
+                  {grounded ? `[Grounded] ${label}` : label}
+                </option>
+              );
+            })}
           </select>
+
+          {/* Inline grounded warning — shows when a grounded aircraft is selected */}
+          {aircraftId && (() => {
+            const status = groundingStatus.get(aircraftId);
+            if (!status?.grounded) return null;
+            return (
+              <div
+                id="aircraft-grounded-warning"
+                role="status"
+                className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm"
+              >
+                <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 text-[10px] font-semibold text-destructive leading-5 shrink-0">
+                  Grounded
+                </span>
+                <span className="text-amber-900">
+                  {status.reason
+                    ? `This aircraft is grounded: ${status.reason}. You may still book, but dispatch will be blocked until released.`
+                    : 'This aircraft is grounded. You may still book, but dispatch will be blocked until released.'}
+                </span>
+              </div>
+            );
+          })()}
+
           {fieldErrors.resources && (
             <p id="resources-error" role="alert" className="text-sm text-red-600">
               {fieldErrors.resources}

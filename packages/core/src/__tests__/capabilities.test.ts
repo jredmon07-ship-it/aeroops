@@ -16,6 +16,8 @@
  *  11. Adversarial: prototype-key roles never throw and are fail-closed.
  *  12. isMembershipRole type guard.
  *  13. SCHED-1 schedule:* capabilities — exact grants per role.
+ *  14. MAINTENANCE-3b maintenance:* capabilities — exact grants per role.
+ *  15. DISPATCH-3c dispatch:manage_requirements — exact grants per role.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -138,28 +140,46 @@ describe('7. ROLE_CAPABILITIES exhaustiveness', () => {
 // ─── 8. capabilitiesForRole ──────────────────────────────────────────────────
 
 describe('8. capabilitiesForRole', () => {
-  it('owner returns app + dispatch:access + dispatch:create + org + all three schedule capabilities', () => {
+  it('owner returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities', () => {
     const caps = capabilitiesForRole('owner');
     expect(caps).toContain('app:access');
     expect(caps).toContain('dispatch:access');
     expect(caps).toContain('dispatch:create');
+    expect(caps).toContain('dispatch:manage_requirements');
+    expect(caps).toContain('fleet:access');
+    expect(caps).toContain('fleet:manage');
+    expect(caps).toContain('maintenance:access');
+    expect(caps).toContain('maintenance:ground');
+    expect(caps).toContain('maintenance:squawk');
     expect(caps).toContain('org:manage_settings');
+    expect(caps).toContain('people:access');
+    expect(caps).toContain('people:manage');
+    expect(caps).toContain('reporting:access');
     expect(caps).toContain('schedule:access');
     expect(caps).toContain('schedule:create_reservation');
     expect(caps).toContain('schedule:manage_resources');
-    expect(caps.length).toBe(7);
+    expect(caps.length).toBe(16);
   });
 
-  it('manager returns app + dispatch:access + dispatch:create + org + all three schedule capabilities', () => {
+  it('manager returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities', () => {
     const caps = capabilitiesForRole('manager');
     expect(caps).toContain('app:access');
     expect(caps).toContain('dispatch:access');
     expect(caps).toContain('dispatch:create');
+    expect(caps).toContain('dispatch:manage_requirements');
+    expect(caps).toContain('fleet:access');
+    expect(caps).toContain('fleet:manage');
+    expect(caps).toContain('maintenance:access');
+    expect(caps).toContain('maintenance:ground');
+    expect(caps).toContain('maintenance:squawk');
     expect(caps).toContain('org:manage_settings');
+    expect(caps).toContain('people:access');
+    expect(caps).toContain('people:manage');
+    expect(caps).toContain('reporting:access');
     expect(caps).toContain('schedule:access');
     expect(caps).toContain('schedule:create_reservation');
     expect(caps).toContain('schedule:manage_resources');
-    expect(caps.length).toBe(7);
+    expect(caps.length).toBe(16);
   });
 
   it('student returns only app:access', () => {
@@ -168,7 +188,21 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).not.toContain('org:manage_settings');
     expect(caps).not.toContain('dispatch:access');
     expect(caps).not.toContain('dispatch:create');
+    expect(caps).not.toContain('maintenance:access');
+    expect(caps).not.toContain('maintenance:ground');
+    expect(caps).not.toContain('maintenance:squawk');
+    expect(caps).not.toContain('reporting:access');
     expect(caps.length).toBe(1);
+  });
+
+  it('accountant returns app:access + reporting:access (2 caps)', () => {
+    const caps = capabilitiesForRole('accountant');
+    expect(caps).toContain('app:access');
+    expect(caps).toContain('reporting:access');
+    expect(caps).not.toContain('org:manage_settings');
+    expect(caps).not.toContain('dispatch:access');
+    expect(caps).not.toContain('schedule:access');
+    expect(caps.length).toBe(2);
   });
 
   it('unknown role returns empty array', () => {
@@ -221,8 +255,32 @@ describe('10. CAPABILITIES array', () => {
     expect(CAPABILITIES).toContain('dispatch:create');
   });
 
-  it('has exactly 7 capabilities (Phase 0 + SCHED-1 schedule:* + DISPATCH-3a dispatch:*)', () => {
-    expect(CAPABILITIES.length).toBe(7);
+  it('contains the DISPATCH-3c dispatch:manage_requirements capability', () => {
+    expect(CAPABILITIES).toContain('dispatch:manage_requirements');
+  });
+
+  it('contains the three MAINTENANCE-3b maintenance capabilities', () => {
+    expect(CAPABILITIES).toContain('maintenance:access');
+    expect(CAPABILITIES).toContain('maintenance:ground');
+    expect(CAPABILITIES).toContain('maintenance:squawk');
+  });
+
+  it('contains the two FLEET-5 fleet capabilities', () => {
+    expect(CAPABILITIES).toContain('fleet:access');
+    expect(CAPABILITIES).toContain('fleet:manage');
+  });
+
+  it('contains the two PEOPLE-6 people capabilities', () => {
+    expect(CAPABILITIES).toContain('people:access');
+    expect(CAPABILITIES).toContain('people:manage');
+  });
+
+  it('contains the REPORTING-7 reporting capability', () => {
+    expect(CAPABILITIES).toContain('reporting:access');
+  });
+
+  it('has exactly 16 capabilities (Phase 0 + SCHED-1 schedule:* + DISPATCH-3a dispatch:* + DISPATCH-3c dispatch:manage_requirements + MAINTENANCE-3b maintenance:* + FLEET-5 fleet:* + PEOPLE-6 people:* + REPORTING-7 reporting:*)', () => {
+    expect(CAPABILITIES.length).toBe(16);
   });
 
   it('has no duplicate capabilities', () => {
@@ -258,6 +316,15 @@ describe('11. Adversarial: prototype-key and empty-string roles are fail-closed 
     for (const cap of [
       'dispatch:access',
       'dispatch:create',
+      'dispatch:manage_requirements',
+      'fleet:access',
+      'fleet:manage',
+      'maintenance:access',
+      'maintenance:ground',
+      'maintenance:squawk',
+      'people:access',
+      'people:manage',
+      'reporting:access',
       'schedule:access',
       'schedule:create_reservation',
       'schedule:manage_resources',
@@ -412,14 +479,32 @@ describe('13. SCHED-1 schedule:* capabilities', () => {
     });
   }
 
-  it('excluded roles (renter/student/mechanic/accountant) have NONE of the three', () => {
+  it('excluded roles (renter/student/mechanic/accountant) have NONE of the three schedule capabilities', () => {
     for (const role of EXCLUDED) {
       expect(can(role, 'schedule:access')).toBe(false);
       expect(can(role, 'schedule:create_reservation')).toBe(false);
       expect(can(role, 'schedule:manage_resources')).toBe(false);
-      // They retain exactly app:access and nothing else.
+    }
+  });
+
+  it('renter and student retain exactly app:access and nothing else', () => {
+    // NOTE: mechanic now has maintenance:access/ground/squawk (Slice 3b).
+    // NOTE: accountant now has reporting:access (Slice 7 D3) — tested separately.
+    for (const role of ['renter', 'student'] as const) {
       expect(capabilitiesForRole(role)).toEqual(['app:access']);
     }
+  });
+
+  it('accountant has app:access + reporting:access (Slice 7 D3) and nothing else', () => {
+    const caps = capabilitiesForRole('accountant');
+    expect(caps).toContain('app:access');
+    expect(caps).toContain('reporting:access');
+    expect(caps.length).toBe(2);
+    // Confirm no other schedule/dispatch/maintenance caps
+    expect(can('accountant', 'schedule:access')).toBe(false);
+    expect(can('accountant', 'dispatch:access')).toBe(false);
+    expect(can('accountant', 'maintenance:access')).toBe(false);
+    expect(can('accountant', 'org:manage_settings')).toBe(false);
   });
 
   it('schedule:access grant set equals create_reservation grant set (cfi gets both)', () => {
@@ -436,5 +521,381 @@ describe('13. SCHED-1 schedule:* capabilities', () => {
         expect(can(role, 'schedule:access')).toBe(true);
       }
     }
+  });
+});
+
+// ─── 14. MAINTENANCE-3b maintenance:* capabilities — exact grants ─────────────
+//
+// Per ADR-0008 / Slice 3b conductor decisions:
+//   maintenance:access → owner, manager, dispatcher, cfi, mechanic
+//   maintenance:ground → owner, manager, dispatcher, mechanic  (NOT cfi)
+//   maintenance:squawk → owner, manager, dispatcher, cfi, mechanic  (NOT renter/student)
+
+describe('14. MAINTENANCE-3b maintenance:* capabilities', () => {
+  const ACCESS_GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'cfi', 'mechanic'];
+  const ACCESS_EXCLUDED: MembershipRole[] = ['renter', 'student', 'accountant'];
+
+  const GROUND_GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'mechanic'];
+  const GROUND_EXCLUDED: MembershipRole[] = ['cfi', 'renter', 'student', 'accountant'];
+
+  const SQUAWK_GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'cfi', 'mechanic'];
+  const SQUAWK_EXCLUDED: MembershipRole[] = ['renter', 'student', 'accountant'];
+
+  describe('maintenance:access', () => {
+    for (const role of ACCESS_GRANTED) {
+      it(`${role} HAS maintenance:access`, () => {
+        expect(can(role, 'maintenance:access')).toBe(true);
+      });
+    }
+    for (const role of ACCESS_EXCLUDED) {
+      it(`${role} does NOT have maintenance:access`, () => {
+        expect(can(role, 'maintenance:access')).toBe(false);
+      });
+    }
+  });
+
+  describe('maintenance:ground', () => {
+    for (const role of GROUND_GRANTED) {
+      it(`${role} HAS maintenance:ground`, () => {
+        expect(can(role, 'maintenance:ground')).toBe(true);
+      });
+    }
+    for (const role of GROUND_EXCLUDED) {
+      it(`${role} does NOT have maintenance:ground`, () => {
+        expect(can(role, 'maintenance:ground')).toBe(false);
+      });
+    }
+
+    it('cfi specifically does NOT have maintenance:ground', () => {
+      expect(can('cfi', 'maintenance:ground')).toBe(false);
+    });
+  });
+
+  describe('maintenance:squawk', () => {
+    for (const role of SQUAWK_GRANTED) {
+      it(`${role} HAS maintenance:squawk`, () => {
+        expect(can(role, 'maintenance:squawk')).toBe(true);
+      });
+    }
+    for (const role of SQUAWK_EXCLUDED) {
+      it(`${role} does NOT have maintenance:squawk`, () => {
+        expect(can(role, 'maintenance:squawk')).toBe(false);
+      });
+    }
+  });
+
+  it('maintenance:access grant set equals maintenance:squawk grant set', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'maintenance:access')).toBe(can(role, 'maintenance:squawk'));
+    }
+  });
+
+  it('maintenance:ground is a strict subset of maintenance:access (cfi has access but not ground)', () => {
+    expect(can('cfi', 'maintenance:access')).toBe(true);
+    expect(can('cfi', 'maintenance:ground')).toBe(false);
+    for (const role of MEMBERSHIP_ROLES) {
+      if (can(role, 'maintenance:ground')) {
+        expect(can(role, 'maintenance:access')).toBe(true);
+      }
+    }
+  });
+
+  it('mechanic has maintenance:access, maintenance:ground, and maintenance:squawk', () => {
+    expect(can('mechanic', 'maintenance:access')).toBe(true);
+    expect(can('mechanic', 'maintenance:ground')).toBe(true);
+    expect(can('mechanic', 'maintenance:squawk')).toBe(true);
+  });
+
+  it('mechanic still does NOT have schedule:access or dispatch:access', () => {
+    expect(can('mechanic', 'schedule:access')).toBe(false);
+    expect(can('mechanic', 'dispatch:access')).toBe(false);
+  });
+
+  it('renter and student have NONE of the three maintenance capabilities', () => {
+    for (const role of ['renter', 'student'] as const) {
+      expect(can(role, 'maintenance:access')).toBe(false);
+      expect(can(role, 'maintenance:ground')).toBe(false);
+      expect(can(role, 'maintenance:squawk')).toBe(false);
+    }
+  });
+});
+
+// ─── 15. FLEET-5 fleet:* capabilities — exact grants ─────────────────────────
+//
+// Per Slice 5 conductor decisions (2026-06-18):
+//   fleet:access → owner, manager, dispatcher, cfi, mechanic
+//   fleet:manage → owner, manager, dispatcher, mechanic  (NOT cfi)
+//   renter/student/accountant get neither.
+
+describe('15. FLEET-5 fleet:* capabilities', () => {
+  const ACCESS_GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'cfi', 'mechanic'];
+  const ACCESS_EXCLUDED: MembershipRole[] = ['renter', 'student', 'accountant'];
+
+  const MANAGE_GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'mechanic'];
+  const MANAGE_EXCLUDED: MembershipRole[] = ['cfi', 'renter', 'student', 'accountant'];
+
+  describe('fleet:access', () => {
+    for (const role of ACCESS_GRANTED) {
+      it(`${role} HAS fleet:access`, () => {
+        expect(can(role, 'fleet:access')).toBe(true);
+      });
+    }
+    for (const role of ACCESS_EXCLUDED) {
+      it(`${role} does NOT have fleet:access`, () => {
+        expect(can(role, 'fleet:access')).toBe(false);
+      });
+    }
+  });
+
+  describe('fleet:manage', () => {
+    for (const role of MANAGE_GRANTED) {
+      it(`${role} HAS fleet:manage`, () => {
+        expect(can(role, 'fleet:manage')).toBe(true);
+      });
+    }
+    for (const role of MANAGE_EXCLUDED) {
+      it(`${role} does NOT have fleet:manage`, () => {
+        expect(can(role, 'fleet:manage')).toBe(false);
+      });
+    }
+
+    it('cfi specifically does NOT have fleet:manage (read-only, cannot edit identity)', () => {
+      expect(can('cfi', 'fleet:manage')).toBe(false);
+    });
+  });
+
+  it('fleet:manage is a strict subset of fleet:access (cfi has access but not manage)', () => {
+    expect(can('cfi', 'fleet:access')).toBe(true);
+    expect(can('cfi', 'fleet:manage')).toBe(false);
+    for (const role of MEMBERSHIP_ROLES) {
+      if (can(role, 'fleet:manage')) {
+        expect(can(role, 'fleet:access')).toBe(true);
+      }
+    }
+  });
+
+  it('mechanic has fleet:access AND fleet:manage', () => {
+    expect(can('mechanic', 'fleet:access')).toBe(true);
+    expect(can('mechanic', 'fleet:manage')).toBe(true);
+  });
+
+  it('renter/student/accountant have NEITHER fleet cap', () => {
+    for (const role of ['renter', 'student', 'accountant'] as const) {
+      expect(can(role, 'fleet:access')).toBe(false);
+      expect(can(role, 'fleet:manage')).toBe(false);
+    }
+  });
+
+  it('fleet:access grant set matches maintenance:access grant set', () => {
+    // Both: owner/manager/dispatcher/cfi/mechanic
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'fleet:access')).toBe(can(role, 'maintenance:access'));
+    }
+  });
+
+  it('fleet:manage grant set matches maintenance:ground grant set', () => {
+    // Both: owner/manager/dispatcher/mechanic (NOT cfi)
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'fleet:manage')).toBe(can(role, 'maintenance:ground'));
+    }
+  });
+});
+
+// ─── 16. PEOPLE-6 people:* capabilities — exact grants ────────────────────────
+//
+// Per Slice 6 conductor decisions (2026-06-19):
+//   people:access → owner, manager, dispatcher, cfi (read roster)
+//   people:manage → owner, manager ONLY (NOT dispatcher/cfi)
+//   mechanic/renter/student/accountant get neither.
+
+describe('16. PEOPLE-6 people:* capabilities', () => {
+  const ACCESS_GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'cfi'];
+  const ACCESS_EXCLUDED: MembershipRole[] = ['mechanic', 'renter', 'student', 'accountant'];
+
+  const MANAGE_GRANTED: MembershipRole[] = ['owner', 'manager'];
+  const MANAGE_EXCLUDED: MembershipRole[] = ['dispatcher', 'cfi', 'mechanic', 'renter', 'student', 'accountant'];
+
+  describe('people:access', () => {
+    for (const role of ACCESS_GRANTED) {
+      it(`${role} HAS people:access`, () => {
+        expect(can(role, 'people:access')).toBe(true);
+      });
+    }
+    for (const role of ACCESS_EXCLUDED) {
+      it(`${role} does NOT have people:access`, () => {
+        expect(can(role, 'people:access')).toBe(false);
+      });
+    }
+  });
+
+  describe('people:manage', () => {
+    for (const role of MANAGE_GRANTED) {
+      it(`${role} HAS people:manage`, () => {
+        expect(can(role, 'people:manage')).toBe(true);
+      });
+    }
+    for (const role of MANAGE_EXCLUDED) {
+      it(`${role} does NOT have people:manage`, () => {
+        expect(can(role, 'people:manage')).toBe(false);
+      });
+    }
+
+    it('dispatcher specifically does NOT have people:manage (read-only, cannot edit roles/status/tags)', () => {
+      expect(can('dispatcher', 'people:manage')).toBe(false);
+    });
+
+    it('cfi specifically does NOT have people:manage (read-only, cannot edit roles/status/tags)', () => {
+      expect(can('cfi', 'people:manage')).toBe(false);
+    });
+  });
+
+  it('people:manage is a strict subset of people:access (dispatcher/cfi have access but not manage)', () => {
+    expect(can('dispatcher', 'people:access')).toBe(true);
+    expect(can('dispatcher', 'people:manage')).toBe(false);
+    expect(can('cfi', 'people:access')).toBe(true);
+    expect(can('cfi', 'people:manage')).toBe(false);
+    for (const role of MEMBERSHIP_ROLES) {
+      if (can(role, 'people:manage')) {
+        expect(can(role, 'people:access')).toBe(true);
+      }
+    }
+  });
+
+  it('mechanic/renter/student/accountant have NEITHER people cap', () => {
+    for (const role of ['mechanic', 'renter', 'student', 'accountant'] as const) {
+      expect(can(role, 'people:access')).toBe(false);
+      expect(can(role, 'people:manage')).toBe(false);
+    }
+  });
+
+  it('people:access grant set equals schedule:access grant set', () => {
+    // Both: owner/manager/dispatcher/cfi
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'people:access')).toBe(can(role, 'schedule:access'));
+    }
+  });
+
+  it('people:manage grant set equals org:manage_settings grant set', () => {
+    // Both: owner/manager only
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'people:manage')).toBe(can(role, 'org:manage_settings'));
+    }
+  });
+});
+
+// ─── 15. DISPATCH-3c dispatch:manage_requirements — exact grants ───────────────
+//
+// Per Slice 3c conductor decisions (2026-06-19):
+//   dispatch:manage_requirements → owner, manager, dispatcher
+//   cfi, mechanic, renter, student, accountant do NOT have this capability.
+
+describe('15. DISPATCH-3c dispatch:manage_requirements', () => {
+  const GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher'];
+  const DENIED: MembershipRole[] = ['cfi', 'mechanic', 'renter', 'student', 'accountant'];
+
+  for (const role of GRANTED) {
+    it(`${role} HAS dispatch:manage_requirements`, () => {
+      expect(can(role, 'dispatch:manage_requirements')).toBe(true);
+    });
+  }
+
+  for (const role of DENIED) {
+    it(`${role} does NOT have dispatch:manage_requirements`, () => {
+      expect(can(role, 'dispatch:manage_requirements')).toBe(false);
+    });
+  }
+
+  it('cfi specifically does NOT have dispatch:manage_requirements (can access/create but not manage requirements)', () => {
+    expect(can('cfi', 'dispatch:access')).toBe(true);
+    expect(can('cfi', 'dispatch:create')).toBe(true);
+    expect(can('cfi', 'dispatch:manage_requirements')).toBe(false);
+  });
+
+  it('mechanic has no dispatch capabilities at all', () => {
+    expect(can('mechanic', 'dispatch:access')).toBe(false);
+    expect(can('mechanic', 'dispatch:create')).toBe(false);
+    expect(can('mechanic', 'dispatch:manage_requirements')).toBe(false);
+  });
+
+  it('dispatcher HAS dispatch:manage_requirements (can configure requirements for check-out)', () => {
+    expect(can('dispatcher', 'dispatch:access')).toBe(true);
+    expect(can('dispatcher', 'dispatch:create')).toBe(true);
+    expect(can('dispatcher', 'dispatch:manage_requirements')).toBe(true);
+  });
+
+  it('dispatch:manage_requirements grant set = {owner, manager, dispatcher} (3 roles)', () => {
+    const grantedRoles = MEMBERSHIP_ROLES.filter((r) => can(r, 'dispatch:manage_requirements'));
+    expect(grantedRoles.sort()).toEqual(['dispatcher', 'manager', 'owner']);
+  });
+
+  it('dispatch:manage_requirements is a subset of dispatch:access (all who manage also have access)', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      if (can(role, 'dispatch:manage_requirements')) {
+        expect(can(role, 'dispatch:access')).toBe(true);
+      }
+    }
+  });
+
+  it('renter and student have no dispatch capabilities', () => {
+    for (const role of ['renter', 'student'] as const) {
+      expect(can(role, 'dispatch:access')).toBe(false);
+      expect(can(role, 'dispatch:create')).toBe(false);
+      expect(can(role, 'dispatch:manage_requirements')).toBe(false);
+    }
+  });
+
+  it('accountant has no dispatch capabilities', () => {
+    expect(can('accountant', 'dispatch:access')).toBe(false);
+    expect(can('accountant', 'dispatch:create')).toBe(false);
+    expect(can('accountant', 'dispatch:manage_requirements')).toBe(false);
+  });
+});
+
+// ─── 17. REPORTING-7 reporting:access — exact grants ──────────────────────────
+//
+// Per Slice 7 conductor decisions (D3, 2026-06-19):
+//   reporting:access → owner, manager, dispatcher, cfi, accountant
+//   mechanic/renter/student do NOT get reporting:access.
+//   accountant included: utilization closest to their domain; carries zero money.
+
+describe('17. REPORTING-7 reporting:access', () => {
+  const GRANTED: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'cfi', 'accountant'];
+  const DENIED:  MembershipRole[] = ['mechanic', 'renter', 'student'];
+
+  for (const role of GRANTED) {
+    it(`${role} HAS reporting:access`, () => {
+      expect(can(role, 'reporting:access')).toBe(true);
+    });
+  }
+
+  for (const role of DENIED) {
+    it(`${role} does NOT have reporting:access`, () => {
+      expect(can(role, 'reporting:access')).toBe(false);
+    });
+  }
+
+  it('accountant specifically has reporting:access (unique in Slice 7)', () => {
+    expect(can('accountant', 'reporting:access')).toBe(true);
+    // But accountant still lacks the other operational caps
+    expect(can('accountant', 'dispatch:access')).toBe(false);
+    expect(can('accountant', 'schedule:access')).toBe(false);
+    expect(can('accountant', 'fleet:access')).toBe(false);
+    expect(can('accountant', 'maintenance:access')).toBe(false);
+  });
+
+  it('mechanic specifically does NOT have reporting:access', () => {
+    expect(can('mechanic', 'reporting:access')).toBe(false);
+    // mechanic has maintenance caps but not reporting
+    expect(can('mechanic', 'maintenance:access')).toBe(true);
+  });
+
+  it('renter and student do NOT have reporting:access', () => {
+    expect(can('renter', 'reporting:access')).toBe(false);
+    expect(can('student', 'reporting:access')).toBe(false);
+  });
+
+  it('reporting:access grant set = {owner,manager,dispatcher,cfi,accountant} (5 roles)', () => {
+    const grantedRoles = MEMBERSHIP_ROLES.filter((r) => can(r, 'reporting:access'));
+    expect(grantedRoles.sort()).toEqual(['accountant', 'cfi', 'dispatcher', 'manager', 'owner']);
   });
 });

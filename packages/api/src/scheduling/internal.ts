@@ -44,10 +44,11 @@ import { sql, eq } from 'drizzle-orm';
 import { reservation, reservationResource, auditLog, bookingPolicy, resourceBlackout, resource } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { withOrgContext } from '@aeroops/db';
-import { evaluateBookingPolicy } from '@aeroops/core';
+import { evaluateBookingPolicy, evaluateGroundingGate } from '@aeroops/core';
 import type { BookingPolicy, BlackoutWindow, ZonedToUtc } from '@aeroops/core';
 import type { ConflictHit, PolicyViolationView, CreateReservationResult } from './types.js';
 import type { AppSession } from '../auth/types.js';
+import { loadGroundingProbe } from '../maintenance/internal.js';
 
 // RFC-4122 UUID, version-agnostic (mirrors @aeroops/db's UUID_RE). zod v4's
 // z.uuid() strictly validates version/variant nibbles and would reject some
@@ -668,6 +669,29 @@ export async function gatedCreateOccurrence(
       },
     });
 
+    // ── Step G — grounding gate (ADR-0008 §2.3 Integration A, Option A) ──────
+    // WARN-ONLY at create in Slice 3b: this runs ONLY on the success path (the
+    // create has already been decided + the INSERT/audit have committed in-tx),
+    // AFTER refusal precedence (Step D), so it cannot alter any refusal arm or
+    // the precedence. It is NOT a mutation (no rows written) and never blocks.
+    //
+    // Build the candidate set from the already-loaded resourceRows (kind comes
+    // from byId) + the grounding probe map. Non-aircraft (e.g. instructors) have
+    // no grounding events → grounded:false, and evaluateGroundingGate ignores
+    // any kind !== 'aircraft' regardless. The probe is RLS-scoped by the tx GUC.
+    const groundingMap = await loadGroundingProbe(tx, resourceIds);
+    const groundingCandidates = resourceIds.map((id) => {
+      const r = byId.get(id)!;
+      const probe = groundingMap.get(id);
+      return {
+        resourceId: id,
+        kind: r.kind,
+        grounded: probe?.grounded ?? false,
+        reason: probe?.reason ?? null,
+      };
+    });
+    const { warnings } = evaluateGroundingGate(groundingCandidates, 'warn');
+
     return {
       ok: true,
       reservation: {
@@ -680,6 +704,9 @@ export async function gatedCreateOccurrence(
         createdBy: resv!.createdBy,
         resourceIds,
       },
+      // Only attach when non-empty so the ok:true shape stays byte-identical for
+      // the common (nothing grounded) case — existing consumers see no new field.
+      ...(warnings.length > 0 ? { groundingWarnings: warnings } : {}),
     };
   } catch (err) {
     // Step F — 23P01 detection (ADR-0006 §3 race semantics).

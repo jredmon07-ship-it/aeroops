@@ -39,7 +39,10 @@ export interface NavItem {
  *   2. Reservations — Schedule hub entry point (schedule:access).
  *   3. Board — Single-day dispatch board (schedule:access); after Reservations.
  *   4. Resources — Resource admin (schedule:manage_resources only).
- *   5. Org settings — owner + manager only (org:manage_settings).
+ *   5. People — Roster management (people:access); after Resources, before Fleet.
+ *   6. Fleet — Aircraft detail hub (fleet:access); after People, before Maintenance.
+ *   7. Maintenance — Squawks + grounding (maintenance:access).
+ *   8. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {
@@ -61,6 +64,21 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Resources',
     href: '/o/[slug]/schedule/resources',
     requiredCapability: 'schedule:manage_resources',
+  },
+  {
+    label: 'People',
+    href: '/o/[slug]/people',
+    requiredCapability: 'people:access',
+  },
+  {
+    label: 'Fleet',
+    href: '/o/[slug]/fleet',
+    requiredCapability: 'fleet:access',
+  },
+  {
+    label: 'Maintenance',
+    href: '/o/[slug]/maintenance/squawks',
+    requiredCapability: 'maintenance:access',
   },
   {
     label: 'Org settings',

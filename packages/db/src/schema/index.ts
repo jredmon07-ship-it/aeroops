@@ -8,6 +8,14 @@
  *   bookingPolicy (table: booking_policy), resourceBlackout (table: resource_blackout),
  *   reservationSeries (table: reservation_series) — Slice 2b / ADR-0006
  *   dispatchTicket (table: dispatch_ticket) — Slice 3a / ADR-0007
+ *   squawk (table: squawk) — Slice 3b / ADR-0008
+ *   aircraftGrounding (table: aircraft_grounding) — Slice 3b / ADR-0008
+ *   memberTag (table: member_tag) — Slice 6.1 / People (migration 0008)
+ *     FREE-TEXT operator labels only. [VERIFY-6-A]: no FAA/currency/medical meaning.
+ *   dispatchRequirement (table: dispatch_requirement) — Slice 3c / ADR-0009 (migration 0009)
+ *     FREE-TEXT per-aircraft dispatch tags. [VERIFY-3c-A]: no computed currency/medical.
+ *   dispatchConfig (table: dispatch_config) — Slice 3c / ADR-0009 (migration 0009)
+ *     Per-org gate config. [VERIFY-3c-MONEY]: balance_check_enabled is a stub flag only.
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -22,6 +30,9 @@ export {
   recurrenceEndKind,
   reservationSeriesStatus,
   dispatchStatus,
+  groundingState,
+  squawkStatus,
+  squawkSeverity,
 } from './enums.js';
 
 // Tenant-scoped tables
@@ -84,3 +95,34 @@ export type {
   DispatchTicketSelect,
   DispatchTicketInsert,
 } from './dispatch-ticket.js';
+
+// Squawks + grounding — tenant-scoped (DISPATCH-3b / Phase 1 Slice 3b, ADR-0008)
+export { squawk } from './squawk.js';
+export type { SquawkSelect, SquawkInsert } from './squawk.js';
+
+export { aircraftGrounding } from './aircraft-grounding.js';
+export type {
+  AircraftGroundingSelect,
+  AircraftGroundingInsert,
+} from './aircraft-grounding.js';
+
+// People / Members — tenant-scoped (Slice 6.1 / migration 0008)
+// member_tag: FREE-TEXT operator labels only. [VERIFY-6-A]: no FAA/currency/
+// medical/cert/eligibility meaning is computed or enforced from a tag.
+export { memberTag } from './member-tag.js';
+export type { MemberTagSelect, MemberTagInsert } from './member-tag.js';
+
+// Dispatch gate — tenant-scoped (Slice 3c / ADR-0009 / migration 0009)
+// dispatch_requirement: FREE-TEXT per-aircraft required tags for check-out.
+//   [VERIFY-3c-A]: no computed currency/medical/endorsement/FAA meaning.
+// dispatch_config: per-org gate settings.
+//   [VERIFY-3c-MONEY]: balance_check_enabled is a Phase-1 stub flag ONLY;
+//   no dollar value, minimum balance, or payment data in this table.
+export { dispatchRequirement } from './dispatch-requirement.js';
+export type {
+  DispatchRequirementSelect,
+  DispatchRequirementInsert,
+} from './dispatch-requirement.js';
+
+export { dispatchConfig } from './dispatch-config.js';
+export type { DispatchConfigSelect, DispatchConfigInsert } from './dispatch-config.js';
