@@ -4,6 +4,137 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] — Phase 1 (Scheduling + Dispatch)
+
+### Slice 3c — Full pre-flight (dispatch) gate (build-complete, awaiting merge)
+
+**Added**
+
+- **The dispatch check-out gate is now complete** — additively layered as
+  **grounded → ineligible → balance**: an operator can require **free-text tags** on the dispatched
+  pilot per aircraft (a pure, property-tested matcher — string membership only, computing NO FAA
+  currency/medical/endorsement), with a block-or-warn mode. A grounded aircraft still refuses first.
+- **Operator config:** a `dispatch_config` row (eligibility mode; a balance-check feature flag) +
+  per-aircraft `dispatch_requirement` rows. New `dispatch:manage_requirements` capability
+  (owner/manager/dispatcher). UI: a "Dispatch requirements" card on each aircraft's Fleet detail page,
+  a "Gate settings" control on the dispatch board, and an `ineligible` message (listing the missing
+  tags) in the check-out dialog.
+- **Balance seam (stub only — money boundary held):** a `BalanceSeam` interface + a no-op
+  `stubBalanceSeam` that always returns OK. The `balance_check_enabled` flag is OFF by default and the
+  toggle is labeled "not yet active." **No Stripe, no payment data, no dollar value** — the real balance
+  check is Phase 2; this is purely the seam so it can be wired without touching the gate.
+
+**Notes**
+
+- `openDispatch`'s existing arms (`not_found`/`already_open`/`grounded`) are byte-identical; the new
+  arms are additive. Eligibility blocking is the operator enforcing their own rule, not a software
+  airworthiness/currency determination (compliance-confirmed). Migration `0009` staged + human-gated
+  (applied in-memory by the demo). 2,114 tests green; reviewer APPROVE + compliance PASS.
+
+### Slice 7 — Reporting / Ops Dashboard (build-complete, awaiting merge)
+
+**Added**
+
+- **The landing page is now a real ops console** (replaces the Phase-0 placeholder). It opens on
+  an "As of now" snapshot strip (grounded aircraft, open squawks, active aircraft, active members)
+  visually separated from "Last N days" KPIs (flights, flight hours, reservations), a per-tail
+  **fleet utilization table** (flight count + hours + proportion bars), and "On the board"
+  at-a-glance lists (today's flights, currently grounded, open squawks) — all deep-linked to the
+  relevant hub. A 7/30/90-day range selector (server-driven, no client fetch).
+- **Reporting API** (read-only, no schema): `getOrgDashboardMetrics` (the headline metrics) and
+  `getAircraftUtilization` (per-tail hours/flights), plus a pure `resolveRange` helper. New
+  `reporting:access` capability (owner/manager/dispatcher/cfi/accountant).
+
+**Notes**
+
+- Designed by the product-designer (a two-tier "now vs. period" visual grammar so a snapshot count
+  can't be misread as a range figure), then built to that spec. Hours are framed as OPERATIONAL
+  utilization — never a billing or airworthiness figure; **no money anywhere**. Tenant isolation on
+  every aggregate was adversarially verified (the `T-ISO-*` suite seeds a second org with more of
+  every metric and asserts the first org sees only its own). ~1,975 tests green; reviewer
+  APPROVE-WITH-NITS + compliance PASS. No new migration.
+
+### Slice 6 — People / Members management (build-complete, awaiting merge)
+
+**Added**
+
+- **People hub.** A real members surface: `listMembers` (roster with role, status, free-text
+  tags) and a per-member `getMemberDetail` aggregating role + tags + the reservations they
+  booked (`created_by`) + recent dispatch where they were the pilot + whether they have login
+  access (`hasLogin`, existence-only — the password hash is never read). `updateMember`
+  (identity + role, audited) and `setMemberStatus` (active/inactive) both guard against
+  removing the last active owner and against self-deactivation. `addMember` creates a
+  **roster entry only** (no login/credential until a future invite slice).
+- **Free-text member tags.** New `member_tag` table + `addMemberTag` / `removeMemberTag`
+  (audited). Tags are **opaque operator labels ONLY** — the system computes/interprets no FAA
+  currency, medical, or Part 61/141 eligibility from them. This is the admin surface the
+  deferred eligibility follow-up will later read; enforcement is still out of scope. Additive
+  `app_user` columns `phone` + `status` (`status` is a roster flag, NOT a login gate).
+- **RBAC.** New `people:access` (owner/manager/dispatcher/cfi) and `people:manage`
+  (owner/manager). People UI: `/people` list + `/people/[id]` detail + edit / add / status /
+  tag-editor dialogs + nav item.
+
+**Notes**
+
+- Built via a multi-agent **Workflow** with an adversarial review panel: a dedicated
+  tenant-isolation auditor actively tried to break org isolation through the aggregation and
+  the tag mutations and found none (verdict: SAFE), alongside reviewer APPROVE + compliance
+  PASS. Migration `0008` staged + human-gated (applied in-memory by the demo). ~1,832 tests green.
+
+### Slice 5 — Fleet / Aircraft detail pages (build-complete, awaiting merge)
+
+**Added**
+
+- **First-class fleet records.** Additive nullable columns on `resource` for aircraft —
+  `make`, `model`, `year`, `serial_number`, `home_base_location_id` (same-org composite FK
+  to `location`), and meter-config flags `has_hobbs` / `has_tach` (migration `0007`,
+  human-gated). `resource_kind_shape_check` unchanged; existing inserts unaffected.
+- **Per-aircraft detail aggregation.** New `fleet/` API: `getAircraftDetail` stitches a
+  single aircraft's identity + current grounding status + open-squawk count & recent
+  squawks + recent dispatch history + last-recorded Hobbs/tach (from the latest *closed*
+  ticket) + upcoming reservations — all tenant-isolated in one org context.
+  `listAircraft` (fleet list with status chips), `updateAircraft` (identity-only, audited),
+  `listLocations`. New `fleet:access` / `fleet:manage` capabilities.
+- **Fleet UI.** `/fleet` list (tail #, make/model, Grounded / open-squawk / status chips)
+  and `/fleet/[id]` detail (identity, grounding banner, last-recorded meters, open squawks
+  with deep-links, recent dispatch, upcoming reservations) + an Edit Aircraft dialog. New
+  Fleet nav item.
+
+**Notes**
+
+- Read-only display of meters (labeled "last recorded", not an airframe/airworthiness total)
+  — no computation, so it does not trip the dispatch correction-table predecessor. No
+  inspection/AD/airworthiness logic (Phase 4 forward seam only). Migration `0007` staged +
+  human-gated, applied in-memory by the demo. Reviewer APPROVE + compliance PASS. ~1,822 tests green.
+
+### Slice 3b — Squawks + operator-set grounding (build-complete, awaiting merge)
+
+**Added**
+
+- **Aircraft grounding (operator data, not a reg determination).** New append-only,
+  event-sourced `aircraft_grounding` table (`grounded`/`released` events with reason +
+  audit; org-scoped, ENABLE+FORCE RLS). `groundAircraft` / `unGroundAircraft` (idempotent)
+  / `getGroundingStatus`. Pure, property-tested `evaluateGroundingGate` makes grounding a
+  third gate dimension: **warn-only at reservation create** (additive optional
+  `groundingWarnings` on the success result; the FROZEN shared create path is byte-identical
+  otherwise) and a **hard block at dispatch check-out** (`openDispatch` gains a `grounded`
+  refusal arm — a grounded aircraft cannot be dispatched). Grounding status is surfaced on the
+  board and in the new-reservation flow **before** booking.
+- **Squawks (discrepancy reports).** New `squawk` table (open/deferred/resolved lifecycle,
+  severity low/medium/high/grounding; write-once reported facts, status-forward only).
+  `reportSquawk` / `updateSquawkStatus` / `listSquawks` / `getOpenSquawkCounts`. A
+  `severity='grounding'` squawk NEVER auto-grounds — grounding is always an explicit operator
+  act. Squawk-on-return capture at check-in. New `/maintenance/squawks` admin surface +
+  open-squawk counts on the board.
+- **RBAC.** New `maintenance:access` / `maintenance:ground` / `maintenance:squawk` capabilities
+  (mechanic role gains its first surface; CFIs can squawk but not ground).
+
+**Notes**
+
+- Migration `0006` staged + human-gated, NEVER applied to a real DB (the zero-setup demo
+  applies it in-memory). Compliance PASS (grounding/squawks are operator data, fully audited,
+  no meter access, no computed Part-91/43 determination). 1,586 tests green.
+
 ## [Unreleased] — Phase 0 (Foundation)
 
 ### Slice 0.3 — Isolated empty app shell + server-side RBAC gating
