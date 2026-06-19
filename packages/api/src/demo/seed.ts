@@ -40,6 +40,7 @@ import {
   resource,
   memberTag,
   dispatchRequirement,
+  dispatchConfig,
 } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import type { MembershipRole } from '@aeroops/core';
@@ -151,10 +152,27 @@ export async function seedDemo(db: AnyDb): Promise<void> {
         .returning();
     }
 
-    // Home base — the operator's airport (Fleet home-base FK target).
+    // Home base — the operator's airport (Fleet home-base FK target). Coordinates
+    // (KOSU / OSU Don Scott Field, WGS84) drive the Slice 4a civil-twilight calc.
     const [base] = await tx
       .insert(location)
-      .values({ orgId, name: 'Alpha Main Base', icao: 'KOSU' })
+      .values({
+        orgId,
+        name: 'Alpha Main Base',
+        icao: 'KOSU',
+        latitude: '40.07800',
+        longitude: '-83.07300',
+      })
+      .returning();
+
+    // Dispatch gate config (Slice 4a) — turn ON the civil-twilight constraint in
+    // WARN mode so an evening booking that crosses civil dusk gets a non-blocking
+    // notice (the daytime demo bookings below are unaffected). Operator scheduling
+    // rule from astronomy — NOT an FAA night-currency determination. Eligibility
+    // stays at its default 'block' (the 3c demo requirement still applies).
+    await tx
+      .insert(dispatchConfig)
+      .values({ orgId, twilightConstraintEnabled: true, twilightMode: 'warn' })
       .returning();
 
     // Aircraft (tail #). aircraft → tail_number NOT NULL, instructor_user_id NULL.

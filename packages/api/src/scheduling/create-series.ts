@@ -353,6 +353,10 @@ async function _createSeriesImpl(
           // (ADR-0008 §2.3). Only present when non-empty so the 'created' report
           // shape stays byte-identical when nothing is grounded.
           ...(result!.groundingWarnings ? { groundingWarnings: result!.groundingWarnings } : {}),
+          // Slice 4a: warn-only twilight warnings (block mode never reaches this arm —
+          // it returns reason:'twilight'). Only present when non-empty so the 'created'
+          // report shape stays byte-identical when the gate is disabled / inert.
+          ...(result!.twilightWarnings ? { twilightWarnings: result!.twilightWarnings } : {}),
         };
       } else {
         skippedCount++;
@@ -368,6 +372,8 @@ async function _createSeriesImpl(
           ...(result!.reason === 'policy' || result!.reason === 'conflict_and_policy'
             ? { violations: result!.violations }
             : {}),
+          // Slice 4a: block-mode twilight refusal → skipped with the dusk/dawn boundary.
+          ...(result!.reason === 'twilight' ? { twilight: result!.twilight } : {}),
         };
       }
 

@@ -34,6 +34,7 @@ import {
   cancelSeries,
   listSeriesOccurrences,
   previewSeries,
+  previewTwilight,
   rescheduleReservation,
   openDispatch,
   closeDispatch,
@@ -61,6 +62,7 @@ import type {
   CancelSeriesResult,
   ListSeriesOccurrencesResponse,
   PreviewSeriesResult,
+  PreviewTwilightResult,
   RescheduleResult,
   OpenDispatchResult,
   CloseDispatchResult,
@@ -686,6 +688,47 @@ export async function getDispatchForReservationAction(input: {
   try {
     const map = await getDispatchForReservation(session, input);
     return { ok: true, tickets: [...map.entries()] };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── previewTwilightAction ────────────────────────────────────────────────────
+// Advisory civil-twilight preview (Slice 4a). Writes nothing; no audit row.
+// Authz: schedule:create_reservation (same gate as the create it previews).
+// Returns serializable data: boundaryUtcMs is already a number (no Date objects).
+
+export type PreviewTwilightActionResult =
+  | PreviewTwilightResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * previewTwilightAction — read-only civil-twilight advisory preview.
+ *
+ * Maps:
+ *   ForbiddenError       → { error: 'forbidden' }
+ *   UnauthenticatedError → { error: 'unauthenticated' }
+ *   ValidationError      → { error: 'validation', message }
+ *   PreviewTwilightResult → passed through as-is (perResource array).
+ *     SolarEvents times (sunriseUtcMs etc.) are numbers — already serializable.
+ *
+ * Capability gate enforced server-side by previewTwilight.
+ */
+export async function previewTwilightAction(input: {
+  startAt: Date;
+  endAt: Date;
+  resourceIds: string[];
+}): Promise<PreviewTwilightActionResult> {
+  const session = await auth();
+  try {
+    return await previewTwilight(session, input);
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

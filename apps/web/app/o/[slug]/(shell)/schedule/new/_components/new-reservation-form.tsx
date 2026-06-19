@@ -34,13 +34,15 @@ import { ConflictBanner } from './conflict-banner';
 import { RecurrenceControls } from './recurrence-controls';
 import { SeriesPreviewPanel } from './series-preview-panel';
 import { SeriesCreateResult } from './series-create-result';
+import { TwilightIndicator } from './twilight-indicator';
 import { useConflictCheck } from '../_hooks/use-conflict-check';
 import { useSeriesPreview } from '../_hooks/use-series-preview';
-import { createReservationAction, createSeriesAction } from '../../actions';
+import { createReservationAction, createSeriesAction, previewTwilightAction } from '../../actions';
 import { getGroundingStatusAction } from '../../../maintenance/actions';
 import { toDateInputValue } from '../../_utils/format-time';
-import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView } from '@aeroops/api';
+import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView, PreviewTwilightResourceReport, TwilightHit } from '@aeroops/api';
 import type { RecurrenceValue, RecurrenceFieldErrors } from './recurrence-controls';
+import type { TwilightPreviewState } from './twilight-indicator';
 
 interface NewReservationFormProps {
   resources: ResourceRow[];
@@ -103,9 +105,18 @@ export function NewReservationForm({
   const [submitViolations, setSubmitViolations] = React.useState<PolicyViolationView[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
   const [groundingWarnings, setGroundingWarnings] = React.useState<Array<{ resourceId: string; reason: string | null }>>([]);
+  // twilightWarnings: populated on both block (ok:false) and warn (ok:true).
+  // twilightBlocked: true = block mode (nothing created); false = warn (created).
+  const [twilightWarnings, setTwilightWarnings] = React.useState<TwilightHit[]>([]);
+  const [twilightBlocked, setTwilightBlocked] = React.useState(false);
 
   // Grounding status for aircraft — fetched once on mount, used for inline wedge badge.
   const [groundingStatus, setGroundingStatus] = React.useState<Map<string, GroundingStatusView>>(new Map());
+
+  // Civil-twilight preview (Slice 4a) — advisory indicator, never blocks the form.
+  const [twilightState, setTwilightState] = React.useState<TwilightPreviewState>('idle');
+  const [twilightPerResource, setTwilightPerResource] = React.useState<PreviewTwilightResourceReport[]>([]);
+  const twilightTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Recurrence (Slice 2b) ──────────────────────────────────────────────────
   const [repeatEnabled, setRepeatEnabled] = React.useState(false);
@@ -206,6 +217,49 @@ export function NewReservationForm({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount — resources don't change during session
 
+  // Civil-twilight preview (Slice 4a, advisory only — never blocks submit).
+  // Debounce 500ms; fires when aircraft + date + start + end are all set.
+  React.useEffect(() => {
+    if (twilightTimerRef.current) clearTimeout(twilightTimerRef.current);
+
+    // Only preview if we have aircraft selected and a full time window.
+    if (!aircraftId || !date || !startTime || !endTime) {
+      setTwilightState('idle');
+      setTwilightPerResource([]);
+      return;
+    }
+
+    const startAt = new Date(`${date}T${startTime}:00`);
+    const endAt = new Date(`${date}T${endTime}:00`);
+    if (isNaN(startAt.getTime()) || isNaN(endAt.getTime()) || endAt <= startAt) {
+      setTwilightState('idle');
+      setTwilightPerResource([]);
+      return;
+    }
+
+    setTwilightState('loading');
+
+    twilightTimerRef.current = setTimeout(async () => {
+      const ids: string[] = [aircraftId];
+      try {
+        const result = await previewTwilightAction({ startAt, endAt, resourceIds: ids });
+        if ('error' in result) {
+          setTwilightState('error');
+          return;
+        }
+        setTwilightPerResource(result.perResource);
+        setTwilightState('loaded');
+      } catch {
+        setTwilightState('error');
+      }
+    }, 500);
+
+    return () => {
+      if (twilightTimerRef.current) clearTimeout(twilightTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aircraftId, date, startTime, endTime]);
+
   // Client-side validation for the base fields (shared by both paths)
   function validateBase(): boolean {
     const errors: FieldErrors = {};
@@ -272,11 +326,22 @@ export function NewReservationForm({
     return Object.keys(errors).length === 0;
   }
 
+  // Build a map of aircraft id → display label for the TwilightIndicator.
+  const aircraftNameMap = React.useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of aircraft) {
+      m.set(r.id, r.tailNumber ? `${r.tailNumber} — ${r.displayName}` : r.displayName);
+    }
+    return m;
+  }, [aircraft]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setServerError(null);
     setSubmitConflicts([]);
     setSubmitViolations([]);
+    setTwilightWarnings([]);
+    setTwilightBlocked(false);
 
     if (!validateBase()) return;
 
@@ -352,19 +417,35 @@ export function NewReservationForm({
       }
 
       if (!result.ok) {
-        // Map all four ok:false arms — render via banner with hard-block framing
+        // Map all ok:false arms — render via banner with hard-block framing.
         if (result.reason === 'conflict_and_policy') {
           setSubmitConflicts(result.conflicts);
           setSubmitViolations(result.violations);
         } else if (result.reason === 'policy') {
           setSubmitConflicts([]);
           setSubmitViolations(result.violations);
+        } else if (result.reason === 'twilight') {
+          // Slice 4a — block mode: refused because of civil twilight violation.
+          // Show the boundary times; nothing was written.
+          setTwilightWarnings(result.twilight);
+          setTwilightBlocked(true);
         } else {
           // reason === 'conflict' — FROZEN Slice-1 arm
           setSubmitConflicts(result.conflicts);
           setSubmitViolations([]);
         }
         return;
+      }
+
+      // Surface any twilight warnings (warn mode — reservation WAS created).
+      // Show non-blocking notice before redirect.
+      if (result.twilightWarnings && result.twilightWarnings.length > 0) {
+        setTwilightWarnings(result.twilightWarnings);
+        setTwilightBlocked(false);
+        // No grounding warning — show twilight notice + let user proceed.
+        if (!result.groundingWarnings || result.groundingWarnings.length === 0) {
+          return;
+        }
       }
 
       // Surface any grounding warnings before navigating away.
@@ -552,6 +633,73 @@ export function NewReservationForm({
             submitConflicts={submitConflicts}
             submitViolations={submitViolations}
           />
+        )}
+
+        {/* Twilight block banner — ok:false reason:'twilight' (block mode).
+            Nothing was written. Show boundary times so user can adjust.
+            [VERIFY-4a-A] Astronomy-only; NOT an FAA night-currency determination. */}
+        {twilightWarnings.length > 0 && twilightBlocked && (
+          <Alert variant="destructive" role="alert" aria-live="assertive">
+            <AlertDescription>
+              <p className="font-medium mb-1">
+                This booking was not created due to civil-twilight rules:
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 text-sm">
+                {twilightWarnings.map((hit, i) => {
+                  const time = new Intl.DateTimeFormat(undefined, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                  }).format(new Date(hit.boundaryUtcMs));
+                  const copy =
+                    hit.reason === 'ends_after_civil_dusk'
+                      ? `This booking ends after civil dusk (${time}). Adjust the time or enable a night-qualified exemption.`
+                      : `This booking starts before civil dawn (${time}). Adjust the time or enable a night-qualified exemption.`;
+                  return <li key={i}>{copy}</li>;
+                })}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Twilight warn notice — ok:true with twilightWarnings (warn mode).
+            Reservation WAS created. Non-blocking advisory.
+            [VERIFY-4a-A] Astronomy-only; NOT an FAA night-currency determination. */}
+        {twilightWarnings.length > 0 && !twilightBlocked && (
+          <Alert className="border-amber-200 bg-amber-50" role="status" aria-live="polite">
+            <AlertDescription className="space-y-1">
+              <p className="font-medium text-amber-900">
+                Booked. Note: this booking crosses your civil-twilight scheduling boundary.
+              </p>
+              <ul className="list-disc list-inside text-sm text-amber-800 space-y-0.5">
+                {twilightWarnings.map((hit, i) => {
+                  const time = new Intl.DateTimeFormat(undefined, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                  }).format(new Date(hit.boundaryUtcMs));
+                  const copy =
+                    hit.reason === 'ends_after_civil_dusk'
+                      ? `Ends after civil dusk (${time}).`
+                      : `Starts before civil dawn (${time}).`;
+                  return <li key={i}>{copy}</li>;
+                })}
+              </ul>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      `/o/${slug}/schedule?date=${date}&success=1&start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}`,
+                    )
+                  }
+                  className="text-sm text-amber-800 underline"
+                >
+                  Continue to schedule
+                </button>
+              </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Date */}
@@ -810,6 +958,18 @@ export function NewReservationForm({
             state={conflictState}
             conflicts={conflicts}
             policyViolations={policyViolations}
+          />
+        )}
+
+        {/* Civil-twilight day/night indicator (Slice 4a, advisory only).
+            Shown when aircraft is selected and time window is set.
+            Never blocks submit — informational only.
+            [VERIFY-4a-A] astronomy, not FAA night-currency or §61.57. */}
+        {!repeatEnabled && aircraftId && (
+          <TwilightIndicator
+            state={twilightState}
+            perResource={twilightPerResource}
+            resourceNames={aircraftNameMap}
           />
         )}
 

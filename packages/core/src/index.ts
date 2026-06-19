@@ -76,6 +76,25 @@ export type {
   GroundingGateResult,
 } from './maintenance/grounding-gate.js';
 
+export {
+  computeSolarEvents,
+  evaluateTwilightGate,
+} from './scheduling/civil-twilight.js';
+export type {
+  SolarEvents,
+  TwilightHit,
+  TwilightGateResult,
+} from './scheduling/civil-twilight.js';
+
+export { proposeSchedule } from './scheduling/optimizer.js';
+export type {
+  DemandRequest,
+  AvailabilityWindow,
+  PerResourceTwilight,
+  ProposedOccurrence,
+  ProposalSet,
+} from './scheduling/optimizer.js';
+
 export { expandRecurrence } from './scheduling/recurrence.js';
 export type {
   ZonedToUtc,

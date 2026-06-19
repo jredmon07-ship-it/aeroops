@@ -53,6 +53,21 @@ export interface DispatchConfigView {
    * [VERIFY-3c-MONEY]: NOT a real balance check. No money concept.
    */
   balanceCheckEnabled: boolean;
+  /**
+   * Civil-twilight scheduling constraint (Slice 4a). Default false. When enabled,
+   * bookings crossing civil dawn/dusk warn or block per `twilightMode`.
+   * [VERIFY-4a-A]: an operator scheduling rule from ASTRONOMICAL civil-twilight times —
+   * NOT an FAA night-currency / §61.57 / §1.1 determination.
+   */
+  twilightConstraintEnabled: boolean;
+  /** 'block' → night-crossing booking refused; 'warn' → advisory only. Default 'warn'. */
+  twilightMode: 'block' | 'warn';
+  /**
+   * Free-text operator label exempting a pilot from the twilight constraint
+   * ([VERIFY-4a-D]: opaque operator tag, NO computed currency). Exemption wiring is
+   * DEFERRED in 4a (recorded, not yet applied). null = no exempt tag configured.
+   */
+  twilightExemptTag: string | null;
 }
 
 // ─── getResourceRequiredTags result ───────────────────────────────────────────

@@ -79,6 +79,8 @@ const MIGRATION_SQL = [
   // 0009 required: dispatch_requirement + dispatch_config tables (Slice 3c / ADR-0009).
   // openDispatch now queries dispatch_requirement; tables must exist in test DB.
   readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0010_civil_twilight.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0011_optimizer_run.sql'), 'utf-8'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────

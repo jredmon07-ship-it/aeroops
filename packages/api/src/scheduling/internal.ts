@@ -44,8 +44,8 @@ import { sql, eq } from 'drizzle-orm';
 import { reservation, reservationResource, auditLog, bookingPolicy, resourceBlackout, resource } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { withOrgContext } from '@aeroops/db';
-import { evaluateBookingPolicy, evaluateGroundingGate } from '@aeroops/core';
-import type { BookingPolicy, BlackoutWindow, ZonedToUtc } from '@aeroops/core';
+import { evaluateBookingPolicy, evaluateGroundingGate, computeSolarEvents, evaluateTwilightGate } from '@aeroops/core';
+import type { BookingPolicy, BlackoutWindow, ZonedToUtc, SolarEvents, TwilightHit } from '@aeroops/core';
 import type { ConflictHit, PolicyViolationView, CreateReservationResult } from './types.js';
 import type { AppSession } from '../auth/types.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
@@ -508,6 +508,218 @@ export async function runPolicyProbe(
   return violations;
 }
 
+// ─── Twilight context (Slice 4a — additive gate, modeled on grounding) ────────
+
+/**
+ * TwilightConfigView — the org's dispatch_config twilight fields, with the
+ * canonical absent-row defaults applied (per migration 0010 / dispatch_config.ts):
+ *   { enabled: false, mode: 'warn', exemptTag: null } → gate INERT.
+ */
+export interface TwilightConfigView {
+  enabled: boolean;
+  mode: 'block' | 'warn';
+  exemptTag: string | null;
+}
+
+/**
+ * loadTwilightConfig — read the 0..1 dispatch_config twilight fields for the org.
+ *
+ * RLS-scoped by the caller's tx GUC. Absent row → canonical defaults (gate inert).
+ * This reads the SAME table as dispatch-gate/internal.ts loadDispatchConfig but a
+ * disjoint column set (twilight_*), so it is a sibling reader, not a divergence.
+ *
+ * [VERIFY-4a-A]: these are operator-config + astronomy inputs only — NOT an FAA
+ * night-currency (§61.57/§1.1) determination.
+ */
+export async function loadTwilightConfig(
+  tx: AnyDb,
+  orgId: string,
+): Promise<TwilightConfigView> {
+  const result = await tx.execute(sql`
+    SELECT
+      twilight_constraint_enabled AS "enabled",
+      twilight_mode               AS "mode",
+      twilight_exempt_tag         AS "exemptTag"
+    FROM dispatch_config
+    WHERE org_id = ${orgId}::uuid
+    LIMIT 1
+  `);
+
+  const rows = (result.rows ?? result) as unknown as Array<{
+    enabled: boolean;
+    mode: string;
+    exemptTag: string | null;
+  }>;
+
+  const row = rows[0];
+  if (!row) {
+    // Absent row → gate INERT (the Phase-1 default).
+    return { enabled: false, mode: 'warn', exemptTag: null };
+  }
+
+  return {
+    enabled: row.enabled,
+    mode: row.mode === 'block' ? 'block' : 'warn',
+    exemptTag: row.exemptTag ?? null,
+  };
+}
+
+/**
+ * TwilightResourceContext — per-aircraft twilight evaluation context.
+ *
+ *   resourceId — the aircraft resource id.
+ *   events     — computeSolarEvents output for that aircraft's home-base coords on
+ *                the candidate-start civil day, OR null when the resource is not an
+ *                aircraft, has no home base, or its home base has no coordinates
+ *                (gate INERT for that resource — evaluateTwilightGate returns empty).
+ */
+export interface TwilightResourceContext {
+  resourceId: string;
+  events: SolarEvents | null;
+}
+
+/**
+ * TwilightContext — the loaded config + per-aircraft solar events, ready to feed
+ * evaluateTwilightGate. Returned by loadTwilightContext.
+ *
+ * pilotIsExempt is DEFERRED in Slice 4a (always false). The reservation has no
+ * first-class "pilot" field, so there is nothing to evaluate the exempt tag
+ * against yet (conductor decision 2026-06-19). The dispatch_config.twilight_exempt_tag
+ * column is a forward seam; wiring lands in a later slice with a pilot association.
+ * SEAM: when a pilot association exists, resolve pilotIsExempt by checking whether
+ * the pilot holds `config.exemptTag` (member_tag), then pass it per-resource here.
+ */
+export interface TwilightContext {
+  config: TwilightConfigView;
+  perResource: TwilightResourceContext[];
+  /** DEFERRED in 4a: always false (see SEAM above). */
+  pilotIsExempt: boolean;
+}
+
+/**
+ * loadTwilightContext — load the org's twilight config + per-aircraft solar events.
+ *
+ * For each requested resource that is an AIRCRAFT with a home_base_location_id
+ * pointing at a location carrying lat/long, computes computeSolarEvents on the
+ * candidate-start civil day. Non-aircraft, missing home base, or missing coords →
+ * `events: null` (the core gate is INERT there). RLS-scoped by the tx GUC.
+ *
+ * Returns the full context even when disabled — the CALLER decides to skip when
+ * `config.enabled === false` (keeping the disabled path byte-identical by NOT
+ * calling this at all; see gatedCreateOccurrence Step H).
+ *
+ * @param tx                   - Active tx with org GUC set (RLS-scoped).
+ * @param orgId                - Session org id (for the config read).
+ * @param resourceIds          - The reservation's resources.
+ * @param candidateStartUtcMs  - Epoch ms of the candidate window start (anchors the civil day).
+ */
+export async function loadTwilightContext(
+  tx: AnyDb,
+  orgId: string,
+  resourceIds: string[],
+  candidateStartUtcMs: number,
+  /** Pre-loaded config to avoid a second dispatch_config read (gated path). */
+  preloadedConfig?: TwilightConfigView,
+): Promise<TwilightContext> {
+  const config = preloadedConfig ?? (await loadTwilightConfig(tx, orgId));
+
+  // Load each requested resource's kind + home-base coordinates in one query.
+  // resource is RLS-scoped by the tx GUC; location is joined on the composite
+  // (home_base_location_id, org_id) candidate key, also RLS-scoped — org A's
+  // coords can never leak into org B's events.
+  const perResource: TwilightResourceContext[] = [];
+
+  if (resourceIds.length === 0) {
+    return { config, perResource, pilotIsExempt: false };
+  }
+
+  const idList = sql.join(
+    resourceIds.map((id) => sql`${id}::uuid`),
+    sql`, `,
+  );
+
+  const result = await tx.execute(sql`
+    SELECT
+      r.id               AS "resourceId",
+      r.kind             AS "kind",
+      l.latitude         AS "latitude",
+      l.longitude        AS "longitude"
+    FROM resource r
+    LEFT JOIN location l ON l.id = r.home_base_location_id
+    WHERE r.id = ANY(ARRAY[${idList}])
+  `);
+
+  const rows = (result.rows ?? result) as unknown as Array<{
+    resourceId: string;
+    kind: string;
+    latitude: string | number | null;
+    longitude: string | number | null;
+  }>;
+
+  const byId = new Map(rows.map((row) => [row.resourceId, row]));
+
+  for (const id of resourceIds) {
+    const row = byId.get(id);
+    // Non-aircraft, missing home base, or missing coords → events null (inert).
+    if (
+      !row ||
+      row.kind !== 'aircraft' ||
+      row.latitude == null ||
+      row.longitude == null
+    ) {
+      perResource.push({ resourceId: id, events: null });
+      continue;
+    }
+
+    const latitude = typeof row.latitude === 'number' ? row.latitude : Number(row.latitude);
+    const longitude = typeof row.longitude === 'number' ? row.longitude : Number(row.longitude);
+
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      perResource.push({ resourceId: id, events: null });
+      continue;
+    }
+
+    const events = computeSolarEvents({
+      latitude,
+      longitude,
+      dateUtcMs: candidateStartUtcMs,
+    });
+    perResource.push({ resourceId: id, events });
+  }
+
+  return { config, perResource, pilotIsExempt: false };
+}
+
+/**
+ * runTwilightGate — evaluate evaluateTwilightGate for every aircraft in `ctx`,
+ * collecting all blocked + warning hits. Pure orchestration over the pure core
+ * gate; INERT (empty arrays) when events=null or classification≠'normal'.
+ *
+ * pilotIsExempt is taken from ctx (DEFERRED → false in 4a).
+ */
+export function runTwilightGate(
+  ctx: TwilightContext,
+  candidateStartUtcMs: number,
+  candidateEndUtcMs: number,
+): { blocked: TwilightHit[]; warnings: TwilightHit[] } {
+  const blocked: TwilightHit[] = [];
+  const warnings: TwilightHit[] = [];
+
+  for (const r of ctx.perResource) {
+    const res = evaluateTwilightGate({
+      candidateStartUtcMs,
+      candidateEndUtcMs,
+      events: r.events,
+      pilotIsExempt: ctx.pilotIsExempt,
+      mode: ctx.config.mode,
+    });
+    blocked.push(...res.blocked);
+    warnings.push(...res.warnings);
+  }
+
+  return { blocked, warnings };
+}
+
 // ─── Bookable kinds (mirrors create-reservation.ts) ───────────────────────────
 
 /** Resource kinds that are bookable in Slice 1/2a/2b. */
@@ -526,6 +738,14 @@ export interface GatedCreateInput {
   notes?: string;
   /** Set by createSeries for each occurrence (NULL for single-create). */
   seriesId?: string;
+  /**
+   * Slice 4b (additive): extra key/values merged INTO the reservation.created
+   * audit row's metadata (e.g. { optimizationRunId } from runAutoSchedule). Absent
+   * for single-create + series → the audit metadata stays BYTE-IDENTICAL. Cannot
+   * override the base metadata keys (resourceIds/startAt/endAt/seriesId): those are
+   * spread AFTER auditMetadata so the canonical fields always win.
+   */
+  auditMetadata?: Record<string, unknown>;
 }
 
 /**
@@ -563,7 +783,7 @@ export async function gatedCreateOccurrence(
   input: GatedCreateInput,
   now: number,
 ): Promise<CreateReservationResult> {
-  const { startAt, endAt, resourceIds, notes, seriesId } = input;
+  const { startAt, endAt, resourceIds, notes, seriesId, auditMetadata } = input;
 
   // Step A — load requested resources (RLS scopes to org via tx GUC).
   const resourceRows = await tx
@@ -606,6 +826,7 @@ export async function gatedCreateOccurrence(
   const violations = await runPolicyProbe(tx, startAt, endAt, validResourceRows, now);
 
   // Step D — refusal precedence (byte-identical to create-reservation.ts).
+  // These four arms are FROZEN — twilight is NEVER combined with conflict/policy.
   if (preHits.length > 0 && violations.length > 0) {
     return { ok: false, reason: 'conflict_and_policy', conflicts: preHits, violations };
   }
@@ -614,6 +835,48 @@ export async function gatedCreateOccurrence(
   }
   if (preHits.length > 0) {
     return { ok: false, reason: 'conflict', conflicts: preHits };
+  }
+
+  // Step D2 — twilight gate (Slice 4a, additive; modeled on grounding Step G).
+  // Loaded + evaluated ONLY when the operator opted in (config.enabled). When
+  // disabled (the Phase-1 default) we never touch dispatch_config/location and
+  // the create path stays BYTE-IDENTICAL.
+  //
+  // Precedence: conflict_and_policy > policy > conflict > twilight > INSERT.
+  // Twilight is evaluated LAST (after the four FROZEN refusal arms above), so it
+  // can ONLY fire when there is no conflict and no policy violation. In BLOCK
+  // mode a twilight hit is a STANDALONE refusal arm — never combined with the
+  // others. NO write + NO audit on a twilight refusal (consistent with the
+  // other refusal arms).
+  //
+  // INERT when: events=null (no coords / non-aircraft / no home base) OR
+  // classification≠'normal' (polar / no-civil-twilight) OR pilotIsExempt
+  // (DEFERRED → false). The pure core gate returns empty in all those cases.
+  let twilightWarnings: TwilightHit[] | undefined;
+  {
+    const twilightCfg = await loadTwilightConfig(tx, sess.orgId);
+    if (twilightCfg.enabled) {
+      const twilightCtx = await loadTwilightContext(
+        tx,
+        sess.orgId,
+        resourceIds,
+        startAt.getTime(),
+        twilightCfg,
+      );
+      const { blocked, warnings } = runTwilightGate(
+        twilightCtx,
+        startAt.getTime(),
+        endAt.getTime(),
+      );
+      if (twilightCtx.config.mode === 'block' && blocked.length > 0) {
+        // New standalone refusal arm — no write, no audit.
+        return { ok: false, reason: 'twilight', twilight: blocked };
+      }
+      // warn mode: stash for the success arm (attached additively below).
+      if (warnings.length > 0) {
+        twilightWarnings = warnings;
+      }
+    }
   }
 
   // Step E — INSERT.
@@ -662,6 +925,10 @@ export async function gatedCreateOccurrence(
       entityType: 'reservation',
       entityId: reservationId,
       metadata: {
+        // Slice 4b: optional extra metadata (e.g. optimizationRunId) is spread
+        // FIRST so the canonical reservation fields below always win and the
+        // common (absent auditMetadata) case is BYTE-IDENTICAL.
+        ...(auditMetadata ?? {}),
         resourceIds,
         startAt: startIso,
         endAt: endIso,
@@ -707,6 +974,12 @@ export async function gatedCreateOccurrence(
       // Only attach when non-empty so the ok:true shape stays byte-identical for
       // the common (nothing grounded) case — existing consumers see no new field.
       ...(warnings.length > 0 ? { groundingWarnings: warnings } : {}),
+      // Slice 4a: twilight warnings (warn mode only) ride along additively, exactly
+      // like grounding. Absent when no aircraft crosses civil dawn/dusk (or the gate
+      // is disabled) → ok:true shape byte-identical for the common case.
+      ...(twilightWarnings && twilightWarnings.length > 0
+        ? { twilightWarnings }
+        : {}),
     };
   } catch (err) {
     // Step F — 23P01 detection (ADR-0006 §3 race semantics).

@@ -38,11 +38,13 @@ export interface NavItem {
  *   1. Dashboard — always first; visible to all authenticated roles.
  *   2. Reservations — Schedule hub entry point (schedule:access).
  *   3. Board — Single-day dispatch board (schedule:access); after Reservations.
- *   4. Resources — Resource admin (schedule:manage_resources only).
- *   5. People — Roster management (people:access); after Resources, before Fleet.
- *   6. Fleet — Aircraft detail hub (fleet:access); after People, before Maintenance.
- *   7. Maintenance — Squawks + grounding (maintenance:access).
- *   8. Org settings — owner + manager only (org:manage_settings).
+ *   4. Auto-schedule — Intelligent auto-scheduler (schedule:create_reservation);
+ *      after Board, before Resources — scheduling operators only.
+ *   5. Resources — Resource admin (schedule:manage_resources only).
+ *   6. People — Roster management (people:access); after Resources, before Fleet.
+ *   7. Fleet — Aircraft detail hub (fleet:access); after People, before Maintenance.
+ *   8. Maintenance — Squawks + grounding (maintenance:access).
+ *   9. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {
@@ -59,6 +61,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Board',
     href: '/o/[slug]/schedule/board',
     requiredCapability: 'schedule:access',
+  },
+  // Slice 4b: Auto-scheduler — gated by schedule:create_reservation (same as the
+  // commit it produces). Visible to owner, manager, dispatcher, cfi.
+  {
+    label: 'Auto-schedule',
+    href: '/o/[slug]/schedule/auto',
+    requiredCapability: 'schedule:create_reservation',
   },
   {
     label: 'Resources',

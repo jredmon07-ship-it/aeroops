@@ -16,6 +16,9 @@
  *     FREE-TEXT per-aircraft dispatch tags. [VERIFY-3c-A]: no computed currency/medical.
  *   dispatchConfig (table: dispatch_config) — Slice 3c / ADR-0009 (migration 0009)
  *     Per-org gate config. [VERIFY-3c-MONEY]: balance_check_enabled is a stub flag only.
+ *   scheduleOptimizationRun (table: schedule_optimization_run) — Slice 4b (migration 0011)
+ *     Audited optimizer-run header. Per-proposal outcomes reconstructable from each
+ *     created reservation's audit row (metadata.optimizationRunId). NO money.
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -126,3 +129,13 @@ export type {
 
 export { dispatchConfig } from './dispatch-config.js';
 export type { DispatchConfigSelect, DispatchConfigInsert } from './dispatch-config.js';
+
+// Optimizer run — tenant-scoped (Slice 4b / migration 0011)
+// Audited run header: demand set + constraints snapshot + seed + outcome counts.
+// Per-proposal outcomes live in each reservation's audit_log metadata.optimizationRunId.
+// NO money: schedules time only, never prices.
+export { scheduleOptimizationRun } from './schedule-optimization-run.js';
+export type {
+  ScheduleOptimizationRunSelect,
+  ScheduleOptimizationRunInsert,
+} from './schedule-optimization-run.js';

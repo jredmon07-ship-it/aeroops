@@ -85,6 +85,14 @@ const MIGRATION_0009 = readFileSync(
   resolve(__dirname, '../../migrations/0009_dispatch_gate.sql'),
   'utf-8',
 );
+const MIGRATION_0010 = readFileSync(
+  resolve(__dirname, '../../migrations/0010_civil_twilight.sql'),
+  'utf-8',
+);
+const MIGRATION_0011 = readFileSync(
+  resolve(__dirname, '../../migrations/0011_optimizer_run.sql'),
+  'utf-8',
+);
 
 // Dummy hash — clearly not a real password, visibly a placeholder.
 const DUMMY_HASH = '$argon2id$dummy$placeholder$not-a-real-hash';
@@ -113,6 +121,8 @@ beforeAll(async () => {
     MIGRATION_0007,
     MIGRATION_0008,
     MIGRATION_0009,
+    MIGRATION_0010,
+    MIGRATION_0011,
   ]);
 
   // 2. Seed two orgs with users (runs as superuser — RLS bypassed during setup).

@@ -8,6 +8,8 @@ import { resolve } from 'path';
  *   - lib/nav.ts           (filterNavForSession — no DOM, no Next.js)
  *   - lib/auth-errors.ts   (mapAuthErrorToResponse — no DOM, no Next.js)
  *   - schedule/board/_utils/board-layout.ts   (pure layout math — Slice 2c)
+ *   - schedule/new/_components/__tests__/    (twilight indicator — Slice 4a)
+ *   - schedule/auto/_components/__tests__/   (auto-schedule utils — Slice 4b)
  *
  * Full Next.js route / browser e2e tests are deferred to Slice 0.4 (CI/CD phase).
  *
@@ -36,6 +38,10 @@ export default defineConfig({
     include: [
       'lib/__tests__/**/*.test.ts',
       'app/o/\\[slug\\]/\\(shell\\)/schedule/board/_utils/**/*.test.ts',
+      // Slice 4a — twilight indicator display-logic tests (pure, no DOM/Next.js).
+      'app/o/\\[slug\\]/\\(shell\\)/schedule/new/_components/__tests__/**/*.test.ts',
+      // Slice 4b — auto-schedule UI helper tests (pure, no DOM/Next.js).
+      'app/o/\\[slug\\]/\\(shell\\)/schedule/auto/_components/__tests__/**/*.test.ts',
     ],
   },
 });

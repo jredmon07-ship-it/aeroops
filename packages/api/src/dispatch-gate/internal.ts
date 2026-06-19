@@ -49,8 +49,11 @@ export async function loadDispatchConfig(
 ): Promise<DispatchConfigView> {
   const rows = await tx
     .select({
-      eligibilityMode:     dispatchConfig.eligibilityMode,
-      balanceCheckEnabled: dispatchConfig.balanceCheckEnabled,
+      eligibilityMode:           dispatchConfig.eligibilityMode,
+      balanceCheckEnabled:       dispatchConfig.balanceCheckEnabled,
+      twilightConstraintEnabled: dispatchConfig.twilightConstraintEnabled,
+      twilightMode:              dispatchConfig.twilightMode,
+      twilightExemptTag:         dispatchConfig.twilightExemptTag,
     })
     .from(dispatchConfig)
     .where(eq(dispatchConfig.orgId, orgId))
@@ -58,13 +61,22 @@ export async function loadDispatchConfig(
 
   const row = rows[0];
   if (!row) {
-    // Absent row → canonical defaults (ADR-0009).
-    return { eligibilityMode: 'block', balanceCheckEnabled: false };
+    // Absent row → canonical defaults (ADR-0009 + Slice 4a).
+    return {
+      eligibilityMode:           'block',
+      balanceCheckEnabled:       false,
+      twilightConstraintEnabled: false,
+      twilightMode:              'warn',
+      twilightExemptTag:         null,
+    };
   }
 
   return {
-    eligibilityMode:     row.eligibilityMode as 'block' | 'warn',
-    balanceCheckEnabled: row.balanceCheckEnabled,
+    eligibilityMode:           row.eligibilityMode as 'block' | 'warn',
+    balanceCheckEnabled:       row.balanceCheckEnabled,
+    twilightConstraintEnabled: row.twilightConstraintEnabled,
+    twilightMode:              row.twilightMode as 'block' | 'warn',
+    twilightExemptTag:         row.twilightExemptTag,
   };
 }
 

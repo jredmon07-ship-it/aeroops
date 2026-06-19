@@ -1,7 +1,7 @@
 /**
  * dispatch_config — per-org dispatch gate configuration (0..1 row per org).
  *
- * Controls two gate dimensions at check-out:
+ * Controls gate dimensions at check-out:
  *   eligibility_mode: whether a missing required tag BLOCKS or WARNS.
  *   balance_check_enabled: feature flag for the future balance seam.
  *
@@ -13,10 +13,21 @@
  * Billing / real balance enforcement is Phase 2. UI copy must say
  * "Not yet active — turning this on has no effect until account balances ship."
  *
+ * Civil-twilight scheduling constraint (Slice 4a, migration 0010):
+ *   twilight_constraint_enabled: operator opt-in (default false → gate inert).
+ *   twilight_mode: 'warn' (default) or 'block'. CHECK in migration 0010.
+ *   twilight_exempt_tag: FREE-TEXT operator label — if set, a pilot holding
+ *     this tag is exempted from the twilight gate. Exemption wiring DEFERRED
+ *     in 4a (pilotIsExempt=false always); column is a forward seam.
+ *     [VERIFY-4a-A/D]: civil twilight = astronomy + operator config ONLY.
+ *     The system computes NO FAA night-currency (§61.57/§1.1) determination.
+ *     "Night-qualified" is a free-text label; no regulatory meaning is attached.
+ *
  * Tenant-scoped: carries org_id, gets RLS ENABLE + FORCE (migration 0009).
  *
  * UNIQUE (org_id): one config row per org (0..1). Absent row → defaults apply:
- *   { eligibilityMode: 'block', balanceCheckEnabled: false }
+ *   { eligibilityMode: 'block', balanceCheckEnabled: false,
+ *     twilightConstraintEnabled: false, twilightMode: 'warn', twilightExemptTag: null }
  *
  * ── UNIQUEs ───────────────────────────────────────────────────────────────────
  * dispatch_config_org_id_unique UNIQUE (org_id)
@@ -26,10 +37,13 @@
  *   Composite candidate key — forward-compat for future composite FKs,
  *   consistent with all other tenant tables.
  *
- * ── CHECKs (hand-written in migration 0009 SQL) ──────────────────────────────
- * dispatch_config_eligibility_mode_check:
+ * ── CHECKs (hand-written in migration SQL) ───────────────────────────────────
+ * dispatch_config_eligibility_mode_check (migration 0009):
  *   eligibility_mode IN ('block', 'warn')
- *   Prevents unknown mode values from entering the table.
+ * dispatch_config_twilight_mode_check (migration 0010):
+ *   twilight_mode IN ('block', 'warn')
+ * dispatch_config_twilight_exempt_tag_nonempty_check (migration 0010):
+ *   twilight_exempt_tag IS NULL OR char_length(btrim(twilight_exempt_tag)) > 0
  */
 import {
   pgTable,
@@ -59,6 +73,18 @@ export const dispatchConfig = pgTable(
     // FEATURE FLAG — Phase 1 stub only. [VERIFY-3c-MONEY]: no money concept.
     // false = balance seam not invoked. true = stub still returns {ok:true}.
     balanceCheckEnabled: boolean('balance_check_enabled').notNull().default(false),
+
+    // Civil-twilight gate (Slice 4a, migration 0010).
+    // [VERIFY-4a-A/D]: astronomy + operator config ONLY — not an FAA night-currency
+    // or §61.57/§1.1 determination. twilight_mode CHECK in migration 0010.
+    twilightConstraintEnabled: boolean('twilight_constraint_enabled').notNull().default(false),
+
+    // 'warn' (default) | 'block'. CHECK (twilight_mode IN ('block','warn')) in migration 0010.
+    twilightMode: text('twilight_mode').notNull().default('warn'),
+
+    // FREE-TEXT operator label; exemption wiring DEFERRED (4a ships pilotIsExempt=false always).
+    // CHECK: NULL OR char_length(btrim(.)) > 0  — in migration 0010.
+    twilightExemptTag: text('twilight_exempt_tag'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

@@ -137,6 +137,7 @@ export default async function SchedulePage({
   // UI only — gate enforced by requireCapability in each server action.
   const canCreate = hasCapability(session, 'schedule:create_reservation');
   const canManageResources = hasCapability(session, 'schedule:manage_resources');
+  const canAutoSchedule = hasCapability(session, 'schedule:create_reservation');
 
   // ── Resolve the display date ──────────────────────────────────────────────
   const date = parseDateParam(dateParam) ?? new Date();
@@ -147,14 +148,24 @@ export default async function SchedulePage({
       {/* ── Page heading + primary action ────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900">Schedule</h1>
-        {/* + New Reservation — shown only with schedule:create_reservation */}
-        {canCreate && (
-          <Button asChild>
-            <Link href={`/o/${slug}/schedule/new?date=${dateStr}`}>
-              + New Reservation
-            </Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Auto-schedule — shown only with schedule:create_reservation (UI-only; gate in action) */}
+          {canAutoSchedule && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/o/${slug}/schedule/auto`}>
+                Auto-schedule
+              </Link>
+            </Button>
+          )}
+          {/* + New Reservation — shown only with schedule:create_reservation */}
+          {canCreate && (
+            <Button asChild>
+              <Link href={`/o/${slug}/schedule/new?date=${dateStr}`}>
+                + New Reservation
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── Toolbar: DateNav + List/Board view toggle ─────────────────────── */}

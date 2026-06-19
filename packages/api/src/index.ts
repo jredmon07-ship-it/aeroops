@@ -105,6 +105,9 @@ export type {
   // Policy types — re-exported from @aeroops/core (via types.ts) for API callers.
   PolicyViolation,
   PolicyViolationView,
+  // Slice 4a — TwilightHit carried on the ok:true twilightWarnings + the new
+  // { ok:false, reason:'twilight' } refusal arm (re-exported from @aeroops/core).
+  TwilightHit,
 } from './scheduling/types.js';
 
 // ─── Booking policies + blackouts (Slice 2a — SCHED-2a, ADR-0005) ────────────
@@ -170,6 +173,36 @@ export type {
 } from './scheduling/list-series-occurrences.js';
 
 export { previewSeries, previewSeriesWithDb } from './scheduling/preview-series.js';
+
+// Slice 4a — civil-twilight advisory preview (read-only; no audit; same authz as create).
+export { previewTwilight, previewTwilightWithDb } from './scheduling/preview-twilight.js';
+export type {
+  PreviewTwilightInput,
+  PreviewTwilightResult,
+  PreviewTwilightResourceReport,
+} from './scheduling/preview-twilight.js';
+
+// ─── Slice 4b — Auto-scheduler (the optimizer orchestrator + preview) ─────────
+// runAutoSchedule routes the PURE proposeSchedule (@aeroops/core) through the
+// FROZEN gatedCreateOccurrence (single write path — NO bespoke INSERT), reusing
+// the createSeries SAVEPOINT/23P01-race loop. Writes ONE schedule_optimization_run
+// header + tags each created reservation's audit row with metadata.optimizationRunId.
+// previewAutoSchedule is read-only (no INSERT/audit/run-header). Both authz
+// schedule:create_reservation FIRST; org_id from session only; NO money.
+// *WithDb forms are for test code only (inject a pglite client).
+export { runAutoSchedule, runAutoScheduleWithDb } from './scheduling/auto-schedule.js';
+export {
+  previewAutoSchedule,
+  previewAutoScheduleWithDb,
+} from './scheduling/preview-auto-schedule.js';
+export type {
+  DemandInput,
+  AutoScheduleInput,
+  AutoScheduleResult,
+  AutoProposalReport,
+  PreviewAutoScheduleResult,
+  PreviewAutoProposalReport,
+} from './scheduling/types.js';
 
 // Additive series types (frozen Slice-1/2a types above unchanged).
 export type {

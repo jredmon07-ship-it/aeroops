@@ -7,8 +7,14 @@
  * (Slice 5 Fleet). Required as the FK target for the composite FK
  * (home_base_location_id, org_id) → location(id, org_id) on resource.
  * Mirrors the resource / app_user / dispatch_ticket / squawk pattern.
+ *
+ * latitude / longitude (Slice 4a, migration 0010):
+ *   WGS84 decimal degrees; used by the civil-twilight calc (Slice 4a).
+ *   Both-or-neither (paired) — enforced by civil_twilight_latlon_paired_check
+ *   in migration 0010. CHECKs for valid range are also in migration 0010.
+ *   Editable only by fleet:manage cap.
  */
-import { pgTable, text, uuid, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, timestamp, uniqueIndex, numeric } from 'drizzle-orm/pg-core';
 import { org } from './org.js';
 
 export const location = pgTable(
@@ -20,6 +26,12 @@ export const location = pgTable(
       .references(() => org.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     icao: text('icao'),
+
+    // WGS84 decimal degrees; used by the civil-twilight calc (Slice 4a).
+    // Both-or-neither (paired). CHECKs in migration 0010.
+    latitude: numeric('latitude', { precision: 8, scale: 5 }),
+    longitude: numeric('longitude', { precision: 8, scale: 5 }),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

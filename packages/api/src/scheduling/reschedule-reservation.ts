@@ -243,6 +243,9 @@ async function _rescheduleReservationImpl(
         ok: true,
         reservation: created.reservation,
         ...(created.groundingWarnings ? { groundingWarnings: created.groundingWarnings } : {}),
+        // Slice 4a: carry warn-only twilight warnings through. Additive — absent when
+        // the gate is disabled / inert so the ok:true shape stays byte-identical.
+        ...(created.twilightWarnings ? { twilightWarnings: created.twilightWarnings } : {}),
       };
     });
   } catch (err) {

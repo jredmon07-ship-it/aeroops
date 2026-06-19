@@ -56,21 +56,22 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 ];
 
 // Expected nav labels per role, derived from the RBAC matrix (packages/core
-// capabilities.ts) against the Slice-6.3 NAV_ITEMS:
-//   Dashboard      app:access              → all roles
-//   Reservations   schedule:access         → owner, manager, dispatcher, cfi
-//   Board          schedule:access         → owner, manager, dispatcher, cfi
-//   Resources      schedule:manage_resources → owner, manager, dispatcher
-//   People         people:access           → owner, manager, dispatcher, cfi
-//   Fleet          fleet:access            → owner, manager, dispatcher, cfi, mechanic
-//   Maintenance    maintenance:access      → owner, manager, dispatcher, cfi, mechanic
-//   Org settings   org:manage_settings     → owner, manager
+// capabilities.ts) against the Slice-4b NAV_ITEMS:
+//   Dashboard      app:access                  → all roles
+//   Reservations   schedule:access             → owner, manager, dispatcher, cfi
+//   Board          schedule:access             → owner, manager, dispatcher, cfi
+//   Auto-schedule  schedule:create_reservation → owner, manager, dispatcher, cfi
+//   Resources      schedule:manage_resources   → owner, manager, dispatcher
+//   People         people:access               → owner, manager, dispatcher, cfi
+//   Fleet          fleet:access                → owner, manager, dispatcher, cfi, mechanic
+//   Maintenance    maintenance:access          → owner, manager, dispatcher, cfi, mechanic
+//   Org settings   org:manage_settings         → owner, manager
 // Order matches NAV_ITEMS order.
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner: ['Dashboard', 'Reservations', 'Board', 'Resources', 'People', 'Fleet', 'Maintenance', 'Org settings'],
-  manager: ['Dashboard', 'Reservations', 'Board', 'Resources', 'People', 'Fleet', 'Maintenance', 'Org settings'],
-  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Resources', 'People', 'Fleet', 'Maintenance'],
-  cfi: ['Dashboard', 'Reservations', 'Board', 'People', 'Fleet', 'Maintenance'],
+  owner: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Fleet', 'Maintenance', 'Org settings'],
+  manager: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Fleet', 'Maintenance', 'Org settings'],
+  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Fleet', 'Maintenance'],
+  cfi: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Fleet', 'Maintenance'],
   mechanic: ['Dashboard', 'Fleet', 'Maintenance'],
   renter: ['Dashboard'],
   student: ['Dashboard'],
@@ -107,8 +108,8 @@ describe('2. owner gets Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 8 items (full nav incl. People + Fleet + Maintenance)', () => {
-    expect(result.length).toBe(8);
+  it('returns exactly 9 items (full nav incl. Auto-schedule + People + Fleet + Maintenance)', () => {
+    expect(result.length).toBe(9);
   });
 
   it('includes Dashboard', () => {
@@ -137,8 +138,8 @@ describe('3. manager gets Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 8 items (full nav incl. People + Fleet + Maintenance)', () => {
-    expect(result.length).toBe(8);
+  it('returns exactly 9 items (full nav incl. Auto-schedule + People + Fleet + Maintenance)', () => {
+    expect(result.length).toBe(9);
   });
 
   it('includes Dashboard', () => {
@@ -377,8 +378,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 8 items (Dashboard, Reservations, Board, Resources, People, Fleet, Maintenance, Org settings)', () => {
-    expect(NAV_ITEMS.length).toBe(8);
+  it('NAV_ITEMS has exactly 9 items (Dashboard, Reservations, Board, Auto-schedule, Resources, People, Fleet, Maintenance, Org settings)', () => {
+    expect(NAV_ITEMS.length).toBe(9);
   });
 
   it('first item is Dashboard with app:access', () => {
@@ -400,6 +401,17 @@ describe('11. NAV_ITEMS registry', () => {
     const reservationsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Reservations');
     const boardIdx = NAV_ITEMS.findIndex((i) => i.label === 'Board');
     expect(boardIdx).toBeGreaterThan(reservationsIdx);
+  });
+
+  it('Auto-schedule item is gated by schedule:create_reservation and placed after Board, before Resources', () => {
+    const autoSchedule = NAV_ITEMS.find((i) => i.label === 'Auto-schedule');
+    expect(autoSchedule?.requiredCapability).toBe('schedule:create_reservation');
+    expect(autoSchedule?.href).toBe('/o/[slug]/schedule/auto');
+    const boardIdx = NAV_ITEMS.findIndex((i) => i.label === 'Board');
+    const autoIdx = NAV_ITEMS.findIndex((i) => i.label === 'Auto-schedule');
+    const resourcesIdx = NAV_ITEMS.findIndex((i) => i.label === 'Resources');
+    expect(autoIdx).toBeGreaterThan(boardIdx);
+    expect(autoIdx).toBeLessThan(resourcesIdx);
   });
 
   it('Resources item is gated by schedule:manage_resources', () => {
