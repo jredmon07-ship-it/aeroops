@@ -6,6 +6,54 @@ All notable changes to AeroOps are documented here. Format based on
 
 ## [Unreleased] — Phase 1 (Scheduling + Dispatch)
 
+### Slice 4b — Intelligent auto-scheduler (build-complete, awaiting merge)
+
+**Added**
+
+- **"Build my schedule" auto-scheduler** (parity with the market's flagship intelligent-scheduling
+  feature). A pure, deterministic optimizer (`proposeSchedule` — greedy with bounded backtracking)
+  takes a set of desired sessions (aircraft/instructor demand, durations, a date window, priorities)
+  and proposes a self-consistent schedule that respects availability, existing bookings/blackouts, and
+  the civil-twilight constraint. A `/schedule/auto` flow: define demand → **Preview** (would-create /
+  would-skip / unschedulable, with reasons) → explicit **Commit** (never auto-commits) → results with
+  a hand-off to drag-and-drop board adjustment.
+- **Propose-then-gates-dispose:** the optimizer is advisory — every proposed booking is committed
+  through the existing frozen reservation write path, so it can never bypass conflict/policy/twilight
+  detection. A proposal refused at commit (reality drifted, or a concurrent booking won) is reported as
+  skipped while the rest of the batch commits. Each run is audited (`schedule_optimization_run` header +
+  an optimization-run id on every created reservation).
+
+**Notes**
+
+- The optimizer is pure + property-tested (never proposes a conflicting pair, respects all handed-in
+  constraints, deterministic, terminating). It schedules time and **never prices it** — no money. No new
+  reservation write path; the Postgres EXCLUDE constraint remains the no-double-book backstop. Migration
+  `0011` (run-header) staged + human-gated. **Slice 4 (4a civil-twilight + 4b auto-scheduler) completes
+  Phase 1's planned scheduling build.** 2,240 tests green; reviewer APPROVE + compliance PASS.
+
+### Slice 4a — Civil-twilight constraints (build-complete, awaiting merge)
+
+**Added**
+
+- **Civil-twilight scheduling awareness.** A pure, property-tested solar-position calculation
+  (`computeSolarEvents`, NOAA/Meeus, ~1-minute accuracy vs. USNO/NOAA — sunrise/sunset + morning/
+  evening civil twilight from a location's coordinates) and a warn/block twilight gate layered
+  ADDITIVELY into the shared reservation create path: a booking that crosses civil dawn/dusk can
+  warn (advisory) or block per an operator setting. INERT by default, and inert for any aircraft
+  without home-base coordinates — so existing bookings are unaffected.
+- **Operator config + UI:** civil-twilight controls (enable, warn/block, a free-text "night-qualified"
+  exempt-tag seam) on the dispatch-board Gate Settings; a day/night indicator on the new-reservation
+  form showing daylight/twilight status (and explicit polar-day/polar-night/no-civil-twilight copy).
+  Additive `location.latitude`/`longitude` + `dispatch_config` twilight columns (migration 0010).
+
+**Notes**
+
+- **Civil twilight is computed as ASTRONOMY and surfaced as an operator scheduling rule — it is NOT
+  an FAA night-currency / §61.57 / §1.1 determination** (compliance-confirmed; the UI carries a verbatim
+  disclaimer). "Night-qualified" is a free-text operator label; exemption enforcement is deferred. No
+  money. The frozen conflict/policy/recurrence engines and the existing create-path refusal arms are
+  byte-identical. Migration 0010 staged + human-gated. 2,199 tests green; reviewer APPROVE + compliance PASS.
+
 ### Slice 3c — Full pre-flight (dispatch) gate (build-complete, awaiting merge)
 
 **Added**
