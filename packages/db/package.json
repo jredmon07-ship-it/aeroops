@@ -8,7 +8,8 @@
   "types": "./src/index.ts",
   "scripts": {
     "generate": "drizzle-kit generate",
-    "migrate": "echo \"Migrations are HUMAN-GATED — review SQL, then run drizzle-kit migrate manually\"",
+    "migrate": "node scripts/migrate.mjs",
+    "migrate:apply": "node scripts/migrate.mjs --apply",
     "typecheck": "tsc --noEmit",
     "lint": "echo \"(db) no lint configured yet\"",
     "test": "vitest run"

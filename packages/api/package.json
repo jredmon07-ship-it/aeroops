@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "echo \"(api) no lint configured yet\"",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed:demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {
     "@aeroops/core": "workspace:*",
@@ -23,6 +24,7 @@
     "@electric-sql/pglite": "^0.5.2",
     "@types/node": "^25.9.3",
     "fast-check": "^4.8.0",
+    "postgres": "^3.4.9",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }

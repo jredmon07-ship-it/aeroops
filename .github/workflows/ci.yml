@@ -1,0 +1,77 @@
+# .github/workflows/ci.yml — AeroOps CI
+#
+# Runs on every push and pull request.
+# Gates: typecheck → test → build (in that order; build is last because it is
+# the most expensive and catches config/env issues, not logic errors).
+#
+# NEVER runs migrations or deploys to any environment.
+# The migration runner (pnpm db:migrate:apply) is explicitly human-gated:
+# it requires both --apply and CONFIRM_APPLY=1, and is run manually by the
+# operator after reviewing the pending SQL. CI only validates the code.
+#
+# Node 20 (LTS) matches the engines.node constraint in the root package.json.
+# pnpm version is pinned via the packageManager field in root package.json
+# (pnpm@9.12.0). The setup-pnpm action reads it automatically.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Cancel in-flight runs for the same branch/PR so pushes during a run don't
+# queue up (saves CI minutes without skipping reviews).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: typecheck / test / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        # Reads the packageManager field from root package.json (pnpm@9.12.0).
+        # No explicit version needed.
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # AUTH_SECRET must be present for next build (see apps/web/next.config.mjs).
+      # The build-time placeholder is injected there when AUTH_SECRET is unset,
+      # but a missing env is also fine — next.config.mjs sets the placeholder
+      # itself. We set it explicitly here to make the intent clear and avoid
+      # any future-proofing gaps.
+      #
+      # DATABASE_URL is intentionally NOT set: no DB connection is made during
+      # build, typecheck, or test (tests use PGlite in-process). If a test
+      # accidentally tries to call createProdClient(), it will throw immediately
+      # because DATABASE_URL is unset — the correct fail-fast behaviour.
+
+      - name: Typecheck (all packages)
+        run: pnpm -r typecheck
+
+      - name: Test (all packages)
+        run: pnpm -r test
+
+      - name: Build (all packages)
+        run: pnpm -r build
+        env:
+          # The build-time placeholder is required so next build can evaluate
+          # the auth module config without a real secret. auth.ts rejects this
+          # placeholder at request-time, so it is never used at runtime.
+          AUTH_SECRET: build-time-placeholder-not-a-real-secret-replace-me
