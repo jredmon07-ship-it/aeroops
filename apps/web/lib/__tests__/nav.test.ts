@@ -56,7 +56,7 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 ];
 
 // Expected nav labels per role, derived from the RBAC matrix (packages/core
-// capabilities.ts) against the Slice-T1.3 NAV_ITEMS:
+// capabilities.ts) against the Slice-R1.2 NAV_ITEMS:
 //   Dashboard      app:access                  → all roles
 //   Reservations   schedule:access             → owner, manager, dispatcher, cfi
 //   Board          schedule:access             → owner, manager, dispatcher, cfi
@@ -66,17 +66,18 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 //   Training       training:access             → owner, manager, dispatcher, cfi
 //   Fleet          fleet:access                → owner, manager, dispatcher, cfi, mechanic
 //   Maintenance    maintenance:access          → owner, manager, dispatcher, cfi, mechanic
+//   Reports        reporting:access            → owner, manager, dispatcher, cfi, accountant
 //   Org settings   org:manage_settings         → owner, manager
 // Order matches NAV_ITEMS order.
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Org settings'],
-  manager: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Org settings'],
-  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance'],
-  cfi: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance'],
+  owner: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Org settings'],
+  manager: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Org settings'],
+  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports'],
+  cfi: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports'],
   mechanic: ['Dashboard', 'Fleet', 'Maintenance'],
   renter: ['Dashboard'],
   student: ['Dashboard'],
-  accountant: ['Dashboard'],
+  accountant: ['Dashboard', 'Reports'],
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -109,8 +110,8 @@ describe('2. owner gets Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 10 items (full nav incl. Auto-schedule + People + Training + Fleet + Maintenance)', () => {
-    expect(result.length).toBe(10);
+  it('returns exactly 11 items (full nav incl. Auto-schedule + People + Training + Fleet + Maintenance + Reports)', () => {
+    expect(result.length).toBe(11);
   });
 
   it('includes Dashboard', () => {
@@ -144,8 +145,8 @@ describe('3. manager gets Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 10 items (full nav incl. Auto-schedule + People + Training + Fleet + Maintenance)', () => {
-    expect(result.length).toBe(10);
+  it('returns exactly 11 items (full nav incl. Auto-schedule + People + Training + Fleet + Maintenance + Reports)', () => {
+    expect(result.length).toBe(11);
   });
 
   it('includes Dashboard', () => {
@@ -384,8 +385,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 10 items (Dashboard, Reservations, Board, Auto-schedule, Resources, People, Training, Fleet, Maintenance, Org settings)', () => {
-    expect(NAV_ITEMS.length).toBe(10);
+  it('NAV_ITEMS has exactly 11 items (Dashboard, Reservations, Board, Auto-schedule, Resources, People, Training, Fleet, Maintenance, Reports, Org settings)', () => {
+    expect(NAV_ITEMS.length).toBe(11);
   });
 
   it('first item is Dashboard with app:access', () => {
@@ -455,6 +456,28 @@ describe('11. NAV_ITEMS registry', () => {
     // Visible to: owner, manager, dispatcher, cfi, mechanic
     const maintenanceIdx = NAV_ITEMS.findIndex((i) => i.label === 'Maintenance');
     expect(maintenanceIdx).toBeGreaterThan(-1);
+  });
+
+  it('Reports item is gated by reporting:access and placed after Maintenance, before Org settings (R1.2)', () => {
+    const reports = NAV_ITEMS.find((i) => i.label === 'Reports');
+    expect(reports?.requiredCapability).toBe('reporting:access');
+    expect(reports?.href).toBe('/o/[slug]/reporting/reports');
+    const maintenanceIdx = NAV_ITEMS.findIndex((i) => i.label === 'Maintenance');
+    const reportsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Reports');
+    const settingsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Org settings');
+    expect(reportsIdx).toBeGreaterThan(maintenanceIdx);
+    expect(reportsIdx).toBeLessThan(settingsIdx);
+  });
+
+  it('Reports is visible to accountant (reporting:access) but not mechanic, renter, student', () => {
+    const checkRole = (role: MembershipRole) => {
+      const s = makeSession(role);
+      return filterNavForSession(s, NAV_ITEMS, 'acme').some((i) => i.label === 'Reports');
+    };
+    expect(checkRole('accountant')).toBe(true);
+    expect(checkRole('mechanic')).toBe(false);
+    expect(checkRole('renter')).toBe(false);
+    expect(checkRole('student')).toBe(false);
   });
 
   it('Fleet item is gated by fleet:access and placed after Training and before Maintenance', () => {

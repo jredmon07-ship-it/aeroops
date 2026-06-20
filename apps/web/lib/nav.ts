@@ -45,7 +45,8 @@ export interface NavItem {
  *   7. Training — Training hub (training:access); after People, before Fleet.
  *   8. Fleet — Aircraft detail hub (fleet:access); after Training, before Maintenance.
  *   9. Maintenance — Squawks + grounding (maintenance:access).
- *  10. Org settings — owner + manager only (org:manage_settings).
+ *  10. Reports — Operational reports (reporting:access); after Maintenance, before Org settings.
+ *  11. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {
@@ -98,6 +99,15 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Maintenance',
     href: '/o/[slug]/maintenance/work-orders',
     requiredCapability: 'maintenance:access',
+  },
+  // Slice R1.2: Operational reports — gated by reporting:access (owner/manager/
+  // dispatcher/cfi/accountant). Placed after Maintenance, before Org settings.
+  // Visible to: owner, manager, dispatcher, cfi, accountant.
+  // NOT visible to: mechanic, renter, student.
+  {
+    label: 'Reports',
+    href: '/o/[slug]/reporting/reports',
+    requiredCapability: 'reporting:access',
   },
   {
     label: 'Org settings',
