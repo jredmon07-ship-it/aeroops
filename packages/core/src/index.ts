@@ -140,6 +140,14 @@ export type { EnrollmentStatus, LessonRecordStatus } from './training/enums.js';
 export { progressRatioFromCounts } from './training/progress.js';
 export type { ProgressRatioResult } from './training/progress.js';
 
+// ─── Slice S1.1 — Global search pure helpers ──────────────────────────────────
+// escapeLike: escape LIKE metacharacters (\, %, _) — backslash FIRST.
+// rankResults / makePrefixComparator: prefix-first then lower(primary) alpha.
+// Pure (no I/O). Property-tested in packages/core/src/__tests__/search.test.ts.
+export { escapeLike } from './search/escape-like.js';
+export { rankResults, makePrefixComparator } from './search/rank-results.js';
+export type { Rankable } from './search/rank-results.js';
+
 // ─── Slice 4M.2 — Mobile DTOs, mappers, and window schema ─────────────────────
 // RN-safe; shared by apps/web route handlers and apps/mobile.
 // SECURITY: org_id ABSENT from all DTOs; Dates → ISO strings.

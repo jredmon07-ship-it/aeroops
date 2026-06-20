@@ -698,3 +698,38 @@ export type {
   RecordLessonResult,
   VoidLessonRecordResult,
 } from './training/types.js';
+
+// ─── Slice S1.1 — Global search (READ-ONLY, no migration, no money) ───────────
+// searchOrg(session, { query }) — app code form (uses getDb() internally).
+// searchOrgWithDb(db, session, { query }) — test form (inject pglite client).
+//
+// SECURITY INVARIANTS:
+//   - requireCapability('app:access') is the front door (UnauthenticatedError).
+//   - Per-type hasCapability gate: a role lacking a cap runs NO query for that type.
+//   - All query values bound params (injection guard). escapeLike for LIKE-semantics.
+//   - org_id from session only; RLS is the only org filter.
+//   - Reads NOT audited. NO money. NO computed FAA determination.
+//   - q < 2 chars → { groups: [] } with NO db call.
+//   - FIXED type order: aircraft, member, work_order, squawk, course, reservation.
+//   - LIMIT 5 per type, empty groups omitted.
+//
+// Capabilities gate per type (per spec S1.1 table):
+//   aircraft    → fleet:access       (owner/manager/dispatcher/cfi/mechanic)
+//   member      → people:access      (owner/manager/dispatcher/cfi)
+//   work_order  → maintenance:access (owner/manager/dispatcher/cfi/mechanic)
+//   squawk      → maintenance:access (same)
+//   course      → training:access    (owner/manager/dispatcher/cfi)
+//   reservation → schedule:access    (owner/manager/dispatcher/cfi)
+//
+//   student/renter (app:access only) + accountant (app+reporting) → { groups: [] }.
+//   mechanic → aircraft + work_order + squawk ONLY (no people/training/schedule).
+//   cfi → all 6 (has maintenance:access despite lacking maintenance:work_order).
+export { searchOrg, searchOrgWithDb } from './search/search-org.js';
+
+export type {
+  SearchResult,
+  SearchGroup,
+  SearchOrgInput,
+  SearchOrgResult,
+  SearchResultType,
+} from './search/types.js';
