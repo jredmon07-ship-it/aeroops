@@ -567,6 +567,57 @@ export type {
   AircraftUtilizationRow,
 } from './reporting/get-aircraft-utilization.js';
 
+// ─── R1.1 — Operational Reports backend (read-only aggregates, no migration) ──
+// 5 new report reads: utilization trend, hours by tail, reservations vs flights,
+// training throughput, maintenance trend. All authz reporting:access FIRST;
+// org_id from session only; RLS the only org filter; zero writes.
+// [VERIFY-A] hours=operational; [VERIFY-T1-B] training=operator state;
+// [VERIFY-M1-A] maintenance=operator data; [VERIFY-R1-TZ] UTC bucketing.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  getUtilizationTrend,
+  getUtilizationTrendWithDb,
+} from './reporting/get-utilization-trend.js';
+export type { GetUtilizationTrendInput } from './reporting/get-utilization-trend.js';
+
+export {
+  getHoursByTail,
+  getHoursByTailWithDb,
+} from './reporting/get-hours-by-tail.js';
+export type { GetHoursByTailInput } from './reporting/get-hours-by-tail.js';
+
+export {
+  getReservationsVsFlightsTrend,
+  getReservationsVsFlightsTrendWithDb,
+} from './reporting/get-reservations-vs-flights-trend.js';
+export type { GetReservationsVsFlightsTrendInput } from './reporting/get-reservations-vs-flights-trend.js';
+
+export {
+  getTrainingThroughput,
+  getTrainingThroughputWithDb,
+} from './reporting/get-training-throughput.js';
+export type { GetTrainingThroughputInput } from './reporting/get-training-throughput.js';
+
+export {
+  getMaintenanceTrend,
+  getMaintenanceTrendWithDb,
+} from './reporting/get-maintenance-trend.js';
+export type { GetMaintenanceTrendInput } from './reporting/get-maintenance-trend.js';
+
+// R1.1 shared types.
+export type {
+  ReportRange,
+  ReportRangeKey,
+  BucketGranularity,
+  UtilizationTrendBucket,
+  UtilizationTrendResult,
+  ReservationsVsFlightsBucket,
+  ReservationsVsFlightsTrendResult,
+  TrainingThroughputResult,
+  MaintenanceTrendResult,
+} from './reporting/types.js';
+
 // ─── Slice T1.2 — Training (TRAINING-T1, ADR-0011) ────────────────────────────
 // Course + lesson + enrollment + lesson-record lifecycle. Pure content-ratio
 // progress (NOT a Part-141 or FAA determination of any kind).
