@@ -837,8 +837,8 @@ describe('T23 — Capability exhaustiveness + new caps', () => {
     expect(MEMBERSHIP_ROLES.length).toBe(8);
   });
 
-  it('CAPABILITIES has exactly 20 entries (19 prior + portal:access — Slice P1.1)', () => {
-    expect(CAPABILITIES.length).toBe(20);
+  it('CAPABILITIES has exactly 21 entries (20 prior + booking:triage — Slice PB1.2)', () => {
+    expect(CAPABILITIES.length).toBe(21);
   });
 
   it('CAPABILITIES is sorted alphabetically', () => {

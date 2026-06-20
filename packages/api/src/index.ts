@@ -864,3 +864,33 @@ export type { SubmitBookingRequestResult } from './booking/submit-booking-reques
 // rather than reaching into '@aeroops/core' directly.
 export { bookingRequestSchema } from '@aeroops/core';
 export type { BookingRequestInput } from '@aeroops/core';
+
+// ─── Slice PB1.2 — Staff triage (session-scoped, booking:triage cap) ──────────
+// listBookingRequests: requireCapability('booking:triage') FIRST; newest-first
+//   (matches (org_id,status,created_at DESC) index); status filter + counts.
+// updateBookingRequestStatus: audited status transitions; sets handled_by/handled_at;
+//   'converted' sets status ONLY — NO reservation created, NO money.
+// booking:triage → owner/manager/dispatcher (NOT cfi/mechanic/renter/student/accountant).
+// Requester fields are NEVER mutated (write-once per ADR-0013).
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  listBookingRequests,
+  listBookingRequestsWithDb,
+} from './booking/list-booking-requests.js';
+export type {
+  ListBookingRequestsOptions,
+  ListBookingRequestsResult,
+  BookingRequestRow,
+  BookingRequestStatus,
+  BookingRequestStatusCounts,
+} from './booking/list-booking-requests.js';
+
+export {
+  updateBookingRequestStatus,
+  updateBookingRequestStatusWithDb,
+} from './booking/update-booking-request-status.js';
+export type {
+  UpdateBookingRequestStatusInput,
+  UpdateBookingRequestStatusResult,
+} from './booking/update-booking-request-status.js';
