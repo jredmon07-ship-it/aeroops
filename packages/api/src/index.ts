@@ -734,6 +734,23 @@ export type {
   SearchResultType,
 } from './search/types.js';
 
+// ─── Slice A1.1 — Activity feed (READ-ONLY audit timeline, no migration) ──────
+// listActivity: paginated reverse-chronological audit_log read.
+// Requires reporting:access; org_id from session only; RLS scopes; NOT audited.
+// keyset cursor on (created_at, id); limit default 50 cap 100.
+// Actor: full_name??email / null→"System" / deleted→"A former user".
+// All summaries via the PURE @aeroops/core whitelist-only summarizer.
+// NEVER writes to audit_log (records integrity preserved by construction).
+// *WithDb form is for test code only (inject pglite client).
+export { listActivity, listActivityWithDb } from './activity/list-activity.js';
+
+export type {
+  ActivityEntry,
+  ActivityCursor,
+  ListActivityResult,
+  ListActivityOptions,
+} from './activity/types.js';
+
 // ─── Slice P1.1 — Student/Renter self-service portal (READ-ONLY, no migration) ─
 // Self-scoped reads: the subject is ALWAYS session.userId (the verified JWT
 // subject) — there is NO row-identifying input param, so a portal user can

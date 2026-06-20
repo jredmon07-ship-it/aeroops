@@ -148,6 +148,14 @@ export { escapeLike } from './search/escape-like.js';
 export { rankResults, makePrefixComparator } from './search/rank-results.js';
 export type { Rankable } from './search/rank-results.js';
 
+// ─── Slice A1.1 — Activity feed pure helpers (safety boundary) ────────────────
+// summarizeAuditEntry: whitelist-only metadata reader → curated human string.
+// activityPath: entity type + id → relative nav path or null.
+// Property-tested: no raw metadata, no PII, total + deterministic.
+// NO money, NO FAA determination, NO I/O.
+export { summarizeAuditEntry, activityPath } from './activity/index.js';
+export type { SummarizeAuditEntryInput, ActivityPathInput } from './activity/index.js';
+
 // ─── Slice 4M.2 — Mobile DTOs, mappers, and window schema ─────────────────────
 // RN-safe; shared by apps/web route handlers and apps/mobile.
 // SECURITY: org_id ABSENT from all DTOs; Dates → ISO strings.
