@@ -55,7 +55,7 @@ import {
 function BoardSkeleton() {
   return (
     <div
-      className="rounded-lg border border-slate-200 overflow-hidden"
+      className="rounded-md border border-slate-200 overflow-hidden"
       aria-busy="true"
       aria-label="Loading dispatch board"
     >
@@ -176,7 +176,7 @@ async function BoardContent({
           {canManageResources && (
             <Link
               href={`/o/${slug}/schedule/resources`}
-              className="underline text-sky-600 hover:text-sky-700"
+              className="underline text-brand hover:text-brand-ink"
             >
               Manage resources
             </Link>
@@ -191,7 +191,7 @@ async function BoardContent({
     return (
       <div className="relative">
         {/* Still render the board so layout is visible */}
-        <div className="rounded-lg border border-slate-200 overflow-hidden opacity-40">
+        <div className="rounded-md border border-slate-200 overflow-hidden opacity-40">
           <div className="h-8 bg-slate-50 border-b border-slate-200" />
           {resources.map((r) => (
             <div key={r.id} className="h-16 border-b border-slate-100" />

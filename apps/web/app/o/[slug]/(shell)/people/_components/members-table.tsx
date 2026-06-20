@@ -81,7 +81,7 @@ interface MembersTableProps {
 
 export function MembersTable({ members, slug }: MembersTableProps) {
   return (
-    <div className="rounded-lg border border-slate-200 overflow-hidden">
+    <div className="rounded-md border border-slate-200 overflow-hidden">
       <table className="w-full text-sm" aria-label="Members roster">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">

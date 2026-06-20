@@ -355,7 +355,7 @@ export function CheckOutDialog({
                 aria-required="true"
                 aria-invalid={pilotError ? 'true' : undefined}
                 aria-describedby={pilotError ? 'co-pilot-err' : undefined}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50"
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
               >
                 <option value="">— Select pilot —</option>
                 {members.map((m) => (

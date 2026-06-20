@@ -41,7 +41,7 @@ function TrainingListSkeleton() {
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-9 w-36" />
       </div>
-      <div className="rounded-lg border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 overflow-hidden">
         <div className="h-10 bg-slate-50 border-b border-slate-200" />
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="h-14 border-b border-slate-100 bg-white" />
@@ -127,7 +127,7 @@ export default async function TrainingPage({ params }: TrainingPageProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Training</h1>
+        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Training</h1>
         {canManage && <BuildCourseDialog slug={slug} />}
       </div>
 

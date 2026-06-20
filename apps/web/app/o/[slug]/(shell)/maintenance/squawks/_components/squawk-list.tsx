@@ -51,7 +51,7 @@ function StatusChip({ status }: { status: SquawkStatus }) {
   const map: Record<SquawkStatus, { label: string; cls: string; icon: React.ReactNode }> = {
     open: {
       label: 'Open',
-      cls: 'border-sky-200 bg-sky-50 text-sky-800',
+      cls: 'border-brand/30 bg-brand/8 text-brand-ink',
       icon: <AlertTriangle className="h-3 w-3" aria-hidden="true" />,
     },
     deferred: {
@@ -146,7 +146,7 @@ export function SquawkList({
     <div className="space-y-4">
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Squawks</h1>
+        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Squawks</h1>
         {canSquawk && (
           <Button onClick={() => setReportOpen(true)}>
             + Report squawk
@@ -164,7 +164,7 @@ export function SquawkList({
             id="filter-aircraft"
             value={filterResourceId}
             onChange={(e) => setFilterResourceId(e.target.value)}
-            className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
+            className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             <option value="">All aircraft</option>
             {aircraft.map((r) => (
@@ -183,7 +183,7 @@ export function SquawkList({
             id="filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as '' | SquawkStatus)}
-            className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
+            className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             <option value="">All statuses</option>
             <option value="open">Open</option>
@@ -215,7 +215,7 @@ export function SquawkList({
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-lg border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-hidden">
           <table className="w-full text-sm" aria-label="Squawks">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -350,7 +350,7 @@ export function SquawkListSkeleton() {
         <div className="h-9 bg-slate-200 rounded w-40" />
         <div className="h-9 bg-slate-200 rounded w-32" />
       </div>
-      <div className="rounded-lg border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 overflow-hidden">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="h-14 border-b border-slate-100 bg-white" />
         ))}

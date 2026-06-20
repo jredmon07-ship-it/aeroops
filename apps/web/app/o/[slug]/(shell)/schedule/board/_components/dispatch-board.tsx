@@ -827,7 +827,7 @@ export function DispatchBoard({
       )}
 
       {/* ── Board grid ────────────────────────────────────────────────── */}
-      <div className="flex border border-slate-200 rounded-lg overflow-hidden bg-white">
+      <div className="flex border border-slate-200 rounded-md overflow-hidden bg-white">
         {/* Left gutter (sticky) */}
         <div className="flex-shrink-0 sticky left-0 z-30">
           {/* Axis header spacer */}

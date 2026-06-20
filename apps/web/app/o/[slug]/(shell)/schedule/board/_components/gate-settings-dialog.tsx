@@ -209,7 +209,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                 </p>
                 <div className="space-y-2 mt-1">
                   {/* Block option */}
-                  <label className="flex items-start gap-2.5 cursor-pointer rounded-md border border-slate-200 p-3 hover:bg-slate-50 has-[:checked]:border-sky-500 has-[:checked]:bg-sky-50">
+                  <label className="flex items-start gap-2.5 cursor-pointer rounded-md border border-slate-200 p-3 hover:bg-slate-50 has-[:checked]:border-brand has-[:checked]:bg-brand/5">
                     <input
                       type="radio"
                       name="eligibility-mode"
@@ -217,7 +217,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                       checked={eligibilityMode === 'block'}
                       onChange={() => setEligibilityMode('block')}
                       disabled={saving}
-                      className="mt-0.5 accent-sky-600"
+                      className="mt-0.5 accent-brand"
                       aria-label="Block — dispatch is blocked when pilot is missing required tags"
                     />
                     <div>
@@ -229,7 +229,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                   </label>
 
                   {/* Warn option */}
-                  <label className="flex items-start gap-2.5 cursor-pointer rounded-md border border-slate-200 p-3 hover:bg-slate-50 has-[:checked]:border-sky-500 has-[:checked]:bg-sky-50">
+                  <label className="flex items-start gap-2.5 cursor-pointer rounded-md border border-slate-200 p-3 hover:bg-slate-50 has-[:checked]:border-brand has-[:checked]:bg-brand/5">
                     <input
                       type="radio"
                       name="eligibility-mode"
@@ -237,7 +237,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                       checked={eligibilityMode === 'warn'}
                       onChange={() => setEligibilityMode('warn')}
                       disabled={saving}
-                      className="mt-0.5 accent-sky-600"
+                      className="mt-0.5 accent-brand"
                       aria-label="Warn — dispatch proceeds with advisory notice when pilot is missing required tags"
                     />
                     <div>
@@ -283,7 +283,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                       onChange={(e) => setTwilightConstraintEnabled(e.target.checked)}
                       disabled={saving}
                     />
-                    <div className="w-9 h-5 rounded-full bg-slate-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-sky-500 peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+                    <div className="w-9 h-5 rounded-full bg-slate-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
                   </label>
                 </div>
 
@@ -302,7 +302,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                           checked={twilightMode === 'warn'}
                           onChange={() => setTwilightMode('warn')}
                           disabled={saving}
-                          className="accent-sky-600"
+                          className="accent-brand"
                           aria-label="Warn — advisory notice, booking proceeds"
                         />
                         <span className="text-slate-800">Warn</span>
@@ -316,7 +316,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                           checked={twilightMode === 'block'}
                           onChange={() => setTwilightMode('block')}
                           disabled={saving}
-                          className="accent-sky-600"
+                          className="accent-brand"
                           aria-label="Block — booking is refused when it crosses civil dawn/dusk"
                         />
                         <span className="text-slate-800">Block</span>
@@ -397,7 +397,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                       onChange={(e) => setBalanceCheckEnabled(e.target.checked)}
                       disabled={saving}
                     />
-                    <div className="w-9 h-5 rounded-full bg-slate-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-sky-500 peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+                    <div className="w-9 h-5 rounded-full bg-slate-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
                   </label>
                 </div>
                 <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">

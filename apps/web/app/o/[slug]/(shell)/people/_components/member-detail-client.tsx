@@ -120,7 +120,7 @@ export function MemberDetailClient({ member: initialMember, slug, canManage }: M
       </div>
 
       {/* ── Tags card ──────────────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Tag className="h-4 w-4 text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700">Tags</h2>

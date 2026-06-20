@@ -268,7 +268,7 @@ export function DispatchRequirementsCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
       {/* ── Card header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -277,7 +277,7 @@ export function DispatchRequirementsCard({
             Dispatch requirements
           </h2>
           {!loading && !loadError && tags !== null && tags.length > 0 && (
-            <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">
+            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold text-brand-ink">
               {tags.length}
             </span>
           )}
@@ -338,7 +338,7 @@ export function DispatchRequirementsCard({
             <span
               key={t.id}
               role="listitem"
-              className="inline-flex items-center gap-1 rounded-sm border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800"
+              className="inline-flex items-center gap-1 rounded-sm border border-brand/30 bg-brand/8 px-2 py-0.5 text-xs font-medium text-brand-ink"
             >
               {t.requiredTag}
               {canManageRequirements && (
@@ -347,7 +347,7 @@ export function DispatchRequirementsCard({
                   onClick={() => handleRemove(t.id, t.requiredTag)}
                   disabled={removingIds.has(t.id)}
                   aria-label={`Remove requirement: ${t.requiredTag}`}
-                  className="ml-0.5 rounded-sm text-sky-500 hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
+                  className="ml-0.5 rounded-sm text-brand/60 hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
                 >
                   {removingIds.has(t.id) ? (
                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />

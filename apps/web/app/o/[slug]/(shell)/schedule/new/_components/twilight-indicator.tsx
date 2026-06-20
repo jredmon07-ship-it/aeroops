@@ -94,13 +94,13 @@ function ResourceBadge({ report, name }: { report: PreviewTwilightResourceReport
     }
     return (
       <div
-        className="flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm"
+        className="flex items-start gap-2 rounded-md border border-brand/20 bg-brand/5 px-3 py-2 text-sm"
         aria-label={`${name}: ${copy}`}
       >
-        <Sun className="h-4 w-4 text-sky-500 shrink-0 mt-0.5" aria-hidden="true" />
+        <Sun className="h-4 w-4 text-brand shrink-0 mt-0.5" aria-hidden="true" />
         <div>
-          <span className="font-mono text-sky-900">{name}</span>
-          <p className="text-sky-800 text-xs mt-0.5">{copy}</p>
+          <span className="font-mono text-brand-ink">{name}</span>
+          <p className="text-brand-ink/80 text-xs mt-0.5">{copy}</p>
         </div>
       </div>
     );

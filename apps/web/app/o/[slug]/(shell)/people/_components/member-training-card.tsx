@@ -21,7 +21,7 @@ import { enrollmentStatusLabel, formatProgress } from '../../training/_component
 function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-sky-800">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
         {enrollmentStatusLabel(status)}
       </span>
     );
@@ -73,7 +73,7 @@ export async function MemberTrainingCard({ userId, slug }: MemberTrainingCardPro
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
       <div className="flex items-center gap-2">
         <GraduationCap className="h-4 w-4 text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-700">Training</h2>

@@ -194,7 +194,7 @@ export function SeriesOccurrenceList({
           <p className="text-slate-600">No occurrences found for this series.</p>
           <Link
             href={`/o/${slug}/schedule`}
-            className="text-sm text-sky-600 underline hover:no-underline"
+            className="text-sm text-brand underline hover:no-underline"
           >
             Back to Schedule
           </Link>
@@ -209,7 +209,7 @@ export function SeriesOccurrenceList({
               <article
                 key={r.id}
                 aria-label={`Occurrence ${idx + 1}: ${dateLabel} ${timeRange}, ${label}`}
-                className="rounded-lg border border-border bg-white p-3 flex items-center justify-between gap-3 shadow-sm"
+                className="rounded-md border border-border bg-white p-3 flex items-center justify-between gap-3 shadow-sm"
               >
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <p className="font-medium text-slate-900 text-sm truncate">

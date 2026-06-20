@@ -63,7 +63,7 @@ export function MobileNav({ items, currentPath, orgName }: MobileNavProps) {
                       className={[
                         'block rounded-md px-3 py-2 text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-sky-50 text-sky-700'
+                          ? 'bg-brand/8 text-brand-ink'
                           : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
                       ].join(' ')}
                     >

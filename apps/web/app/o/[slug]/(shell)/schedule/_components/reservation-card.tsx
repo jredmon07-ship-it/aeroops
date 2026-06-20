@@ -69,7 +69,7 @@ export function ReservationCard({
   return (
     <article
       aria-label={ariaLabel}
-      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm space-y-2"
+      className="rounded-md border border-slate-200 bg-white p-4 shadow-sm space-y-2"
     >
       {/* Time + Status badge + optional Repeats badge */}
       <div className="flex items-center justify-between gap-2 flex-wrap">

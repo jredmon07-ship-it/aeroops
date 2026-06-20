@@ -139,7 +139,7 @@ function OccurrenceResultRow({
             {occ.result === 'created' && occ.reservationId ? (
               <Link
                 href={`/o/${slug}/schedule?date=${dateStr}`}
-                className="hover:underline text-sky-700"
+                className="hover:underline text-brand"
                 aria-label={`View ${dateLabel} reservation on schedule`}
               >
                 {dateLabel}
@@ -209,7 +209,7 @@ export function SeriesCreateResult({ result, slug, onReset }: SeriesCreateResult
       className="space-y-5 max-w-lg"
     >
       {/* Header summary */}
-      <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
+      <div className="flex items-start gap-3 rounded-md border border-green-200 bg-green-50 p-4">
         <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" aria-hidden="true" />
         <div>
           <p className="font-semibold text-green-900">

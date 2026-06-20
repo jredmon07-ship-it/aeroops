@@ -19,7 +19,7 @@ export default function DashboardLoading() {
       </div>
 
       {/* Status banner skeleton */}
-      <Skeleton className="h-12 w-full rounded-lg" />
+      <Skeleton className="h-12 w-full rounded-md" />
 
       {/* Hub card skeletons */}
       <div>

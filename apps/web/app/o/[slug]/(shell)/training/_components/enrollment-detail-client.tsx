@@ -54,7 +54,7 @@ import {
 function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-sky-800">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
         {enrollmentStatusLabel(status)}
       </span>
     );
@@ -263,7 +263,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 aria-required="true"
                 aria-invalid={fieldErrors.lessonId ? 'true' : undefined}
                 aria-describedby={fieldErrors.lessonId ? 'rl-lesson-err' : undefined}
-                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 ${fieldErrors.lessonId ? 'border-red-500' : 'border-slate-200'}`}
+                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.lessonId ? 'border-red-500' : 'border-slate-300'}`}
               >
                 <option value="">Select a lesson…</option>
                 {lessonProgress.map((lp) => (
@@ -302,7 +302,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                   aria-required="true"
                   aria-invalid={fieldErrors.instructorUserId ? 'true' : undefined}
                   aria-describedby={fieldErrors.instructorUserId ? 'rl-instr-err' : undefined}
-                  className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 ${fieldErrors.instructorUserId ? 'border-red-500' : 'border-slate-200'}`}
+                  className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.instructorUserId ? 'border-red-500' : 'border-slate-300'}`}
                 >
                   <option value="">Select an instructor…</option>
                   {members.map((m) => (
@@ -359,7 +359,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 placeholder="Optional instructor notes…"
                 rows={3}
                 disabled={isSubmitting}
-                className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 resize-none"
+                className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
               />
             </div>
 
@@ -749,7 +749,7 @@ export function EnrollmentDetailClient({
 
       {/* ── Progress summary ─────────────────────────────────────────────── */}
       {/* [VERIFY-T1-B]: content-coverage indicator ONLY — NOT a regulatory completion */}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-sm font-semibold text-slate-700">
             Operator progress
@@ -781,7 +781,7 @@ export function EnrollmentDetailClient({
 
         {enrollment.lessonProgress.length === 0 ? (
           <div
-            className="flex flex-col items-center justify-center py-10 text-center rounded-lg border border-dashed border-slate-200"
+            className="flex flex-col items-center justify-center py-10 text-center rounded-md border border-dashed border-slate-200"
             role="status"
           >
             <BookOpen className="h-7 w-7 text-slate-300 mb-2" aria-hidden="true" />
@@ -789,7 +789,7 @@ export function EnrollmentDetailClient({
             <p className="nums text-xs text-slate-400 mt-0.5">0 / 0 — 0%</p>
           </div>
         ) : (
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-hidden">
             <table className="w-full text-sm" aria-label="Lesson checklist">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
@@ -830,7 +830,7 @@ export function EnrollmentDetailClient({
                           </span>
                           {/* [VERIFY-T1-G]: stage_label = FREE-TEXT grouping */}
                           {lp.stageLabel && (
-                            <span className="inline-flex items-center rounded-sm border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-sky-700">
+                            <span className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-brand-ink">
                               {lp.stageLabel}
                             </span>
                           )}
@@ -887,7 +887,7 @@ export function EnrollmentDetailClient({
         {enrollment.records.length === 0 ? (
           <p className="text-sm text-slate-400 italic">No records yet.</p>
         ) : (
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-hidden">
             <table className="w-full text-sm" aria-label="Lesson record log">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">

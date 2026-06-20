@@ -179,7 +179,7 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
   return (
     <div aria-live="polite" aria-label="Series preview">
       {state === 'loading' && (
-        <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             <span>Checking availability…</span>
@@ -200,7 +200,7 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
       )}
 
       {state === 'populated' && preview && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 space-y-3">
           {/* Summary line.
               Denominator = occurrences.length (= wouldCreate + wouldSkip), which
               self-reconciles: wouldCreate + wouldSkip === occurrences.length.

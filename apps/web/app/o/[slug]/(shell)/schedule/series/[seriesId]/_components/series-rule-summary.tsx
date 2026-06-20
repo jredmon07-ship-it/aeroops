@@ -63,7 +63,7 @@ export function SeriesRuleSummary({ series }: SeriesRuleSummaryProps) {
 
   return (
     <div
-      className="rounded-lg border border-border bg-white p-4 space-y-3"
+      className="rounded-md border border-border bg-white p-4 space-y-3"
       aria-label="Series rule summary"
     >
       <div className="flex items-center justify-between gap-2">

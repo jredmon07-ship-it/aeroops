@@ -191,7 +191,7 @@ export function EnrollMemberDialog({
                 aria-required="true"
                 aria-invalid={fieldErrors.courseId ? 'true' : undefined}
                 aria-describedby={fieldErrors.courseId ? 'em-course-err' : undefined}
-                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 ${fieldErrors.courseId ? 'border-red-500' : 'border-slate-200'}`}
+                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.courseId ? 'border-red-500' : 'border-slate-300'}`}
               >
                 <option value="">Select a course…</option>
                 {courses
@@ -231,7 +231,7 @@ export function EnrollMemberDialog({
                   aria-required="true"
                   aria-invalid={fieldErrors.studentUserId ? 'true' : undefined}
                   aria-describedby={fieldErrors.studentUserId ? 'em-member-err' : undefined}
-                  className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 ${fieldErrors.studentUserId ? 'border-red-500' : 'border-slate-200'}`}
+                  className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.studentUserId ? 'border-red-500' : 'border-slate-300'}`}
                 >
                   <option value="">Select a member…</option>
                   {members.map((m) => (

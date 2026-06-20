@@ -22,7 +22,7 @@ import type { AircraftListRow } from '@aeroops/api';
 
 function StatusChip({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    open: { label: 'Open', cls: 'border-sky-200 bg-sky-50 text-sky-800' },
+    open: { label: 'Open', cls: 'border-brand/30 bg-brand/8 text-brand-ink' },
     in_progress: { label: 'In progress', cls: 'border-amber-200 bg-amber-50 text-amber-800' },
   };
   const conf = map[status] ?? { label: status, cls: 'border-slate-200 bg-slate-50 text-slate-500' };
@@ -67,13 +67,13 @@ export function OpenWorkOrdersCard({
 
   return (
     <>
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Wrench className="h-4 w-4 text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700">Open Work Orders</h2>
             {displayCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">
+              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold text-brand-ink">
                 {displayCount}
               </span>
             )}

@@ -71,7 +71,7 @@ export function RecurrenceControls({
   }
 
   return (
-    <div className="space-y-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+    <div className="space-y-5 rounded-md border border-slate-200 bg-slate-50 p-4">
       {/* Weekday picker */}
       <fieldset>
         <legend className="text-sm font-medium text-slate-900 mb-2">
@@ -87,9 +87,9 @@ export function RecurrenceControls({
                 htmlFor={id}
                 className={[
                   'flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border text-sm font-medium select-none transition-colors',
-                  'focus-within:ring-2 focus-within:ring-sky-600 focus-within:ring-offset-1',
+                  'focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-1',
                   checked
-                    ? 'border-sky-600 bg-sky-600 text-white'
+                    ? 'border-brand bg-brand text-white'
                     : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400',
                   errors.weekdays ? 'border-red-300' : '',
                 ].join(' ')}
@@ -158,7 +158,7 @@ export function RecurrenceControls({
               value="count"
               checked={value.end.kind === 'count'}
               onChange={() => setEndKind('count')}
-              className="h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-600"
+              className="h-4 w-4 border-slate-300 text-brand focus:ring-brand"
               aria-label="After a number of occurrences"
             />
             <span className="text-sm text-slate-700">For</span>
@@ -197,7 +197,7 @@ export function RecurrenceControls({
               value="until"
               checked={value.end.kind === 'until'}
               onChange={() => setEndKind('until')}
-              className="h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-600"
+              className="h-4 w-4 border-slate-300 text-brand focus:ring-brand"
               aria-label="Until a specific date"
             />
             <span className="text-sm text-slate-700">Until</span>

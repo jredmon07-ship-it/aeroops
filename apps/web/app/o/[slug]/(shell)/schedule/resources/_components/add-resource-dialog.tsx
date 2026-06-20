@@ -166,7 +166,7 @@ export function AddResourceDialog({ orgMembers, onSuccess }: AddResourceDialogPr
               id="resource-kind"
               value={kind}
               onChange={(e) => handleKindChange(e.target.value as 'aircraft' | 'instructor')}
-              className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
             >
               <option value="aircraft">Aircraft</option>
               <option value="instructor">Instructor</option>
@@ -242,7 +242,7 @@ export function AddResourceDialog({ orgMembers, onSuccess }: AddResourceDialogPr
                 required
                 aria-required="true"
                 aria-describedby={fieldErrors.instructorUserId ? 'instructorUserId-error' : undefined}
-                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 ${fieldErrors.instructorUserId ? 'border-red-500' : 'border-slate-200'}`}
+                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors ${fieldErrors.instructorUserId ? 'border-red-500' : 'border-slate-300'}`}
               >
                 <option value="">— Select CFI —</option>
                 {orgMembers.map((m) => (

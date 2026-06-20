@@ -87,7 +87,7 @@ export function ReservationList({
 
       {/* First-run banner: no resources at all */}
       {noResources && canManageResources && !error && (
-        <Alert className="border-sky-200 bg-sky-50 text-sky-800" role="status">
+        <Alert className="border-brand/20 bg-brand/5 text-brand-ink" role="status">
           <AlertDescription>
             No resources have been added yet.{' '}
             <Link
@@ -120,7 +120,7 @@ export function ReservationList({
               Book one with{' '}
               <Link
                 href={`/o/${slug}/schedule/new?date=${dateStr}`}
-                className="text-sky-600 underline hover:no-underline"
+                className="text-brand underline hover:no-underline"
               >
                 + New Reservation
               </Link>{' '}
@@ -131,7 +131,7 @@ export function ReservationList({
             <p className="text-sm text-slate-500">
               <Link
                 href={`/o/${slug}/schedule/resources`}
-                className="text-sky-600 underline hover:no-underline"
+                className="text-brand underline hover:no-underline"
               >
                 Add a resource
               </Link>{' '}

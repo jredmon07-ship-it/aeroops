@@ -54,7 +54,7 @@ function CourseStatusChip({ status }: { status: string }) {
 function StageLabelChip({ label }: { label: string }) {
   return (
     <span
-      className="inline-flex items-center rounded-sm border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-sky-700"
+      className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-brand-ink"
       title="Operator-defined grouping label (not a Part-141 stage)"
     >
       {label}
@@ -227,7 +227,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
                 placeholder="Brief description of this lesson…"
                 rows={3}
                 disabled={isSubmitting}
-                className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 resize-none"
+                className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
               />
             </div>
 
@@ -417,7 +417,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
 
         {course.lessons.length === 0 ? (
           <div
-            className="flex flex-col items-center justify-center py-12 text-center space-y-2 rounded-lg border border-dashed border-slate-200"
+            className="flex flex-col items-center justify-center py-12 text-center space-y-2 rounded-md border border-dashed border-slate-200"
             role="status"
           >
             <BookOpen className="h-8 w-8 text-slate-300" aria-hidden="true" />
@@ -439,7 +439,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
             )}
           </div>
         ) : (
-          <div className="rounded-lg border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-hidden">
             <table className="w-full text-sm" aria-label="Course lessons">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">

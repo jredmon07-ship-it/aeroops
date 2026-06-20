@@ -42,7 +42,7 @@ function EnrollmentsListSkeleton() {
         <Skeleton className="h-8 w-40" />
         <Skeleton className="h-9 w-36" />
       </div>
-      <div className="rounded-lg border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 overflow-hidden">
         <div className="h-10 bg-slate-50 border-b border-slate-200" />
         {[0, 1, 2, 3, 4].map((i) => (
           <div key={i} className="h-16 border-b border-slate-100 bg-white" />

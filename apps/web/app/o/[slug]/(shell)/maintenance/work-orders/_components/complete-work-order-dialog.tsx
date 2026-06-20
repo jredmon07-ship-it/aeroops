@@ -173,7 +173,7 @@ export function CompleteWorkOrderDialog({
               value={workPerformed}
               onChange={(e) => setWorkPerformed(e.target.value)}
               disabled={isSubmitting}
-              className="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 resize-none"
+              className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
             />
           </div>
 
@@ -188,7 +188,7 @@ export function CompleteWorkOrderDialog({
               value={signOffNotes}
               onChange={(e) => setSignOffNotes(e.target.value)}
               disabled={isSubmitting}
-              className="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 resize-none"
+              className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
             />
           </div>
 
@@ -202,7 +202,7 @@ export function CompleteWorkOrderDialog({
                   checked={resolveSquawk}
                   onChange={(e) => setResolveSquawk(e.target.checked)}
                   disabled={isSubmitting}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-600"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
                 />
                 <span className="text-sm text-slate-700">
                   <span className="font-medium">Resolve linked squawk</span>
@@ -224,7 +224,7 @@ export function CompleteWorkOrderDialog({
                     value={squawkResolutionNotes}
                     onChange={(e) => setSquawkResolutionNotes(e.target.value)}
                     disabled={isSubmitting}
-                    className="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50 resize-none"
+                    className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
                   />
                 </div>
               )}
@@ -242,7 +242,7 @@ export function CompleteWorkOrderDialog({
                     checked={unground}
                     onChange={(e) => setUnground(e.target.checked)}
                     disabled={isSubmitting}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-600"
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
                   />
                   <span className="text-sm text-slate-700">
                     <span className="font-medium">Return aircraft to service (unground)</span>

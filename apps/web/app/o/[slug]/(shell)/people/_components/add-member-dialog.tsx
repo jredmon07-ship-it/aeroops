@@ -151,7 +151,7 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
           </DialogHeader>
 
           {/* [AUTH-DECISION] no-login notice */}
-          <div className="flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm text-sky-800">
+          <div className="flex items-start gap-2 rounded-md border border-brand/20 bg-brand/5 px-3 py-2.5 text-sm text-brand-ink">
             <Info className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
             <span>
               <strong>Roster entry — no login yet.</strong> This member will be added to the roster
@@ -241,7 +241,7 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
                 value={role}
                 onChange={(e) => setRole(e.target.value as MembershipRole)}
                 disabled={isSubmitting}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50"
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
               >
                 {MEMBERSHIP_ROLES.map((r) => (
                   <option key={r} value={r}>

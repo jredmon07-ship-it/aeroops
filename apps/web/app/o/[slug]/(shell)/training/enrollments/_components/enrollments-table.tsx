@@ -25,7 +25,7 @@ interface EnrollmentsTableProps {
 function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-sky-800">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
         {enrollmentStatusLabel(status)}
       </span>
     );
@@ -85,7 +85,7 @@ export function EnrollmentsTable({
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 overflow-hidden">
         <table className="w-full text-sm" aria-label="Enrollments">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">

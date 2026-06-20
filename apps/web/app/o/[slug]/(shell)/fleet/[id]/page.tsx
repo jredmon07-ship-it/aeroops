@@ -107,7 +107,7 @@ function DetailSkeleton() {
 function DispatchStatusChip({ status }: { status: string }) {
   if (status === 'open') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-sky-800">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
         Open
       </span>
     );
@@ -296,7 +296,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       {/* ── Meters card ───────────────────────────────────────────────────── */}
       {/* [VERIFY-5-A] label as "last recorded" — not an airworthiness total */}
       {(aircraft.hasHobbs || aircraft.hasTach) && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Gauge className="h-4 w-4 text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700">
@@ -337,13 +337,13 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       )}
 
       {/* ── Open squawks card ─────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <WrenchIcon className="h-4 w-4 text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700">Open Squawks</h2>
             {aircraft.openSquawkCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
                 {aircraft.openSquawkCount}
               </span>
             )}
@@ -379,7 +379,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       </div>
 
       {/* ── Recent dispatch card ───────────────────────────────────────────── */}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Plane className="h-4 w-4 text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700">Recent Dispatch</h2>
@@ -448,7 +448,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       </div>
 
       {/* ── Upcoming reservations card ─────────────────────────────────────── */}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-slate-400" aria-hidden="true" />

@@ -38,7 +38,7 @@ function CourseStatusChip({ status }: { status: string }) {
 
 export function CoursesTable({ courses, slug }: CoursesTableProps) {
   return (
-    <div className="rounded-lg border border-slate-200 overflow-hidden">
+    <div className="rounded-md border border-slate-200 overflow-hidden">
       <table className="w-full text-sm" aria-label="Courses">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">

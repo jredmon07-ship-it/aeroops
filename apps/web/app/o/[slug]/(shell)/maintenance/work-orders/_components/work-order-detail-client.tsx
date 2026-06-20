@@ -217,7 +217,7 @@ export function WorkOrderDetailClient({
 
       {/* ── Linked squawk panel ───────────────────────────────────────────── */}
       {linkedSquawk && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-2">
+        <div className="rounded-md border border-slate-200 bg-white p-4 space-y-2">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700">Linked Squawk</h2>
@@ -229,7 +229,7 @@ export function WorkOrderDetailClient({
               <span
                 className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${
                   linkedSquawk.status === 'open'
-                    ? 'border-sky-200 bg-sky-50 text-sky-800'
+                    ? 'border-brand/30 bg-brand/8 text-brand-ink'
                     : linkedSquawk.status === 'deferred'
                     ? 'border-amber-200 bg-amber-50 text-amber-800'
                     : 'border-green-200 bg-green-50 text-green-800'
@@ -256,14 +256,14 @@ export function WorkOrderDetailClient({
 
       {/* ── Description ───────────────────────────────────────────────────── */}
       {workOrder.description && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-1.5">
+        <div className="rounded-md border border-slate-200 bg-white p-4 space-y-1.5">
           <h2 className="text-sm font-semibold text-slate-700">Description</h2>
           <p className="text-sm text-slate-600 whitespace-pre-wrap">{workOrder.description}</p>
         </div>
       )}
 
       {/* ── Work performed ────────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-1.5">
+      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-1.5">
         <div className="flex items-center gap-2">
           <WrenchIcon className="h-4 w-4 text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700">Work Performed</h2>
@@ -277,7 +277,7 @@ export function WorkOrderDetailClient({
 
       {/* ── Sign-off block (completed only) ──────────────────────────────── */}
       {workOrder.status === 'completed' && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-2">
+        <div className="rounded-md border border-green-200 bg-green-50 p-4 space-y-2">
           <div className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-green-600" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-green-900">Sign-off Record</h2>
@@ -311,7 +311,7 @@ export function WorkOrderDetailClient({
 
       {/* ── Cancelled block (cancelled only) ──────────────────────────────── */}
       {workOrder.status === 'cancelled' && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-1.5">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 space-y-1.5">
           <h2 className="text-sm font-semibold text-slate-700">Cancelled</h2>
           <p className="text-sm text-slate-600">
             <span className="font-medium">Reason:</span>{' '}

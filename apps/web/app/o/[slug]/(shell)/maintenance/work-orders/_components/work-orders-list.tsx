@@ -79,7 +79,7 @@ export function WorkOrdersList({
     <div className="space-y-4">
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Work Orders</h1>
+        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Work Orders</h1>
         {canWorkOrder && (
           <Button onClick={() => setOpenDialogOpen(true)}>
             + Open work order
@@ -97,7 +97,7 @@ export function WorkOrdersList({
             id="wo-filter-aircraft"
             value={filterResourceId}
             onChange={(e) => setFilterResourceId(e.target.value)}
-            className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
+            className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             <option value="">All aircraft</option>
             {aircraft.map((a) => (
@@ -116,7 +116,7 @@ export function WorkOrdersList({
             id="wo-filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
+            className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -149,7 +149,7 @@ export function WorkOrdersList({
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-lg border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-hidden">
           <table className="w-full text-sm" aria-label="Work orders">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -257,7 +257,7 @@ export function WorkOrdersListSkeleton() {
         <div className="h-9 bg-slate-200 rounded w-40" />
         <div className="h-9 bg-slate-200 rounded w-32" />
       </div>
-      <div className="rounded-lg border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 overflow-hidden">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="h-14 border-b border-slate-100 bg-white" />
         ))}
