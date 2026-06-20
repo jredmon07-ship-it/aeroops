@@ -130,6 +130,7 @@ async function _listAircraftImpl(
         model: r.model ?? null,
         active: r.active,
         grounded: grounding?.grounded ?? false,
+        groundingReason: grounding?.reason ?? null,
         openSquawkCount: squawkMap.get(r.id) ?? 0,
         openWorkOrderCount: woMap.get(r.id) ?? 0,
       };

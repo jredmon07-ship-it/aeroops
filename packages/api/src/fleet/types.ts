@@ -40,6 +40,8 @@ export interface AircraftListRow {
   model: string | null;
   active: boolean;
   grounded: boolean;
+  /** Operator-entered grounding reason when grounded (null otherwise). [VERIFY-5-B] operator data, never an airworthiness determination. */
+  groundingReason: string | null;
   openSquawkCount: number;
   /** Count of work orders in status open or in_progress for this aircraft. */
   openWorkOrderCount: number;

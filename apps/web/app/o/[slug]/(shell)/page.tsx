@@ -712,7 +712,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                         {a.tailNumber}
                       </Link>
                       <span className="text-xs text-slate-400 truncate">
-                        No reason given
+                        {a.groundingReason ?? 'No reason given'}
                       </span>
                     </li>
                   ))}
