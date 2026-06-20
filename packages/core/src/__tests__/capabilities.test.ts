@@ -160,7 +160,8 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('schedule:manage_resources');
     expect(caps).toContain('training:access');
     expect(caps).toContain('training:manage');
-    expect(caps.length).toBe(18);
+    expect(caps).toContain('maintenance:work_order');
+    expect(caps.length).toBe(19);
   });
 
   it('manager returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
@@ -174,6 +175,7 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('maintenance:access');
     expect(caps).toContain('maintenance:ground');
     expect(caps).toContain('maintenance:squawk');
+    expect(caps).toContain('maintenance:work_order');
     expect(caps).toContain('org:manage_settings');
     expect(caps).toContain('people:access');
     expect(caps).toContain('people:manage');
@@ -183,7 +185,7 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('schedule:manage_resources');
     expect(caps).toContain('training:access');
     expect(caps).toContain('training:manage');
-    expect(caps.length).toBe(18);
+    expect(caps.length).toBe(19);
   });
 
   it('student returns only app:access', () => {
@@ -283,8 +285,18 @@ describe('10. CAPABILITIES array', () => {
     expect(CAPABILITIES).toContain('reporting:access');
   });
 
-  it('has exactly 18 capabilities (16 existing + training:access + training:manage — Slice T1.2)', () => {
-    expect(CAPABILITIES.length).toBe(18);
+  it('has exactly 19 capabilities (training:access/manage — T1.2 — and maintenance:work_order — M1.2)', () => {
+    expect(CAPABILITIES.length).toBe(19);
+  });
+
+  it('grants maintenance:work_order to owner/manager/dispatcher/mechanic only (MAINTENANCE-M1.2)', () => {
+    expect(CAPABILITIES).toContain('maintenance:work_order');
+    for (const role of ['owner', 'manager', 'dispatcher', 'mechanic'] as const) {
+      expect(capabilitiesForRole(role)).toContain('maintenance:work_order');
+    }
+    for (const role of ['cfi', 'accountant', 'renter', 'student'] as const) {
+      expect(capabilitiesForRole(role)).not.toContain('maintenance:work_order');
+    }
   });
 
   it('contains the two TRAINING-T1.2 training capabilities', () => {

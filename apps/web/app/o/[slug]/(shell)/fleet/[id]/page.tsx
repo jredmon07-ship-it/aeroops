@@ -38,10 +38,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAircraftDetailAction } from '../actions';
+import { getAircraftDetailAction, listAircraftAction } from '../actions';
 import { EditAircraftDialog } from '../_components/edit-aircraft-dialog';
 import { DispatchRequirementsCard } from '../_components/dispatch-requirements-card';
-import type { SerializedAircraftDetail, SerializedDispatchTicketView } from '../actions';
+import { OpenWorkOrdersCard } from '../_components/open-work-orders-card';
+import type { SerializedAircraftDetail } from '../actions';
+import type { AircraftListRow } from '@aeroops/api';
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -134,10 +136,14 @@ interface DetailContentProps {
   slug: string;
   canManage: boolean;
   canManageRequirements: boolean;
+  canWorkOrder: boolean;
 }
 
-async function DetailContent({ resourceId, slug, canManage, canManageRequirements }: DetailContentProps) {
-  const result = await getAircraftDetailAction({ resourceId });
+async function DetailContent({ resourceId, slug, canManage, canManageRequirements, canWorkOrder }: DetailContentProps) {
+  const [result, aircraftListResult] = await Promise.all([
+    getAircraftDetailAction({ resourceId }),
+    listAircraftAction({ includeInactive: false }),
+  ]);
 
   // Auth / server errors
   if ('error' in result) {
@@ -178,6 +184,8 @@ async function DetailContent({ resourceId, slug, canManage, canManageRequirement
 
   // ok: true — aircraft is defined
   const aircraft = result.aircraft;
+  const aircraftList =
+    'ok' in aircraftListResult && aircraftListResult.ok ? aircraftListResult.aircraft : [];
 
   return (
     <AircraftDetailView
@@ -185,6 +193,8 @@ async function DetailContent({ resourceId, slug, canManage, canManageRequirement
       slug={slug}
       canManage={canManage}
       canManageRequirements={canManageRequirements}
+      canWorkOrder={canWorkOrder}
+      aircraftList={aircraftList}
     />
   );
 }
@@ -196,9 +206,11 @@ interface AircraftDetailViewProps {
   slug: string;
   canManage: boolean;
   canManageRequirements: boolean;
+  canWorkOrder: boolean;
+  aircraftList: AircraftListRow[];
 }
 
-function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements }: AircraftDetailViewProps) {
+function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, canWorkOrder, aircraftList }: AircraftDetailViewProps) {
   const { grounding } = aircraft;
 
   return (
@@ -477,6 +489,16 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements }
           </div>
         )}
       </div>
+
+      {/* ── Open work orders card (Slice M1.3) [VERIFY-M1-E] ──────────────── */}
+      <OpenWorkOrdersCard
+        resourceId={aircraft.id}
+        openWorkOrders={aircraft.openWorkOrders ?? []}
+        openWorkOrderCount={aircraft.openWorkOrderCount ?? 0}
+        aircraft={aircraftList}
+        slug={slug}
+        canWorkOrder={canWorkOrder}
+      />
     </div>
   );
 }
@@ -510,6 +532,8 @@ export default async function AircraftDetailPage({ params }: AircraftDetailPageP
   // dispatch:manage_requirements → owner/manager/dispatcher (controls add/remove UI).
   // The server-side action re-gates independently.
   const canManageRequirements = hasCapability(session, 'dispatch:manage_requirements');
+  // maintenance:work_order → owner/manager/dispatcher/mechanic.
+  const canWorkOrder = hasCapability(session, 'maintenance:work_order');
 
   return (
     <Suspense fallback={<DetailSkeleton />}>
@@ -518,6 +542,7 @@ export default async function AircraftDetailPage({ params }: AircraftDetailPageP
         slug={slug}
         canManage={canManage}
         canManageRequirements={canManageRequirements}
+        canWorkOrder={canWorkOrder}
       />
     </Suspense>
   );

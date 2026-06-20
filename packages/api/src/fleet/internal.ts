@@ -23,7 +23,7 @@ import type { AnyDb } from '@aeroops/db';
 import type { UpcomingReservationRow, AircraftDetail } from './types.js';
 import type { DispatchTicketView } from '../dispatch/types.js';
 import { toDispatchTicketView } from '../dispatch/internal.js';
-import { loadGroundingProbe, toSquawkView } from '../maintenance/internal.js';
+import { loadGroundingProbe, toSquawkView, toWorkOrderView } from '../maintenance/internal.js';
 
 // ─── loadUpcomingReservations ─────────────────────────────────────────────────
 
@@ -267,6 +267,7 @@ export async function assembleAircraftDetail(
     since: null,
     groundedBy: null,
     eventId: null,
+    squawkId: null,
   };
 
   // Open-squawk count.
@@ -330,6 +331,54 @@ export async function assembleAircraftDetail(
   // Upcoming reservations ≤10.
   const upcomingReservations = await loadUpcomingReservations(tx, resourceId);
 
+  // Open work orders ≤10 (status IN ('open','in_progress'), newest-first). [VERIFY-M1-E]
+  // Gated by fleet:access (consistent with how squawks/grounding already surface here).
+  const woResult = await tx.execute(sql`
+    SELECT
+      id,
+      org_id            AS "orgId",
+      resource_id       AS "resourceId",
+      squawk_id         AS "squawkId",
+      title,
+      description,
+      status,
+      work_performed    AS "workPerformed",
+      opened_by         AS "openedBy",
+      opened_at         AS "openedAt",
+      signed_off_by     AS "signedOffBy",
+      signed_off_at     AS "signedOffAt",
+      sign_off_notes    AS "signOffNotes",
+      cancelled_reason  AS "cancelledReason",
+      cancelled_at      AS "cancelledAt",
+      created_at        AS "createdAt",
+      updated_at        AS "updatedAt"
+    FROM work_order
+    WHERE resource_id = ${resourceId}::uuid
+      AND status IN ('open', 'in_progress')
+    ORDER BY created_at DESC
+    LIMIT 10
+  `);
+  const woRows = (woResult.rows ?? woResult) as Array<{
+    id: string;
+    orgId: string;
+    resourceId: string;
+    squawkId: string | null;
+    title: string;
+    description: string | null;
+    status: string;
+    workPerformed: string | null;
+    openedBy: string;
+    openedAt: Date | string;
+    signedOffBy: string | null;
+    signedOffAt: Date | string | null;
+    signOffNotes: string | null;
+    cancelledReason: string | null;
+    cancelledAt: Date | string | null;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+  }>;
+  const openWorkOrders = woRows.map(toWorkOrderView);
+
   const homeBase = identityRow.homeBaseLocationId
     ? {
         id: identityRow.homeBaseLocationId,
@@ -358,5 +407,7 @@ export async function assembleAircraftDetail(
     currentTach: meters.currentTach,
     currentMetersAsOf: meters.currentMetersAsOf,
     upcomingReservations,
+    openWorkOrders,
+    openWorkOrderCount: openWorkOrders.length,
   };
 }

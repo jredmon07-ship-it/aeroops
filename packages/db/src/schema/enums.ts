@@ -34,6 +34,13 @@
  *   graduation or regulatory completion. [VERIFY-T1-B]
  * lesson_record_status: append-only audit posture. 'voided' = tombstone,
  *   NOT a deletion or e-signature removal. [VERIFY-T1-C]
+ *
+ * WORK_ORDER_STATUSES is imported from @aeroops/core for the Slice M1.1
+ * maintenance work-order schema. The DB pgEnum and application-layer types
+ * are guaranteed in sync.
+ * work_order_status: four values: 'open', 'in_progress', 'completed',
+ *   'cancelled'. completed ≠ FAA return-to-service. [VERIFY-M1-A]
+ *   Terminal states (completed/cancelled) have no reopen path. [VERIFY-M1-B]
  */
 import { pgEnum } from 'drizzle-orm/pg-core';
 import {
@@ -49,6 +56,7 @@ import {
   SQUAWK_SEVERITIES,
   ENROLLMENT_STATUSES,
   LESSON_RECORD_STATUSES,
+  WORK_ORDER_STATUSES,
 } from '@aeroops/core';
 
 /**
@@ -167,3 +175,20 @@ export const enrollmentStatus = pgEnum('enrollment_status', ENROLLMENT_STATUSES)
  * [VERIFY-T1-C]: this void-tombstone is NOT an e-signature removal.
  */
 export const lessonRecordStatus = pgEnum('lesson_record_status', LESSON_RECORD_STATUSES);
+
+/**
+ * workOrderStatus — Postgres enum `work_order_status`.
+ * Derived from the @aeroops/core WORK_ORDER_STATUSES tuple (Slice M1.1).
+ * Four values: 'open' (created, not yet started), 'in_progress' (work underway),
+ * 'completed' (sign-off recorded; terminal), 'cancelled' (abandoned; terminal).
+ *
+ * completed ≠ FAA return-to-service / §43.9 / §43.11 determination. [VERIFY-M1-A]
+ * No reopen path from completed or cancelled — terminal states. [VERIFY-M1-B]
+ * signed_off_by ON DELETE SET NULL ("signed_off_by"): durable "who" in audit_log,
+ * NOT the column. [VERIFY-M1-C]
+ *
+ * Valid transitions (API-enforced; NOT a DB pair-CHECK):
+ *   open→in_progress | open→completed | open→cancelled
+ *   in_progress→completed | in_progress→cancelled
+ */
+export const workOrderStatus = pgEnum('work_order_status', WORK_ORDER_STATUSES);

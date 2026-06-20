@@ -342,6 +342,67 @@ export type {
   UpdateSquawkStatusResult,
 } from './maintenance/types.js';
 
+// ─── Slice M1.2 — Maintenance Work Orders (MAINTENANCE-M1, migration 0013) ───
+// Work-order lifecycle: open → in_progress → completed | cancelled.
+// Completion orchestration: WO + optional squawk-resolve + optional unground
+//   all in ONE tx (atomic). shouldUngroundForWorkOrder (pure rule, @aeroops/core)
+//   guards the conservative unground decision.
+// maintenance:work_order → owner/manager/dispatcher/mechanic (NOT cfi/accountant).
+// maintenance:squawk additional cap required when resolveSquawk=true.
+// maintenance:ground additional cap required when unground=true.
+// Fleet aggregate extended: openWorkOrders (≤10) + openWorkOrderCount on AircraftDetail.
+// [VERIFY-M1-A]: completed ≠ RTS. [VERIFY-M1-C]: sign-off = operator entry, not e-sig.
+// [VERIFY-M1-D]: unground = affirmative operator action, not computed clearance.
+// [VERIFY-M1-E]: open WOs surface on fleet detail (fleet:access gate).
+// NO FAA/Part-43/airworthiness determination. NO money. M1 reads NO dispatch meters.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  openWorkOrder,
+  openWorkOrderWithDb,
+} from './maintenance/open-work-order.js';
+export type { OpenWorkOrderInput } from './maintenance/open-work-order.js';
+
+export {
+  listWorkOrders,
+  listWorkOrdersWithDb,
+  getWorkOrderDetail,
+  getWorkOrderDetailWithDb,
+} from './maintenance/list-work-orders.js';
+export type {
+  ListWorkOrdersInput,
+  GetWorkOrderDetailInput,
+} from './maintenance/list-work-orders.js';
+
+export {
+  updateWorkOrderStatus,
+  updateWorkOrderStatusWithDb,
+} from './maintenance/update-work-order-status.js';
+export type { UpdateWorkOrderStatusInput } from './maintenance/update-work-order-status.js';
+
+export {
+  completeWorkOrder,
+  completeWorkOrderWithDb,
+} from './maintenance/complete-work-order.js';
+export type { CompleteWorkOrderInput } from './maintenance/complete-work-order.js';
+
+export {
+  cancelWorkOrder,
+  cancelWorkOrderWithDb,
+} from './maintenance/cancel-work-order.js';
+export type { CancelWorkOrderInput } from './maintenance/cancel-work-order.js';
+
+// Work-order result/IO types.
+export type {
+  WorkOrderView,
+  OpenWorkOrderResult,
+  ListWorkOrdersResult,
+  GetWorkOrderDetailResult,
+  UpdateWorkOrderStatusResult,
+  CompleteWorkOrderResult,
+  CancelWorkOrderResult,
+} from './maintenance/work-order-types.js';
+
 // ─── Slice 5 — Fleet (FLEET-5.2) ──────────────────────────────────────────────
 // Aircraft list + detail aggregation + identity edit + location picker.
 // fleet:access → owner/manager/dispatcher/cfi/mechanic.

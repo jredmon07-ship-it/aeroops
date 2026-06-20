@@ -32,6 +32,11 @@
  *     WRITE-ONCE lesson-completion fact. Voided via tombstone, never deleted.
  *     grade_label = FREE-TEXT only, NOT a computed ACS/Part-61/141 verdict.
  *     [VERIFY-T1-A/C/D]
+ *   workOrder (table: work_order) — Slice M1.1 / Maintenance (migration 0013)
+ *     Maintenance task on an aircraft; optionally linked to a squawk.
+ *     work_performed/sign_off_notes = FREE-TEXT operator data ONLY.
+ *     NO FAA/Part-43/airworthiness determination computed. [VERIFY-M1-A/B/C/D/E]
+ *     signed_off_by ON DELETE SET NULL: durable "who" in audit_log, NOT column.
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -51,6 +56,7 @@ export {
   squawkSeverity,
   enrollmentStatus,
   lessonRecordStatus,
+  workOrderStatus,
 } from './enums.js';
 
 // Tenant-scoped tables
@@ -175,3 +181,14 @@ export type { EnrollmentSelect, EnrollmentInsert } from './enrollment.js';
 
 export { lessonRecord } from './lesson-record.js';
 export type { LessonRecordSelect, LessonRecordInsert } from './lesson-record.js';
+
+// Maintenance work orders — tenant-scoped (Slice M1.1 / migration 0013)
+// work_order: maintenance task on an aircraft/resource; optionally squawk-linked.
+//   work_performed + sign_off_notes = FREE-TEXT operator data ONLY.
+//   NO FAA/Part-43/airworthiness/RTS/annual/100-hr/AD/MEL determination.
+//   [VERIFY-M1-A]: completed ≠ RTS. [VERIFY-M1-B]: no reopen from terminal.
+//   [VERIFY-M1-C]: signed_off_by SET NULL; durable "who" in audit_log, NOT column.
+//   [VERIFY-M1-D]: unground = operator affirmative action, NOT a computed clearance.
+//   [VERIFY-M1-E]: open WOs surface on fleet detail (fleet:access gate).
+export { workOrder } from './work-order.js';
+export type { WorkOrderSelect, WorkOrderInsert } from './work-order.js';

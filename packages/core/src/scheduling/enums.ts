@@ -168,6 +168,44 @@ export function isReservationSeriesStatus(value: unknown): value is ReservationS
 }
 
 /**
+ * WORK_ORDER_STATUSES — lifecycle status of a maintenance work order (Slice M1.1).
+ *
+ * Order matters (pgEnum insertion order; never reorder without a migration). The
+ * schema-engineer builds the `work_order_status` pgEnum FROM this tuple.
+ *
+ * 'open'        = work order created; aircraft may still be dispatched (grounding
+ *                 is a separate explicit operator action, not computed from WO status).
+ * 'in_progress' = work underway (operator/mechanic has started; mutable intermediate).
+ * 'completed'   = work done + sign-off recorded (terminal; requires signed_off_at).
+ *                 completed ≠ FAA return-to-service. [VERIFY-M1-A]
+ * 'cancelled'   = work order abandoned before completion (terminal; requires cancelled_at).
+ *                 does NOT resolve a linked squawk or unground the aircraft. [VERIFY-M1-B]
+ *
+ * Valid transitions (API-enforced, NOT a DB pair-CHECK):
+ *   open → in_progress | open → completed | open → cancelled
+ *   in_progress → completed | in_progress → cancelled
+ *   completed / cancelled are terminal — no reopen path. [VERIFY-M1-B]
+ */
+export const WORK_ORDER_STATUSES = ['open', 'in_progress', 'completed', 'cancelled'] as const;
+
+/** Union type of all valid work-order-status strings. */
+export type WorkOrderStatus = (typeof WORK_ORDER_STATUSES)[number];
+
+/**
+ * isWorkOrderStatus — runtime type guard for WorkOrderStatus.
+ *
+ * Returns true only when `value` is a string that is an exact member of
+ * WORK_ORDER_STATUSES. Returns false for non-strings, unknown/future status
+ * strings, and prototype-chain keys. Same contract as isResourceKind.
+ *
+ * @param value - Any unknown value from an untrusted source.
+ * @returns `true` if value is a valid WorkOrderStatus, `false` otherwise.
+ */
+export function isWorkOrderStatus(value: unknown): value is WorkOrderStatus {
+  return typeof value === 'string' && (WORK_ORDER_STATUSES as readonly string[]).includes(value);
+}
+
+/**
  * DISPATCH_STATUSES — lifecycle status of a dispatch ticket (Slice 3a, ADR-0007).
  *
  * Order matters (pgEnum insertion order; never reorder without a migration). The

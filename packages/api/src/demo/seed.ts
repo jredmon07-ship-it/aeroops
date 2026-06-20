@@ -53,6 +53,7 @@ import { openDispatchWithDb } from '../dispatch/open-dispatch.js';
 import { closeDispatchWithDb } from '../dispatch/close-dispatch.js';
 import { reportSquawkWithDb } from '../maintenance/report-squawk.js';
 import { groundAircraftWithDb } from '../maintenance/ground-aircraft.js';
+import { openWorkOrderWithDb } from '../maintenance/open-work-order.js';
 import { createCourseWithDb } from '../training/create-course.js';
 import { addCourseLessonWithDb } from '../training/add-course-lesson.js';
 import { enrollMemberWithDb } from '../training/enroll-member.js';
@@ -374,6 +375,21 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   });
   if (!minorSquawk.ok) {
     throw new Error('[demo] report minor squawk failed — seed cannot continue.');
+  }
+
+  // ── 7b. Work order on the grounded Cirrus (Slice M1) ────────────────────
+  // Linked to the grounding squawk and left OPEN — so the demo shows an open
+  // work order on the grounded aircraft. Completing it (resolve squawk + return
+  // to service) closes the maintenance loop. Operator maintenance record; NO
+  // computed Part-43 / airworthiness determination.
+  const workOrder = await openWorkOrderWithDb(db, ownerSession, {
+    resourceId: tail('N66RG'),
+    squawkId: groundingSquawk.squawk.id,
+    title: 'Investigate oil seep at quick-drain',
+    description: 'Inspect the quick-drain, reseal as needed, then return to service.',
+  });
+  if (!workOrder.ok) {
+    throw new Error('[demo] open work order failed — seed cannot continue.');
   }
 
   // ── 8. Training (Slice T1) ──────────────────────────────────────────────

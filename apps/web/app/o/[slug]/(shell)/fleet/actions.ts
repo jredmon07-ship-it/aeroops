@@ -30,6 +30,7 @@ import type {
   AircraftDetail,
   UpdateAircraftInput,
   LocationOption,
+  WorkOrderView,
 } from '@aeroops/api';
 
 // ─── Serialized types (Dates → string) ───────────────────────────────────────
@@ -95,6 +96,30 @@ export interface SerializedUpcomingReservationRow {
 }
 
 /**
+ * Serialized WorkOrderView — Dates replaced with ISO strings.
+ * Used in fleet/[id] open work orders card (Slice M1.3 [VERIFY-M1-E]).
+ */
+export interface SerializedWorkOrderView {
+  id: string;
+  orgId: string;
+  resourceId: string;
+  squawkId: string | null;
+  title: string;
+  description: string | null;
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  workPerformed: string | null;
+  openedBy: string;
+  openedAt: string;
+  signedOffBy: string | null;
+  signedOffAt: string | null;
+  signOffNotes: string | null;
+  cancelledReason: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Serialized AircraftDetail — all Dates replaced with ISO strings.
  */
 export interface SerializedAircraftDetail {
@@ -117,6 +142,9 @@ export interface SerializedAircraftDetail {
   currentTach: number | null;
   currentMetersAsOf: string | null;
   upcomingReservations: SerializedUpcomingReservationRow[];
+  /** Open work orders (status in open/in_progress, ≤10, newest-first) [VERIFY-M1-E]. */
+  openWorkOrders: SerializedWorkOrderView[];
+  openWorkOrderCount: number;
 }
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -219,6 +247,27 @@ function serializeAircraftDetail(detail: AircraftDetail): SerializedAircraftDeta
       endAt: serializeDate(r.endAt) ?? '',
       seriesId: r.seriesId,
     })),
+    // Slice M1.3 [VERIFY-M1-E]: open work orders surface on fleet detail.
+    openWorkOrders: (detail.openWorkOrders ?? []).map((wo: WorkOrderView) => ({
+      id: wo.id,
+      orgId: wo.orgId,
+      resourceId: wo.resourceId,
+      squawkId: wo.squawkId,
+      title: wo.title,
+      description: wo.description,
+      status: wo.status,
+      workPerformed: wo.workPerformed,
+      openedBy: wo.openedBy,
+      openedAt: serializeDate(wo.openedAt) ?? '',
+      signedOffBy: wo.signedOffBy,
+      signedOffAt: serializeDate(wo.signedOffAt),
+      signOffNotes: wo.signOffNotes,
+      cancelledReason: wo.cancelledReason,
+      cancelledAt: serializeDate(wo.cancelledAt),
+      createdAt: serializeDate(wo.createdAt) ?? '',
+      updatedAt: serializeDate(wo.updatedAt) ?? '',
+    })),
+    openWorkOrderCount: detail.openWorkOrderCount ?? 0,
   };
 }
 

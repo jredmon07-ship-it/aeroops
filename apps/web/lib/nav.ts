@@ -92,9 +92,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
     href: '/o/[slug]/fleet',
     requiredCapability: 'fleet:access',
   },
+  // Slice M1.3: Maintenance hub entry point is work-orders (squawks accessible via
+  // links from the list). Gated by maintenance:access (owner/manager/dispatcher/cfi/mechanic).
   {
     label: 'Maintenance',
-    href: '/o/[slug]/maintenance/squawks',
+    href: '/o/[slug]/maintenance/work-orders',
     requiredCapability: 'maintenance:access',
   },
   {

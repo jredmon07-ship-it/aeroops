@@ -89,6 +89,7 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0010_civil_twilight.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0011_optimizer_run.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0012_training.sql'),        'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0013_work_orders.sql'),     'utf-8'),
 ];
 
 interface TestEnv {

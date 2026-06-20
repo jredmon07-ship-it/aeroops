@@ -97,7 +97,30 @@ async function _listAircraftImpl(
       );
     }
 
-    // 5. Assemble.
+    // 5. Open work-order counts — one GROUP BY query (status IN open/in_progress).
+    const woResult = await tx.execute(sql`
+      SELECT
+        resource_id AS "resourceId",
+        COUNT(*)::int AS "count"
+      FROM work_order
+      WHERE status IN ('open', 'in_progress')
+        AND resource_id = ANY(ARRAY[${idList}])
+      GROUP BY resource_id
+    `);
+    const woRows = (woResult.rows ?? woResult) as Array<{
+      resourceId: string;
+      count: number | string;
+    }>;
+    const woMap = new Map<string, number>();
+    for (const id of ids) woMap.set(id, 0);
+    for (const row of woRows) {
+      woMap.set(
+        row.resourceId,
+        typeof row.count === 'string' ? parseInt(row.count, 10) : row.count,
+      );
+    }
+
+    // 6. Assemble.
     return rows.map((r) => {
       const grounding = groundingMap.get(r.id);
       return {
@@ -108,6 +131,7 @@ async function _listAircraftImpl(
         active: r.active,
         grounded: grounding?.grounded ?? false,
         openSquawkCount: squawkMap.get(r.id) ?? 0,
+        openWorkOrderCount: woMap.get(r.id) ?? 0,
       };
     });
   });

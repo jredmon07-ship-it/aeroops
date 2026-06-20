@@ -20,6 +20,7 @@ export {
   RECURRENCE_FREQS,
   RECURRENCE_END_KINDS,
   RESERVATION_SERIES_STATUSES,
+  WORK_ORDER_STATUSES,
   DISPATCH_STATUSES,
   isResourceKind,
   isReservationStatus,
@@ -27,6 +28,7 @@ export {
   isRecurrenceFreq,
   isRecurrenceEndKind,
   isReservationSeriesStatus,
+  isWorkOrderStatus,
   isDispatchStatus,
 } from './scheduling/enums.js';
 export type {
@@ -36,6 +38,7 @@ export type {
   RecurrenceFreq,
   RecurrenceEndKind,
   ReservationSeriesStatus,
+  WorkOrderStatus,
   DispatchStatus,
 } from './scheduling/enums.js';
 
@@ -75,6 +78,12 @@ export type {
   GroundingHit,
   GroundingGateResult,
 } from './maintenance/grounding-gate.js';
+
+export { shouldUngroundForWorkOrder } from './maintenance/work-order-rules.js';
+export type {
+  GroundingBasisEntry,
+  ShouldUngroundResult,
+} from './maintenance/work-order-rules.js';
 
 export {
   computeSolarEvents,

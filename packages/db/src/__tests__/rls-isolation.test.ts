@@ -78,6 +78,7 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../migrations/0010_civil_twilight.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0011_optimizer_run.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0012_training.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0013_work_orders.sql'), 'utf-8'),
 ];
 
 // ── Helper: set up a fresh isolated DB (one cold-start per call) ──────────────

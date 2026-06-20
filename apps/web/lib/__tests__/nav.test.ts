@@ -448,6 +448,15 @@ describe('11. NAV_ITEMS registry', () => {
     expect(trainingIdx).toBeLessThan(fleetIdx);
   });
 
+  it('Maintenance item is gated by maintenance:access and links to work-orders (M1.3)', () => {
+    const maintenance = NAV_ITEMS.find((i) => i.label === 'Maintenance');
+    expect(maintenance?.requiredCapability).toBe('maintenance:access');
+    expect(maintenance?.href).toBe('/o/[slug]/maintenance/work-orders');
+    // Visible to: owner, manager, dispatcher, cfi, mechanic
+    const maintenanceIdx = NAV_ITEMS.findIndex((i) => i.label === 'Maintenance');
+    expect(maintenanceIdx).toBeGreaterThan(-1);
+  });
+
   it('Fleet item is gated by fleet:access and placed after Training and before Maintenance', () => {
     const fleet = NAV_ITEMS.find((i) => i.label === 'Fleet');
     expect(fleet?.requiredCapability).toBe('fleet:access');

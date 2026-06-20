@@ -45,6 +45,8 @@ export default defineConfig({
       'app/o/\\[slug\\]/\\(shell\\)/schedule/auto/_components/__tests__/**/*.test.ts',
       // Slice T1.3 — training display helper tests (pure, no DOM/Next.js).
       'app/o/\\[slug\\]/\\(shell\\)/training/__tests__/**/*.test.ts',
+      // Slice M1.3 — work-order display helper tests (pure, no DOM/Next.js).
+      'app/o/\\[slug\\]/\\(shell\\)/maintenance/__tests__/**/*.test.ts',
     ],
   },
 });

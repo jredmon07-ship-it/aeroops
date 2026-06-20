@@ -21,15 +21,17 @@
 
 import type { DispatchTicketView } from '../dispatch/types.js';
 import type { SquawkView, GroundingStatusView } from '../maintenance/types.js';
+import type { WorkOrderView } from '../maintenance/work-order-types.js';
 
 // Re-export for barrel convenience.
-export type { DispatchTicketView, SquawkView, GroundingStatusView };
+export type { DispatchTicketView, SquawkView, GroundingStatusView, WorkOrderView };
 
 // ─── AircraftListRow ──────────────────────────────────────────────────────────
 
 /**
  * AircraftListRow — one row in the fleet list (listAircraft).
- * Lightweight summary: identity + grounding + open-squawk count.
+ * Lightweight summary: identity + grounding + open-squawk count +
+ * open work-order count (≥0).
  */
 export interface AircraftListRow {
   id: string;
@@ -39,6 +41,8 @@ export interface AircraftListRow {
   active: boolean;
   grounded: boolean;
   openSquawkCount: number;
+  /** Count of work orders in status open or in_progress for this aircraft. */
+  openWorkOrderCount: number;
 }
 
 // ─── UpcomingReservationRow ───────────────────────────────────────────────────
@@ -100,6 +104,10 @@ export interface AircraftDetail {
 
   // Upcoming reservations (future, booked, this aircraft, ≤10, ASC)
   upcomingReservations: UpcomingReservationRow[];
+
+  // Open work orders (status in open/in_progress, ≤10, newest-first) [VERIFY-M1-E]
+  openWorkOrders: WorkOrderView[];
+  openWorkOrderCount: number;
 }
 
 // ─── UpdateAircraftResult ─────────────────────────────────────────────────────

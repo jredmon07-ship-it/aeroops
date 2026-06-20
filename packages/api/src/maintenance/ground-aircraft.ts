@@ -28,7 +28,7 @@ import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
-import { loadGroundingProbe } from './internal.js';
+import { loadGroundingProbe, applyUngroundOnTx } from './internal.js';
 import type { GroundAircraftResult, UnGroundResult, GroundingEventView } from './types.js';
 
 // ─── UUID validation ──────────────────────────────────────────────────────────
@@ -264,46 +264,19 @@ async function _unGroundAircraftImpl(
       );
     }
 
-    // 3b. Load current grounding state.
-    const probe = await loadGroundingProbe(tx, [resourceId]);
-    const current = probe.get(resourceId)!;
+    // 3b. Delegate to applyUngroundOnTx (inner-core helper).
+    //    It loads the current grounding state, inserts the 'released' event
+    //    (if grounded), and writes the audit row. Same behaviour as before.
+    const inner = await applyUngroundOnTx(sess, tx, { resourceId, reason });
 
-    // 3c. Idempotent: already released/never grounded → no write/audit.
-    if (!current.grounded) {
+    if (inner.alreadyReleased) {
       return { ok: true, alreadyReleased: true, grounding: null };
     }
-
-    // 3d. INSERT new 'released' event.
-    const [inserted] = await tx
-      .insert(aircraftGrounding)
-      .values({
-        orgId:    sess.orgId,
-        resourceId,
-        state:    'released',
-        reason:   reason ?? '',
-        squawkId: null,
-        dispatchTicketId: null,
-        createdBy: sess.userId,
-      })
-      .returning();
-
-    // 3e. Audit row.
-    await tx.insert(auditLog).values({
-      orgId:       sess.orgId,
-      actorUserId: sess.userId,
-      action:      'grounding.released',
-      entityType:  'aircraft_grounding',
-      entityId:    inserted!.id,
-      metadata: {
-        resourceId,
-        reason: reason ?? null,
-      },
-    });
 
     return {
       ok: true,
       alreadyReleased: false,
-      grounding: toGroundingEventView(inserted!),
+      grounding: toGroundingEventView(inner.groundingRow!),
     };
   });
 }

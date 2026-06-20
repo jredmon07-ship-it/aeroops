@@ -19,15 +19,13 @@
  *   updateSquawkStatusWithDb(db, session, in) — tests; inject pglite client.
  */
 import { z } from 'zod';
-import { eq, and, sql } from 'drizzle-orm';
-import { squawk, auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
-import { toSquawkView } from './report-squawk.js';
+import { applySquawkStatusOnTx } from './internal.js';
 import type { UpdateSquawkStatusResult } from './types.js';
 
 // ─── UUID validation ──────────────────────────────────────────────────────────
@@ -66,60 +64,13 @@ async function _updateSquawkStatusImpl(
   const { squawkId, status, resolutionNotes } = parsed.data;
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
-    // 3. Guarded UPDATE: WHERE id=$ AND status='open'.
-    //    Sets status, resolution_notes, resolved_by, resolved_at, updated_at.
-    //    RLS (org_id GUC) scopes the update to the session org automatically.
-    const updated = await tx
-      .update(squawk)
-      .set({
-        status,
-        resolutionNotes: resolutionNotes ?? null,
-        resolvedBy:      sess.userId,
-        resolvedAt:      sql`NOW()`,
-        updatedAt:       sql`NOW()`,
-      })
-      .where(
-        and(
-          eq(squawk.id, squawkId),
-          eq(squawk.status, 'open'),
-        ),
-      )
-      .returning();
-
-    // 4. 0 rows updated → probe for not_found vs not_open.
-    if (updated.length === 0) {
-      // Probe whether the squawk is visible in-org (status not checked → any status).
-      const probe = await tx
-        .select({ id: squawk.id, status: squawk.status })
-        .from(squawk)
-        .where(eq(squawk.id, squawkId))
-        .limit(1);
-
-      if (!probe[0]) {
-        // Not visible in this org (RLS-blocked or does not exist).
-        return { ok: false, reason: 'not_found' } as const;
-      }
-      // Visible but not open (resolved/deferred, or concurrent write).
-      return { ok: false, reason: 'not_open' } as const;
+    // 3. Delegate to applySquawkStatusOnTx (inner-core helper).
+    //    It performs the guarded UPDATE + audit row; same behaviour as before.
+    const result = await applySquawkStatusOnTx(sess, tx, { squawkId, status, resolutionNotes });
+    if (!result.ok) {
+      return { ok: false, reason: result.reason } as const;
     }
-
-    const row = updated[0]!;
-
-    // 5. Audit row.
-    await tx.insert(auditLog).values({
-      orgId:       sess.orgId,
-      actorUserId: sess.userId,
-      action:      'squawk.status_changed',
-      entityType:  'squawk',
-      entityId:    row.id,
-      metadata: {
-        squawkId,
-        newStatus:       status,
-        resolutionNotes: resolutionNotes ?? null,
-      },
-    });
-
-    return { ok: true, squawk: toSquawkView(row) };
+    return { ok: true, squawk: result.squawkRow };
   });
 }
 
