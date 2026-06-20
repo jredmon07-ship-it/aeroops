@@ -14,13 +14,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "types": ["node"],
-    "outDir": "./dist",
     "paths": {
       "@aeroops/core": ["../core/src/index.ts"],
       "@aeroops/core/*": ["../core/src/*"]
     }
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../core" }],
   "exclude": ["dist", "node_modules", "migrations"]
 }
