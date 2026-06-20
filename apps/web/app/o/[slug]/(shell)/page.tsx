@@ -36,6 +36,7 @@ import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability, getDashboardSummary } from '@aeroops/api';
+import { isPortalOnly } from '@/lib/nav';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -827,6 +828,12 @@ export default async function DashboardPage({
   // Middleware guards this, but defend in depth.
   if (!session) {
     redirect(`/o/${slug}/login`);
+  }
+
+  // Slice P1.2: portal-only roles (student/renter) land on the portal, not the
+  // dashboard. Staff roles (reporting:access) keep the dashboard.
+  if (isPortalOnly(session)) {
+    redirect(`/o/${slug}/portal`);
   }
 
   // Validate and normalize the range param (validates→fallback 30d).

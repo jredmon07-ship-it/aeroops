@@ -1,18 +1,21 @@
 /**
- * nav.test.ts — Pure unit tests for filterNavForSession (lib/nav.ts).
+ * nav.test.ts — Pure unit tests for filterNavForSession + isPortalOnly (lib/nav.ts).
  *
- * COVERAGE:
+ * COVERAGE (Slice P1.2 additions in bold):
  *
  *   1. Null/undefined session → returns [] (no nav items for unauthenticated)
- *   2. owner → gets Dashboard + Org settings (both capabilities)
- *   3. manager → gets Dashboard + Org settings (both capabilities)
- *   4. All 6 restricted roles → get Dashboard only (no Org settings in nav)
+ *   2. owner → gets Portal + Dashboard + Org settings (all capabilities)
+ *   3. manager → gets Portal + Dashboard + Org settings (all capabilities)
+ *   4. Per-role nav: exact RBAC-derived item lists for all 8 roles
  *   5. Slug substitution: [slug] in hrefs is replaced with the actual slug
  *   6. The filtered output preserves label and requiredCapability fields
  *   7. Custom items list (not the default NAV_ITEMS) works correctly
  *   8. Items that session lacks capability for are completely absent (not just hidden)
  *   9. Empty items array → returns []
- *  10. AUTHZ NOTE verification: nav uses hasCapability (UX predicate) not requireCapability (gate)
+ *  10. Consistency: filterNavForSession result matches hasCapability predictions
+ *  11. NAV_ITEMS registry validation (12 items; Portal first; Dashboard = reporting:access)
+ *  **12. isPortalOnly — truth table for all 8 roles + null/undefined (Slice P1.2)**
+ *  **13. Portal visible to student/renter/owner/manager; Dashboard hidden from student/renter**
  *
  * These are PURE unit tests — no DOM, no Next.js, no DB.
  *
@@ -20,13 +23,20 @@
  *   filterNavForSession is a UX/nav convenience ONLY.
  *   The real gate is requireCapability() in each protected route handler.
  *   Removing a nav link is cosmetic; direct URL access is blocked server-side.
+ *
+ * Slice P1.2 changes applied:
+ *   - "Portal" NAV_ITEM added at TOP (portal:access → owner/manager/student/renter).
+ *   - "Dashboard" requiredCapability RAISED from app:access to reporting:access.
+ *     student/renter no longer see Dashboard in nav; mechanic also loses Dashboard.
+ *   - Total NAV_ITEMS: 12 (was 11).
+ *   - isPortalOnly(session) exported: true for student/renter only.
  */
 
 import { describe, it, expect } from 'vitest';
 import { MEMBERSHIP_ROLES } from '@aeroops/core';
 import type { MembershipRole } from '@aeroops/core';
 import type { AppSession } from '@aeroops/api';
-import { filterNavForSession, NAV_ITEMS } from '../nav';
+import { filterNavForSession, isPortalOnly, NAV_ITEMS } from '../nav';
 import type { NavItem } from '../nav';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -56,27 +66,34 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 ];
 
 // Expected nav labels per role, derived from the RBAC matrix (packages/core
-// capabilities.ts) against the Slice-R1.2 NAV_ITEMS:
-//   Dashboard      app:access                  → all roles
-//   Reservations   schedule:access             → owner, manager, dispatcher, cfi
-//   Board          schedule:access             → owner, manager, dispatcher, cfi
-//   Auto-schedule  schedule:create_reservation → owner, manager, dispatcher, cfi
-//   Resources      schedule:manage_resources   → owner, manager, dispatcher
-//   People         people:access               → owner, manager, dispatcher, cfi
-//   Training       training:access             → owner, manager, dispatcher, cfi
-//   Fleet          fleet:access                → owner, manager, dispatcher, cfi, mechanic
-//   Maintenance    maintenance:access          → owner, manager, dispatcher, cfi, mechanic
-//   Reports        reporting:access            → owner, manager, dispatcher, cfi, accountant
-//   Org settings   org:manage_settings         → owner, manager
-// Order matches NAV_ITEMS order.
+// capabilities.ts) against the Slice-P1.2 NAV_ITEMS.
+//
+// Slice P1.2 changes from the prior nav matrix:
+//   - Portal (portal:access)        → owner, manager, student, renter.
+//   - Dashboard (reporting:access)  → owner, manager, dispatcher, cfi, accountant.
+//     RAISED from app:access. student/renter/mechanic NO LONGER see Dashboard.
+//
+// Full matrix (items in NAV_ITEMS order):
+//   Portal        portal:access               → owner, manager, student, renter
+//   Dashboard     reporting:access            → owner, manager, dispatcher, cfi, accountant
+//   Reservations  schedule:access             → owner, manager, dispatcher, cfi
+//   Board         schedule:access             → owner, manager, dispatcher, cfi
+//   Auto-schedule schedule:create_reservation → owner, manager, dispatcher, cfi
+//   Resources     schedule:manage_resources   → owner, manager, dispatcher
+//   People        people:access               → owner, manager, dispatcher, cfi
+//   Training      training:access             → owner, manager, dispatcher, cfi
+//   Fleet         fleet:access                → owner, manager, dispatcher, cfi, mechanic
+//   Maintenance   maintenance:access          → owner, manager, dispatcher, cfi, mechanic
+//   Reports       reporting:access            → owner, manager, dispatcher, cfi, accountant
+//   Org settings  org:manage_settings         → owner, manager
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Org settings'],
-  manager: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Org settings'],
+  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Org settings'],
+  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Org settings'],
   dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports'],
-  cfi: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports'],
-  mechanic: ['Dashboard', 'Fleet', 'Maintenance'],
-  renter: ['Dashboard'],
-  student: ['Dashboard'],
+  cfi:        ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports'],
+  mechanic:   ['Fleet', 'Maintenance'],
+  renter:     ['Portal'],
+  student:    ['Portal'],
   accountant: ['Dashboard', 'Reports'],
 };
 
@@ -103,15 +120,21 @@ describe('1. null/undefined session → empty nav', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 2. owner → Dashboard + Org settings
+// 2. owner → Portal + Dashboard + Org settings (all capabilities)
 // ═════════════════════════════════════════════════════════════════════════════
 
-describe('2. owner gets Dashboard and Org settings', () => {
+describe('2. owner gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 11 items (full nav incl. Auto-schedule + People + Training + Fleet + Maintenance + Reports)', () => {
-    expect(result.length).toBe(11);
+  it('returns exactly 12 items (full nav incl. Portal + Dashboard + all staff items)', () => {
+    expect(result.length).toBe(12);
+  });
+
+  it('includes Portal (first item for owner)', () => {
+    const labels = result.map((i) => i.label);
+    expect(labels).toContain('Portal');
+    expect(labels[0]).toBe('Portal');
   });
 
   it('includes Dashboard', () => {
@@ -129,39 +152,43 @@ describe('2. owner gets Dashboard and Org settings', () => {
     expect(labels).toContain('Training');
   });
 
-  it('Dashboard comes before Org settings (order preserved)', () => {
+  it('Portal comes before Dashboard comes before Org settings (order preserved)', () => {
     const labels = result.map((i) => i.label);
+    const portalIdx = labels.indexOf('Portal');
     const dashIdx = labels.indexOf('Dashboard');
     const settingsIdx = labels.indexOf('Org settings');
+    expect(portalIdx).toBeLessThan(dashIdx);
     expect(dashIdx).toBeLessThan(settingsIdx);
   });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 3. manager → Dashboard + Org settings
+// 3. manager → Portal + Dashboard + Org settings
 // ═════════════════════════════════════════════════════════════════════════════
 
-describe('3. manager gets Dashboard and Org settings', () => {
+describe('3. manager gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 11 items (full nav incl. Auto-schedule + People + Training + Fleet + Maintenance + Reports)', () => {
-    expect(result.length).toBe(11);
+  it('returns exactly 12 items (full nav)', () => {
+    expect(result.length).toBe(12);
+  });
+
+  it('includes Portal', () => {
+    expect(result.map((i) => i.label)).toContain('Portal');
   });
 
   it('includes Dashboard', () => {
-    const labels = result.map((i) => i.label);
-    expect(labels).toContain('Dashboard');
+    expect(result.map((i) => i.label)).toContain('Dashboard');
   });
 
   it('includes Org settings', () => {
-    const labels = result.map((i) => i.label);
-    expect(labels).toContain('Org settings');
+    expect(result.map((i) => i.label)).toContain('Org settings');
   });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 4. Restricted roles → Dashboard only, no Org settings
+// 4. Restricted roles → correct per-role nav, no Org settings
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('4. Roles without org:manage_settings never get Org settings in nav', () => {
@@ -172,10 +199,6 @@ describe('4. Roles without org:manage_settings never get Org settings in nav', (
 
       it(`${role} gets exactly its RBAC-derived nav items`, () => {
         expect(result.map((i) => i.label)).toEqual(EXPECTED_LABELS[role]);
-      });
-
-      it(`${role} always gets Dashboard first`, () => {
-        expect(result[0]?.label).toBe('Dashboard');
       });
 
       it(`${role} does NOT get Org settings in nav`, () => {
@@ -196,8 +219,16 @@ describe('4. Roles without org:manage_settings never get Org settings in nav', (
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('5. Slug substitution — [slug] replaced with actual org slug', () => {
-  it('Dashboard href uses the provided slug (not [slug] literal)', () => {
+  it('Portal href uses the provided slug (not [slug] literal)', () => {
     const session = makeSession('student');
+    const result = filterNavForSession(session, NAV_ITEMS, 'my-org');
+    const portal = result.find((i) => i.label === 'Portal');
+    expect(portal?.href).toBe('/o/my-org/portal');
+    expect(portal?.href).not.toContain('[slug]');
+  });
+
+  it('Dashboard href uses the provided slug (owner role)', () => {
+    const session = makeSession('owner');
     const result = filterNavForSession(session, NAV_ITEMS, 'my-org');
     const dashboard = result.find((i) => i.label === 'Dashboard');
     expect(dashboard?.href).toBe('/o/my-org');
@@ -215,8 +246,10 @@ describe('5. Slug substitution — [slug] replaced with actual org slug', () => 
   it('slug with hyphens is handled correctly', () => {
     const session = makeSession('manager');
     const result = filterNavForSession(session, NAV_ITEMS, 'alpha-flight-school');
+    const portal = result.find((i) => i.label === 'Portal');
     const dashboard = result.find((i) => i.label === 'Dashboard');
     const settings = result.find((i) => i.label === 'Org settings');
+    expect(portal?.href).toBe('/o/alpha-flight-school/portal');
     expect(dashboard?.href).toBe('/o/alpha-flight-school');
     expect(settings?.href).toBe('/o/alpha-flight-school/settings');
   });
@@ -246,11 +279,18 @@ describe('5. Slug substitution — [slug] replaced with actual org slug', () => 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('6. Filtered output preserves label and requiredCapability fields', () => {
-  it('Dashboard item has correct requiredCapability = app:access', () => {
+  it('Portal item has correct requiredCapability = portal:access', () => {
     const session = makeSession('student');
     const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const portal = result.find((i) => i.label === 'Portal');
+    expect(portal?.requiredCapability).toBe('portal:access');
+  });
+
+  it('Dashboard item has correct requiredCapability = reporting:access (RAISED from app:access in P1.2)', () => {
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
     const dashboard = result.find((i) => i.label === 'Dashboard');
-    expect(dashboard?.requiredCapability).toBe('app:access');
+    expect(dashboard?.requiredCapability).toBe('reporting:access');
   });
 
   it('Org settings item has correct requiredCapability = org:manage_settings', () => {
@@ -263,11 +303,9 @@ describe('6. Filtered output preserves label and requiredCapability fields', () 
   it('items are new objects (slug-replaced copy, not original NAV_ITEMS reference)', () => {
     const session = makeSession('owner');
     const result = filterNavForSession(session, NAV_ITEMS, 'acme');
-    // The returned items should be new objects (spread) with mutated href
     for (const item of result) {
       const original = NAV_ITEMS.find((n) => n.label === item.label);
       expect(original).toBeDefined();
-      // Original still has [slug] in href; returned item has it replaced
       if (original?.href.includes('[slug]')) {
         expect(item.href).not.toBe(original.href);
         expect(item.href).not.toContain('[slug]');
@@ -327,12 +365,25 @@ describe('8. Items that session lacks are completely absent (not just hidden)', 
     }
   });
 
-  it('result array has no "holes" for restricted capabilities', () => {
+  it('student result has exactly 1 item (Portal only)', () => {
+    const session = makeSession('student');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    expect(result.length).toBe(1);
+    expect(result[0]?.label).toBe('Portal');
+  });
+
+  it('renter result has exactly 1 item (Portal only)', () => {
     const session = makeSession('renter');
     const result = filterNavForSession(session, NAV_ITEMS, 'acme');
-    // Should be a clean [Dashboard] array, no gap/null for Org settings
     expect(result.length).toBe(1);
-    expect(result[0]).toBeDefined();
+    expect(result[0]?.label).toBe('Portal');
+  });
+
+  it('mechanic result has exactly 2 items (Fleet + Maintenance)', () => {
+    const session = makeSession('mechanic');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    expect(result.length).toBe(2);
+    expect(result.map((i) => i.label)).toEqual(['Fleet', 'Maintenance']);
   });
 });
 
@@ -367,9 +418,6 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
       // Exact, order-preserving match against the RBAC-derived expectation.
       expect(labels).toEqual(EXPECTED_LABELS[role]);
 
-      // All 8 roles have app:access → always get Dashboard.
-      expect(labels).toContain('Dashboard');
-
       // Org settings visibility tracks org:manage_settings (owner + manager only).
       if (PERMITTED_ROLES.includes(role)) {
         expect(labels).toContain('Org settings');
@@ -385,14 +433,20 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 11 items (Dashboard, Reservations, Board, Auto-schedule, Resources, People, Training, Fleet, Maintenance, Reports, Org settings)', () => {
-    expect(NAV_ITEMS.length).toBe(11);
+  it('NAV_ITEMS has exactly 12 items (Portal + Dashboard + 10 staff items)', () => {
+    expect(NAV_ITEMS.length).toBe(12);
   });
 
-  it('first item is Dashboard with app:access', () => {
-    expect(NAV_ITEMS[0]?.label).toBe('Dashboard');
-    expect(NAV_ITEMS[0]?.requiredCapability).toBe('app:access');
-    expect(NAV_ITEMS[0]?.href).toContain('[slug]');
+  it('first item is Portal with portal:access (Slice P1.2 addition)', () => {
+    expect(NAV_ITEMS[0]?.label).toBe('Portal');
+    expect(NAV_ITEMS[0]?.requiredCapability).toBe('portal:access');
+    expect(NAV_ITEMS[0]?.href).toBe('/o/[slug]/portal');
+  });
+
+  it('second item is Dashboard with reporting:access (RAISED from app:access in Slice P1.2)', () => {
+    expect(NAV_ITEMS[1]?.label).toBe('Dashboard');
+    expect(NAV_ITEMS[1]?.requiredCapability).toBe('reporting:access');
+    expect(NAV_ITEMS[1]?.href).toBe('/o/[slug]');
   });
 
   it('Reservations item is gated by schedule:access', () => {
@@ -453,7 +507,6 @@ describe('11. NAV_ITEMS registry', () => {
     const maintenance = NAV_ITEMS.find((i) => i.label === 'Maintenance');
     expect(maintenance?.requiredCapability).toBe('maintenance:access');
     expect(maintenance?.href).toBe('/o/[slug]/maintenance/work-orders');
-    // Visible to: owner, manager, dispatcher, cfi, mechanic
     const maintenanceIdx = NAV_ITEMS.findIndex((i) => i.label === 'Maintenance');
     expect(maintenanceIdx).toBeGreaterThan(-1);
   });
@@ -503,5 +556,161 @@ describe('11. NAV_ITEMS registry', () => {
     for (const item of NAV_ITEMS) {
       expect(item.href).toContain('[slug]');
     }
+  });
+
+  it('Portal is visible to student and renter (portal:access) but NOT to mechanic/accountant (Slice P1.2)', () => {
+    const checkRole = (role: MembershipRole) => {
+      const s = makeSession(role);
+      return filterNavForSession(s, NAV_ITEMS, 'acme').some((i) => i.label === 'Portal');
+    };
+    expect(checkRole('student')).toBe(true);
+    expect(checkRole('renter')).toBe(true);
+    expect(checkRole('owner')).toBe(true);
+    expect(checkRole('manager')).toBe(true);
+    expect(checkRole('mechanic')).toBe(false);
+    expect(checkRole('accountant')).toBe(false);
+    expect(checkRole('cfi')).toBe(false);
+    expect(checkRole('dispatcher')).toBe(false);
+  });
+
+  it('Dashboard is NOT visible to student/renter/mechanic (Dashboard now requires reporting:access in P1.2)', () => {
+    const checkRole = (role: MembershipRole) => {
+      const s = makeSession(role);
+      return filterNavForSession(s, NAV_ITEMS, 'acme').some((i) => i.label === 'Dashboard');
+    };
+    expect(checkRole('student')).toBe(false);
+    expect(checkRole('renter')).toBe(false);
+    expect(checkRole('mechanic')).toBe(false);
+    // Staff roles that have reporting:access still see Dashboard.
+    expect(checkRole('owner')).toBe(true);
+    expect(checkRole('manager')).toBe(true);
+    expect(checkRole('dispatcher')).toBe(true);
+    expect(checkRole('cfi')).toBe(true);
+    expect(checkRole('accountant')).toBe(true);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 12. isPortalOnly — truth table for all 8 roles + null/undefined (Slice P1.2)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('12. isPortalOnly (Slice P1.2)', () => {
+  it('null session → false (fail-closed)', () => {
+    expect(isPortalOnly(null)).toBe(false);
+  });
+
+  it('undefined session → false (fail-closed)', () => {
+    expect(isPortalOnly(undefined)).toBe(false);
+  });
+
+  it('student → true (portal:access only, no reporting:access)', () => {
+    expect(isPortalOnly(makeSession('student'))).toBe(true);
+  });
+
+  it('renter → true (portal:access only, no reporting:access)', () => {
+    expect(isPortalOnly(makeSession('renter'))).toBe(true);
+  });
+
+  it('owner → false (has both portal:access AND reporting:access)', () => {
+    expect(isPortalOnly(makeSession('owner'))).toBe(false);
+  });
+
+  it('manager → false (has both portal:access AND reporting:access)', () => {
+    expect(isPortalOnly(makeSession('manager'))).toBe(false);
+  });
+
+  it('cfi → false (has reporting:access, NOT portal:access)', () => {
+    expect(isPortalOnly(makeSession('cfi'))).toBe(false);
+  });
+
+  it('dispatcher → false (has reporting:access, NOT portal:access)', () => {
+    expect(isPortalOnly(makeSession('dispatcher'))).toBe(false);
+  });
+
+  it('accountant → false (has reporting:access, NOT portal:access)', () => {
+    expect(isPortalOnly(makeSession('accountant'))).toBe(false);
+  });
+
+  it('mechanic → false (has NEITHER portal:access NOR reporting:access)', () => {
+    expect(isPortalOnly(makeSession('mechanic'))).toBe(false);
+  });
+
+  it('all 8 roles: isPortalOnly matches RBAC matrix (student+renter only)', () => {
+    const expectedTrue: MembershipRole[] = ['student', 'renter'];
+    for (const role of MEMBERSHIP_ROLES) {
+      const result = isPortalOnly(makeSession(role));
+      const expected = expectedTrue.includes(role);
+      expect(result, `role=${role}`).toBe(expected);
+    }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 13. Portal visible / Dashboard hidden (Slice P1.2 — separation regression)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('13. Portal visible to student/renter; Dashboard hidden from student/renter (P1.2)', () => {
+  it('student sees Portal, NOT Dashboard (Dashboard requires reporting:access)', () => {
+    const session = makeSession('student');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    expect(labels).toContain('Portal');
+    expect(labels).not.toContain('Dashboard');
+  });
+
+  it('renter sees Portal, NOT Dashboard', () => {
+    const session = makeSession('renter');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    expect(labels).toContain('Portal');
+    expect(labels).not.toContain('Dashboard');
+  });
+
+  it('owner sees BOTH Portal AND Dashboard (both portal:access and reporting:access)', () => {
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    expect(labels).toContain('Portal');
+    expect(labels).toContain('Dashboard');
+  });
+
+  it('manager sees BOTH Portal AND Dashboard', () => {
+    const session = makeSession('manager');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    expect(labels).toContain('Portal');
+    expect(labels).toContain('Dashboard');
+  });
+
+  it('cfi does NOT see Portal (no portal:access) but sees Dashboard (reporting:access)', () => {
+    const session = makeSession('cfi');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    expect(labels).not.toContain('Portal');
+    expect(labels).toContain('Dashboard');
+  });
+
+  it('dispatcher does NOT see Portal but sees Dashboard', () => {
+    const session = makeSession('dispatcher');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    expect(labels).not.toContain('Portal');
+    expect(labels).toContain('Dashboard');
+  });
+
+  it('mechanic sees neither Portal nor Dashboard (no portal:access, no reporting:access)', () => {
+    const session = makeSession('mechanic');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    expect(labels).not.toContain('Portal');
+    expect(labels).not.toContain('Dashboard');
+  });
+
+  it('accountant does NOT see Portal but sees Dashboard (reporting:access, no portal:access)', () => {
+    const session = makeSession('accountant');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    expect(labels).not.toContain('Portal');
+    expect(labels).toContain('Dashboard');
   });
 });

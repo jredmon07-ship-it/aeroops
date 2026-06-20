@@ -11,6 +11,12 @@
  *   The real gate is requireCapability(), called server-side in each
  *   protected route. Removing a nav link is cosmetic; the gate stops
  *   unauthorized access even if someone hits the URL directly.
+ *
+ * isPortalOnly — pure predicate used by the org-root dashboard page to
+ *   redirect student/renter users to the portal instead of the empty dashboard.
+ *   Roles: portal:access WITHOUT reporting:access → portal-only.
+ *   owner/manager have BOTH portal:access and reporting:access → NOT portal-only.
+ *   cfi/dispatcher have reporting:access but NOT portal:access → NOT portal-only.
  */
 
 import { hasCapability } from '@aeroops/api';
@@ -35,24 +41,35 @@ export interface NavItem {
  * time (e.g. href.replace('[slug]', slug)).
  *
  * Order is intentional:
- *   1. Dashboard — always first; visible to all authenticated roles.
- *   2. Reservations — Schedule hub entry point (schedule:access).
- *   3. Board — Single-day dispatch board (schedule:access); after Reservations.
- *   4. Auto-schedule — Intelligent auto-scheduler (schedule:create_reservation);
+ *   1. Portal — self-service portal for student/renter (+ owner/manager preview);
+ *      portal:access. FIRST so portal-only roles see it immediately.
+ *   2. Dashboard — ops console; raised to reporting:access (Slice P1.2).
+ *      Hidden from student/renter (they are redirected to Portal).
+ *   3. Reservations — Schedule hub entry point (schedule:access).
+ *   4. Board — Single-day dispatch board (schedule:access); after Reservations.
+ *   5. Auto-schedule — Intelligent auto-scheduler (schedule:create_reservation);
  *      after Board, before Resources — scheduling operators only.
- *   5. Resources — Resource admin (schedule:manage_resources only).
- *   6. People — Roster management (people:access); after Resources, before Training.
- *   7. Training — Training hub (training:access); after People, before Fleet.
- *   8. Fleet — Aircraft detail hub (fleet:access); after Training, before Maintenance.
- *   9. Maintenance — Squawks + grounding (maintenance:access).
- *  10. Reports — Operational reports (reporting:access); after Maintenance, before Org settings.
- *  11. Org settings — owner + manager only (org:manage_settings).
+ *   6. Resources — Resource admin (schedule:manage_resources only).
+ *   7. People — Roster management (people:access); after Resources, before Training.
+ *   8. Training — Training hub (training:access); after People, before Fleet.
+ *   9. Fleet — Aircraft detail hub (fleet:access); after Training, before Maintenance.
+ *  10. Maintenance — Squawks + grounding (maintenance:access).
+ *  11. Reports — Operational reports (reporting:access); after Maintenance, before Org settings.
+ *  12. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
+  // Slice P1.2: Portal — student/renter self-service (+ owner/manager preview).
+  // Placed FIRST so portal-only roles (student/renter) see it as the top item.
+  // portal:access → owner, manager, student, renter. NOT cfi/dispatcher/mechanic/accountant.
+  {
+    label: 'Portal',
+    href: '/o/[slug]/portal',
+    requiredCapability: 'portal:access',
+  },
   {
     label: 'Dashboard',
     href: '/o/[slug]',
-    requiredCapability: 'app:access',
+    requiredCapability: 'reporting:access',
   },
   {
     label: 'Reservations',
@@ -115,6 +132,35 @@ export const NAV_ITEMS: readonly NavItem[] = [
     requiredCapability: 'org:manage_settings',
   },
 ] as const;
+
+// ─── isPortalOnly ─────────────────────────────────────────────────────────────
+
+/**
+ * isPortalOnly — pure predicate: does this session belong to a portal-only role?
+ *
+ * Returns true when the session has portal:access but NOT reporting:access.
+ * In practice this means: student and renter.
+ * owner and manager have BOTH portal:access AND reporting:access → false.
+ * cfi, dispatcher, accountant have reporting:access but NOT portal:access → false.
+ * mechanic has neither → false.
+ *
+ * Used by the org-root dashboard page to redirect student/renter users to the
+ * portal (/o/[slug]/portal) rather than leaving them on an empty dashboard.
+ *
+ * PURE: no DOM, no I/O. Unit-testable.
+ *
+ * @param session - AppSession (may be null/undefined → false fail-closed).
+ * @returns true iff the session is a portal-only role (student | renter).
+ */
+export function isPortalOnly(
+  session: AppSession | null | undefined,
+): boolean {
+  if (!session) return false;
+  return (
+    hasCapability(session, 'portal:access') &&
+    !hasCapability(session, 'reporting:access')
+  );
+}
 
 // ─── filterNavForSession ──────────────────────────────────────────────────────
 
