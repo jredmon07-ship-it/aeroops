@@ -11,6 +11,7 @@ import { resolve } from 'path';
  *   - schedule/new/_components/__tests__/    (twilight indicator — Slice 4a)
  *   - schedule/auto/_components/__tests__/   (auto-schedule utils — Slice 4b)
  *   - training/__tests__/                    (training display helpers — Slice T1.3)
+ *   - (shell)/__tests__/                     (command palette helpers — Slice S1.2)
  *
  * Full Next.js route / browser e2e tests are deferred to Slice 0.4 (CI/CD phase).
  *
@@ -49,6 +50,8 @@ export default defineConfig({
       'app/o/\\[slug\\]/\\(shell\\)/maintenance/__tests__/**/*.test.ts',
       // Slice R1.2 — operational reports display helper tests (pure, no DOM/Next.js).
       'app/o/\\[slug\\]/\\(shell\\)/reporting/reports/_components/__tests__/**/*.test.ts',
+      // Slice S1.2 — command palette helper tests (pure, no DOM/Next.js).
+      'app/o/\\[slug\\]/\\(shell\\)/__tests__/**/*.test.ts',
     ],
   },
 });

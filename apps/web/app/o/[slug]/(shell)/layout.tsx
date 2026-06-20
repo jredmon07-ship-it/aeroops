@@ -32,6 +32,7 @@ import { Separator } from '@/components/ui/separator';
 import { SignOutButton } from '../sign-out-button';
 import { MobileNav } from './mobile-nav';
 import { filterNavForSession, NAV_ITEMS } from '@/lib/nav';
+import { CommandPalette } from './command-palette';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -101,8 +102,13 @@ export default async function OrgShellLayout({
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* User identity + role */}
+          {/* Search trigger + user identity + role */}
           <div className="flex items-center gap-3">
+            {/* ⌘K palette trigger — the palette itself mounts once below. */}
+            <CommandPalette slug={slug} />
+
+            <Separator orientation="vertical" className="h-5" />
+
             <span className="hidden text-sm text-slate-500 sm:block">
               {session.user.email}
             </span>
