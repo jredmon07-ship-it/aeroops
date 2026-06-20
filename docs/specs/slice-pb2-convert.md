@@ -27,7 +27,8 @@ nulls only the link; handled_shape_check still passes for a converted row with a
 `{ id:uuid (the request), resourceId:uuid (the tail — SINGLE resource in PB2), startAt:Date, endAt:Date }` (notes are
 DERIVED, not input). **Authz BOTH, in order:** `requireCapability(session,'booking:triage')` then
 `requireCapability(session,'schedule:create_reservation')` (converting reads triage AND creates a reservation →
-owner/manager/dispatcher/cfi qualify). **Algorithm (ONE withSessionOrgContextWithDb tx):** (1) authz before any data;
+owner/manager/dispatcher qualify — cfi has schedule:create_reservation but NOT booking:triage, so cfi is correctly
+refused; front-desk triage is intentionally the gate). **Algorithm (ONE withSessionOrgContextWithDb tx):** (1) authz before any data;
 (2) zod-validate (bad uuid → ValidationError); (3) load the request row `SELECT id,status,requester_name,requester_email,
 requester_phone ... WHERE id=$id` (RLS-scoped; not visible → `{ok:false,reason:'not_found'}`) **FOR UPDATE**; (4)
 idempotency guard: if status NOT in (new, contacted) → `{ok:false,reason:'not_convertible'}` (covers already-converted/
@@ -52,7 +53,7 @@ created_by=staff + metadata.bookingRequestId; **atomic refusal per gate** (confl
 block/availability-block → matching arm + NO reservation written + request STILL new/contacted, link NULL); atomic success
 (reservation + request converted + link set, consistent); **double-convert concurrency** (two parallel → exactly one
 reservation, loser not_convertible — FOR UPDATE); re-convert/declined guard → not_convertible; T-ISO (org A converts org
-B id → not_found; org B resourceId → ValidationError, no write); caps (both required — owner/manager/dispatcher/cfi yes;
+B id → not_found; org B resourceId → ValidationError, no write); caps (both required — owner/manager/dispatcher yes, cfi refused (no booking:triage);
 missing either → Forbidden; unauth → Unauthenticated); ONE convert audit row, zero on refusal, no PII; converted_reservation_id
 correct (set on success, NULL on refusal) + composite FK cross-org reject; updateBookingRequestStatus contacted→converted
 now invalid_transition (regression); NO money (balance seam OFF no-op); warn-mode passthrough (grounding/twilight/availability
