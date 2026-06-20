@@ -41,7 +41,7 @@ import { describe, it, expect } from 'vitest';
 import { MEMBERSHIP_ROLES } from '@aeroops/core';
 import type { MembershipRole } from '@aeroops/core';
 import type { AppSession } from '@aeroops/api';
-import { filterNavForSession, isPortalOnly, NAV_ITEMS } from '../nav';
+import { filterNavForSession, isPortalOnly, landingPathFor, NAV_ITEMS } from '../nav';
 import type { NavItem } from '../nav';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -809,5 +809,77 @@ describe('13. Portal visible to student/renter; Dashboard hidden from student/re
     const labels = result.map((i) => i.label);
     expect(labels).not.toContain('Portal');
     expect(labels).toContain('Dashboard');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 15. landingPathFor — all 8 roles + null/undefined (NIT 1)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('15. landingPathFor', () => {
+  it('null session → null (no redirect)', () => {
+    expect(landingPathFor(null)).toBeNull();
+  });
+
+  it('undefined session → null (no redirect)', () => {
+    expect(landingPathFor(undefined)).toBeNull();
+  });
+
+  // Roles with reporting:access stay on the dashboard (null = no redirect).
+  it('owner → null (has reporting:access → stays on dashboard)', () => {
+    expect(landingPathFor(makeSession('owner'))).toBeNull();
+  });
+
+  it('manager → null (has reporting:access → stays on dashboard)', () => {
+    expect(landingPathFor(makeSession('manager'))).toBeNull();
+  });
+
+  it('dispatcher → null (has reporting:access → stays on dashboard)', () => {
+    expect(landingPathFor(makeSession('dispatcher'))).toBeNull();
+  });
+
+  it('cfi → null (has reporting:access → stays on dashboard)', () => {
+    expect(landingPathFor(makeSession('cfi'))).toBeNull();
+  });
+
+  it('accountant → null (has reporting:access → stays on dashboard)', () => {
+    expect(landingPathFor(makeSession('accountant'))).toBeNull();
+  });
+
+  // Portal-only roles (student/renter) redirect to /portal.
+  it('student → /o/[slug]/portal (portal:access only, no reporting:access)', () => {
+    expect(landingPathFor(makeSession('student'))).toBe('/o/[slug]/portal');
+  });
+
+  it('renter → /o/[slug]/portal (portal:access only, no reporting:access)', () => {
+    expect(landingPathFor(makeSession('renter'))).toBe('/o/[slug]/portal');
+  });
+
+  // Mechanic has fleet:access + maintenance:access — redirects to Fleet (first nav item).
+  it('mechanic → /o/[slug]/fleet (first accessible nav item; no reporting:access, no portal:access)', () => {
+    expect(landingPathFor(makeSession('mechanic'))).toBe('/o/[slug]/fleet');
+  });
+
+  // Hypothetical capless session: no matching nav item → null.
+  it('capless hypothetical (no items match) → null', () => {
+    // Build a session that has no nav capabilities at all by overriding role with
+    // a mock that has no caps. We can simulate this by passing an empty items list.
+    const sess = makeSession('mechanic');
+    expect(landingPathFor(sess, [])).toBeNull();
+  });
+
+  // Verify mechanic's landing is the FIRST nav item they can see (Fleet before Maintenance).
+  it('mechanic landing is Fleet (first of Fleet+Maintenance in NAV_ITEMS order)', () => {
+    const landing = landingPathFor(makeSession('mechanic'));
+    // Fleet is before Maintenance in NAV_ITEMS — must land on Fleet.
+    expect(landing).toBe('/o/[slug]/fleet');
+    expect(landing).not.toBe('/o/[slug]/maintenance/work-orders');
+  });
+
+  // The [slug] placeholder is preserved so the page.tsx caller can interpolate it.
+  it('[slug] placeholder is present in returned path (not resolved by landingPathFor)', () => {
+    expect(landingPathFor(makeSession('mechanic'))).toContain('[slug]');
+    expect(landingPathFor(makeSession('student'))).toContain('[slug]');
+    expect(landingPathFor(makeSession('renter'))).toContain('[slug]');
   });
 });

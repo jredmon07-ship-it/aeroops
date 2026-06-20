@@ -25,7 +25,8 @@ import {
   withOrgContext,
   seedTwoOrgs,
 } from '@aeroops/db';
-import { auditLog, dispatchConfig, reservation, resourceAvailabilityWindow } from '@aeroops/db';
+import { auditLog, dispatchConfig, location, reservation, resource, resourceAvailabilityWindow } from '@aeroops/db';
+import { computeSolarEvents } from '@aeroops/core';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { createResourceWithDb } from '../scheduling/resource-commands.js';
@@ -80,6 +81,7 @@ interface TestEnv {
   pglite: PGlite;
   orgAId: string;
   orgBId: string;
+  locationAId: string;
   userAId: string;
   userBId: string;
 }
@@ -99,6 +101,7 @@ beforeAll(async () => {
     db, pglite,
     orgAId: seed.orgAId,
     orgBId: seed.orgBId,
+    locationAId: seed.locationAId,
     userAId: seed.userAId,
     userBId: seed.userBId,
   };
@@ -124,6 +127,37 @@ async function setAvailabilityConfig(
 
 async function clearConfig(orgId: string): Promise<void> {
   await withOrgContext(env.db, orgId, async (tx) => { await tx.delete(dispatchConfig); });
+}
+
+/** Set BOTH availability AND twilight config fields in one upsert (for precedence tests). */
+async function setBothConfigs(
+  orgId: string,
+  cfg: { availabilityEnabled: boolean; availabilityMode: 'warn' | 'block'; twilightEnabled: boolean; twilightMode: 'warn' | 'block' },
+): Promise<void> {
+  await withOrgContext(env.db, orgId, async (tx) => {
+    await tx.delete(dispatchConfig);
+    await tx.insert(dispatchConfig).values({
+      orgId,
+      availabilityConstraintEnabled: cfg.availabilityEnabled,
+      availabilityMode: cfg.availabilityMode,
+      twilightConstraintEnabled: cfg.twilightEnabled,
+      twilightMode: cfg.twilightMode,
+    });
+  });
+}
+
+/** Set location coordinates (for twilight gate activation). */
+async function setCoords(orgId: string, locationId: string, lat: number, lon: number): Promise<void> {
+  await withOrgContext(env.db, orgId, async (tx) => {
+    await tx.update(location).set({ latitude: String(lat), longitude: String(lon) }).where(eq(location.id, locationId));
+  });
+}
+
+/** Clear location coordinates. */
+async function clearCoords(orgId: string, locationId: string): Promise<void> {
+  await withOrgContext(env.db, orgId, async (tx) => {
+    await tx.update(location).set({ latitude: null, longitude: null }).where(eq(location.id, locationId));
+  });
 }
 
 let acCounter = 0;
@@ -376,6 +410,71 @@ describe('availability: precedence', () => {
     if (result.ok) throw new Error('expected refusal');
     expect(result.reason).toBe('conflict');
     await clearConfig(orgAId);
+  });
+
+  it('twilight block AND availability block (no conflict) → reason:twilight (twilight evaluated before availability)', async () => {
+    // Gate precedence: conflict → twilight → availability (AV1 coverage gap — NIT 3).
+    // A booking BOTH outside operating hours AND crossing civil dusk under BLOCK mode
+    // for both constraints must return reason='twilight' because twilight is checked
+    // LAST in the chain before availability, i.e. it fires before availability.
+    //
+    // Setup mirrors twilight-api.test.ts: LA-ish coordinate + a night-crossing window
+    // derived from computeSolarEvents so the test is self-consistent.
+    const { orgAId, userAId, locationAId } = env;
+
+    // Compute solar events for the test coordinate/date (same as twilight-api.test.ts).
+    const LAT = 33.9425;
+    const LON = -118.4081;
+    const DAY_ANCHOR = Date.parse('2026-06-19T20:00:00Z');
+    const events = computeSolarEvents({ latitude: LAT, longitude: LON, dateUtcMs: DAY_ANCHOR });
+    if (events.classification !== 'normal' || events.civilDuskUtcMs === null) {
+      throw new Error('test fixture: expected a normal civil day with dusk boundary');
+    }
+    const DUSK = events.civilDuskUtcMs;
+
+    // NIGHT-CROSSING window: starts before dusk, ends 30 min after → twilight violation.
+    const nightStart = new Date(DUSK - 30 * 60_000);
+    const nightEnd   = new Date(DUSK + 30 * 60_000);
+
+    // Set coords on the seed location so the twilight gate activates for this aircraft.
+    await setCoords(orgAId, locationAId, LAT, LON);
+
+    // Seed aircraft with home_base pointing at our coords-enabled location.
+    const sess = makeSession(orgAId, userAId);
+    const tag = `PREC${acCounter++}`;
+    const ac = await createResourceWithDb(db(), sess, {
+      kind: 'aircraft',
+      displayName: `N-${tag}`,
+      tailNumber: `N${tag}`,
+    });
+    // Link the aircraft to the seeded location so twilight gate has coords.
+    await withOrgContext(env.db, orgAId, async (tx) => {
+      await tx.update(resource).set({ homeBaseLocationId: locationAId }).where(eq(resource.id, ac.id));
+    });
+
+    // Add an operating-hours window for Wednesday (WED=3) that does NOT cover the
+    // night-crossing window (window is 13:00–17:00 UTC; night slot is ~02:xx–03:xx UTC
+    // relative to dawn — well outside 13:00–17:00). Both constraints will block.
+    await addWindow(orgAId, userAId, ac.id, WED, 13 * 60, 17 * 60);
+
+    // Enable BOTH twilight block AND availability block.
+    await setBothConfigs(orgAId, {
+      availabilityEnabled: true, availabilityMode: 'block',
+      twilightEnabled: true,     twilightMode: 'block',
+    });
+
+    const result = await createReservationWithDb(db(), sess, {
+      startAt: nightStart, endAt: nightEnd, resourceIds: [ac.id],
+    });
+
+    // Cleanup before asserting (so a failure doesn't leave dirty config).
+    await clearConfig(orgAId);
+    await clearCoords(orgAId, locationAId);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected refusal');
+    // Twilight is evaluated BEFORE availability → reason must be 'twilight', NOT 'availability'.
+    expect(result.reason).toBe('twilight');
   });
 });
 

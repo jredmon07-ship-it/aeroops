@@ -158,14 +158,13 @@ export async function deriveMyAlerts(
   for (const res of upcoming) {
     if (res.startAt <= cutoff) {
       const tailLabel = res.resourceLabels[0] ?? res.reservationId;
-      const startIso = res.startAt.toISOString();
       // path → schedule board for that date (slug-less; slug prepended by the UI)
       const dateStr = res.startAt.toISOString().slice(0, 10); // YYYY-MM-DD
       alerts.push({
         id: alertId('reservation', [res.reservationId, 'upcoming']),
         kind: 'reservation_upcoming',
         title: `Upcoming flight: ${tailLabel}`,
-        detail: `Your reservation for ${tailLabel} starts at ${startIso}.`,
+        detail: `Your upcoming reservation on ${tailLabel}.`,
         path: `/schedule?date=${dateStr}`,
         at: res.startAt,
       });

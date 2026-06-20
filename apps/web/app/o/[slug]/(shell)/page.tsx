@@ -36,7 +36,7 @@ import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability, getDashboardSummary } from '@aeroops/api';
-import { isPortalOnly } from '@/lib/nav';
+import { landingPathFor } from '@/lib/nav';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -830,10 +830,13 @@ export default async function DashboardPage({
     redirect(`/o/${slug}/login`);
   }
 
-  // Slice P1.2: portal-only roles (student/renter) land on the portal, not the
-  // dashboard. Staff roles (reporting:access) keep the dashboard.
-  if (isPortalOnly(session)) {
-    redirect(`/o/${slug}/portal`);
+  // Redirect roles that belong elsewhere (student/renter → portal; mechanic → Fleet;
+  // any other non-dashboard role → first accessible page).
+  // Roles with reporting:access (owner/manager/dispatcher/cfi/accountant) stay here.
+  const landingRaw = landingPathFor(session);
+  if (landingRaw) {
+    // landingRaw still contains the [slug] placeholder — resolve it now.
+    redirect(landingRaw.replace('[slug]', slug));
   }
 
   // Validate and normalize the range param (validates→fallback 30d).

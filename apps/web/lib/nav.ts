@@ -173,6 +173,43 @@ export function isPortalOnly(
   );
 }
 
+// ─── landingPathFor ───────────────────────────────────────────────────────────
+
+/**
+ * landingPathFor — pure helper: returns the preferred landing path for a session,
+ * or null when the session should stay on the dashboard.
+ *
+ * Decision order:
+ *   1. null/undefined session            → null (no redirect; middleware blocks)
+ *   2. has reporting:access              → null (dashboard is the right home)
+ *   3. has portal:access (student/renter)→ '/portal' (existing isPortalOnly case)
+ *   4. else → href of the FIRST visible NAV_ITEM (slug placeholder intact, caller
+ *      must interpolate), e.g. mechanic → '/o/[slug]/fleet' which the page resolves.
+ *   5. no nav items at all               → null (nothing to redirect to)
+ *
+ * PURE: no DOM, no I/O. Unit-testable.
+ *
+ * @param session - AppSession (may be null/undefined → null fail-closed).
+ * @param items   - The nav items to inspect (defaults to NAV_ITEMS).
+ * @returns       - A path string (still [slug]-templated) or null.
+ */
+export function landingPathFor(
+  session: AppSession | null | undefined,
+  items: readonly NavItem[] = NAV_ITEMS,
+): string | null {
+  if (!session) return null;
+
+  // Roles with reporting:access belong on the dashboard — no redirect.
+  if (hasCapability(session, 'reporting:access')) return null;
+
+  // Portal-only roles (student/renter) redirect to the portal.
+  if (hasCapability(session, 'portal:access')) return '/o/[slug]/portal';
+
+  // Everyone else (e.g. mechanic): find the first nav item they can access.
+  const first = items.find((item) => hasCapability(session, item.requiredCapability));
+  return first?.href ?? null;
+}
+
 // ─── filterNavForSession ──────────────────────────────────────────────────────
 
 /**
