@@ -33,6 +33,7 @@ import { SignOutButton } from '../sign-out-button';
 import { MobileNav } from './mobile-nav';
 import { filterNavForSession, NAV_ITEMS } from '@/lib/nav';
 import { CommandPalette } from './command-palette';
+import { AlertsBell } from './alerts-bell';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -106,6 +107,13 @@ export default async function OrgShellLayout({
           <div className="flex items-center gap-3">
             {/* ⌘K palette trigger — the palette itself mounts once below. */}
             <CommandPalette slug={slug} />
+
+            {/* Alerts bell — mounts once; self-scoped to session user. */}
+            <AlertsBell
+              slug={slug}
+              orgId={session.orgId}
+              userId={session.userId}
+            />
 
             <Separator orientation="vertical" className="h-5" />
 
