@@ -73,6 +73,10 @@ export interface SerializedOrgDashboardMetrics {
   groundedAircraftCount: number;
   activeAircraftCount: number;
   activeMemberCount: number;
+  /** Point-in-time: work_order rows with status IN ('open','in_progress'). */
+  openWorkOrderCount: number;
+  /** Point-in-time: enrollment rows with status='active'. */
+  activeEnrollmentCount: number;
 }
 
 function serializeMetrics(m: OrgDashboardMetrics): SerializedOrgDashboardMetrics {
@@ -89,6 +93,8 @@ function serializeMetrics(m: OrgDashboardMetrics): SerializedOrgDashboardMetrics
     groundedAircraftCount: m.groundedAircraftCount,
     activeAircraftCount: m.activeAircraftCount,
     activeMemberCount: m.activeMemberCount,
+    openWorkOrderCount: m.openWorkOrderCount,
+    activeEnrollmentCount: m.activeEnrollmentCount,
   };
 }
 

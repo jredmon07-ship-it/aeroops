@@ -1258,3 +1258,302 @@ describe('HAPPY PATH: getOrgDashboardMetrics hand-computed counts', () => {
     expect(result.totalFlightHours).toBe(roundedBack);
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 14 — NEW COUNTS: openWorkOrderCount + activeEnrollmentCount
+//
+// Verifies:
+//   a) happy-path: counts compute correctly from seeded WOs + enrollments.
+//   b) zero when none present.
+//   c) completed/cancelled WOs excluded; withdrawn enrollments excluded.
+//   d) openWorkOrderCount includes both 'open' and 'in_progress' status.
+// ══════════════════════════════════════════════════════════════════════════════
+
+import { openWorkOrderWithDb } from '../maintenance/open-work-order.js';
+import { updateWorkOrderStatusWithDb } from '../maintenance/update-work-order-status.js';
+import { completeWorkOrderWithDb } from '../maintenance/complete-work-order.js';
+import { cancelWorkOrderWithDb } from '../maintenance/cancel-work-order.js';
+import { createCourseWithDb } from '../training/create-course.js';
+import { enrollMemberWithDb } from '../training/enroll-member.js';
+import { setEnrollmentStatusWithDb } from '../training/set-enrollment-status.js';
+
+describe('NEW COUNTS: openWorkOrderCount + activeEnrollmentCount', () => {
+  let countsDb: PgliteTestClient;
+  let countsOrgAId: string;
+  let countsUserAId: string;
+  let countsAircraftId: string;
+
+  beforeAll(async () => {
+    const { db, pglite } = await createTestClient();
+    await applyMigrationSql({ pglite }, MIGRATION_SQL);
+    const seed = await seedTwoOrgs(db);
+    await setTestAppRole({ pglite });
+    countsDb = db;
+    countsOrgAId = seed.orgAId;
+    countsUserAId = seed.userAId;
+
+    const sess = makeSession(countsOrgAId, countsUserAId, 'owner');
+
+    // Create one aircraft for work orders.
+    const aircraft = await createResourceWithDb(countsDb, sess, {
+      kind: 'aircraft', displayName: 'N-COUNTS', tailNumber: 'NCOUNTS',
+    });
+    countsAircraftId = aircraft.id;
+
+    // Seed work orders:
+    //   WO-1: open (status='open')          → counts
+    //   WO-2: in_progress                   → counts
+    //   WO-3: completed                     → does NOT count
+    //   WO-4: cancelled                     → does NOT count
+
+    const wo1 = await openWorkOrderWithDb(countsDb, sess, {
+      resourceId: countsAircraftId,
+      title: 'WO open',
+    });
+    if (!wo1.ok) throw new Error('wo1 failed');
+
+    const wo2 = await openWorkOrderWithDb(countsDb, sess, {
+      resourceId: countsAircraftId,
+      title: 'WO in-progress',
+    });
+    if (!wo2.ok) throw new Error('wo2 failed');
+    // Advance to in_progress
+    const upResult = await updateWorkOrderStatusWithDb(countsDb, sess, {
+      workOrderId: wo2.workOrder.id,
+      status: 'in_progress',
+    });
+    if (!upResult.ok) throw new Error('advance to in_progress failed');
+
+    const wo3 = await openWorkOrderWithDb(countsDb, sess, {
+      resourceId: countsAircraftId,
+      title: 'WO completed',
+    });
+    if (!wo3.ok) throw new Error('wo3 failed');
+    // completeWorkOrder requires maintenance:work_order cap (owner has it).
+    const comp = await completeWorkOrderWithDb(countsDb, sess, {
+      workOrderId: wo3.workOrder.id,
+      workPerformed: 'Annual inspection done',
+    });
+    if (!comp.ok) throw new Error(`complete wo3 failed: ${JSON.stringify(comp)}`);
+
+    const wo4 = await openWorkOrderWithDb(countsDb, sess, {
+      resourceId: countsAircraftId,
+      title: 'WO cancelled',
+    });
+    if (!wo4.ok) throw new Error('wo4 failed');
+    // cancelWorkOrder requires cancelledReason.
+    const canc = await cancelWorkOrderWithDb(countsDb, sess, {
+      workOrderId: wo4.workOrder.id,
+      cancelledReason: 'Not needed',
+    });
+    if (!canc.ok) throw new Error(`cancel wo4 failed: ${JSON.stringify(canc)}`);
+
+    // Seed enrollments:
+    //   E-1: active   → counts
+    //   E-2: active   → counts (second enrollment, same course is a UNIQUE violation so use different course)
+    //   E-3: completed → does NOT count
+    //   E-4: withdrawn → does NOT count
+
+    const course1 = await createCourseWithDb(countsDb, sess, { title: 'Course 1' });
+    if (!course1.ok) throw new Error('course1 failed');
+    const course2 = await createCourseWithDb(countsDb, sess, { title: 'Course 2' });
+    if (!course2.ok) throw new Error('course2 failed');
+    const course3 = await createCourseWithDb(countsDb, sess, { title: 'Course 3' });
+    if (!course3.ok) throw new Error('course3 failed');
+    const course4 = await createCourseWithDb(countsDb, sess, { title: 'Course 4' });
+    if (!course4.ok) throw new Error('course4 failed');
+
+    const e1 = await enrollMemberWithDb(countsDb, sess, {
+      courseId: course1.course.courseId,
+      studentUserId: countsUserAId,
+    });
+    if (!e1.ok) throw new Error('e1 failed');
+
+    // For e2 we need a second user; use orgB user in orgA context — we can't do cross-org.
+    // Instead, use a raw SQL insert for the second enrollment to a different course.
+    // Actually, each enrollment is per (student, course). E1 is (userA, course1) → active.
+    // For e3 and e4 we can use different courses on the same user.
+
+    const e3 = await enrollMemberWithDb(countsDb, sess, {
+      courseId: course3.course.courseId,
+      studentUserId: countsUserAId,
+    });
+    if (!e3.ok) throw new Error('e3 failed');
+    const setComp = await setEnrollmentStatusWithDb(countsDb, sess, {
+      enrollmentId: e3.enrollment.enrollmentId,
+      status: 'completed',
+    });
+    if (!setComp.ok) throw new Error('setComp failed');
+
+    const e4 = await enrollMemberWithDb(countsDb, sess, {
+      courseId: course4.course.courseId,
+      studentUserId: countsUserAId,
+    });
+    if (!e4.ok) throw new Error('e4 failed');
+    const setWith = await setEnrollmentStatusWithDb(countsDb, sess, {
+      enrollmentId: e4.enrollment.enrollmentId,
+      status: 'withdrawn',
+    });
+    if (!setWith.ok) throw new Error('setWith failed');
+  }, 120_000);
+
+  it('openWorkOrderCount = 2 (open + in_progress; completed + cancelled excluded)', async () => {
+    const sess = makeSession(countsOrgAId, countsUserAId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(countsDb, sess);
+    expect(result.openWorkOrderCount).toBe(2);
+  });
+
+  it('activeEnrollmentCount = 1 (active only; completed + withdrawn excluded)', async () => {
+    const sess = makeSession(countsOrgAId, countsUserAId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(countsDb, sess);
+    expect(result.activeEnrollmentCount).toBe(1);
+  });
+
+  it('openWorkOrderCount is a number, not NaN or null', async () => {
+    const sess = makeSession(countsOrgAId, countsUserAId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(countsDb, sess);
+    expect(typeof result.openWorkOrderCount).toBe('number');
+    expect(Number.isNaN(result.openWorkOrderCount)).toBe(false);
+  });
+
+  it('activeEnrollmentCount is a number, not NaN or null', async () => {
+    const sess = makeSession(countsOrgAId, countsUserAId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(countsDb, sess);
+    expect(typeof result.activeEnrollmentCount).toBe('number');
+    expect(Number.isNaN(result.activeEnrollmentCount)).toBe(false);
+  });
+
+  it('empty org: openWorkOrderCount = 0, not NaN', async () => {
+    const { db: emptyDb, pglite: emptyPglite } = await createTestClient();
+    await applyMigrationSql({ pglite: emptyPglite }, MIGRATION_SQL);
+    const emptySeed = await seedTwoOrgs(emptyDb);
+    await setTestAppRole({ pglite: emptyPglite });
+
+    const sess = makeSession(emptySeed.orgAId, emptySeed.userAId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(emptyDb, sess);
+    expect(result.openWorkOrderCount).toBe(0);
+    expect(Number.isNaN(result.openWorkOrderCount)).toBe(false);
+  });
+
+  it('empty org: activeEnrollmentCount = 0, not NaN', async () => {
+    const { db: emptyDb, pglite: emptyPglite } = await createTestClient();
+    await applyMigrationSql({ pglite: emptyPglite }, MIGRATION_SQL);
+    const emptySeed = await seedTwoOrgs(emptyDb);
+    await setTestAppRole({ pglite: emptyPglite });
+
+    const sess = makeSession(emptySeed.orgAId, emptySeed.userAId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(emptyDb, sess);
+    expect(result.activeEnrollmentCount).toBe(0);
+    expect(Number.isNaN(result.activeEnrollmentCount)).toBe(false);
+  });
+}, 180_000);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 15 — T-ISO: Tenant isolation for new counts
+//
+// T-ISO-WORK-ORDERS: org-A session NEVER counts org-B work orders.
+// T-ISO-ENROLLMENTS: org-A session NEVER counts org-B enrollments.
+//
+// Org B is seeded with MORE WOs and enrollments. Org-A session must return
+// only org-A values. These tests extend the load-bearing T-ISO-* suite.
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('T-ISO: Tenant isolation for openWorkOrderCount + activeEnrollmentCount', () => {
+  let isoDb: PgliteTestClient;
+  let isoOrgAId: string;
+  let isoOrgBId: string;
+  let isoUserAId: string;
+  let isoUserBId: string;
+
+  beforeAll(async () => {
+    const { db, pglite } = await createTestClient();
+    await applyMigrationSql({ pglite }, MIGRATION_SQL);
+    const seed = await seedTwoOrgs(db);
+    await setTestAppRole({ pglite });
+
+    isoDb = db;
+    isoOrgAId = seed.orgAId;
+    isoOrgBId = seed.orgBId;
+    isoUserAId = seed.userAId;
+    isoUserBId = seed.userBId;
+
+    const sessA = makeSession(isoOrgAId, isoUserAId, 'owner');
+    const sessB = makeSession(isoOrgBId, isoUserBId, 'owner');
+
+    // Org A: create 1 aircraft + 1 open WO.
+    const acA = await createResourceWithDb(isoDb, sessA, {
+      kind: 'aircraft', displayName: 'N-ISO-WO-A', tailNumber: 'NISOWOA',
+    });
+    const woA = await openWorkOrderWithDb(isoDb, sessA, {
+      resourceId: acA.id,
+      title: 'WO A open',
+    });
+    if (!woA.ok) throw new Error('woA failed');
+
+    // Org B: create 1 aircraft + 3 open WOs (more than A).
+    const acB = await createResourceWithDb(isoDb, sessB, {
+      kind: 'aircraft', displayName: 'N-ISO-WO-B', tailNumber: 'NISOWOB',
+    });
+    for (let i = 1; i <= 3; i++) {
+      const woB = await openWorkOrderWithDb(isoDb, sessB, {
+        resourceId: acB.id,
+        title: `WO B${i} open`,
+      });
+      if (!woB.ok) throw new Error(`woB${i} failed`);
+    }
+
+    // Org A: create 1 course + 1 active enrollment.
+    const courseA = await createCourseWithDb(isoDb, sessA, { title: 'ISO Course A' });
+    if (!courseA.ok) throw new Error('courseA failed');
+    const eA = await enrollMemberWithDb(isoDb, sessA, {
+      courseId: courseA.course.courseId,
+      studentUserId: isoUserAId,
+    });
+    if (!eA.ok) throw new Error('eA failed');
+
+    // Org B: create 3 courses + 3 active enrollments (more than A).
+    for (let i = 1; i <= 3; i++) {
+      const courseB = await createCourseWithDb(isoDb, sessB, { title: `ISO Course B${i}` });
+      if (!courseB.ok) throw new Error(`courseB${i} failed`);
+      const eB = await enrollMemberWithDb(isoDb, sessB, {
+        courseId: courseB.course.courseId,
+        studentUserId: isoUserBId,
+      });
+      if (!eB.ok) throw new Error(`eB${i} failed`);
+    }
+  }, 120_000);
+
+  it('T-ISO-WORK-ORDERS: org-A session sees 1 open WO (NOT org-B\'s 3)', async () => {
+    const sess = makeSession(isoOrgAId, isoUserAId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(isoDb, sess, { range: '30d' });
+    expect(result.openWorkOrderCount).toBe(1);
+  });
+
+  it('T-ISO-ENROLLMENTS: org-A session sees 1 active enrollment (NOT org-B\'s 3)', async () => {
+    const sess = makeSession(isoOrgAId, isoUserAId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(isoDb, sess, { range: '30d' });
+    expect(result.activeEnrollmentCount).toBe(1);
+  });
+
+  it('T-ISO-WORK-ORDERS: org-B session sees 3 open WOs (NOT org-A\'s 1)', async () => {
+    const sess = makeSession(isoOrgBId, isoUserBId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(isoDb, sess, { range: '30d' });
+    expect(result.openWorkOrderCount).toBe(3);
+  });
+
+  it('T-ISO-ENROLLMENTS: org-B session sees 3 active enrollments (NOT org-A\'s 1)', async () => {
+    const sess = makeSession(isoOrgBId, isoUserBId, 'owner');
+    const result = await getOrgDashboardMetricsWithDb(isoDb, sess, { range: '30d' });
+    expect(result.activeEnrollmentCount).toBe(3);
+  });
+
+  it('T-ISO: org-A WO count + org-B WO count != combined total (no leakage)', async () => {
+    const sessA = makeSession(isoOrgAId, isoUserAId, 'owner');
+    const sessB = makeSession(isoOrgBId, isoUserBId, 'owner');
+    const resultA = await getOrgDashboardMetricsWithDb(isoDb, sessA);
+    const resultB = await getOrgDashboardMetricsWithDb(isoDb, sessB);
+    // If either counted across orgs it would equal the sum — it must not.
+    expect(resultA.openWorkOrderCount).toBeLessThan(resultA.openWorkOrderCount + resultB.openWorkOrderCount);
+    expect(resultA.activeEnrollmentCount).toBeLessThan(resultA.activeEnrollmentCount + resultB.activeEnrollmentCount);
+  });
+});

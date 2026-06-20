@@ -87,7 +87,7 @@ function DashboardSkeleton() {
       <div>
         <Skeleton className="h-3 w-16 mb-2" />
         <div className="rounded-md border border-slate-200 bg-white shadow-xs divide-x divide-slate-200 flex">
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex-1 px-4 py-4 space-y-2">
               <Skeleton className="h-2.5 w-14" />
               <Skeleton className="h-7 w-10" />
@@ -338,6 +338,52 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
               </p>
               <p className="mt-1 text-xs text-slate-400">
                 {metrics.activeMemberCount === 0 ? 'none yet' : 'on roster'}
+              </p>
+            </div>
+
+            {/* Tile 5: Open work orders */}
+            <div className="flex-1 px-5 py-4">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+                Open work orders
+              </p>
+              <p
+                className={[
+                  'nums mt-1 text-2xl font-bold leading-none',
+                  metrics.openWorkOrderCount > 0 ? 'text-amber-700' : 'text-slate-400',
+                ].join(' ')}
+              >
+                {metrics.openWorkOrderCount}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                <Link
+                  href={`/o/${slug}/maintenance/work-orders`}
+                  className="hover:text-brand underline-offset-2 hover:underline"
+                >
+                  {metrics.openWorkOrderCount > 0 ? 'open or in progress' : 'none open'}
+                </Link>
+              </p>
+            </div>
+
+            {/* Tile 6: Active enrollments */}
+            <div className="flex-1 px-5 py-4">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+                Active enrollments
+              </p>
+              <p
+                className={[
+                  'nums mt-1 text-2xl font-bold leading-none',
+                  metrics.activeEnrollmentCount === 0 ? 'text-slate-400' : 'text-slate-900',
+                ].join(' ')}
+              >
+                {metrics.activeEnrollmentCount}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                <Link
+                  href={`/o/${slug}/training/enrollments`}
+                  className="hover:text-brand underline-offset-2 hover:underline"
+                >
+                  {metrics.activeEnrollmentCount === 0 ? 'none yet' : 'students in training'}
+                </Link>
               </p>
             </div>
           </div>

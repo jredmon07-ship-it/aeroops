@@ -4,7 +4,8 @@
  * Returns a multi-metric snapshot for the authenticated org:
  *   - range-scoped: totalFlights, totalFlightHours, reservationsInRange
  *   - point-in-time snapshots: openSquawkCount, groundedAircraftCount,
- *     activeAircraftCount, activeMemberCount
+ *     activeAircraftCount, activeMemberCount, openWorkOrderCount,
+ *     activeEnrollmentCount
  *
  * AUTHZ: requireCapability('reporting:access') FIRST.
  * TENANT ISOLATION: org_id from session only; every query runs inside
@@ -13,7 +14,8 @@
  * DESIGN:
  *   - One parameterised query per metric — independently org-auditable,
  *     no N+1 across orgs.
- *   - Zero aircraft / zero members → 0 (COALESCE), never null/NaN/throw.
+ *   - Zero aircraft / zero members / zero WOs / zero enrollments → 0
+ *     (COALESCE), never null/NaN/throw.
  *   - Voided + open tickets excluded from flights/hours (status='closed' only).
  *   - Grounded count uses loadGroundingProbe (same probe as openDispatch) over
  *     the active aircraft ids returned by the activeAircraftCount query.
@@ -74,6 +76,17 @@ export interface OrgDashboardMetrics {
   activeAircraftCount: number;
   /** Point-in-time: count of app_user rows with status='active'. */
   activeMemberCount: number;
+  /**
+   * Point-in-time: count of work_order rows with status IN ('open','in_progress').
+   * OPERATIONAL operator count — NOT an airworthiness or Part-43 determination.
+   */
+  openWorkOrderCount: number;
+  /**
+   * Point-in-time: count of enrollment rows with status='active'.
+   * OPERATIONAL operator count — NOT a Part-141 or FAA training determination.
+   * [VERIFY] Part-141 compliance reporting is deferred to Phase 3 Training.
+   */
+  activeEnrollmentCount: number;
 }
 
 // ─── Shared implementation ────────────────────────────────────────────────────
@@ -187,6 +200,36 @@ async function _getOrgDashboardMetricsImpl(
 
     const activeMemberCount = Number(memberRow?.activeMemberCount ?? 0);
 
+    // ── Query 7: open work orders count (point-in-time) ──────────────────────
+    // Counts work_order rows with status IN ('open','in_progress').
+    // OPERATIONAL count — NOT an airworthiness/Part-43 determination.
+    const workOrderResult = await tx.execute(sql`
+      SELECT COUNT(*)::int AS "openWorkOrderCount"
+      FROM work_order
+      WHERE status IN ('open', 'in_progress')
+    `);
+
+    const workOrderRow = ((workOrderResult.rows ?? workOrderResult) as Array<{
+      openWorkOrderCount: number | string;
+    }>)[0];
+
+    const openWorkOrderCount = Number(workOrderRow?.openWorkOrderCount ?? 0);
+
+    // ── Query 8: active enrollment count (point-in-time) ─────────────────────
+    // Counts enrollment rows with status='active'.
+    // OPERATIONAL count — NOT a Part-141 or FAA training determination.
+    const enrollmentResult = await tx.execute(sql`
+      SELECT COUNT(*)::int AS "activeEnrollmentCount"
+      FROM enrollment
+      WHERE status = 'active'
+    `);
+
+    const enrollmentRow = ((enrollmentResult.rows ?? enrollmentResult) as Array<{
+      activeEnrollmentCount: number | string;
+    }>)[0];
+
+    const activeEnrollmentCount = Number(enrollmentRow?.activeEnrollmentCount ?? 0);
+
     return {
       range: { key: rangeKey, from, to },
       totalFlights,
@@ -196,6 +239,8 @@ async function _getOrgDashboardMetricsImpl(
       groundedAircraftCount,
       activeAircraftCount,
       activeMemberCount,
+      openWorkOrderCount,
+      activeEnrollmentCount,
     };
   });
 }
