@@ -33,7 +33,7 @@
 import { sql } from 'drizzle-orm';
 import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
-import { withSessionOrgContext, withSessionOrgContextWithDb } from '../auth/session.js';
+import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { summarizeAuditEntry, activityPath } from '@aeroops/core';
