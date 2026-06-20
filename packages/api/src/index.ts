@@ -815,3 +815,27 @@ export type {
   MyAccountView,
   MyPortalSummary,
 } from './portal/types.js';
+
+// ─── Slice N1.1 — In-app alerts (READ-ONLY, derived, no migration) ────────────
+// Derived-on-read per-user alerts: upcoming reservations (≤24h) and grounded
+// aircraft on upcoming reservations. NO write path, NO audit, NO migration.
+//
+// SECURITY INVARIANTS:
+//   - requireCapability('app:access') FIRST — all 8 roles hold this cap.
+//   - Subject = session.userId ONLY (self-scoped; zero IDOR — no row-id input).
+//   - org_id from session only; ONE withSessionOrgContextWithDb call; RLS backstop.
+//   - Reads NOT audited. NO money. NO computed FAA determination.
+//   - Derivation: ≤2 queries (CLONE of portal predicate + loadGroundingProbe).
+//   - MAX_ALERTS=20 (nearest in time kept). Sorted at ASC, deduped by id.
+//
+// [VERIFY-N1-A]: surfacing operator grounding data to an affected pilot (provisional).
+// Grounded alert = operator data (ADR-0008), NOT an airworthiness/Part-91/43 ruling.
+// app:access → owner/manager/dispatcher/cfi/mechanic/renter/student/accountant (ALL roles).
+// *WithDb form is for test code only (inject a pglite client).
+export { getMyAlerts, getMyAlertsWithDb } from './notifications/get-my-alerts.js';
+
+export type {
+  AlertKind,
+  MyAlert,
+  MyAlertsResult,
+} from './notifications/types.js';
