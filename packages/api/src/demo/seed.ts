@@ -54,6 +54,7 @@ import { closeDispatchWithDb } from '../dispatch/close-dispatch.js';
 import { reportSquawkWithDb } from '../maintenance/report-squawk.js';
 import { groundAircraftWithDb } from '../maintenance/ground-aircraft.js';
 import { openWorkOrderWithDb } from '../maintenance/open-work-order.js';
+import { createAvailabilityWindowWithDb } from '../scheduling/availability-commands.js';
 import { createCourseWithDb } from '../training/create-course.js';
 import { addCourseLessonWithDb } from '../training/add-course-lesson.js';
 import { enrollMemberWithDb } from '../training/enroll-member.js';
@@ -175,9 +176,18 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     // notice (the daytime demo bookings below are unaffected). Operator scheduling
     // rule from astronomy — NOT an FAA night-currency determination. Eligibility
     // stays at its default 'block' (the 3c demo requirement still applies).
+    // Also turn ON the availability (operating-hours) constraint in WARN mode
+    // (Slice AV1) so a booking outside a tail's operating hours gets a non-blocking
+    // notice — operator scheduling rule, NOT an FAA duty/§117 determination.
     await tx
       .insert(dispatchConfig)
-      .values({ orgId, twilightConstraintEnabled: true, twilightMode: 'warn' })
+      .values({
+        orgId,
+        twilightConstraintEnabled: true,
+        twilightMode: 'warn',
+        availabilityConstraintEnabled: true,
+        availabilityMode: 'warn',
+      })
       .returning();
 
     // Aircraft (tail #). aircraft → tail_number NOT NULL, instructor_user_id NULL.
@@ -375,6 +385,24 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   });
   if (!minorSquawk.ok) {
     throw new Error('[demo] report minor squawk failed — seed cannot continue.');
+  }
+
+  // ── 7a2. Availability / operating hours (Slice AV1) ─────────────────────
+  // The 172 is available daily 07:00–21:00 local; with the availability
+  // constraint ON in WARN mode, booking it outside those hours surfaces a
+  // non-blocking "outside operating hours" notice. Operator scheduling data —
+  // NOT an FAA duty/§117 determination.
+  for (let dow = 1; dow <= 7; dow++) {
+    const win = await createAvailabilityWindowWithDb(db, ownerSession, {
+      resourceId: tail('N172SP'),
+      dayOfWeek: dow,
+      startMinute: 7 * 60, // 07:00
+      endMinute: 21 * 60, // 21:00
+      tz: 'America/Chicago',
+    });
+    if (!win.ok) {
+      throw new Error(`[demo] availability window (dow ${dow}) failed — seed cannot continue.`);
+    }
   }
 
   // ── 7b. Work order on the grounded Cirrus (Slice M1) ────────────────────
