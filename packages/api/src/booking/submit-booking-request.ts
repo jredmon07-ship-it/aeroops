@@ -95,6 +95,18 @@ async function _submitImpl(
 
   const input = parsed.data;
 
+  // ── (b2) Sanity-bound requestedStart (ADR-0013: [now-1h, now+365d]) ─────────
+  // The zod schema is deterministic (cannot reference "now"), so the temporal
+  // bound is enforced here. Out-of-window → the SAME generic 'invalid' (no
+  // enumeration). Rejects junk/spam far-past/far-future requests.
+  const startMs = new Date(input.requestedStart).getTime();
+  const nowMs = Date.now();
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const ONE_YEAR_MS = 365 * 24 * ONE_HOUR_MS;
+  if (Number.isNaN(startMs) || startMs < nowMs - ONE_HOUR_MS || startMs > nowMs + ONE_YEAR_MS) {
+    return { ok: false, reason: 'invalid' };
+  }
+
   // ── (c) Resolve org + active gate ──────────────────────────────────────────
   // resolveOrgBySlug is the ONLY sanctioned anon read (uses withPlatformAdminContext;
   // returns {id,name,slug,status} only). Unknown slug → null. Suspended → status!=='active'.
@@ -132,6 +144,10 @@ async function _submitImpl(
       // Returning early from the tx callback will commit with no rows written.
       return;
     }
+    // NOTE: this count-then-insert guard is BEST-EFFORT under concurrency (no
+    // lock), so a burst can slightly overshoot the cap. That is acceptable for a
+    // soft anti-abuse measure — the REAL defense before public exposure is the
+    // edge rate-limiter/WAF + CAPTCHA launch predecessor ([VERIFY-PB1-SEC-1]).
 
     // ── INSERT booking_request ─────────────────────────────────────────────
     // org_id is set from resolvedOrg.id (NEVER from client input).
@@ -159,9 +175,10 @@ async function _submitImpl(
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * submitBookingRequest — app-code form (uses getDb() internally).
+ * submitBookingRequest — app-code form (the caller passes the db client).
  *
- * Called by the public route handler (apps/web/app/api/public/booking/[slug]/route.ts).
+ * Called by the public route handler (apps/web/app/api/public/booking/[slug]/route.ts),
+ * which obtains the client via getDb() and passes it in.
  * The slug comes from the URL path parameter — NEVER from the request body.
  *
  * @param db    - The Drizzle database client.
