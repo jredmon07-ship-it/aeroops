@@ -970,6 +970,16 @@ export function NewReservationForm({
             state={twilightState}
             perResource={twilightPerResource}
             resourceNames={aircraftNameMap}
+            candidateStartMs={
+              date && startTime
+                ? new Date(`${date}T${startTime}:00`).getTime()
+                : undefined
+            }
+            candidateEndMs={
+              date && endTime
+                ? new Date(`${date}T${endTime}:00`).getTime()
+                : undefined
+            }
           />
         )}
 

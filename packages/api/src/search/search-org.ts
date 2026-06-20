@@ -306,8 +306,20 @@ async function _searchOrgImpl(
       }>;
       const reservationResults: SearchResult[] = rows.map((r) => {
         const startDate = r.startAt instanceof Date ? r.startAt : new Date(r.startAt as string);
-        // Format: "2027-01-10 08:00 UTC" — unambiguous, readable.
-        const primary = startDate.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+        // Format: "Jan 10, 2027 08:00 UTC" — unambiguous, human-readable.
+        const datePart = new Intl.DateTimeFormat('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(startDate);
+        const timePart = new Intl.DateTimeFormat('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: 'UTC',
+        }).format(startDate);
+        const primary = `${datePart} ${timePart} UTC`;
         const notes = r.notes ?? '';
         const secondary = notes.length > 60 ? notes.slice(0, 60) + '…' : (notes || null);
         return {

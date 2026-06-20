@@ -56,11 +56,33 @@ interface TwilightIndicatorProps {
   perResource: PreviewTwilightResourceReport[];
   /** Map of resource id → display name (tail number or display name). */
   resourceNames: Map<string, string>;
+  /**
+   * Candidate booking start (epoch ms). When provided, used to determine
+   * whether the crossing is at dawn vs dusk. Optional — falls back to
+   * boundary-existence check if absent.
+   */
+  candidateStartMs?: number;
+  /**
+   * Candidate booking end (epoch ms). When provided, used to determine
+   * whether the crossing is at dawn vs dusk. Optional — falls back to
+   * boundary-existence check if absent.
+   */
+  candidateEndMs?: number;
 }
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
-function ResourceBadge({ report, name }: { report: PreviewTwilightResourceReport; name: string }) {
+function ResourceBadge({
+  report,
+  name,
+  candidateStartMs,
+  candidateEndMs,
+}: {
+  report: PreviewTwilightResourceReport;
+  name: string;
+  candidateStartMs?: number;
+  candidateEndMs?: number;
+}) {
   const { events, wouldViolate, classification } = report;
 
   // No coords / no home base → muted info hint
@@ -108,20 +130,28 @@ function ResourceBadge({ report, name }: { report: PreviewTwilightResourceReport
 
   // Normal classification
   if (wouldViolate && events) {
-    // Determine which boundary was violated and show the time
-    const endCrossesDusk =
-      events.civilDuskUtcMs !== null;
-    const startCrossesDawn =
-      events.civilDawnUtcMs !== null;
+    // Determine which boundary was actually crossed.
+    //
+    // When the caller supplies candidateStartMs/candidateEndMs, compare the
+    // candidate window against the boundary times directly.  Fall back to
+    // boundary-existence only when the candidate times are not available.
+    const hasTimes =
+      candidateStartMs !== undefined && candidateEndMs !== undefined;
 
-    // Prefer dusk violation (ends after civil dusk) since that's most common for
-    // evening flights; if both would fire show both (unlikely but possible).
+    const endCrossesDusk =
+      events.civilDuskUtcMs !== null &&
+      (hasTimes ? candidateEndMs! > events.civilDuskUtcMs : true);
+
+    const startCrossesDawn =
+      events.civilDawnUtcMs !== null &&
+      (hasTimes ? candidateStartMs! < events.civilDawnUtcMs : true);
+
     const lines: string[] = [];
-    if (endCrossesDusk && events.civilDuskUtcMs !== null) {
-      lines.push(`Ends after civil dusk (${epochToLocal(events.civilDuskUtcMs)})`);
+    if (endCrossesDusk) {
+      lines.push(`Ends after civil dusk (${epochToLocal(events.civilDuskUtcMs!)})`);
     }
-    if (startCrossesDawn && events.civilDawnUtcMs !== null) {
-      lines.push(`Starts before civil dawn (${epochToLocal(events.civilDawnUtcMs)})`);
+    if (startCrossesDawn) {
+      lines.push(`Starts before civil dawn (${epochToLocal(events.civilDawnUtcMs!)})`);
     }
     if (lines.length === 0) {
       lines.push('Crosses civil twilight boundary');
@@ -165,6 +195,8 @@ export function TwilightIndicator({
   state,
   perResource,
   resourceNames,
+  candidateStartMs,
+  candidateEndMs,
 }: TwilightIndicatorProps) {
   if (state === 'idle') return null;
 
@@ -205,6 +237,8 @@ export function TwilightIndicator({
           key={r.resourceId}
           report={r}
           name={resourceNames.get(r.resourceId) ?? r.resourceId}
+          candidateStartMs={candidateStartMs}
+          candidateEndMs={candidateEndMs}
         />
       ))}
     </div>

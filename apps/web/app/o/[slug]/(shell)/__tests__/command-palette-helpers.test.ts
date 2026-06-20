@@ -37,76 +37,19 @@
  *      - index within range → unchanged
  *      - single item: 0 stays 0, -1 → 0, 1 → 0
  *
- *   These tests must match the helper implementations in command-palette.tsx
- *   which export shouldSearch, buildHref, flattenGroups, clampIndex.
+ *   Helpers live in command-palette-helpers.ts and are imported directly —
+ *   no inline copies, no drift risk.
  */
 
 import { describe, it, expect } from 'vitest';
 import type { SearchGroup } from '@aeroops/api';
-
-// ─── Inline copies of the pure helpers (mirrors command-palette.tsx exports) ──
-//
-// We inline them here so these tests have zero DOM/React imports and can run in
-// the node environment. The real component exports the same logic; the test-writer
-// suite tests the pure functions, not the React component.
-//
-// When updating the helpers in command-palette.tsx, keep these in sync.
-
-/**
- * shouldSearch — client min-length gate.
- * Returns true only when the trimmed query is >= 2 characters.
- */
-function shouldSearch(query: string): boolean {
-  return query.trim().length >= 2;
-}
-
-/**
- * buildHref — prepend org slug to a slug-less server path.
- */
-function buildHref(slug: string, path: string): string {
-  return `/o/${slug}${path}`;
-}
-
-interface FlatResult {
-  optionId: string;
-  groupType: string;
-  groupLabel: string;
-  result: { id: string; primary: string; secondary: string | null; path: string };
-  href: string;
-  accessibleLabel: string;
-}
-
-/**
- * flattenGroups — flatten SearchGroup[] into an ordered flat list.
- */
-function flattenGroups(groups: SearchGroup[], slug: string): FlatResult[] {
-  const flat: FlatResult[] = [];
-  for (const group of groups) {
-    for (let i = 0; i < group.results.length; i++) {
-      const result = group.results[i]!;
-      const secondary = result.secondary ? ` — ${result.secondary}` : '';
-      flat.push({
-        optionId: `palette-option-${group.type}-${i}`,
-        groupType: group.type,
-        groupLabel: group.label,
-        result,
-        href: buildHref(slug, result.path),
-        accessibleLabel: `${group.label}: ${result.primary}${secondary}`,
-      });
-    }
-  }
-  return flat;
-}
-
-/**
- * clampIndex — clamp roving index to [0, length-1]; -1 when empty.
- */
-function clampIndex(index: number, length: number): number {
-  if (length === 0) return -1;
-  if (index < 0) return 0;
-  if (index >= length) return length - 1;
-  return index;
-}
+import {
+  shouldSearch,
+  buildHref,
+  flattenGroups,
+  clampIndex,
+  type FlatResult,
+} from '../command-palette-helpers';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
