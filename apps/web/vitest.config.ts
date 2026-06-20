@@ -52,6 +52,8 @@ export default defineConfig({
       'app/o/\\[slug\\]/\\(shell\\)/reporting/reports/_components/__tests__/**/*.test.ts',
       // Slice S1.2 — command palette helper tests (pure, no DOM/Next.js).
       'app/o/\\[slug\\]/\\(shell\\)/__tests__/**/*.test.ts',
+      // Slice AV1.3 — fleet availability display helper tests (pure, no DOM/Next.js).
+      'app/o/\\[slug\\]/\\(shell\\)/fleet/__tests__/**/*.test.ts',
     ],
   },
 });

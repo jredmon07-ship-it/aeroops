@@ -70,6 +70,11 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
   const [twilightExemptTag, setTwilightExemptTag] = React.useState('');
   const [twilightExemptTagError, setTwilightExemptTagError] = React.useState<string | null>(null);
 
+  // Slice AV1.3 — Availability constraint fields
+  // [VERIFY-AV1-A]: operator operating-hours rule, NOT an FAA duty-time determination.
+  const [availabilityConstraintEnabled, setAvailabilityConstraintEnabled] = React.useState(false);
+  const [availabilityMode, setAvailabilityMode] = React.useState<'block' | 'warn'>('warn');
+
   // ── Load config when dialog opens ──────────────────────────────────────────
   React.useEffect(() => {
     if (!open) return;
@@ -96,6 +101,9 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
         setTwilightMode(cfg.twilightMode);
         setTwilightExemptTag(cfg.twilightExemptTag ?? '');
         setTwilightExemptTagError(null);
+        // Slice AV1.3 availability fields
+        setAvailabilityConstraintEnabled(cfg.availabilityConstraintEnabled);
+        setAvailabilityMode(cfg.availabilityMode);
       })
       .catch(() => {
         if (!cancelled) {
@@ -131,6 +139,8 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
         twilightConstraintEnabled,
         twilightMode,
         twilightExemptTag: trimmedExemptTag.length > 0 ? trimmedExemptTag : null,
+        availabilityConstraintEnabled,
+        availabilityMode,
       });
       if ('error' in result) {
         if (result.error === 'validation') {
@@ -371,6 +381,91 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                     It is <strong>NOT</strong> an FAA night-currency or §61.57 determination.
                     &ldquo;Night-qualified&rdquo; is a label you assign; the system attaches no
                     regulatory meaning.
+                  </p>
+                </div>
+              </div>
+
+              {/* ── Operating-hours availability constraint (Slice AV1.3) ──── */}
+              {/*
+               * [VERIFY-AV1-A] MANDATORY COMPLIANCE DISCLAIMER (spec AV1.3):
+               *   Operating-hours availability is an operator scheduling rule.
+               *   It is NOT an FAA flight/duty-time, rest, or §117 determination.
+               * [VERIFY-AV1-A]: operator operating-hours data, NOT computed from
+               *   any FAA/Part-117/135/121 rule.
+               */}
+              <div className="rounded-md border border-slate-200 p-3 space-y-3">
+                {/* Enabled toggle */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Operating-hours availability
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      When enabled, bookings outside defined aircraft operating hours
+                      are warned or blocked per the mode below. Default: off.
+                    </p>
+                  </div>
+                  <label
+                    className="relative inline-flex items-center cursor-pointer"
+                    aria-label={`Operating-hours availability constraint ${availabilityConstraintEnabled ? 'enabled' : 'disabled'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={availabilityConstraintEnabled}
+                      onChange={(e) => setAvailabilityConstraintEnabled(e.target.checked)}
+                      disabled={saving}
+                    />
+                    <div className="w-9 h-5 rounded-full bg-slate-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+                  </label>
+                </div>
+
+                {/* Mode selector — only when enabled */}
+                {availabilityConstraintEnabled && (
+                  <fieldset className="space-y-1.5">
+                    <legend className="text-xs font-semibold text-slate-600">
+                      Mode
+                    </legend>
+                    <div className="flex gap-3">
+                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="availability-mode"
+                          value="warn"
+                          checked={availabilityMode === 'warn'}
+                          onChange={() => setAvailabilityMode('warn')}
+                          disabled={saving}
+                          className="accent-brand"
+                          aria-label="Warn — advisory notice, booking proceeds"
+                        />
+                        <span className="text-slate-800">Warn</span>
+                        <span className="text-xs text-slate-500">(advisory, booking proceeds)</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="availability-mode"
+                          value="block"
+                          checked={availabilityMode === 'block'}
+                          onChange={() => setAvailabilityMode('block')}
+                          disabled={saving}
+                          className="accent-brand"
+                          aria-label="Block — booking is refused when it falls outside operating hours"
+                        />
+                        <span className="text-slate-800">Block</span>
+                        <span className="text-xs text-slate-500">(booking refused)</span>
+                      </label>
+                    </div>
+                  </fieldset>
+                )}
+
+                {/* MANDATORY compliance disclaimer (MUST be present) */}
+                {/* [VERIFY-AV1-A]: required copy; do not remove or soften. */}
+                <div className="flex items-start gap-1.5 rounded bg-amber-50 border border-amber-200 px-2.5 py-2">
+                  <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Operating-hours availability is an operator scheduling rule — it is{' '}
+                    <strong>NOT</strong> an FAA flight/duty-time, rest, or §117 determination.
                   </p>
                 </div>
               </div>

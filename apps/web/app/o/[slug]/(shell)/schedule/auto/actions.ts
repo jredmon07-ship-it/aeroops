@@ -67,7 +67,7 @@ export interface SerializedPreviewProposal {
   endAt: string;   // ISO string
   resourceIds: string[];
   wouldResult: 'create' | 'skip';
-  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight';
+  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight' | 'availability';
 }
 
 export interface SerializedPreviewResult {
@@ -93,7 +93,7 @@ export interface SerializedCommitProposal {
   resourceIds: string[];
   result: 'created' | 'skipped';
   reservationId?: string;
-  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight';
+  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight' | 'availability';
 }
 
 export interface SerializedCommitResult {

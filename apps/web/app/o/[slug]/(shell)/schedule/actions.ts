@@ -41,6 +41,7 @@ import {
   voidDispatch,
   getDispatchForReservation,
   listDispatchPilots,
+  previewAvailability,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -63,6 +64,7 @@ import type {
   ListSeriesOccurrencesResponse,
   PreviewSeriesResult,
   PreviewTwilightResult,
+  PreviewAvailabilityResult,
   RescheduleResult,
   OpenDispatchResult,
   CloseDispatchResult,
@@ -729,6 +731,49 @@ export async function previewTwilightAction(input: {
   const session = await auth();
   try {
     return await previewTwilight(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── previewAvailabilityAction ────────────────────────────────────────────────
+// Advisory operating-hours preview (Slice AV1.3). Writes nothing; no audit row.
+// Authz: schedule:create_reservation (same gate as the create it previews).
+// Returns serializable data: AvailabilityHit.startUtcMs/endUtcMs are numbers.
+// Independent of the availabilityConstraintEnabled flag (always shows when windows set).
+
+export type PreviewAvailabilityActionResult =
+  | PreviewAvailabilityResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * previewAvailabilityAction — read-only operating-hours advisory preview.
+ *
+ * Maps:
+ *   ForbiddenError           -> { error: 'forbidden' }
+ *   UnauthenticatedError     -> { error: 'unauthenticated' }
+ *   ValidationError          -> { error: 'validation', message }
+ *   PreviewAvailabilityResult -> passed through as-is (perResource array).
+ *     AvailabilityHit fields are numbers -- already serializable.
+ *
+ * [VERIFY-AV1-A]: operator operating-hours rule, NOT an FAA duty-time
+ * or Part-117/135/121 determination. Capability gate enforced server-side.
+ */
+export async function previewAvailabilityAction(input: {
+  startAt: Date;
+  endAt: Date;
+  resourceIds: string[];
+}): Promise<PreviewAvailabilityActionResult> {
+  const session = await auth();
+  try {
+    return await previewAvailability(session, input);
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

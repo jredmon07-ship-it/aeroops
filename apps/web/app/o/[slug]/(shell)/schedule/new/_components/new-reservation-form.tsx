@@ -35,14 +35,16 @@ import { RecurrenceControls } from './recurrence-controls';
 import { SeriesPreviewPanel } from './series-preview-panel';
 import { SeriesCreateResult } from './series-create-result';
 import { TwilightIndicator } from './twilight-indicator';
+import { AvailabilityIndicator } from './availability-indicator';
 import { useConflictCheck } from '../_hooks/use-conflict-check';
 import { useSeriesPreview } from '../_hooks/use-series-preview';
-import { createReservationAction, createSeriesAction, previewTwilightAction } from '../../actions';
+import { createReservationAction, createSeriesAction, previewTwilightAction, previewAvailabilityAction } from '../../actions';
 import { getGroundingStatusAction } from '../../../maintenance/actions';
 import { toDateInputValue } from '../../_utils/format-time';
-import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView, PreviewTwilightResourceReport, TwilightHit } from '@aeroops/api';
+import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView, PreviewTwilightResourceReport, TwilightHit, PreviewAvailabilityResourceReport } from '@aeroops/api';
 import type { RecurrenceValue, RecurrenceFieldErrors } from './recurrence-controls';
 import type { TwilightPreviewState } from './twilight-indicator';
+import type { AvailabilityPreviewState } from './availability-indicator';
 
 interface NewReservationFormProps {
   resources: ResourceRow[];
@@ -117,6 +119,12 @@ export function NewReservationForm({
   const [twilightState, setTwilightState] = React.useState<TwilightPreviewState>('idle');
   const [twilightPerResource, setTwilightPerResource] = React.useState<PreviewTwilightResourceReport[]>([]);
   const twilightTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Availability preview (Slice AV1.3) — advisory indicator, never blocks the form.
+  // [VERIFY-AV1-A]: operator scheduling rule, NOT an FAA duty-time determination.
+  const [availabilityState, setAvailabilityState] = React.useState<AvailabilityPreviewState>('idle');
+  const [availabilityPerResource, setAvailabilityPerResource] = React.useState<PreviewAvailabilityResourceReport[]>([]);
+  const availabilityTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Recurrence (Slice 2b) ──────────────────────────────────────────────────
   const [repeatEnabled, setRepeatEnabled] = React.useState(false);
@@ -256,6 +264,49 @@ export function NewReservationForm({
 
     return () => {
       if (twilightTimerRef.current) clearTimeout(twilightTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aircraftId, date, startTime, endTime]);
+
+  // Availability preview (Slice AV1.3, advisory only — never blocks submit).
+  // Debounce 500ms; fires when aircraft + date + start + end are all set.
+  // [VERIFY-AV1-A]: operator operating-hours, NOT an FAA duty-time determination.
+  React.useEffect(() => {
+    if (availabilityTimerRef.current) clearTimeout(availabilityTimerRef.current);
+
+    if (!aircraftId || !date || !startTime || !endTime) {
+      setAvailabilityState('idle');
+      setAvailabilityPerResource([]);
+      return;
+    }
+
+    const startAt = new Date(`${date}T${startTime}:00`);
+    const endAt = new Date(`${date}T${endTime}:00`);
+    if (isNaN(startAt.getTime()) || isNaN(endAt.getTime()) || endAt <= startAt) {
+      setAvailabilityState('idle');
+      setAvailabilityPerResource([]);
+      return;
+    }
+
+    setAvailabilityState('loading');
+
+    availabilityTimerRef.current = setTimeout(async () => {
+      const ids: string[] = [aircraftId];
+      try {
+        const result = await previewAvailabilityAction({ startAt, endAt, resourceIds: ids });
+        if ('error' in result) {
+          setAvailabilityState('error');
+          return;
+        }
+        setAvailabilityPerResource(result.perResource);
+        setAvailabilityState('loaded');
+      } catch {
+        setAvailabilityState('error');
+      }
+    }, 500);
+
+    return () => {
+      if (availabilityTimerRef.current) clearTimeout(availabilityTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aircraftId, date, startTime, endTime]);
@@ -429,6 +480,14 @@ export function NewReservationForm({
           // Show the boundary times; nothing was written.
           setTwilightWarnings(result.twilight);
           setTwilightBlocked(true);
+        } else if (result.reason === 'availability') {
+          // Slice AV1.3 — block mode: refused because booking falls outside
+          // the aircraft's operating-hours windows. Nothing was written.
+          // The availability indicator already shows the out-of-hours sub-intervals;
+          // surface a generic server error so the user knows the booking was refused.
+          setServerError(
+            'This booking falls outside the aircraft\'s operating hours. Adjust the time or contact your operator.',
+          );
         } else {
           // reason === 'conflict' — FROZEN Slice-1 arm
           setSubmitConflicts(result.conflicts);
@@ -980,6 +1039,19 @@ export function NewReservationForm({
                 ? new Date(`${date}T${endTime}:00`).getTime()
                 : undefined
             }
+          />
+        )}
+
+        {/* Operating-hours availability indicator (Slice AV1.3, advisory only).
+            Shown when aircraft is selected and time window is set.
+            Never blocks submit -- informational only.
+            [VERIFY-AV1-A]: operator scheduling rule, NOT an FAA duty-time
+            or Part-117/135/121 determination. */}
+        {!repeatEnabled && aircraftId && (
+          <AvailabilityIndicator
+            state={availabilityState}
+            perResource={availabilityPerResource}
+            resourceNames={aircraftNameMap}
           />
         )}
 

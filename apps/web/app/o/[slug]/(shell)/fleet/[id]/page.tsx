@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getAircraftDetailAction, listAircraftAction } from '../actions';
 import { EditAircraftDialog } from '../_components/edit-aircraft-dialog';
 import { DispatchRequirementsCard } from '../_components/dispatch-requirements-card';
+import { AvailabilityWindowsCard } from '../_components/availability-windows-card';
 import { OpenWorkOrdersCard } from '../_components/open-work-orders-card';
 import type { SerializedAircraftDetail } from '../actions';
 import type { AircraftListRow } from '@aeroops/api';
@@ -136,10 +137,11 @@ interface DetailContentProps {
   slug: string;
   canManage: boolean;
   canManageRequirements: boolean;
+  canManageResources: boolean;
   canWorkOrder: boolean;
 }
 
-async function DetailContent({ resourceId, slug, canManage, canManageRequirements, canWorkOrder }: DetailContentProps) {
+async function DetailContent({ resourceId, slug, canManage, canManageRequirements, canManageResources, canWorkOrder }: DetailContentProps) {
   const [result, aircraftListResult] = await Promise.all([
     getAircraftDetailAction({ resourceId }),
     listAircraftAction({ includeInactive: false }),
@@ -193,6 +195,7 @@ async function DetailContent({ resourceId, slug, canManage, canManageRequirement
       slug={slug}
       canManage={canManage}
       canManageRequirements={canManageRequirements}
+      canManageResources={canManageResources}
       canWorkOrder={canWorkOrder}
       aircraftList={aircraftList}
     />
@@ -206,11 +209,12 @@ interface AircraftDetailViewProps {
   slug: string;
   canManage: boolean;
   canManageRequirements: boolean;
+  canManageResources: boolean;
   canWorkOrder: boolean;
   aircraftList: AircraftListRow[];
 }
 
-function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, canWorkOrder, aircraftList }: AircraftDetailViewProps) {
+function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, canManageResources, canWorkOrder, aircraftList }: AircraftDetailViewProps) {
   const { grounding } = aircraft;
 
   return (
@@ -291,6 +295,13 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       <DispatchRequirementsCard
         resourceId={aircraft.id}
         canManageRequirements={canManageRequirements}
+      />
+
+      {/* ── Operating-hours availability card (Slice AV1.3) ───────────────── */}
+      {/* [VERIFY-AV1-A] operator operating-hours only; NOT an FAA determination */}
+      <AvailabilityWindowsCard
+        resourceId={aircraft.id}
+        canManageResources={canManageResources}
       />
 
       {/* ── Meters card ───────────────────────────────────────────────────── */}
@@ -532,6 +543,9 @@ export default async function AircraftDetailPage({ params }: AircraftDetailPageP
   // dispatch:manage_requirements → owner/manager/dispatcher (controls add/remove UI).
   // The server-side action re-gates independently.
   const canManageRequirements = hasCapability(session, 'dispatch:manage_requirements');
+  // schedule:manage_resources → owner/manager (controls availability windows UI).
+  // The server-side action re-gates independently.
+  const canManageResources = hasCapability(session, 'schedule:manage_resources');
   // maintenance:work_order → owner/manager/dispatcher/mechanic.
   const canWorkOrder = hasCapability(session, 'maintenance:work_order');
 
@@ -542,6 +556,7 @@ export default async function AircraftDetailPage({ params }: AircraftDetailPageP
         slug={slug}
         canManage={canManage}
         canManageRequirements={canManageRequirements}
+        canManageResources={canManageResources}
         canWorkOrder={canWorkOrder}
       />
     </Suspense>
