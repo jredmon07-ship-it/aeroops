@@ -868,8 +868,10 @@ export type { BookingRequestInput } from '@aeroops/core';
 // ─── Slice PB1.2 — Staff triage (session-scoped, booking:triage cap) ──────────
 // listBookingRequests: requireCapability('booking:triage') FIRST; newest-first
 //   (matches (org_id,status,created_at DESC) index); status filter + counts.
-// updateBookingRequestStatus: audited status transitions; sets handled_by/handled_at;
-//   'converted' sets status ONLY — NO reservation created, NO money.
+// updateBookingRequestStatus: audited status transitions; sets handled_by/handled_at.
+//   PB2.1b: 'converted' is NO LONGER reachable here — the only path to converted is
+//   convertBookingRequest (below). This command does new→contacted|declined,
+//   contacted→declined|contacted, terminals terminal. NO money.
 // booking:triage → owner/manager/dispatcher (NOT cfi/mechanic/renter/student/accountant).
 // Requester fields are NEVER mutated (write-once per ADR-0013).
 // *WithDb forms are for test code only (inject a pglite client).
@@ -894,3 +896,24 @@ export type {
   UpdateBookingRequestStatusInput,
   UpdateBookingRequestStatusResult,
 } from './booking/update-booking-request-status.js';
+
+// ─── Slice PB2.1b — Convert a booking-request into a reservation (ADR-0014) ────
+// convertBookingRequest: the ATOMIC composite command. authz BOTH (booking:triage
+//   THEN schedule:create_reservation) FIRST; ONE withSessionOrgContext tx; loads the
+//   request FOR UPDATE (serializes double-convert); creates the reservation via the
+//   FROZEN gatedCreateOccurrence (NO bespoke INSERT — the gate stays byte-identical);
+//   on gate refusal a ConvertRefusedError throws-to-rollback so NEITHER the reservation
+//   NOR the request-flip persists (the 5 frozen refusal arms returned verbatim);
+//   on success flips the SAME row to 'converted' + sets converted_reservation_id +
+//   writes ONE booking_request.converted audit row (ids-only metadata, NO PII).
+// The ONLY path to status='converted' (updateBookingRequestStatus no longer reaches it).
+// NO money; NO app_user/member/pilot/dispatch creation (created_by = staff via the gate).
+// *WithDb form is for test code only (inject a pglite client).
+export {
+  convertBookingRequest,
+  convertBookingRequestWithDb,
+} from './booking/convert-booking-request.js';
+export type {
+  ConvertBookingRequestInput,
+  ConvertBookingRequestResult,
+} from './booking/convert-booking-request.js';

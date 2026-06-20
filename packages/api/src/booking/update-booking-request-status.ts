@@ -4,10 +4,17 @@
  *
  * TRANSITIONS (enforced as a tagged result, NOT thrown):
  *   new       → contacted | declined
- *   contacted → converted | declined | contacted  (re-note: re-setting contacted is valid)
+ *   contacted → declined | contacted  (re-note: re-setting contacted is valid)
  *   converted → (no further transitions — terminal)
  *   declined  → (no further transitions — terminal)
  *   Any other transition → { ok:false, reason:'invalid_transition' }
+ *
+ * PB2.1b CHANGE: 'converted' was REMOVED as a target from this command. The ONLY
+ * path to status='converted' is now convertBookingRequest (convert-booking-request.ts),
+ * which atomically creates the reservation + flips the status in ONE tx. This kills
+ * the "converted but no reservation" footgun — a converted request always has a
+ * (linked) reservation. contacted → converted via this command is now an
+ * invalid_transition.
  *
  * GUARANTEES:
  *   - requireCapability('booking:triage') FIRST — before any data access.
@@ -46,13 +53,17 @@ import type { BookingRequestStatus } from './list-booking-requests.js';
  * transition to. Only entries here are permitted.
  *
  * new       → contacted | declined
- * contacted → converted | declined | contacted  (re-note is valid)
+ * contacted → declined | contacted  (re-note is valid)
  * converted → (terminal, no outgoing transitions)
  * declined  → (terminal, no outgoing transitions)
+ *
+ * PB2.1b: 'converted' is NO LONGER a reachable target here — the ONLY path to
+ * converted is convertBookingRequest (atomic create-reservation + flip). This
+ * guarantees a converted request always has a linked reservation.
  */
 const ALLOWED_TRANSITIONS: Record<BookingRequestStatus, ReadonlySet<BookingRequestStatus>> = {
   new:       new Set<BookingRequestStatus>(['contacted', 'declined']),
-  contacted: new Set<BookingRequestStatus>(['converted', 'declined', 'contacted']),
+  contacted: new Set<BookingRequestStatus>(['declined', 'contacted']),
   converted: new Set<BookingRequestStatus>([]),
   declined:  new Set<BookingRequestStatus>([]),
 };

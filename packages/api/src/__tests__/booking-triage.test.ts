@@ -101,6 +101,7 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0013_work_orders.sql'),       'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0014_availability.sql'),      'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0015_booking_request.sql'),   'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0016_booking_request_convert.sql'), 'utf-8'),
 ];
 
 // ── Shared test environment ───────────────────────────────────────────────────
@@ -503,7 +504,10 @@ describe('TRANS — Status transitions', () => {
     expect(row!['handled_at']).not.toBeNull();
   });
 
-  it('TRANS-3: contacted → converted: success; flag only — no reservation row created', async () => {
+  it('TRANS-3 (PB2.1b regression): contacted → converted via updateBookingRequestStatus is now invalid_transition', async () => {
+    // PB2.1b removed 'converted' as a reachable target from this command — the
+    // ONLY path to converted is convertBookingRequest (atomic create-reservation
+    // + flip). updateBookingRequestStatus contacted→converted now refuses.
     const { db, orgAId, userAId } = env;
     const session = makeSession('owner', orgAId, userAId);
 
@@ -513,9 +517,13 @@ describe('TRANS — Status transitions', () => {
     await updateBookingRequestStatusWithDb(db, session, { id, status: 'contacted' });
     const result = await updateBookingRequestStatusWithDb(db, session, { id, status: 'converted' });
 
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('invalid_transition');
+    }
+    // Row remains 'contacted' (the refused convert did not mutate it).
     const row = await fetchBookingRequest(db, orgAId, id);
-    expect(row!['status']).toBe('converted');
+    expect(row!['status']).toBe('contacted');
 
     // NO-RSV: reservation table must be unchanged.
     const reservationsAfter = await countReservations(db, orgAId);
@@ -574,9 +582,17 @@ describe('TRANS — Status transitions', () => {
     const { db, orgAId, userAId } = env;
     const session = makeSession('owner', orgAId, userAId);
 
+    // PB2.1b: updateBookingRequestStatus can no longer reach 'converted'. Force
+    // the terminal status directly (converted is normally produced ONLY by
+    // convertBookingRequest), then assert no outgoing transition is allowed.
     const id = await insertBookingRequest(db, orgAId, { requesterEmail: 'trans7@test.example' });
-    await updateBookingRequestStatusWithDb(db, session, { id, status: 'contacted' });
-    await updateBookingRequestStatusWithDb(db, session, { id, status: 'converted' });
+    await withOrgContext(db, orgAId, async (tx) => {
+      await (tx as typeof db).execute(sql`
+        UPDATE booking_request
+        SET status = 'converted', handled_by = ${userAId}::uuid, handled_at = now()
+        WHERE id = ${id}::uuid
+      `);
+    });
 
     for (const targetStatus of ['new', 'contacted', 'declined', 'converted'] as const) {
       const result = await updateBookingRequestStatusWithDb(db, session, { id, status: targetStatus });
@@ -733,8 +749,10 @@ describe('SHAPE — DB shape checks', () => {
 // NO-RSV — converted creates NO reservation row
 // ═════════════════════════════════════════════════════════════════════════════
 
-describe('NO-RSV — converted creates NO reservation', () => {
-  it('NO-RSV-1: reservation count unchanged after converting a request', async () => {
+describe('NO-RSV — updateBookingRequestStatus never reaches converted (PB2.1b)', () => {
+  it('NO-RSV-1: updateBookingRequestStatus can no longer convert; reservation count unchanged', async () => {
+    // PB2.1b: the flag-only convert path was removed from this command. Attempting
+    // contacted → converted here is an invalid_transition and writes no reservation.
     const { db, orgAId, userAId } = env;
     const session = makeSession('owner', orgAId, userAId);
 
@@ -744,7 +762,10 @@ describe('NO-RSV — converted creates NO reservation', () => {
     await updateBookingRequestStatusWithDb(db, session, { id, status: 'contacted' });
     const result = await updateBookingRequestStatusWithDb(db, session, { id, status: 'converted' });
 
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('invalid_transition');
+    }
 
     const reservationsAfter = await countReservations(db, orgAId);
     expect(reservationsAfter).toBe(reservationsBefore);

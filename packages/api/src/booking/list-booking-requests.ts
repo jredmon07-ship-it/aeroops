@@ -51,6 +51,13 @@ export interface BookingRequestRow {
   handledBy: string | null;
   handledAt: Date | null;
   triageNotes: string | null;
+  /**
+   * PB2.1b (read-only additive): the id of the reservation this request was
+   * converted into (NULL unless status='converted' via convertBookingRequest, or
+   * if the linked reservation was later hard-deleted → ON DELETE SET NULL). Drives
+   * the Converted-tab "View reservation" link.
+   */
+  convertedReservationId: string | null;
   createdAt: Date;
 }
 
@@ -112,6 +119,7 @@ async function _listBookingRequestsImpl(
         handled_by       AS "handledBy",
         handled_at       AS "handledAt",
         triage_notes     AS "triageNotes",
+        converted_reservation_id AS "convertedReservationId",
         created_at       AS "createdAt"
       FROM booking_request
       WHERE status = ${status}
@@ -142,6 +150,7 @@ async function _listBookingRequestsImpl(
       handledBy: string | null;
       handledAt: Date | string | null;
       triageNotes: string | null;
+      convertedReservationId: string | null;
       createdAt: Date | string;
     }>;
 
@@ -168,6 +177,7 @@ async function _listBookingRequestsImpl(
           ? r.handledAt
           : new Date(r.handledAt),
       triageNotes: r.triageNotes,
+      convertedReservationId: r.convertedReservationId,
       createdAt: r.createdAt instanceof Date
         ? r.createdAt
         : new Date(r.createdAt),
