@@ -227,16 +227,22 @@ export type {
   ResourceAvailabilityWindowInsert,
 } from './resource-availability-window.js';
 
-// Public booking requests — tenant-scoped (Slice PB1.1 / ADR-0013 / migration 0015)
+// Public booking requests — tenant-scoped (Slice PB1.1 / ADR-0013 / migration 0015;
+//   PB2.1a / ADR-0014 / migration 0016 adds converted_reservation_id)
 // booking_request: unauthenticated inbound enquiry from the public booking page.
 //   org_id set ONLY from resolveOrgBySlug (never client input); RLS INSERT WITH CHECK
 //   is the ADR-0013 backstop for the anon write path. Requester fields write-once.
 //   status: new | contacted | converted | declined; booking_request_handled_shape_check.
 //   Composite FK (handled_by,org_id) → app_user ON DELETE SET NULL (handled_by) —
 //   column-list: org_id NEVER nulled; durable "who" in audit_log.
-//   NO requester FK (anon); NO reservation FK; NO money.
+//   Composite FK (converted_reservation_id,org_id) → reservation(id,org_id)
+//     ON DELETE SET NULL (converted_reservation_id) — ADR-0014; cross-org link
+//     structurally impossible; shape-check UNCHANGED; invariant in command layer.
+//   NO requester FK (anon); NO money.
 //   [VERIFY-PB1-COMP-1]: PII retention/purge posture before public launch.
 //   [VERIFY-PB1-SEC-1]: edge rate-limiter/WAF+CAPTCHA before public exposure.
+//   [VERIFY-PB2-COMP-1]: convert compliance (NO money; no airworthiness/FAA
+//     determination; twilight/availability refusal copy keeps verbatim disclaimers).
 export { bookingRequest } from './booking-request.js';
 export type {
   BookingRequestSelect,

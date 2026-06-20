@@ -1,5 +1,6 @@
 /**
- * booking-request-schema.test.ts — Schema tests for 0015_booking_request.sql (Slice PB1.1).
+ * booking-request-schema.test.ts — Schema tests for 0015_booking_request.sql (Slice PB1.1)
+ *                                  and 0016_booking_request_convert.sql (Slice PB2.1a).
  *
  * Proves spec §PB1.1 schema acceptance criteria:
  *
@@ -33,8 +34,27 @@
  *         BR9c. Converted request with handled_at → accepted.
  *   BR10. Down migration reverses 0015: booking_request table gone.
  *
- * Test harness: PGlite (in-process Postgres WASM). Applies all 16 real
- * migration artifacts (0000–0015) in order so the constraint SQL validated
+ * Proves spec §PB2.1a schema acceptance criteria (migration 0016):
+ *
+ *   CV1.  converted_reservation_id column exists and is nullable after migration 0016.
+ *         CV1a. Column is present on the table.
+ *         CV1b. INSERT without converted_reservation_id still succeeds (nullable).
+ *   CV2.  Composite FK accepts a valid same-org (reservation_id, org_id) link.
+ *   CV3.  Composite FK REJECTS a cross-org pair (reservation_id from org B, org_id
+ *         of org A) — the cross-org backstop; no such tuple exists in
+ *         reservation_id_org_id_unique.
+ *   CV4.  ON DELETE SET NULL (converted_reservation_id):
+ *         CV4a. Deleting the linked reservation → converted_reservation_id = NULL.
+ *         CV4b. org_id is preserved after the SET NULL action.
+ *         CV4c. status = 'converted' is preserved after the SET NULL action.
+ *   CV5.  booking_request_handled_shape_check still PASSES for a converted row
+ *         whose converted_reservation_id IS NULL (shape-check UNCHANGED).
+ *   CV6.  Down migration reverses 0016:
+ *         CV6a. converted_reservation_id column is gone after down.
+ *         CV6b. booking_request_converted_reservation_org_fk constraint is gone.
+ *
+ * Test harness: PGlite (in-process Postgres WASM). Applies all 17 real
+ * migration artifacts (0000–0016) in order so the constraint SQL validated
  * here is the exact production artifact. NEVER applied to a real DB.
  */
 
@@ -50,7 +70,7 @@ import {
   withOrgContext,
   withPlatformAdminContext,
 } from '../index.js';
-import { org, appUser, bookingRequest } from '../schema/index.js';
+import { org, appUser, reservation, bookingRequest } from '../schema/index.js';
 import type { PgliteTestClient } from '../client.js';
 
 // ── Path resolution ───────────────────────────────────────────────────────────
@@ -74,10 +94,16 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../migrations/0013_work_orders.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0014_availability.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0015_booking_request.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0016_booking_request_convert.sql'), 'utf-8'),
 ];
 
 const DOWN_0015 = readFileSync(
   resolve(__dirname, '../../migrations/0015_booking_request.down.sql'),
+  'utf-8',
+);
+
+const DOWN_0016 = readFileSync(
+  resolve(__dirname, '../../migrations/0016_booking_request_convert.down.sql'),
   'utf-8',
 );
 
@@ -88,8 +114,10 @@ interface BookingRequestTestEnv {
   pglite: PGlite;
   orgAId: string;
   orgBId: string;
-  userAId: string;   // member of org A (used as handler)
-  userBId: string;   // member of org B (used for cross-org tests)
+  userAId: string;        // member of org A (used as handler)
+  userBId: string;        // member of org B (used for cross-org tests)
+  reservationAId: string; // reservation in org A (CV2/CV4 FK tests)
+  reservationBId: string; // reservation in org B (CV3 cross-org rejection test)
 }
 
 async function setupBookingRequestEnv(): Promise<BookingRequestTestEnv> {
@@ -124,6 +152,36 @@ async function setupBookingRequestEnv(): Promise<BookingRequestTestEnv> {
     return [u[0]!];
   });
 
+  // Seed one reservation in each org (CV2 / CV3 / CV4 tests).
+  // Reservations are inserted via superuser (platform context) to bypass the
+  // reservation_resource EXCLUDE constraint — these are FK-target rows only,
+  // not real dispatched flights.
+  const [reservationA] = await withOrgContext(db, orgA.id, async (tx) => {
+    const rows = await tx
+      .insert(reservation)
+      .values({
+        orgId: orgA.id,
+        startAt: new Date('2027-06-01T10:00:00Z'),
+        endAt: new Date('2027-06-01T12:00:00Z'),
+        createdBy: userA.id,
+      })
+      .returning();
+    return [rows[0]!];
+  });
+
+  const [reservationB] = await withOrgContext(db, orgB.id, async (tx) => {
+    const rows = await tx
+      .insert(reservation)
+      .values({
+        orgId: orgB.id,
+        startAt: new Date('2027-06-01T10:00:00Z'),
+        endAt: new Date('2027-06-01T12:00:00Z'),
+        createdBy: userB.id,
+      })
+      .returning();
+    return [rows[0]!];
+  });
+
   // Drop to aeroops_app for RLS enforcement on all subsequent queries.
   await setTestAppRole({ pglite });
 
@@ -134,6 +192,8 @@ async function setupBookingRequestEnv(): Promise<BookingRequestTestEnv> {
     orgBId: orgB.id,
     userAId: userA.id,
     userBId: userB.id,
+    reservationAId: reservationA.id,
+    reservationBId: reservationB.id,
   };
 }
 
@@ -611,6 +671,9 @@ describe('booking-request-schema: migration 0015 + constraints + RLS', () => {
   });
 
   // ── BR10: Down migration reverses 0015 ───────────────────────────────────────
+  // Note: MIGRATION_SQL now includes 0016; the down test applies 0015 down on a
+  // fresh client that has had 0016 up applied. 0015 down drops the whole table
+  // (CASCADE), which also removes the 0016 column + FK.
 
   it('BR10: down migration reverses 0015 — booking_request table gone', async () => {
     // Spin up a separate isolated client for down-migration test.
@@ -626,7 +689,7 @@ describe('booking-request-schema: migration 0015 + constraints + RLS', () => {
     );
     expect(before.rows[0]!.exists).toBe(true);
 
-    // Apply the down migration.
+    // Apply the down migration (0015 drops the table; CASCADE removes 0016 constraint too).
     await pg2.exec(DOWN_0015);
 
     // Table must be gone.
@@ -637,5 +700,253 @@ describe('booking-request-schema: migration 0015 + constraints + RLS', () => {
        ) AS exists`,
     );
     expect(after.rows[0]!.exists).toBe(false);
+  });
+
+  // ── CV1: converted_reservation_id column exists + is nullable (migration 0016) ──
+
+  it('CV1a: converted_reservation_id column exists on booking_request after migration 0016', async () => {
+    const { pglite } = env;
+    const r = await pglite.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'booking_request'
+           AND column_name = 'converted_reservation_id'
+       ) AS exists`,
+    );
+    expect(r.rows[0]!.exists).toBe(true);
+  });
+
+  it('CV1b: INSERT without converted_reservation_id succeeds (nullable column)', async () => {
+    const { pglite, orgAId } = env;
+    await pglite.exec(`SET ROLE postgres`);
+    await pglite.exec(`BEGIN`);
+    await pglite.exec(`SET LOCAL "app.current_org_id" = '${orgAId}'`);
+    // Should not throw — column is nullable and has no default.
+    const id = await insertNewRequest(pglite, orgAId, { name: 'CV1b no link' });
+    await pglite.exec(`COMMIT`);
+    await pglite.exec(`SET ROLE aeroops_app`);
+    expect(id).toBeTruthy();
+
+    // Verify converted_reservation_id is NULL.
+    await pglite.exec(`SELECT set_config('app.current_org_id', '${orgAId}', false)`);
+    const row = await pglite.query<{ converted_reservation_id: string | null }>(
+      `SELECT converted_reservation_id FROM booking_request WHERE id = $1`,
+      [id],
+    );
+    expect(row.rows[0]!.converted_reservation_id).toBeNull();
+  });
+
+  // ── CV2: Composite FK accepts a valid same-org (reservation_id, org_id) link ──
+
+  it('CV2: composite FK accepts a same-org (converted_reservation_id, org_id) link', async () => {
+    const { pglite, orgAId, userAId, reservationAId } = env;
+
+    await pglite.exec(`SET ROLE postgres`);
+    await pglite.exec(`BEGIN`);
+    await pglite.exec(`SET LOCAL "app.current_org_id" = '${orgAId}'`);
+
+    // Insert a converted request linking to the org-A reservation.
+    const r = await pglite.query<{ id: string; converted_reservation_id: string }>(
+      `INSERT INTO booking_request
+         (org_id, requester_name, requester_email, requested_start,
+          status, handled_by, handled_at, converted_reservation_id)
+       VALUES ($1, 'CV2 Requester', 'cv2@example.com', '2027-06-01 10:00:00+00',
+               'converted', $2, now(), $3)
+       RETURNING id, converted_reservation_id`,
+      [orgAId, userAId, reservationAId],
+    );
+    await pglite.exec(`COMMIT`);
+    await pglite.exec(`SET ROLE aeroops_app`);
+
+    expect(r.rows[0]!.converted_reservation_id).toBe(reservationAId);
+  });
+
+  // ── CV3: Composite FK REJECTS a cross-org (reservation_id from B, org_id of A) ─
+  //
+  // This is the structural cross-org backstop: (reservationBId, orgAId) is not in
+  // reservation_id_org_id_unique, so the FK must reject the pair.
+
+  it('CV3: composite FK rejects cross-org pair (reservation_id from org B with org A org_id)', async () => {
+    const { pglite, orgAId, userAId, reservationBId } = env;
+
+    await pglite.exec(`SET ROLE postgres`);
+    await pglite.exec(`BEGIN`);
+    await pglite.exec(`SET LOCAL "app.current_org_id" = '${orgAId}'`);
+
+    // Attempt to link org A's booking_request to org B's reservation — must reject.
+    await expect(
+      pglite.query(
+        `INSERT INTO booking_request
+           (org_id, requester_name, requester_email, requested_start,
+            status, handled_by, handled_at, converted_reservation_id)
+         VALUES ($1, 'CV3 Attacker', 'cv3@example.com', '2027-06-01 10:00:00+00',
+                 'converted', $2, now(), $3)`,
+        [orgAId, userAId, reservationBId], // reservationBId belongs to org B — FK must fire
+      ),
+    ).rejects.toThrow();
+    await pglite.exec(`ROLLBACK`);
+  });
+
+  // ── CV4: ON DELETE SET NULL (converted_reservation_id) — org_id + status preserved ─
+
+  it('CV4a/b/c: deleting the linked reservation → converted_reservation_id = NULL, org_id + status preserved', async () => {
+    const { pglite, orgAId, orgBId } = env;
+
+    // Use a fresh throwaway reservation to avoid clobbering the shared reservationA.
+    await pglite.exec(`SET ROLE postgres`);
+    await pglite.exec(`BEGIN`);
+    await pglite.exec(`SET LOCAL "app.current_org_id" = '${orgAId}'`);
+
+    // We need a throwaway user (created_by for the throwaway reservation).
+    const uRow = await pglite.query<{ id: string }>(
+      `INSERT INTO app_user (org_id, email, full_name)
+       VALUES ($1, 'cv4-handler@alpha-br.example', 'CV4 Handler')
+       RETURNING id`,
+      [orgAId],
+    );
+    const cv4UserId = uRow.rows[0]!.id;
+
+    // Throwaway reservation in org A.
+    const rsvRow = await pglite.query<{ id: string }>(
+      `INSERT INTO reservation (org_id, start_at, end_at, created_by)
+       VALUES ($1, '2027-07-01 10:00:00+00', '2027-07-01 12:00:00+00', $2)
+       RETURNING id`,
+      [orgAId, cv4UserId],
+    );
+    const throwResvId = rsvRow.rows[0]!.id;
+
+    // Booking request pointing at the throwaway reservation.
+    const brRow = await pglite.query<{ id: string }>(
+      `INSERT INTO booking_request
+         (org_id, requester_name, requester_email, requested_start,
+          status, handled_by, handled_at, converted_reservation_id)
+       VALUES ($1, 'CV4 Requester', 'cv4@example.com', '2027-07-01 10:00:00+00',
+               'converted', $2, now(), $3)
+       RETURNING id`,
+      [orgAId, cv4UserId, throwResvId],
+    );
+    const brId = brRow.rows[0]!.id;
+    await pglite.exec(`COMMIT`);
+
+    // Hard-delete the throwaway reservation (superuser; no tx needed for the delete itself).
+    await pglite.exec(`SET LOCAL "app.current_org_id" = '${orgAId}'`);
+    await pglite.query(`DELETE FROM reservation WHERE id = $1`, [throwResvId]);
+
+    // Verify the FK SET NULL fired: converted_reservation_id = NULL.
+    const check = await pglite.query<{
+      converted_reservation_id: string | null;
+      org_id: string;
+      status: string;
+    }>(
+      `SELECT converted_reservation_id, org_id, status FROM booking_request WHERE id = $1`,
+      [brId],
+    );
+    const row = check.rows[0]!;
+
+    // CV4a: converted_reservation_id is NULL.
+    expect(row.converted_reservation_id).toBeNull();
+    // CV4b: org_id is preserved (not nulled).
+    expect(row.org_id).toBe(orgAId);
+    // CV4c: status = 'converted' is preserved.
+    expect(row.status).toBe('converted');
+
+    await pglite.exec(`SET ROLE aeroops_app`);
+    // Suppress unused variable warning.
+    void orgBId;
+  });
+
+  // ── CV5: booking_request_handled_shape_check passes for converted row with NULL link ─
+  //
+  // The shape-check is UNCHANGED by migration 0016. A converted row with a NULL
+  // converted_reservation_id is valid (SET NULL action, or PB1 flag-only converted rows).
+
+  it('CV5: handled_shape_check passes for converted row with NULL converted_reservation_id', async () => {
+    const { pglite, orgAId, userAId } = env;
+
+    await pglite.exec(`SET ROLE postgres`);
+    await pglite.exec(`BEGIN`);
+    await pglite.exec(`SET LOCAL "app.current_org_id" = '${orgAId}'`);
+
+    // Insert a converted row with converted_reservation_id = NULL (the PB1 pattern).
+    // Should NOT throw (shape-check must pass).
+    const r = await pglite.query<{ id: string; status: string; converted_reservation_id: string | null }>(
+      `INSERT INTO booking_request
+         (org_id, requester_name, requester_email, requested_start,
+          status, handled_by, handled_at, converted_reservation_id)
+       VALUES ($1, 'CV5 Requester', 'cv5@example.com', '2027-08-01 09:00:00+00',
+               'converted', $2, now(), NULL)
+       RETURNING id, status, converted_reservation_id`,
+      [orgAId, userAId],
+    );
+    await pglite.exec(`COMMIT`);
+    await pglite.exec(`SET ROLE aeroops_app`);
+
+    expect(r.rows[0]!.status).toBe('converted');
+    expect(r.rows[0]!.converted_reservation_id).toBeNull();
+  });
+
+  // ── CV6: Down migration reverses 0016 ────────────────────────────────────────
+
+  it('CV6: down migration reverses 0016 — column + constraint gone, table remains', async () => {
+    // Spin up a separate isolated client for down-migration test.
+    const { pglite: pg3 } = await createTestClient();
+    await applyMigrationSql({ pglite: pg3 }, MIGRATION_SQL);
+
+    // Verify column exists before down.
+    const beforeCol = await pg3.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'booking_request'
+           AND column_name = 'converted_reservation_id'
+       ) AS exists`,
+    );
+    expect(beforeCol.rows[0]!.exists).toBe(true);
+
+    // Verify constraint exists before down.
+    const beforeCon = await pg3.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT FROM information_schema.table_constraints
+         WHERE table_schema = 'public'
+           AND table_name = 'booking_request'
+           AND constraint_name = 'booking_request_converted_reservation_org_fk'
+       ) AS exists`,
+    );
+    expect(beforeCon.rows[0]!.exists).toBe(true);
+
+    // Apply the 0016 down migration.
+    await pg3.exec(DOWN_0016);
+
+    // CV6a: column is gone.
+    const afterCol = await pg3.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'booking_request'
+           AND column_name = 'converted_reservation_id'
+       ) AS exists`,
+    );
+    expect(afterCol.rows[0]!.exists).toBe(false);
+
+    // CV6b: constraint is gone.
+    const afterCon = await pg3.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT FROM information_schema.table_constraints
+         WHERE table_schema = 'public'
+           AND table_name = 'booking_request'
+           AND constraint_name = 'booking_request_converted_reservation_org_fk'
+       ) AS exists`,
+    );
+    expect(afterCon.rows[0]!.exists).toBe(false);
+
+    // Table itself still exists (only 0016 was reversed, not 0015).
+    const tableStillExists = await pg3.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = 'booking_request'
+       ) AS exists`,
+    );
+    expect(tableStillExists.rows[0]!.exists).toBe(true);
   });
 });

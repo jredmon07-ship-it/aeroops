@@ -82,6 +82,7 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../migrations/0013_work_orders.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0014_availability.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0015_booking_request.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0016_booking_request_convert.sql'), 'utf-8'),
 ];
 
 const DOWN_0014 = readFileSync(

@@ -27,7 +27,7 @@
  * staff-mutable only (session-gated, normal RLS path, booking:triage cap).
  * Status changes are audited (one audit_log row per transition).
  *
- * ── Composite FKs (hand-written in migration 0015 SQL) ───────────────────────
+ * ── Composite FKs (hand-written in migration 0015 / 0016 SQL) ───────────────
  * Drizzle's .references() cannot express multi-column FKs; composite FKs are
  * written in the migration; affected columns carry NO .references().
  *
@@ -47,9 +47,22 @@
  *     rationale: resolver identity may become NULL after a user hard-delete.
  *     Targets app_user_id_org_id_unique from migration 0000.
  *
+ *   Composite FK (converted_reservation_id, org_id) → reservation(id, org_id)
+ *     ON DELETE SET NULL (converted_reservation_id)
+ *     Named: booking_request_converted_reservation_org_fk (ADR-0014).
+ *     Set when a request is converted to a reservation (PB2.1a).
+ *     Column-list SET NULL: only converted_reservation_id is nulled on
+ *     reservation delete; org_id is NEVER touched. A cross-org link is
+ *     structurally impossible — the composite FK targets reservation(id, org_id)
+ *     via reservation_id_org_id_unique (migration 0002), so pairing a
+ *     reservation_id from org B with org A's org_id will always fail the FK.
+ *     Hand-written in migration 0016; convertedReservationId carries NO
+ *     .references() here. Note: the shape-check (booking_request_handled_shape_check)
+ *     is UNCHANGED — a converted row with a NULL converted_reservation_id is
+ *     valid (SET NULL action post-delete; PB1 flag-only converted rows). The
+ *     converted-with-a-reservation invariant lives in the command layer (ADR-0014).
+ *
  * NO requester FK: the requester is anonymous by design — no app_user row.
- * NO reservation FK: manual conversion in PB1; future converted_reservation_id
- *   will be added additively in a later sub-slice.
  *
  * ── CHECKs ────────────────────────────────────────────────────────────────────
  * booking_request_status_check:
@@ -144,6 +157,22 @@ export const bookingRequest = pgTable(
 
     // Operator triage notes (free-text). Mutable by staff.
     triageNotes: text('triage_notes'),
+
+    // Set when a request is successfully converted to a reservation (ADR-0014,
+    // PB2.1a). NULL until conversion, and also NULL if the linked reservation is
+    // later hard-deleted (ON DELETE SET NULL — column-list syntax so org_id is
+    // NEVER cleared). The booking_request_handled_shape_check is UNCHANGED:
+    // a converted row with a null link is valid (SET NULL action or PB1 flag-only
+    // converted rows). The converted-with-a-reservation invariant lives in the
+    // command layer (ADR-0014), not a DB CHECK.
+    //
+    // Carries NO .references() — composite FK
+    // (converted_reservation_id, org_id) → reservation(id, org_id)
+    // ON DELETE SET NULL (converted_reservation_id)
+    // is hand-written in migration 0016 (booking_request_converted_reservation_org_fk).
+    // Targets reservation_id_org_id_unique (migration 0002).
+    // Cross-org link is structurally impossible via the composite FK.
+    convertedReservationId: uuid('converted_reservation_id'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
