@@ -1,7 +1,8 @@
 /**
  * nav.test.ts — Pure unit tests for filterNavForSession + isPortalOnly (lib/nav.ts).
  *
- * COVERAGE (Slice P1.2 additions in bold; Slice A1.2 additions in brackets):
+ * COVERAGE (Slice P1.2 additions in bold; Slice A1.2 additions in brackets;
+ *           Slice PB1.2 additions in {braces}):
  *
  *   1. Null/undefined session → returns [] (no nav items for unauthenticated)
  *   2. owner → gets Portal + Dashboard + Org settings (all capabilities)
@@ -13,10 +14,11 @@
  *   8. Items that session lacks capability for are completely absent (not just hidden)
  *   9. Empty items array → returns []
  *  10. Consistency: filterNavForSession result matches hasCapability predictions
- *  11. NAV_ITEMS registry validation [13 items; Activity after Reports, before Org settings]
+ *  11. NAV_ITEMS registry validation [14 items; Booking requests after Maintenance, Activity after Reports, before Org settings]
  *  **12. isPortalOnly — truth table for all 8 roles + null/undefined (Slice P1.2)**
  *  **13. Portal visible to student/renter/owner/manager; Dashboard hidden from student/renter**
  *  [14. Activity visible to owner/manager/dispatcher/cfi/accountant; hidden from student/renter/mechanic]
+ *  {15. Booking requests visible to owner/manager/dispatcher; hidden from cfi/mechanic/renter/student/accountant}
  *
  * These are PURE unit tests — no DOM, no Next.js, no DB.
  *
@@ -35,6 +37,11 @@
  * Slice A1.2 changes applied:
  *   - "Activity" NAV_ITEM added after "Reports" (reporting:access).
  *   - Total NAV_ITEMS: 13 (was 12).
+ *
+ * Slice PB1.2 changes applied:
+ *   - "Booking requests" NAV_ITEM added after "Maintenance" (booking:triage).
+ *     owner/manager/dispatcher see it; cfi/mechanic/renter/student/accountant do NOT.
+ *   - Total NAV_ITEMS: 14 (was 13).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -83,23 +90,24 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 //     Placed after Reports, before Org settings.
 //
 // Full matrix (items in NAV_ITEMS order):
-//   Portal        portal:access               → owner, manager, student, renter
-//   Dashboard     reporting:access            → owner, manager, dispatcher, cfi, accountant
-//   Reservations  schedule:access             → owner, manager, dispatcher, cfi
-//   Board         schedule:access             → owner, manager, dispatcher, cfi
-//   Auto-schedule schedule:create_reservation → owner, manager, dispatcher, cfi
-//   Resources     schedule:manage_resources   → owner, manager, dispatcher
-//   People        people:access               → owner, manager, dispatcher, cfi
-//   Training      training:access             → owner, manager, dispatcher, cfi
-//   Fleet         fleet:access                → owner, manager, dispatcher, cfi, mechanic
-//   Maintenance   maintenance:access          → owner, manager, dispatcher, cfi, mechanic
-//   Reports       reporting:access            → owner, manager, dispatcher, cfi, accountant
-//   Activity      reporting:access            → owner, manager, dispatcher, cfi, accountant
-//   Org settings  org:manage_settings         → owner, manager
+//   Portal           portal:access               → owner, manager, student, renter
+//   Dashboard        reporting:access            → owner, manager, dispatcher, cfi, accountant
+//   Reservations     schedule:access             → owner, manager, dispatcher, cfi
+//   Board            schedule:access             → owner, manager, dispatcher, cfi
+//   Auto-schedule    schedule:create_reservation → owner, manager, dispatcher, cfi
+//   Resources        schedule:manage_resources   → owner, manager, dispatcher
+//   People           people:access               → owner, manager, dispatcher, cfi
+//   Training         training:access             → owner, manager, dispatcher, cfi
+//   Fleet            fleet:access                → owner, manager, dispatcher, cfi, mechanic
+//   Maintenance      maintenance:access          → owner, manager, dispatcher, cfi, mechanic
+//   Booking requests booking:triage              → owner, manager, dispatcher
+//   Reports          reporting:access            → owner, manager, dispatcher, cfi, accountant
+//   Activity         reporting:access            → owner, manager, dispatcher, cfi, accountant
+//   Org settings     org:manage_settings         → owner, manager
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity', 'Org settings'],
-  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity', 'Org settings'],
-  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity'],
+  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Reports', 'Activity', 'Org settings'],
+  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Reports', 'Activity', 'Org settings'],
+  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Reports', 'Activity'],
   cfi:        ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity'],
   mechanic:   ['Fleet', 'Maintenance'],
   renter:     ['Portal'],
@@ -137,8 +145,8 @@ describe('2. owner gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 13 items (full nav incl. Portal + Dashboard + Activity + all staff items)', () => {
-    expect(result.length).toBe(13);
+  it('returns exactly 14 items (full nav incl. Portal + Dashboard + Booking requests + Activity + all staff items)', () => {
+    expect(result.length).toBe(14);
   });
 
   it('includes Portal (first item for owner)', () => {
@@ -180,8 +188,8 @@ describe('3. manager gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 13 items (full nav)', () => {
-    expect(result.length).toBe(13);
+  it('returns exactly 14 items (full nav)', () => {
+    expect(result.length).toBe(14);
   });
 
   it('includes Portal', () => {
@@ -443,8 +451,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 13 items (Portal + Dashboard + Activity + 10 staff items)', () => {
-    expect(NAV_ITEMS.length).toBe(13);
+  it('NAV_ITEMS has exactly 14 items (Portal + Dashboard + Booking requests + Activity + 10 staff items)', () => {
+    expect(NAV_ITEMS.length).toBe(14);
   });
 
   it('first item is Portal with portal:access (Slice P1.2 addition)', () => {
@@ -521,14 +529,14 @@ describe('11. NAV_ITEMS registry', () => {
     expect(maintenanceIdx).toBeGreaterThan(-1);
   });
 
-  it('Reports item is gated by reporting:access and placed after Maintenance, before Activity (R1.2)', () => {
+  it('Reports item is gated by reporting:access and placed after Booking requests, before Activity (R1.2)', () => {
     const reports = NAV_ITEMS.find((i) => i.label === 'Reports');
     expect(reports?.requiredCapability).toBe('reporting:access');
     expect(reports?.href).toBe('/o/[slug]/reporting/reports');
-    const maintenanceIdx = NAV_ITEMS.findIndex((i) => i.label === 'Maintenance');
+    const bookingIdx = NAV_ITEMS.findIndex((i) => i.label === 'Booking requests');
     const reportsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Reports');
     const activityIdx = NAV_ITEMS.findIndex((i) => i.label === 'Activity');
-    expect(reportsIdx).toBeGreaterThan(maintenanceIdx);
+    expect(reportsIdx).toBeGreaterThan(bookingIdx);
     expect(reportsIdx).toBeLessThan(activityIdx);
   });
 
@@ -881,5 +889,99 @@ describe('15. landingPathFor', () => {
     expect(landingPathFor(makeSession('mechanic'))).toContain('[slug]');
     expect(landingPathFor(makeSession('student'))).toContain('[slug]');
     expect(landingPathFor(makeSession('renter'))).toContain('[slug]');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 16. Booking requests (Slice PB1.2) — visibility per role
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('16. Booking requests (Slice PB1.2)', () => {
+  const checkRole = (role: MembershipRole) => {
+    const s = makeSession(role);
+    return filterNavForSession(s, NAV_ITEMS, 'acme').some(
+      (i) => i.label === 'Booking requests',
+    );
+  };
+
+  it('Booking requests is visible to owner (booking:triage)', () => {
+    expect(checkRole('owner')).toBe(true);
+  });
+
+  it('Booking requests is visible to manager (booking:triage)', () => {
+    expect(checkRole('manager')).toBe(true);
+  });
+
+  it('Booking requests is visible to dispatcher (booking:triage)', () => {
+    expect(checkRole('dispatcher')).toBe(true);
+  });
+
+  it('Booking requests is NOT visible to cfi (no booking:triage)', () => {
+    expect(checkRole('cfi')).toBe(false);
+  });
+
+  it('Booking requests is NOT visible to mechanic (no booking:triage)', () => {
+    expect(checkRole('mechanic')).toBe(false);
+  });
+
+  it('Booking requests is NOT visible to renter (no booking:triage)', () => {
+    expect(checkRole('renter')).toBe(false);
+  });
+
+  it('Booking requests is NOT visible to student (no booking:triage)', () => {
+    expect(checkRole('student')).toBe(false);
+  });
+
+  it('Booking requests is NOT visible to accountant (no booking:triage)', () => {
+    expect(checkRole('accountant')).toBe(false);
+  });
+
+  it('Booking requests href resolves to /o/{slug}/booking after slug substitution', () => {
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'test-fbo');
+    const item = result.find((i) => i.label === 'Booking requests');
+    expect(item?.href).toBe('/o/test-fbo/booking');
+    expect(item?.href).not.toContain('[slug]');
+  });
+
+  it('Booking requests requiredCapability is booking:triage', () => {
+    const item = NAV_ITEMS.find((i) => i.label === 'Booking requests');
+    expect(item?.requiredCapability).toBe('booking:triage');
+    expect(item?.href).toBe('/o/[slug]/booking');
+  });
+
+  it('Booking requests is placed after Maintenance and before Reports in NAV_ITEMS', () => {
+    const maintenanceIdx = NAV_ITEMS.findIndex((i) => i.label === 'Maintenance');
+    const bookingIdx = NAV_ITEMS.findIndex((i) => i.label === 'Booking requests');
+    const reportsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Reports');
+    expect(bookingIdx).toBeGreaterThan(maintenanceIdx);
+    expect(bookingIdx).toBeLessThan(reportsIdx);
+  });
+
+  it('Booking requests comes after Maintenance in dispatcher nav (booking:triage)', () => {
+    const session = makeSession('dispatcher');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    const maintenanceIdx = labels.indexOf('Maintenance');
+    const bookingIdx = labels.indexOf('Booking requests');
+    expect(bookingIdx).toBeGreaterThan(maintenanceIdx);
+  });
+
+  it('all 8 roles: Booking requests visibility matches RBAC matrix (owner/manager/dispatcher only)', () => {
+    const expectedVisible: MembershipRole[] = ['owner', 'manager', 'dispatcher'];
+    for (const role of [
+      'owner',
+      'manager',
+      'dispatcher',
+      'cfi',
+      'mechanic',
+      'renter',
+      'student',
+      'accountant',
+    ] as MembershipRole[]) {
+      const visible = checkRole(role);
+      const expected = expectedVisible.includes(role);
+      expect(visible, `role=${role}`).toBe(expected);
+    }
   });
 });

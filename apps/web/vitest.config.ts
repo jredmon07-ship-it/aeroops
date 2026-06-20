@@ -54,6 +54,8 @@ export default defineConfig({
       'app/o/\\[slug\\]/\\(shell\\)/__tests__/**/*.test.ts',
       // Slice AV1.3 — fleet availability display helper tests (pure, no DOM/Next.js).
       'app/o/\\[slug\\]/\\(shell\\)/fleet/__tests__/**/*.test.ts',
+      // Slice PB1.2 — booking-request display helper tests (pure, no DOM/Next.js).
+      'app/o/\\[slug\\]/\\(shell\\)/booking/__tests__/**/*.test.ts',
     ],
   },
 });

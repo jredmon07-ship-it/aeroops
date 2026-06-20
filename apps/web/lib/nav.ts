@@ -54,9 +54,11 @@ export interface NavItem {
  *   8. Training — Training hub (training:access); after People, before Fleet.
  *   9. Fleet — Aircraft detail hub (fleet:access); after Training, before Maintenance.
  *  10. Maintenance — Squawks + grounding (maintenance:access).
- *  11. Reports — Operational reports (reporting:access); after Maintenance, before Activity.
- *  12. Activity — Audit trail feed (reporting:access); after Reports, before Org settings.
- *  13. Org settings — owner + manager only (org:manage_settings).
+ *  11. Booking requests — public-lead triage inbox (booking:triage); after Maintenance.
+ *      owner / manager / dispatcher. Placed near People/operational ops.
+ *  12. Reports — Operational reports (reporting:access); after Booking, before Activity.
+ *  13. Activity — Audit trail feed (reporting:access); after Reports, before Org settings.
+ *  14. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   // Slice P1.2: Portal — student/renter self-service (+ owner/manager preview).
@@ -117,6 +119,15 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Maintenance',
     href: '/o/[slug]/maintenance/work-orders',
     requiredCapability: 'maintenance:access',
+  },
+  // Slice PB1.2: Booking requests — staff triage inbox for public lead-capture
+  // booking requests. Gated by booking:triage (owner/manager/dispatcher).
+  // Placed after Maintenance, before Reports (operational ops grouping).
+  // NOT visible to: cfi, mechanic, renter, student, accountant.
+  {
+    label: 'Booking requests',
+    href: '/o/[slug]/booking',
+    requiredCapability: 'booking:triage',
   },
   // Slice R1.2: Operational reports — gated by reporting:access (owner/manager/
   // dispatcher/cfi/accountant). Placed after Maintenance, before Activity.
