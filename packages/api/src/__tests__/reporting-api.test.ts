@@ -298,8 +298,8 @@ describe('Capability: reporting:access', () => {
     expect([...CAPABILITIES]).toEqual(sorted);
   });
 
-  it('capability count is now 19 (16 + training:access + training:manage + maintenance:work_order — Slice M1.2)', () => {
-    expect(CAPABILITIES.length).toBe(19);
+  it('capability count is now 20 (19 prior + portal:access — Slice P1.1)', () => {
+    expect(CAPABILITIES.length).toBe(20);
   });
 
   it('ROLE_CAPABILITIES keys still equal MEMBERSHIP_ROLES (exhaustive)', async () => {

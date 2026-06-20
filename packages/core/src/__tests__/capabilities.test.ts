@@ -161,7 +161,8 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('training:access');
     expect(caps).toContain('training:manage');
     expect(caps).toContain('maintenance:work_order');
-    expect(caps.length).toBe(19);
+    expect(caps).toContain('portal:access');
+    expect(caps.length).toBe(20);
   });
 
   it('manager returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
@@ -185,12 +186,14 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('schedule:manage_resources');
     expect(caps).toContain('training:access');
     expect(caps).toContain('training:manage');
-    expect(caps.length).toBe(19);
+    expect(caps).toContain('portal:access');
+    expect(caps.length).toBe(20);
   });
 
-  it('student returns only app:access', () => {
+  it('student returns app:access + portal:access (P1.1)', () => {
     const caps = capabilitiesForRole('student');
     expect(caps).toContain('app:access');
+    expect(caps).toContain('portal:access');
     expect(caps).not.toContain('org:manage_settings');
     expect(caps).not.toContain('dispatch:access');
     expect(caps).not.toContain('dispatch:create');
@@ -198,7 +201,12 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).not.toContain('maintenance:ground');
     expect(caps).not.toContain('maintenance:squawk');
     expect(caps).not.toContain('reporting:access');
-    expect(caps.length).toBe(1);
+    // STANDALONE: portal:access must NOT transitively grant training/people/fleet/schedule.
+    expect(caps).not.toContain('training:access');
+    expect(caps).not.toContain('people:access');
+    expect(caps).not.toContain('fleet:access');
+    expect(caps).not.toContain('schedule:access');
+    expect(caps.length).toBe(2);
   });
 
   it('accountant returns app:access + reporting:access (2 caps)', () => {
@@ -285,8 +293,12 @@ describe('10. CAPABILITIES array', () => {
     expect(CAPABILITIES).toContain('reporting:access');
   });
 
-  it('has exactly 19 capabilities (training:access/manage — T1.2 — and maintenance:work_order — M1.2)', () => {
-    expect(CAPABILITIES.length).toBe(19);
+  it('has exactly 20 capabilities (+ portal:access — P1.1)', () => {
+    expect(CAPABILITIES.length).toBe(20);
+  });
+
+  it('contains the P1.1 portal:access capability', () => {
+    expect(CAPABILITIES).toContain('portal:access');
   });
 
   it('grants maintenance:work_order to owner/manager/dispatcher/mechanic only (MAINTENANCE-M1.2)', () => {
@@ -508,11 +520,12 @@ describe('13. SCHED-1 schedule:* capabilities', () => {
     }
   });
 
-  it('renter and student retain exactly app:access and nothing else', () => {
+  it('renter and student have exactly app:access + portal:access and nothing else (P1.1)', () => {
     // NOTE: mechanic now has maintenance:access/ground/squawk (Slice 3b).
     // NOTE: accountant now has reporting:access (Slice 7 D3) — tested separately.
+    // NOTE: renter/student now hold portal:access (Slice P1.1) — standalone self-service cap.
     for (const role of ['renter', 'student'] as const) {
-      expect(capabilitiesForRole(role)).toEqual(['app:access']);
+      expect(capabilitiesForRole(role)).toEqual(['app:access', 'portal:access']);
     }
   });
 
@@ -918,5 +931,63 @@ describe('17. REPORTING-7 reporting:access', () => {
   it('reporting:access grant set = {owner,manager,dispatcher,cfi,accountant} (5 roles)', () => {
     const grantedRoles = MEMBERSHIP_ROLES.filter((r) => can(r, 'reporting:access'));
     expect(grantedRoles.sort()).toEqual(['accountant', 'cfi', 'dispatcher', 'manager', 'owner']);
+  });
+});
+
+// ─── 18. P1.1 portal:access — exact grants + standalone (no transitive) ────────
+//
+// Per Slice P1.1 (resolves [VERIFY-T1-H]):
+//   portal:access → owner, manager, student, renter
+//   cfi/dispatcher/accountant/mechanic do NOT get portal:access.
+//   STANDALONE: portal:access must NOT transitively grant
+//   training/people/fleet/schedule access — the portal reads are SEPARATE
+//   functions gated solely on portal:access + self-scoped to session.userId.
+
+describe('18. P1.1 portal:access', () => {
+  const GRANTED: MembershipRole[] = ['owner', 'manager', 'student', 'renter'];
+  const DENIED:  MembershipRole[] = ['cfi', 'dispatcher', 'accountant', 'mechanic'];
+
+  it('portal:access ∈ CAPABILITIES (sorted, no dup)', () => {
+    expect(CAPABILITIES).toContain('portal:access');
+    expect([...CAPABILITIES]).toEqual([...CAPABILITIES].sort());
+    expect(new Set(CAPABILITIES).size).toBe(CAPABILITIES.length);
+  });
+
+  for (const role of GRANTED) {
+    it(`${role} HAS portal:access`, () => {
+      expect(can(role, 'portal:access')).toBe(true);
+    });
+  }
+
+  for (const role of DENIED) {
+    it(`${role} does NOT have portal:access`, () => {
+      expect(can(role, 'portal:access')).toBe(false);
+    });
+  }
+
+  it('portal:access grant set = {owner, manager, renter, student} (4 roles)', () => {
+    const grantedRoles = MEMBERSHIP_ROLES.filter((r) => can(r, 'portal:access'));
+    expect(grantedRoles.sort()).toEqual(['manager', 'owner', 'renter', 'student']);
+  });
+
+  it('REGRESSION GUARD: can(student, training:access) === false (broad training access stays revoked)', () => {
+    expect(can('student', 'training:access')).toBe(false);
+    expect(can('student', 'training:manage')).toBe(false);
+  });
+
+  it('STANDALONE: student/renter with portal:access do NOT transitively get staff caps', () => {
+    for (const role of ['student', 'renter'] as const) {
+      expect(can(role, 'portal:access')).toBe(true);
+      expect(can(role, 'training:access')).toBe(false);
+      expect(can(role, 'people:access')).toBe(false);
+      expect(can(role, 'fleet:access')).toBe(false);
+      expect(can(role, 'schedule:access')).toBe(false);
+      expect(can(role, 'dispatch:access')).toBe(false);
+      expect(can(role, 'reporting:access')).toBe(false);
+    }
+  });
+
+  it('mechanic does NOT have portal:access', () => {
+    expect(can('mechanic', 'portal:access')).toBe(false);
   });
 });

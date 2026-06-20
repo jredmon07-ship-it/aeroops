@@ -46,6 +46,7 @@ export const CAPABILITIES = [
   'org:manage_settings',
   'people:access',
   'people:manage',
+  'portal:access',
   'reporting:access',
   'schedule:access',
   'schedule:create_reservation',
@@ -69,16 +70,16 @@ export type Capability = (typeof CAPABILITIES)[number];
  *
  * Matrix (rows = roles, columns = capabilities):
  *
- *   Role          | app:access | dispatch:access | dispatch:create | dispatch:manage_requirements | fleet:access | fleet:manage | maintenance:access | maintenance:ground | maintenance:squawk | maintenance:work_order | org:manage_settings | people:access | people:manage | reporting:access | schedule:access | schedule:create_reservation | schedule:manage_resources | training:access | training:manage |
- *   --------------|------------|-----------------|-----------------|------------------------------|--------------|--------------|--------------------|--------------------|--------------------|-----------------------|--------------------|---------------|---------------|------------------|--------------------|-----------------------------|---------------------------|-----------------|-----------------|
- *   owner         |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |           ✓           |          ✓          |       ✓       |       ✓       |        ✓         |        ✓        |              ✓              |             ✓             |        ✓        |        ✓        |
- *   manager       |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |           ✓           |          ✓          |       ✓       |       ✓       |        ✓         |        ✓        |              ✓              |             ✓             |        ✓        |        ✓        |
- *   dispatcher    |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |           ✓           |                     |       ✓       |               |        ✓         |        ✓        |              ✓              |             ✓             |        ✓        |                 |
- *   cfi           |     ✓      |        ✓        |        ✓        |                              |      ✓       |              |         ✓          |                    |         ✓          |                       |                     |       ✓       |               |        ✓         |        ✓        |              ✓              |                           |        ✓        |        ✓        |
- *   mechanic      |     ✓      |                 |                 |                              |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |           ✓           |                     |               |               |                  |                 |                             |                           |                 |                 |
- *   renter        |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                       |                     |               |               |                  |                 |                             |                           |                 |                 |
- *   student       |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                       |                     |               |               |                  |                 |                             |                           |                 |                 |
- *   accountant    |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                       |                     |               |               |        ✓         |                 |                             |                           |                 |                 |
+ *   Role          | app:access | dispatch:access | dispatch:create | dispatch:manage_requirements | fleet:access | fleet:manage | maintenance:access | maintenance:ground | maintenance:squawk | maintenance:work_order | org:manage_settings | people:access | people:manage | portal:access | reporting:access | schedule:access | schedule:create_reservation | schedule:manage_resources | training:access | training:manage |
+ *   --------------|------------|-----------------|-----------------|------------------------------|--------------|--------------|--------------------|--------------------|--------------------|-----------------------|--------------------|---------------|---------------|---------------|------------------|--------------------|-----------------------------|---------------------------|-----------------|-----------------|
+ *   owner         |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |           ✓           |          ✓          |       ✓       |       ✓       |       ✓       |        ✓         |        ✓        |              ✓              |             ✓             |        ✓        |        ✓        |
+ *   manager       |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |           ✓           |          ✓          |       ✓       |       ✓       |       ✓       |        ✓         |        ✓        |              ✓              |             ✓             |        ✓        |        ✓        |
+ *   dispatcher    |     ✓      |        ✓        |        ✓        |              ✓               |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |           ✓           |                     |       ✓       |               |               |        ✓         |        ✓        |              ✓              |             ✓             |        ✓        |                 |
+ *   cfi           |     ✓      |        ✓        |        ✓        |                              |      ✓       |              |         ✓          |                    |         ✓          |                       |                     |       ✓       |               |               |        ✓         |        ✓        |              ✓              |                           |        ✓        |        ✓        |
+ *   mechanic      |     ✓      |                 |                 |                              |      ✓       |      ✓       |         ✓          |         ✓          |         ✓          |           ✓           |                     |               |               |               |                  |                 |                             |                           |                 |                 |
+ *   renter        |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                       |                     |               |               |       ✓       |                  |                 |                             |                           |                 |                 |
+ *   student       |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                       |                     |               |               |       ✓       |                  |                 |                             |                           |                 |                 |
+ *   accountant    |     ✓      |                 |                 |                              |              |              |                    |                    |                    |                       |                     |               |               |               |        ✓         |                 |                             |                           |                 |                 |
  *
  * NOTE: schedule:create_reservation also gates reservation cancel in Slice 1.
  * NOTE: dispatch:access + dispatch:create granted to owner/manager/dispatcher/cfi
@@ -105,16 +106,26 @@ export type Capability = (typeof CAPABILITIES)[number];
  *       training:manage → owner/manager/cfi (build courses, enroll, record, void).
  *       dispatcher has access (read) but NOT manage in T1.
  *       student/renter/mechanic/accountant get NEITHER training cap in T1 (Slice T1.2).
- *       Student self-service portal is Phase 6 [VERIFY-T1-H].
+ *       Student self-service portal delivered in P1 via the standalone portal:access
+ *       cap (resolves [VERIFY-T1-H]); broad training:access stays NOT granted to
+ *       student/renter — they see ONLY their own progress through the portal reads.
+ * NOTE: portal:access → owner/manager/student/renter (Slice P1.1). The student/renter
+ *       self-service portal cap. STANDALONE — it does NOT transitively grant
+ *       training/people/fleet/schedule access. The portal reads (packages/api/src/portal/)
+ *       are SEPARATE functions gated SOLELY on portal:access and self-scoped to
+ *       session.userId (a member NEVER sees another member's data). owner/manager hold it
+ *       so staff can preview the portal; cfi/dispatcher/accountant/mechanic do NOT.
+ *       Resolves [VERIFY-T1-H]: own-progress = operator content already recorded about
+ *       the member, NOT a new computed Part-61/141 determination.
  */
 export const ROLE_CAPABILITIES = {
-  owner:      ['app:access', 'dispatch:access', 'dispatch:create', 'dispatch:manage_requirements', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'maintenance:work_order', 'org:manage_settings', 'people:access', 'people:manage', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources', 'training:access', 'training:manage'] as const,
-  manager:    ['app:access', 'dispatch:access', 'dispatch:create', 'dispatch:manage_requirements', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'maintenance:work_order', 'org:manage_settings', 'people:access', 'people:manage', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources', 'training:access', 'training:manage'] as const,
+  owner:      ['app:access', 'dispatch:access', 'dispatch:create', 'dispatch:manage_requirements', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'maintenance:work_order', 'org:manage_settings', 'people:access', 'people:manage', 'portal:access', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources', 'training:access', 'training:manage'] as const,
+  manager:    ['app:access', 'dispatch:access', 'dispatch:create', 'dispatch:manage_requirements', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'maintenance:work_order', 'org:manage_settings', 'people:access', 'people:manage', 'portal:access', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources', 'training:access', 'training:manage'] as const,
   dispatcher: ['app:access', 'dispatch:access', 'dispatch:create', 'dispatch:manage_requirements', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'maintenance:work_order', 'people:access', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'schedule:manage_resources', 'training:access'] as const,
   cfi:        ['app:access', 'dispatch:access', 'dispatch:create', 'fleet:access', 'maintenance:access', 'maintenance:squawk', 'people:access', 'reporting:access', 'schedule:access', 'schedule:create_reservation', 'training:access', 'training:manage'] as const,
   mechanic:   ['app:access', 'fleet:access', 'fleet:manage', 'maintenance:access', 'maintenance:ground', 'maintenance:squawk', 'maintenance:work_order'] as const,
-  renter:     ['app:access'] as const,
-  student:    ['app:access'] as const,
+  renter:     ['app:access', 'portal:access'] as const,
+  student:    ['app:access', 'portal:access'] as const,
   accountant: ['app:access', 'reporting:access'] as const,
 } satisfies Record<MembershipRole, readonly Capability[]>;
 

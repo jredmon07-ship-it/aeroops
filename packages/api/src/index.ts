@@ -733,3 +733,33 @@ export type {
   SearchOrgResult,
   SearchResultType,
 } from './search/types.js';
+
+// ─── Slice P1.1 — Student/Renter self-service portal (READ-ONLY, no migration) ─
+// Self-scoped reads: the subject is ALWAYS session.userId (the verified JWT
+// subject) — there is NO row-identifying input param, so a portal user can
+// NEVER read another member's data (the load-bearing self-scoping requirement).
+//
+// SECURITY INVARIANTS:
+//   - requireCapability('portal:access') FIRST in every read.
+//   - portal:access is STANDALONE: it does NOT transitively grant
+//     training/people/fleet/schedule access. These are SEPARATE functions —
+//     a student calling listEnrollments/listMembers/getMemberDetail still gets
+//     ForbiddenError (those gate on training:access/people:access).
+//   - org_id from session only; RLS is the org backstop.
+//   - Reads NOT audited. NO money. NO computed FAA determination. NO migration.
+//
+// portal:access → owner/manager/student/renter (cfi/dispatcher/accountant/mechanic NOT).
+// Resolves [VERIFY-T1-H]: own-progress = operator content already recorded, not a
+// new Part-61/141 determination. [VERIFY-T1-B] progress=coverage; [VERIFY-6-A] tags=free-text.
+// *WithDb forms are for test code only (inject a pglite client).
+export { getMyTraining, getMyTrainingWithDb } from './portal/get-my-training.js';
+export { getMyReservations, getMyReservationsWithDb } from './portal/get-my-reservations.js';
+export { getMyAccount, getMyAccountWithDb } from './portal/get-my-account.js';
+export { getMyPortalSummary, getMyPortalSummaryWithDb } from './portal/get-my-portal-summary.js';
+
+export type {
+  MyEnrollmentRow,
+  MyReservationRow,
+  MyAccountView,
+  MyPortalSummary,
+} from './portal/types.js';
