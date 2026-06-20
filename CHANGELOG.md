@@ -24,9 +24,12 @@ typecheck-from-source fix. (Open: set `AUTH_SECRET` in Vercel Production to clea
   booked is grounded. Derived read-only; nothing new persisted.
 - **Public booking-request page** (`/book/[slug]`) — a public, unauthenticated lead-capture form where a prospective
   renter/student requests a flight; it lands in a staff **triage inbox** (`/o/[slug]/booking`) to contact/convert/decline.
-  Conservative by design: a *request*, not an instant booking — no money, no reservation created, no fleet/schedule exposed.
+  Conservative by design: a *request*, not an instant booking — no money, no fleet/schedule exposed.
   Migration `0015` (human-gated). **Before public launch:** add an edge rate-limiter/WAF + CAPTCHA and a lead-data
   retention posture (documented as launch predecessors).
+- **Convert booking-request → reservation** — staff turn a triaged request into a real booking: pick a tail + time and
+  the reservation is created through the same gated path every reservation uses (all conflict/policy/grounding/twilight/
+  availability checks apply); on refusal nothing is created. Atomic + idempotent. Migration `0016` (human-gated). No money.
 - **A design-language polish pass** + several tracked nit fixes; the demo seed now exercises all of the above.
 
 ### Slice R1 — Operational Reports deep-dive (build-complete, awaiting merge)
