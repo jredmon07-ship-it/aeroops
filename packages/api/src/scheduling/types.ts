@@ -35,7 +35,7 @@
  *   grounding is evaluated ONLY on the success path, never on a refusal.
  */
 
-import type { PolicyViolation, GroundingHit, TwilightHit } from '@aeroops/core';
+import type { PolicyViolation, GroundingHit, TwilightHit, AvailabilityHit } from '@aeroops/core';
 
 // Re-export PolicyViolation (sourced from @aeroops/core) so API callers do not
 // need to depend on @aeroops/core directly.
@@ -50,6 +50,12 @@ export type { GroundingHit };
 // ok:true create arms as the optional `twilightWarnings` field (warn mode) AND on
 // the new `{ ok:false, reason:'twilight', twilight }` refusal arm (block mode).
 export type { TwilightHit };
+
+// Re-export AvailabilityHit (sourced from @aeroops/core). Slice AV1.2: carried on
+// the ok:true create arms as the optional `availabilityWarnings` field (warn mode)
+// AND on the new `{ ok:false, reason:'availability', availability }` refusal arm
+// (block mode). One uncovered sub-interval of the candidate (outside operating hours).
+export type { AvailabilityHit };
 
 /**
  * PolicyViolationView — core PolicyViolation enriched with resourceDisplayName
@@ -120,15 +126,27 @@ export type CreateReservationResult =
        * the gate is disabled / inert. Exactly like groundingWarnings.
        */
       twilightWarnings?: TwilightHit[];
+      /**
+       * Slice AV1.2 (warn mode only): set when the created reservation falls partly
+       * outside a resource's operating-hours windows + availability enabled. OPTIONAL
+       * and only present when non-empty, so the ok:true shape is BYTE-IDENTICAL when
+       * the gate is disabled / inert. Exactly like twilightWarnings.
+       */
+      availabilityWarnings?: AvailabilityHit[];
     }
   | { ok: false; reason: 'conflict'; conflicts: ConflictHit[] }
   | { ok: false; reason: 'policy'; violations: PolicyViolationView[] }
   | { ok: false; reason: 'conflict_and_policy'; conflicts: ConflictHit[]; violations: PolicyViolationView[] }
   // Slice 4a (block mode only): a standalone refusal arm — twilight is NEVER combined
   // with conflict/policy (those four arms above are FROZEN). Evaluated LAST in the
-  // precedence chain (conflict_and_policy > policy > conflict > twilight > INSERT).
+  // precedence chain (conflict_and_policy > policy > conflict > twilight > availability > INSERT).
   // Nothing written, no audit on refusal.
-  | { ok: false; reason: 'twilight'; twilight: TwilightHit[] };
+  | { ok: false; reason: 'twilight'; twilight: TwilightHit[] }
+  // Slice AV1.2 (block mode only): a standalone refusal arm evaluated LAST (after
+  // twilight). Availability is NEVER combined with conflict/policy/twilight. The
+  // candidate falls partly outside the resource's operating-hours windows. Nothing
+  // written, no audit on refusal.
+  | { ok: false; reason: 'availability'; availability: AvailabilityHit[] };
 
 /**
  * CancelResult — discriminated union.
@@ -228,14 +246,22 @@ export interface SeriesOccurrenceReport {
    * report shapes stay byte-identical.
    */
   twilightWarnings?: TwilightHit[];
+  /**
+   * Set when result is 'created' AND (warn mode) the occurrence falls outside a
+   * resource's operating-hours windows. Additive — absent when the gate is disabled
+   * / inert so existing report shapes stay byte-identical.
+   */
+  availabilityWarnings?: AvailabilityHit[];
   /** Set when result is 'skipped'. */
-  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight';
+  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight' | 'availability';
   /** Populated when reason includes conflict. */
   conflicts?: ConflictHit[];
   /** Populated when reason includes policy. */
   violations?: PolicyViolationView[];
   /** Populated when reason === 'twilight' (block mode). The dusk/dawn boundary hit(s). */
   twilight?: TwilightHit[];
+  /** Populated when reason === 'availability' (block mode). The out-of-hours sub-interval(s). */
+  availability?: AvailabilityHit[];
 }
 
 /**
@@ -336,6 +362,8 @@ export type RescheduleResult =
       groundingWarnings?: GroundingHit[];
       /** Slice 4a (warn mode): set when the new window crosses civil dawn/dusk. Additive. */
       twilightWarnings?: TwilightHit[];
+      /** Slice AV1.2 (warn mode): set when the new window falls outside operating hours. Additive. */
+      availabilityWarnings?: AvailabilityHit[];
     }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'conflict'; conflicts: ConflictHit[] }
@@ -343,7 +371,10 @@ export type RescheduleResult =
   | { ok: false; reason: 'conflict_and_policy'; conflicts: ConflictHit[]; violations: PolicyViolationView[] }
   // Slice 4a (block mode): the target window crosses civil dawn/dusk → refused.
   // The original stays booked + intact (throw-to-rollback). No combination arm.
-  | { ok: false; reason: 'twilight'; twilight: TwilightHit[] };
+  | { ok: false; reason: 'twilight'; twilight: TwilightHit[] }
+  // Slice AV1.2 (block mode): the target window falls outside operating hours →
+  // refused. The original stays booked + intact (throw-to-rollback). No combination.
+  | { ok: false; reason: 'availability'; availability: AvailabilityHit[] };
 
 // ─── Slice 4b — Auto-scheduler types (additive; frozen types above unchanged) ──
 //
@@ -421,15 +452,19 @@ export interface AutoProposalReport {
   /** Set when result is 'created'. */
   reservationId?: string;
   /** Set when result is 'skipped'. */
-  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight';
+  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight' | 'availability';
   /** Populated when reason includes conflict. */
   conflicts?: ConflictHit[];
   /** Populated when reason includes policy. */
   violations?: PolicyViolationView[];
   /** Populated when reason === 'twilight' (block mode). */
   twilight?: TwilightHit[];
+  /** Populated when reason === 'availability' (block mode). */
+  availability?: AvailabilityHit[];
   /** Warn-only twilight warnings on a created proposal (additive). */
   twilightWarnings?: TwilightHit[];
+  /** Warn-only availability warnings on a created proposal (additive). */
+  availabilityWarnings?: AvailabilityHit[];
   /** Warn-only grounding warnings on a created proposal (additive). */
   groundingWarnings?: GroundingHit[];
 }
@@ -461,10 +496,11 @@ export interface PreviewAutoProposalReport {
   endAt: Date;
   resourceIds: string[];
   wouldResult: 'create' | 'skip';
-  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight';
+  reason?: 'conflict' | 'policy' | 'conflict_and_policy' | 'twilight' | 'availability';
   conflicts?: ConflictHit[];
   violations?: PolicyViolationView[];
   twilight?: TwilightHit[];
+  availability?: AvailabilityHit[];
 }
 
 /**

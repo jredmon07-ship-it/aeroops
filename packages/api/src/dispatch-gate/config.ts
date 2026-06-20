@@ -45,6 +45,9 @@ const updateConfigInputSchema = z.object({
   twilightMode:              z.enum(['block', 'warn']).optional(),
   // omit = preserve; null = clear the exempt tag; non-empty trimmed string = set it.
   twilightExemptTag:         z.string().trim().min(1).nullable().optional(),
+  // Slice AV1.2 — resource operating-hours availability constraint flags.
+  availabilityConstraintEnabled: z.boolean().optional(),
+  availabilityMode:              z.enum(['block', 'warn']).optional(),
 });
 
 export interface UpdateDispatchConfigInput {
@@ -53,6 +56,8 @@ export interface UpdateDispatchConfigInput {
   twilightConstraintEnabled?: boolean;
   twilightMode?:              'block' | 'warn';
   twilightExemptTag?:         string | null;
+  availabilityConstraintEnabled?: boolean;
+  availabilityMode?:              'block' | 'warn';
 }
 
 // ─── getDispatchConfig ────────────────────────────────────────────────────────
@@ -115,6 +120,8 @@ async function _updateDispatchConfigImpl(
     const afterTwEnabled = input.twilightConstraintEnabled  !== undefined ? input.twilightConstraintEnabled  : before.twilightConstraintEnabled;
     const afterTwMode    = input.twilightMode               !== undefined ? input.twilightMode               : before.twilightMode;
     const afterTwExempt  = input.twilightExemptTag          !== undefined ? input.twilightExemptTag          : before.twilightExemptTag;
+    const afterAvEnabled = input.availabilityConstraintEnabled !== undefined ? input.availabilityConstraintEnabled : before.availabilityConstraintEnabled;
+    const afterAvMode    = input.availabilityMode              !== undefined ? input.availabilityMode              : before.availabilityMode;
 
     const after: DispatchConfigView = {
       eligibilityMode:           afterMode,
@@ -122,6 +129,8 @@ async function _updateDispatchConfigImpl(
       twilightConstraintEnabled: afterTwEnabled,
       twilightMode:              afterTwMode,
       twilightExemptTag:         afterTwExempt,
+      availabilityConstraintEnabled: afterAvEnabled,
+      availabilityMode:              afterAvMode,
     };
 
     // 5. No-op short-circuit: if nothing actually changes, write NOTHING — no
@@ -131,7 +140,9 @@ async function _updateDispatchConfigImpl(
       before.balanceCheckEnabled !== after.balanceCheckEnabled ||
       before.twilightConstraintEnabled !== after.twilightConstraintEnabled ||
       before.twilightMode !== after.twilightMode ||
-      before.twilightExemptTag !== after.twilightExemptTag;
+      before.twilightExemptTag !== after.twilightExemptTag ||
+      before.availabilityConstraintEnabled !== after.availabilityConstraintEnabled ||
+      before.availabilityMode !== after.availabilityMode;
     if (!changed) {
       return { ok: true, config: after } as const;
     }
@@ -140,7 +151,7 @@ async function _updateDispatchConfigImpl(
     //    The DO UPDATE SET must include ALL columns because the excluded row may
     //    have the opposite partial-preserve. We set to the computed after-values.
     await tx.execute(sql`
-      INSERT INTO dispatch_config (org_id, eligibility_mode, balance_check_enabled, twilight_constraint_enabled, twilight_mode, twilight_exempt_tag, created_at, updated_at)
+      INSERT INTO dispatch_config (org_id, eligibility_mode, balance_check_enabled, twilight_constraint_enabled, twilight_mode, twilight_exempt_tag, availability_constraint_enabled, availability_mode, created_at, updated_at)
       VALUES (
         ${sess.orgId}::uuid,
         ${afterMode},
@@ -148,16 +159,20 @@ async function _updateDispatchConfigImpl(
         ${afterTwEnabled},
         ${afterTwMode},
         ${afterTwExempt},
+        ${afterAvEnabled},
+        ${afterAvMode},
         NOW(),
         NOW()
       )
       ON CONFLICT (org_id) DO UPDATE SET
-        eligibility_mode            = EXCLUDED.eligibility_mode,
-        balance_check_enabled       = EXCLUDED.balance_check_enabled,
-        twilight_constraint_enabled = EXCLUDED.twilight_constraint_enabled,
-        twilight_mode               = EXCLUDED.twilight_mode,
-        twilight_exempt_tag         = EXCLUDED.twilight_exempt_tag,
-        updated_at                  = NOW()
+        eligibility_mode                = EXCLUDED.eligibility_mode,
+        balance_check_enabled           = EXCLUDED.balance_check_enabled,
+        twilight_constraint_enabled     = EXCLUDED.twilight_constraint_enabled,
+        twilight_mode                   = EXCLUDED.twilight_mode,
+        twilight_exempt_tag             = EXCLUDED.twilight_exempt_tag,
+        availability_constraint_enabled = EXCLUDED.availability_constraint_enabled,
+        availability_mode               = EXCLUDED.availability_mode,
+        updated_at                      = NOW()
     `);
 
     // 7. ONE audit row — before/after snapshot. NO dollar value in metadata
@@ -175,6 +190,8 @@ async function _updateDispatchConfigImpl(
           twilightConstraintEnabled: before.twilightConstraintEnabled,
           twilightMode:              before.twilightMode,
           twilightExemptTag:         before.twilightExemptTag,
+          availabilityConstraintEnabled: before.availabilityConstraintEnabled,
+          availabilityMode:              before.availabilityMode,
         },
         after: {
           eligibilityMode:           after.eligibilityMode,
@@ -182,6 +199,8 @@ async function _updateDispatchConfigImpl(
           twilightConstraintEnabled: after.twilightConstraintEnabled,
           twilightMode:              after.twilightMode,
           twilightExemptTag:         after.twilightExemptTag,
+          availabilityConstraintEnabled: after.availabilityConstraintEnabled,
+          availabilityMode:              after.availabilityMode,
         },
       },
     });

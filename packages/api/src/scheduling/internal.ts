@@ -44,8 +44,23 @@ import { sql, eq } from 'drizzle-orm';
 import { reservation, reservationResource, auditLog, bookingPolicy, resourceBlackout, resource } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { withOrgContext } from '@aeroops/db';
-import { evaluateBookingPolicy, evaluateGroundingGate, computeSolarEvents, evaluateTwilightGate } from '@aeroops/core';
-import type { BookingPolicy, BlackoutWindow, ZonedToUtc, SolarEvents, TwilightHit } from '@aeroops/core';
+import {
+  evaluateBookingPolicy,
+  evaluateGroundingGate,
+  computeSolarEvents,
+  evaluateTwilightGate,
+  resolveAvailabilityWindowsToUtc,
+  evaluateAvailabilityGate,
+} from '@aeroops/core';
+import type {
+  BookingPolicy,
+  BlackoutWindow,
+  ZonedToUtc,
+  SolarEvents,
+  TwilightHit,
+  ResourceAvailabilityWindow,
+  AvailabilityHit,
+} from '@aeroops/core';
 import type { ConflictHit, PolicyViolationView, CreateReservationResult } from './types.js';
 import type { AppSession } from '../auth/types.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
@@ -720,6 +735,213 @@ export function runTwilightGate(
   return { blocked, warnings };
 }
 
+// ─── Availability context (Slice AV1.2 — additive gate, modeled on twilight) ──
+
+/**
+ * AvailabilityConfigView — the org's dispatch_config availability fields, with the
+ * canonical absent-row defaults applied (migration 0014):
+ *   { enabled: false, mode: 'warn' } → gate INERT.
+ */
+export interface AvailabilityConfigView {
+  enabled: boolean;
+  mode: 'block' | 'warn';
+}
+
+/**
+ * loadAvailabilityConfig — read the 0..1 dispatch_config availability fields.
+ *
+ * RLS-scoped by the caller's tx GUC. Absent row → canonical defaults (gate inert).
+ * Sibling reader of loadTwilightConfig / loadDispatchConfig (disjoint column set).
+ *
+ * [VERIFY-AV1-A]: operator scheduling / operating-hours config ONLY — NOT an FAA
+ * duty-time / rest / Part-117/135/121 determination.
+ */
+export async function loadAvailabilityConfig(
+  tx: AnyDb,
+  orgId: string,
+): Promise<AvailabilityConfigView> {
+  const result = await tx.execute(sql`
+    SELECT
+      availability_constraint_enabled AS "enabled",
+      availability_mode               AS "mode"
+    FROM dispatch_config
+    WHERE org_id = ${orgId}::uuid
+    LIMIT 1
+  `);
+
+  const rows = (result.rows ?? result) as unknown as Array<{
+    enabled: boolean;
+    mode: string;
+  }>;
+
+  const row = rows[0];
+  if (!row) {
+    return { enabled: false, mode: 'warn' };
+  }
+  return { enabled: row.enabled, mode: row.mode === 'block' ? 'block' : 'warn' };
+}
+
+/**
+ * AvailabilityResourceContext — per-resource pre-resolved operating-hours windows.
+ *
+ *   resourceId — the resource id.
+ *   resolved   — the resource's weekly operating-hours windows resolved to concrete
+ *                UTC [open, close) intervals for the candidate's date span (DST
+ *                handled in core), OR null when the resource has NO windows (gate
+ *                INERT for that resource — evaluateAvailabilityGate returns ok).
+ */
+export interface AvailabilityResourceContext {
+  resourceId: string;
+  resolved: ResolvedAvailabilityWindowMs[] | null;
+}
+
+/** Local alias for the core ResolvedAvailabilityWindow (UTC [open, close)). */
+interface ResolvedAvailabilityWindowMs {
+  openUtcMs: number;
+  closeUtcMs: number;
+}
+
+/**
+ * AvailabilityContext — loaded config + per-resource resolved windows, ready to
+ * feed evaluateAvailabilityGate. Returned by loadAvailabilityContext.
+ */
+export interface AvailabilityContext {
+  config: AvailabilityConfigView;
+  perResource: AvailabilityResourceContext[];
+}
+
+/**
+ * loadAvailabilityContext — load the org's availability config + per-resource
+ * resolved operating-hours windows for the candidate's span.
+ *
+ * For each requested resource, reads its resource_availability_window rows
+ * (RLS-scoped) and pre-resolves each weekly window to UTC [open, close) for the
+ * candidate's date span via resolveAvailabilityWindowsToUtc + the injected Intl
+ * tz resolver (the SAME resolver recurrence/twilight use; the DST handling lives
+ * in @aeroops/core). A resource with ZERO windows → resolved: null (gate INERT
+ * for that resource), preserving the byte-identical create path.
+ *
+ * Returns the full context even when disabled — the CALLER decides to skip when
+ * config.enabled === false (keeping the disabled path byte-identical by NOT
+ * calling this at all; see gatedCreateOccurrence Step D3).
+ *
+ * @param tx                  - Active tx with org GUC set (RLS-scoped).
+ * @param orgId               - Session org id (for the config read).
+ * @param resourceIds         - The reservation's resources.
+ * @param candidateStartUtcMs - Epoch ms of the candidate window start.
+ * @param candidateEndUtcMs   - Epoch ms of the candidate window end.
+ * @param tzResolver          - Injected Intl-based ZonedToUtc resolver.
+ * @param preloadedConfig     - Pre-loaded config to avoid a second read (gated path).
+ */
+export async function loadAvailabilityContext(
+  tx: AnyDb,
+  orgId: string,
+  resourceIds: string[],
+  candidateStartUtcMs: number,
+  candidateEndUtcMs: number,
+  tzResolver: ZonedToUtc,
+  preloadedConfig?: AvailabilityConfigView,
+): Promise<AvailabilityContext> {
+  const config = preloadedConfig ?? (await loadAvailabilityConfig(tx, orgId));
+
+  const perResource: AvailabilityResourceContext[] = [];
+  if (resourceIds.length === 0) {
+    return { config, perResource };
+  }
+
+  const idList = sql.join(
+    resourceIds.map((id) => sql`${id}::uuid`),
+    sql`, `,
+  );
+
+  // Load every requested resource's operating-hours windows in one query.
+  // resource_availability_window is RLS-scoped by the tx GUC — org A's windows can
+  // never leak into org B's resolution.
+  const result = await tx.execute(sql`
+    SELECT
+      resource_id  AS "resourceId",
+      day_of_week  AS "dayOfWeek",
+      start_minute AS "startMinute",
+      end_minute   AS "endMinute",
+      tz           AS "tz"
+    FROM resource_availability_window
+    WHERE resource_id = ANY(ARRAY[${idList}])
+  `);
+
+  const rows = (result.rows ?? result) as unknown as Array<{
+    resourceId: string;
+    dayOfWeek: number;
+    startMinute: number;
+    endMinute: number;
+    tz: string;
+  }>;
+
+  // Group raw windows by resource.
+  const windowsByResource = new Map<string, ResourceAvailabilityWindow[]>();
+  for (const row of rows) {
+    const w: ResourceAvailabilityWindow = {
+      dayOfWeek: Number(row.dayOfWeek),
+      startMinute: Number(row.startMinute),
+      endMinute: Number(row.endMinute),
+      tz: row.tz,
+    };
+    const list = windowsByResource.get(row.resourceId);
+    if (list) list.push(w);
+    else windowsByResource.set(row.resourceId, [w]);
+  }
+
+  for (const id of resourceIds) {
+    const windows = windowsByResource.get(id);
+    if (!windows || windows.length === 0) {
+      // No operating-hours rows → gate INERT for this resource.
+      perResource.push({ resourceId: id, resolved: null });
+      continue;
+    }
+    const resolved = resolveAvailabilityWindowsToUtc(
+      windows,
+      candidateStartUtcMs,
+      candidateEndUtcMs,
+      tzResolver,
+    );
+    perResource.push({ resourceId: id, resolved });
+  }
+
+  return { config, perResource };
+}
+
+/**
+ * runAvailabilityGate — evaluate evaluateAvailabilityGate for every resource in
+ * `ctx`, collecting all blocked + warning hits. Pure orchestration over the pure
+ * core gate; INERT (empty arrays) when a resource has null/empty resolved windows.
+ *
+ * For a MULTI-resource reservation each resource that HAS windows is evaluated; a
+ * block on ANY resource → blocked is non-empty (the caller turns that into a block).
+ */
+export function runAvailabilityGate(
+  ctx: AvailabilityContext,
+  candidateStartUtcMs: number,
+  candidateEndUtcMs: number,
+): { blocked: AvailabilityHit[]; warnings: AvailabilityHit[] } {
+  const blocked: AvailabilityHit[] = [];
+  const warnings: AvailabilityHit[] = [];
+
+  for (const r of ctx.perResource) {
+    const res = evaluateAvailabilityGate(
+      { candidateStartUtcMs, candidateEndUtcMs },
+      r.resolved,
+      ctx.config.mode,
+    );
+    if (res.ok) {
+      // warn-mode hit rides on the ok arm via `warns: true`.
+      if ('warns' in res && res.warns) warnings.push(...res.hits);
+    } else {
+      blocked.push(...res.hits);
+    }
+  }
+
+  return { blocked, warnings };
+}
+
 // ─── Bookable kinds (mirrors create-reservation.ts) ───────────────────────────
 
 /** Resource kinds that are bookable in Slice 1/2a/2b. */
@@ -879,6 +1101,50 @@ export async function gatedCreateOccurrence(
     }
   }
 
+  // Step D3 — availability gate (Slice AV1.2, additive; modeled on twilight Step D2).
+  // Loaded + evaluated ONLY when the operator opted in (config.enabled). When
+  // disabled (the default) we never touch dispatch_config/resource_availability_window
+  // and the create path stays BYTE-IDENTICAL.
+  //
+  // Precedence: conflict_and_policy > policy > conflict > twilight > availability > INSERT.
+  // Availability is evaluated LAST (after twilight + the four FROZEN refusal arms),
+  // so it can ONLY fire when there is no conflict, no policy violation, and no
+  // twilight block. In BLOCK mode an availability hit is a STANDALONE refusal arm —
+  // never combined with the others. NO write + NO audit on an availability refusal.
+  //
+  // INERT when: a resource has zero operating-hours windows (resolved=null) OR the
+  // candidate is fully contained in the union. The pure core gate returns ok then.
+  // For a MULTI-resource reservation EACH resource with windows is evaluated; a
+  // block on ANY resource blocks the whole create.
+  let availabilityWarnings: AvailabilityHit[] | undefined;
+  {
+    const availabilityCfg = await loadAvailabilityConfig(tx, sess.orgId);
+    if (availabilityCfg.enabled) {
+      const availabilityCtx = await loadAvailabilityContext(
+        tx,
+        sess.orgId,
+        resourceIds,
+        startAt.getTime(),
+        endAt.getTime(),
+        makeApiZonedToUtcResolver(),
+        availabilityCfg,
+      );
+      const { blocked, warnings: avWarnings } = runAvailabilityGate(
+        availabilityCtx,
+        startAt.getTime(),
+        endAt.getTime(),
+      );
+      if (availabilityCtx.config.mode === 'block' && blocked.length > 0) {
+        // New standalone refusal arm — no write, no audit.
+        return { ok: false, reason: 'availability', availability: blocked };
+      }
+      // warn mode: stash for the success arm (attached additively below).
+      if (avWarnings.length > 0) {
+        availabilityWarnings = avWarnings;
+      }
+    }
+  }
+
   // Step E — INSERT.
   try {
     const [resv] = await tx
@@ -979,6 +1245,13 @@ export async function gatedCreateOccurrence(
       // is disabled) → ok:true shape byte-identical for the common case.
       ...(twilightWarnings && twilightWarnings.length > 0
         ? { twilightWarnings }
+        : {}),
+      // Slice AV1.2: availability warnings (warn mode only) ride along additively,
+      // exactly like twilightWarnings. Absent when every resource's booking is within
+      // its operating-hours union (or the gate is disabled) → ok:true shape
+      // byte-identical for the common case.
+      ...(availabilityWarnings && availabilityWarnings.length > 0
+        ? { availabilityWarnings }
         : {}),
     };
   } catch (err) {

@@ -191,6 +191,41 @@ export type {
   PreviewTwilightResourceReport,
 } from './scheduling/preview-twilight.js';
 
+// ─── Slice AV1.2 — Resource operating-hours availability ──────────────────────
+// CRUD (cap schedule:manage_resources): list/create/delete weekly operating-hours
+// windows on a resource. previewAvailability (cap schedule:create_reservation,
+// read-only, enabled-flag-independent) drives the "outside operating hours" UI
+// indicator. The authoritative gate is the ADDITIVE Step D3 in gatedCreateOccurrence
+// (warn attaches availabilityWarnings on ok:true; block adds the 'availability'
+// refusal arm LAST, after twilight) — INERT when disabled / no windows. The config
+// flags (availabilityConstraintEnabled / availabilityMode) live on updateDispatchConfig.
+// *WithDb forms are for test code only. [VERIFY-AV1-A]: operator scheduling data,
+// NOT an FAA duty-time / rest / Part-117/135/121 determination. NO money.
+export {
+  listAvailabilityWindows,
+  listAvailabilityWindowsWithDb,
+  createAvailabilityWindow,
+  createAvailabilityWindowWithDb,
+  deleteAvailabilityWindow,
+  deleteAvailabilityWindowWithDb,
+} from './scheduling/availability-commands.js';
+export type {
+  AvailabilityWindowView,
+  ListAvailabilityWindowsInput,
+  ListAvailabilityWindowsResult,
+  CreateAvailabilityWindowInput,
+  CreateAvailabilityWindowResult,
+  DeleteAvailabilityWindowInput,
+  DeleteAvailabilityWindowResult,
+} from './scheduling/availability-commands.js';
+export { previewAvailability, previewAvailabilityWithDb } from './scheduling/preview-availability.js';
+export type {
+  PreviewAvailabilityInput,
+  PreviewAvailabilityResult,
+  PreviewAvailabilityResourceReport,
+} from './scheduling/preview-availability.js';
+export type { AvailabilityHit } from './scheduling/types.js';
+
 // ─── Slice 4b — Auto-scheduler (the optimizer orchestrator + preview) ─────────
 // runAutoSchedule routes the PURE proposeSchedule (@aeroops/core) through the
 // FROZEN gatedCreateOccurrence (single write path — NO bespoke INSERT), reusing

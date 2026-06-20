@@ -29,8 +29,9 @@ import type {
   PerResourceTwilight,
   DemandRequest,
 } from '@aeroops/core';
-import { ValidationError, loadTwilightContext } from './internal.js';
-import type { TwilightConfigView } from './internal.js';
+import { ValidationError, loadTwilightContext, loadAvailabilityContext } from './internal.js';
+import type { TwilightConfigView, AvailabilityConfigView } from './internal.js';
+import { makeApiZonedToUtcResolver } from './internal.js';
 import type { AutoScheduleInput, DemandInput } from './types.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -236,6 +237,93 @@ export async function buildTwilightBoundaries(
     });
   }
   return { boundaries, config: ctx.config };
+}
+
+// ─── Availability (operating-hours) planning intersection (AV1.2, block-only) ──
+
+/**
+ * intersectIntervalLists — pure half-open intersection of two interval lists.
+ * Returns every [start, end) shared by SOME interval in `a` and SOME in `b`.
+ * Degenerate results are dropped. Inputs need not be sorted/disjoint.
+ */
+function intersectIntervalLists(a: Interval[], b: Interval[]): Interval[] {
+  const out: Interval[] = [];
+  for (const x of a) {
+    for (const y of b) {
+      const start = Math.max(x.start, y.start);
+      const end = Math.min(x.end, y.end);
+      if (start < end) out.push({ start, end });
+    }
+  }
+  return out;
+}
+
+/**
+ * applyAvailabilityWindows — block-mode-only planning intersection (decision 9;
+ * mirrors buildTwilightBoundaries' block-only posture).
+ *
+ * When the org availability constraint is ENABLED + mode='block', this intersects
+ * the already-computed bookable windows (base ⊖ booked ⊖ blackout ⊖ grounded) with
+ * each resource's resolved operating-hours windows, so the proposer NEVER proposes a
+ * session outside operating hours. A resource with NO operating-hours windows is
+ * left UNCONSTRAINED (its windows pass through unchanged) — byte-identical to the
+ * core gate's INERT-no-windows contract.
+ *
+ * In warn / disabled mode this is a NO-OP (returns the input windows unchanged) —
+ * the authoritative warn/inert behaviour still lives in gatedCreateOccurrence (a
+ * warn-mode out-of-hours window creates with a warning, not a skip).
+ *
+ * The candidate span used for DST resolution is the whole base window. RLS-scoped.
+ */
+export async function applyAvailabilityWindows(
+  tx: AnyDb,
+  orgId: string,
+  resourceIds: string[],
+  base: Interval,
+  windows: AvailabilityWindow[],
+  preloadedConfig?: AvailabilityConfigView,
+): Promise<{ windows: AvailabilityWindow[]; config: AvailabilityConfigView }> {
+  const ctx = await loadAvailabilityContext(
+    tx,
+    orgId,
+    resourceIds,
+    base.start,
+    base.end,
+    makeApiZonedToUtcResolver(),
+    preloadedConfig,
+  );
+
+  // Only constrain the proposer in BLOCK mode. In warn / disabled, pass through.
+  if (!ctx.config.enabled || ctx.config.mode !== 'block') {
+    return { windows, config: ctx.config };
+  }
+
+  // Per-resource resolved operating-hours intervals (null = no windows → inert).
+  const opHoursByResource = new Map<string, Interval[] | null>();
+  for (const r of ctx.perResource) {
+    opHoursByResource.set(
+      r.resourceId,
+      r.resolved === null
+        ? null
+        : r.resolved.map((w) => ({ start: w.openUtcMs, end: w.closeUtcMs })),
+    );
+  }
+
+  const constrained: AvailabilityWindow[] = [];
+  for (const w of windows) {
+    const opHours = opHoursByResource.get(w.resourceId);
+    if (opHours === null || opHours === undefined) {
+      // No operating-hours windows for this resource → unconstrained (inert).
+      constrained.push(w);
+      continue;
+    }
+    const free: Interval[] = [{ start: w.startUtcMs, end: w.endUtcMs }];
+    for (const piece of intersectIntervalLists(free, opHours)) {
+      constrained.push({ resourceId: w.resourceId, startUtcMs: piece.start, endUtcMs: piece.end });
+    }
+  }
+
+  return { windows: constrained, config: ctx.config };
 }
 
 // ─── Input validation ─────────────────────────────────────────────────────────

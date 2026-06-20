@@ -357,6 +357,10 @@ async function _createSeriesImpl(
           // it returns reason:'twilight'). Only present when non-empty so the 'created'
           // report shape stays byte-identical when the gate is disabled / inert.
           ...(result!.twilightWarnings ? { twilightWarnings: result!.twilightWarnings } : {}),
+          // Slice AV1.2: warn-only availability warnings (block mode never reaches
+          // this arm — it returns reason:'availability'). Only present when non-empty
+          // so the 'created' report shape stays byte-identical when inert.
+          ...(result!.availabilityWarnings ? { availabilityWarnings: result!.availabilityWarnings } : {}),
         };
       } else {
         skippedCount++;
@@ -374,6 +378,8 @@ async function _createSeriesImpl(
             : {}),
           // Slice 4a: block-mode twilight refusal → skipped with the dusk/dawn boundary.
           ...(result!.reason === 'twilight' ? { twilight: result!.twilight } : {}),
+          // Slice AV1.2: block-mode availability refusal → skipped with the out-of-hours interval.
+          ...(result!.reason === 'availability' ? { availability: result!.availability } : {}),
         };
       }
 

@@ -54,6 +54,8 @@ export async function loadDispatchConfig(
       twilightConstraintEnabled: dispatchConfig.twilightConstraintEnabled,
       twilightMode:              dispatchConfig.twilightMode,
       twilightExemptTag:         dispatchConfig.twilightExemptTag,
+      availabilityConstraintEnabled: dispatchConfig.availabilityConstraintEnabled,
+      availabilityMode:              dispatchConfig.availabilityMode,
     })
     .from(dispatchConfig)
     .where(eq(dispatchConfig.orgId, orgId))
@@ -61,13 +63,15 @@ export async function loadDispatchConfig(
 
   const row = rows[0];
   if (!row) {
-    // Absent row → canonical defaults (ADR-0009 + Slice 4a).
+    // Absent row → canonical defaults (ADR-0009 + Slice 4a + AV1.2).
     return {
       eligibilityMode:           'block',
       balanceCheckEnabled:       false,
       twilightConstraintEnabled: false,
       twilightMode:              'warn',
       twilightExemptTag:         null,
+      availabilityConstraintEnabled: false,
+      availabilityMode:              'warn',
     };
   }
 
@@ -77,6 +81,8 @@ export async function loadDispatchConfig(
     twilightConstraintEnabled: row.twilightConstraintEnabled,
     twilightMode:              row.twilightMode as 'block' | 'warn',
     twilightExemptTag:         row.twilightExemptTag,
+    availabilityConstraintEnabled: row.availabilityConstraintEnabled,
+    availabilityMode:              row.availabilityMode as 'block' | 'warn',
   };
 }
 

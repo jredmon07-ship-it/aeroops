@@ -246,6 +246,9 @@ async function _rescheduleReservationImpl(
         // Slice 4a: carry warn-only twilight warnings through. Additive — absent when
         // the gate is disabled / inert so the ok:true shape stays byte-identical.
         ...(created.twilightWarnings ? { twilightWarnings: created.twilightWarnings } : {}),
+        // Slice AV1.2: carry warn-only availability warnings through. Additive — absent
+        // when the gate is disabled / inert so the ok:true shape stays byte-identical.
+        ...(created.availabilityWarnings ? { availabilityWarnings: created.availabilityWarnings } : {}),
       };
     });
   } catch (err) {

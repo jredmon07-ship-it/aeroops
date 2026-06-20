@@ -28,7 +28,7 @@
 import { sql } from 'drizzle-orm';
 import type { AnyDb } from '@aeroops/db';
 import { proposeSchedule, evaluateTwilightGate } from '@aeroops/core';
-import type { TwilightHit } from '@aeroops/core';
+import type { TwilightHit, AvailabilityHit } from '@aeroops/core';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
@@ -37,11 +37,15 @@ import {
   runConflictProbe,
   runPolicyProbe,
   loadTwilightContext,
+  loadAvailabilityContext,
+  runAvailabilityGate,
 } from './internal.js';
+import { makeApiZonedToUtcResolver } from './internal.js';
 import {
   validateAutoScheduleInput,
   buildAvailability,
   buildTwilightBoundaries,
+  applyAvailabilityWindows,
   deriveSeed,
 } from './auto-schedule-internal.js';
 import type {
@@ -80,9 +84,14 @@ async function _previewAutoScheduleImpl(
       norm.base.start,
     );
 
+    // AV1.2 (block-mode only): intersect with operating-hours windows. No-op in
+    // warn / disabled (matches the commit path).
+    const { windows: constrainedAvailability, config: availabilityConfig } =
+      await applyAvailabilityWindows(tx, sess.orgId, norm.allResourceIds, norm.base, availability);
+
     const { proposals: proposed, unschedulable } = proposeSchedule({
       demands: norm.demands,
-      availability,
+      availability: constrainedAvailability,
       twilightBoundaries: boundaries,
       objective: norm.objective,
       seed,
@@ -169,6 +178,35 @@ async function _previewAutoScheduleImpl(
             wouldResult: 'skip',
             reason: 'twilight',
             twilight: blocked,
+          });
+          continue;
+        }
+      }
+
+      // Availability probe (block mode only — matches the write path; warn/disabled
+      // would create with a warning, not skip). Evaluated LAST, after twilight.
+      if (availabilityConfig.enabled && availabilityConfig.mode === 'block') {
+        const avCtx = await loadAvailabilityContext(
+          tx,
+          sess.orgId,
+          resourceIds,
+          startAt.getTime(),
+          endAt.getTime(),
+          makeApiZonedToUtcResolver(),
+          availabilityConfig,
+        );
+        const { blocked: avBlocked } = runAvailabilityGate(avCtx, startAt.getTime(), endAt.getTime());
+        if (avBlocked.length > 0) {
+          wouldSkipCount++;
+          const availability: AvailabilityHit[] = avBlocked;
+          reports.push({
+            demandId: p.demandId,
+            startAt,
+            endAt,
+            resourceIds,
+            wouldResult: 'skip',
+            reason: 'availability',
+            availability,
           });
           continue;
         }

@@ -45,6 +45,7 @@ import {
   validateAutoScheduleInput,
   buildAvailability,
   buildTwilightBoundaries,
+  applyAvailabilityWindows,
   deriveSeed,
 } from './auto-schedule-internal.js';
 import type {
@@ -88,11 +89,21 @@ async function _runAutoScheduleImpl(
       norm.allResourceIds,
       norm.base.start,
     );
+    // AV1.2 (block-mode only): intersect the bookable windows with each resource's
+    // operating-hours windows so the proposer never proposes outside operating hours.
+    // No-op in warn / disabled (the authoritative behaviour lives in gatedCreateOccurrence).
+    const { windows: constrainedAvailability } = await applyAvailabilityWindows(
+      tx,
+      sess.orgId,
+      norm.allResourceIds,
+      norm.base,
+      availability,
+    );
 
     // 4b. PURE proposer. Self-consistent set; NOT the authoritative gate.
     const { proposals: proposed, unschedulable } = proposeSchedule({
       demands: norm.demands,
-      availability,
+      availability: constrainedAvailability,
       twilightBoundaries: boundaries,
       objective: norm.objective,
       seed,
@@ -176,6 +187,7 @@ async function _runAutoScheduleImpl(
           reservationId: result!.reservation.id,
           ...(result!.groundingWarnings ? { groundingWarnings: result!.groundingWarnings } : {}),
           ...(result!.twilightWarnings ? { twilightWarnings: result!.twilightWarnings } : {}),
+          ...(result!.availabilityWarnings ? { availabilityWarnings: result!.availabilityWarnings } : {}),
         });
       } else {
         skippedCount++;
@@ -193,6 +205,7 @@ async function _runAutoScheduleImpl(
             ? { violations: result!.violations }
             : {}),
           ...(result!.reason === 'twilight' ? { twilight: result!.twilight } : {}),
+          ...(result!.reason === 'availability' ? { availability: result!.availability } : {}),
         });
       }
     }

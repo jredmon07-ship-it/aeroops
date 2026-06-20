@@ -68,6 +68,17 @@ export interface DispatchConfigView {
    * DEFERRED in 4a (recorded, not yet applied). null = no exempt tag configured.
    */
   twilightExemptTag: string | null;
+  /**
+   * Resource operating-hours availability constraint (Slice AV1.2). Default false.
+   * When enabled, bookings outside a resource's defined operating-hours windows
+   * warn or block per `availabilityMode`. INERT when false OR the resource has no
+   * windows.
+   * [VERIFY-AV1-A]: an OPERATOR scheduling / operating-hours rule — NOT an FAA
+   * duty-time, rest-period, Part-117/135/121, or flight-time-limit determination.
+   */
+  availabilityConstraintEnabled: boolean;
+  /** 'block' → out-of-hours booking refused; 'warn' → advisory only. Default 'warn'. */
+  availabilityMode: 'block' | 'warn';
 }
 
 // ─── getResourceRequiredTags result ───────────────────────────────────────────
