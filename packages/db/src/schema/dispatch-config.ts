@@ -44,6 +44,14 @@
  *   twilight_mode IN ('block', 'warn')
  * dispatch_config_twilight_exempt_tag_nonempty_check (migration 0010):
  *   twilight_exempt_tag IS NULL OR char_length(btrim(twilight_exempt_tag)) > 0
+ *
+ * Availability scheduling constraint (Slice AV1.1, migration 0014):
+ *   availability_constraint_enabled: operator opt-in (default false → gate inert).
+ *   availability_mode: 'warn' (default) or 'block'. CHECK in migration 0014.
+ *   [VERIFY-AV1-A]: availability windows = OPERATOR scheduling/operating-hours data ONLY.
+ *   The system computes NO FAA duty-time, rest-period, Part-117/135/121 determination.
+ *   These are the times the operator has decided to make a resource available for
+ *   scheduling — nothing more. Compliance confirms at QA.
  */
 import {
   pgTable,
@@ -85,6 +93,14 @@ export const dispatchConfig = pgTable(
     // FREE-TEXT operator label; exemption wiring DEFERRED (4a ships pilotIsExempt=false always).
     // CHECK: NULL OR char_length(btrim(.)) > 0  — in migration 0010.
     twilightExemptTag: text('twilight_exempt_tag'),
+
+    // Availability scheduling gate (Slice AV1.1, migration 0014).
+    // [VERIFY-AV1-A]: operator operating-hours data ONLY — NOT an FAA duty/rest/Part-117
+    // determination. availabilityMode CHECK in migration 0014.
+    availabilityConstraintEnabled: boolean('availability_constraint_enabled').notNull().default(false),
+
+    // 'warn' (default) | 'block'. CHECK (availability_mode IN ('block','warn')) in migration 0014.
+    availabilityMode: text('availability_mode').notNull().default('warn'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

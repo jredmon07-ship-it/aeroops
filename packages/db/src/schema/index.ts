@@ -37,6 +37,13 @@
  *     work_performed/sign_off_notes = FREE-TEXT operator data ONLY.
  *     NO FAA/Part-43/airworthiness determination computed. [VERIFY-M1-A/B/C/D/E]
  *     signed_off_by ON DELETE SET NULL: durable "who" in audit_log, NOT column.
+ *   resourceAvailabilityWindow (table: resource_availability_window) — Slice AV1.1 (migration 0014)
+ *     Per-resource weekly operating-hours windows (add/remove-only, NO updated_at).
+ *     day_of_week int (1=Mon,7=Sun); start_minute/end_minute in minutes-since-midnight;
+ *     end_minute > start_minute forbids overnight wrap (two rows required).
+ *     [VERIFY-AV1-A]: OPERATOR scheduling/operating-hours data ONLY.
+ *     NO FAA duty-time/rest/Part-117/135/121 determination computed.
+ *     dispatch_config.availability_constraint_enabled/mode control the gate.
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -192,3 +199,18 @@ export type { LessonRecordSelect, LessonRecordInsert } from './lesson-record.js'
 //   [VERIFY-M1-E]: open WOs surface on fleet detail (fleet:access gate).
 export { workOrder } from './work-order.js';
 export type { WorkOrderSelect, WorkOrderInsert } from './work-order.js';
+
+// Resource availability windows — tenant-scoped (Slice AV1.1 / migration 0014)
+// resource_availability_window: per-resource weekly operating-hours windows.
+//   add/remove-only (no updated_at); day_of_week 1–7 (ISO 8601, Mon=1, Sun=7);
+//   start_minute 0–1439, end_minute 1–1440, end_minute > start_minute (no overnight wrap).
+//   Composite FK (resource_id,org_id) → resource RESTRICT; (created_by,org_id) → app_user RESTRICT.
+//   Natural-key UNIQUE (resource_id,day_of_week,start_minute,end_minute).
+//   Gate enabled by dispatch_config.availability_constraint_enabled (default false → INERT).
+//   [VERIFY-AV1-A]: OPERATOR scheduling/operating-hours data ONLY.
+//   NO FAA duty-time/rest-period/Part-117/135/121 determination computed.
+export { resourceAvailabilityWindow } from './resource-availability-window.js';
+export type {
+  ResourceAvailabilityWindowSelect,
+  ResourceAvailabilityWindowInsert,
+} from './resource-availability-window.js';

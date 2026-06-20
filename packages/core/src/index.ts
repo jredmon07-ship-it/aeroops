@@ -104,6 +104,27 @@ export type {
   ProposalSet,
 } from './scheduling/optimizer.js';
 
+// ─── Slice AV1.1 — Resource availability windows + pure availability gate ─────
+// resolveAvailabilityWindowsToUtc: weekly local windows → UTC [open,close) via an
+// INJECTED tz resolver (recurrence.ts seam; DST decision 10: gap-open snaps
+// forward, gap-close snaps to gap-start, ambiguous → earlier instant).
+// evaluateAvailabilityGate: INERT when no windows; else candidate must be FULLY
+// CONTAINED in the UNION of windows, mutually-exclusive warn/block, STRICT
+// half-open — symmetric with evaluateTwilightGate. Operator operating-hours data,
+// NOT an FAA duty/rest/Part-117 determination ([VERIFY-AV1]). Property-tested.
+// DISTINCT type names (ResourceAvailabilityWindow / AvailabilityHit) to avoid
+// colliding with the optimizer's existing AvailabilityWindow.
+export {
+  resolveAvailabilityWindowsToUtc,
+  evaluateAvailabilityGate,
+} from './scheduling/availability.js';
+export type {
+  ResourceAvailabilityWindow,
+  ResolvedAvailabilityWindow,
+  AvailabilityHit,
+  AvailabilityGateResult,
+} from './scheduling/availability.js';
+
 export { expandRecurrence } from './scheduling/recurrence.js';
 export type {
   ZonedToUtc,
