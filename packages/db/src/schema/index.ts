@@ -44,6 +44,18 @@
  *     [VERIFY-AV1-A]: OPERATOR scheduling/operating-hours data ONLY.
  *     NO FAA duty-time/rest/Part-117/135/121 determination computed.
  *     dispatch_config.availability_constraint_enabled/mode control the gate.
+ *   bookingRequest (table: booking_request) — Slice PB1.1 / ADR-0013 (migration 0015)
+ *     Unauthenticated inbound booking enquiry from the public booking page (/book/[slug]).
+ *     Requester fields (name/email/phone/requested_start/end/aircraft_type_pref/message)
+ *     are WRITE-ONCE (set at INSERT, never mutated). Triage fields (status/handled_by/
+ *     handled_at/triage_notes) are staff-mutable via booking:triage cap.
+ *     ADR-0013: org_id is set ONLY from resolveOrgBySlug (never from client input);
+ *     booking_request_insert WITH CHECK is the RLS backstop for the anon write path.
+ *     Composite FK (handled_by,org_id) → app_user ON DELETE SET NULL (handled_by) —
+ *     column-list syntax: org_id is NEVER nulled; durable "who" in audit_log.
+ *     NO requester FK (anon by design); NO reservation FK; NO money.
+ *     [VERIFY-PB1-COMP-1]: PII lead-data retention/purge posture before public launch.
+ *     [VERIFY-PB1-SEC-1]: edge rate-limiter/WAF+CAPTCHA before public exposure.
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -214,3 +226,19 @@ export type {
   ResourceAvailabilityWindowSelect,
   ResourceAvailabilityWindowInsert,
 } from './resource-availability-window.js';
+
+// Public booking requests — tenant-scoped (Slice PB1.1 / ADR-0013 / migration 0015)
+// booking_request: unauthenticated inbound enquiry from the public booking page.
+//   org_id set ONLY from resolveOrgBySlug (never client input); RLS INSERT WITH CHECK
+//   is the ADR-0013 backstop for the anon write path. Requester fields write-once.
+//   status: new | contacted | converted | declined; booking_request_handled_shape_check.
+//   Composite FK (handled_by,org_id) → app_user ON DELETE SET NULL (handled_by) —
+//   column-list: org_id NEVER nulled; durable "who" in audit_log.
+//   NO requester FK (anon); NO reservation FK; NO money.
+//   [VERIFY-PB1-COMP-1]: PII retention/purge posture before public launch.
+//   [VERIFY-PB1-SEC-1]: edge rate-limiter/WAF+CAPTCHA before public exposure.
+export { bookingRequest } from './booking-request.js';
+export type {
+  BookingRequestSelect,
+  BookingRequestInsert,
+} from './booking-request.js';
