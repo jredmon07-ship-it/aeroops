@@ -1,7 +1,7 @@
 /**
  * nav.test.ts — Pure unit tests for filterNavForSession + isPortalOnly (lib/nav.ts).
  *
- * COVERAGE (Slice P1.2 additions in bold):
+ * COVERAGE (Slice P1.2 additions in bold; Slice A1.2 additions in brackets):
  *
  *   1. Null/undefined session → returns [] (no nav items for unauthenticated)
  *   2. owner → gets Portal + Dashboard + Org settings (all capabilities)
@@ -13,9 +13,10 @@
  *   8. Items that session lacks capability for are completely absent (not just hidden)
  *   9. Empty items array → returns []
  *  10. Consistency: filterNavForSession result matches hasCapability predictions
- *  11. NAV_ITEMS registry validation (12 items; Portal first; Dashboard = reporting:access)
+ *  11. NAV_ITEMS registry validation [13 items; Activity after Reports, before Org settings]
  *  **12. isPortalOnly — truth table for all 8 roles + null/undefined (Slice P1.2)**
  *  **13. Portal visible to student/renter/owner/manager; Dashboard hidden from student/renter**
+ *  [14. Activity visible to owner/manager/dispatcher/cfi/accountant; hidden from student/renter/mechanic]
  *
  * These are PURE unit tests — no DOM, no Next.js, no DB.
  *
@@ -30,6 +31,10 @@
  *     student/renter no longer see Dashboard in nav; mechanic also loses Dashboard.
  *   - Total NAV_ITEMS: 12 (was 11).
  *   - isPortalOnly(session) exported: true for student/renter only.
+ *
+ * Slice A1.2 changes applied:
+ *   - "Activity" NAV_ITEM added after "Reports" (reporting:access).
+ *   - Total NAV_ITEMS: 13 (was 12).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -66,12 +71,16 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 ];
 
 // Expected nav labels per role, derived from the RBAC matrix (packages/core
-// capabilities.ts) against the Slice-P1.2 NAV_ITEMS.
+// capabilities.ts) against the Slice-A1.2 NAV_ITEMS.
 //
 // Slice P1.2 changes from the prior nav matrix:
 //   - Portal (portal:access)        → owner, manager, student, renter.
 //   - Dashboard (reporting:access)  → owner, manager, dispatcher, cfi, accountant.
 //     RAISED from app:access. student/renter/mechanic NO LONGER see Dashboard.
+//
+// Slice A1.2 changes from Slice P1.2:
+//   - Activity (reporting:access)   → owner, manager, dispatcher, cfi, accountant.
+//     Placed after Reports, before Org settings.
 //
 // Full matrix (items in NAV_ITEMS order):
 //   Portal        portal:access               → owner, manager, student, renter
@@ -85,16 +94,17 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 //   Fleet         fleet:access                → owner, manager, dispatcher, cfi, mechanic
 //   Maintenance   maintenance:access          → owner, manager, dispatcher, cfi, mechanic
 //   Reports       reporting:access            → owner, manager, dispatcher, cfi, accountant
+//   Activity      reporting:access            → owner, manager, dispatcher, cfi, accountant
 //   Org settings  org:manage_settings         → owner, manager
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Org settings'],
-  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Org settings'],
-  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports'],
-  cfi:        ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports'],
+  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity', 'Org settings'],
+  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity', 'Org settings'],
+  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity'],
+  cfi:        ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity'],
   mechanic:   ['Fleet', 'Maintenance'],
   renter:     ['Portal'],
   student:    ['Portal'],
-  accountant: ['Dashboard', 'Reports'],
+  accountant: ['Dashboard', 'Reports', 'Activity'],
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -127,8 +137,8 @@ describe('2. owner gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 12 items (full nav incl. Portal + Dashboard + all staff items)', () => {
-    expect(result.length).toBe(12);
+  it('returns exactly 13 items (full nav incl. Portal + Dashboard + Activity + all staff items)', () => {
+    expect(result.length).toBe(13);
   });
 
   it('includes Portal (first item for owner)', () => {
@@ -170,8 +180,8 @@ describe('3. manager gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 12 items (full nav)', () => {
-    expect(result.length).toBe(12);
+  it('returns exactly 13 items (full nav)', () => {
+    expect(result.length).toBe(13);
   });
 
   it('includes Portal', () => {
@@ -433,8 +443,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 12 items (Portal + Dashboard + 10 staff items)', () => {
-    expect(NAV_ITEMS.length).toBe(12);
+  it('NAV_ITEMS has exactly 13 items (Portal + Dashboard + Activity + 10 staff items)', () => {
+    expect(NAV_ITEMS.length).toBe(13);
   });
 
   it('first item is Portal with portal:access (Slice P1.2 addition)', () => {
@@ -511,15 +521,26 @@ describe('11. NAV_ITEMS registry', () => {
     expect(maintenanceIdx).toBeGreaterThan(-1);
   });
 
-  it('Reports item is gated by reporting:access and placed after Maintenance, before Org settings (R1.2)', () => {
+  it('Reports item is gated by reporting:access and placed after Maintenance, before Activity (R1.2)', () => {
     const reports = NAV_ITEMS.find((i) => i.label === 'Reports');
     expect(reports?.requiredCapability).toBe('reporting:access');
     expect(reports?.href).toBe('/o/[slug]/reporting/reports');
     const maintenanceIdx = NAV_ITEMS.findIndex((i) => i.label === 'Maintenance');
     const reportsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Reports');
-    const settingsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Org settings');
+    const activityIdx = NAV_ITEMS.findIndex((i) => i.label === 'Activity');
     expect(reportsIdx).toBeGreaterThan(maintenanceIdx);
-    expect(reportsIdx).toBeLessThan(settingsIdx);
+    expect(reportsIdx).toBeLessThan(activityIdx);
+  });
+
+  it('Activity item is gated by reporting:access and placed after Reports, before Org settings (A1.2)', () => {
+    const activity = NAV_ITEMS.find((i) => i.label === 'Activity');
+    expect(activity?.requiredCapability).toBe('reporting:access');
+    expect(activity?.href).toBe('/o/[slug]/activity');
+    const reportsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Reports');
+    const activityIdx = NAV_ITEMS.findIndex((i) => i.label === 'Activity');
+    const settingsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Org settings');
+    expect(activityIdx).toBeGreaterThan(reportsIdx);
+    expect(activityIdx).toBeLessThan(settingsIdx);
   });
 
   it('Reports is visible to accountant (reporting:access) but not mechanic, renter, student', () => {
@@ -587,6 +608,82 @@ describe('11. NAV_ITEMS registry', () => {
     expect(checkRole('dispatcher')).toBe(true);
     expect(checkRole('cfi')).toBe(true);
     expect(checkRole('accountant')).toBe(true);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 14. Activity visible to reporting:access roles; hidden from student/renter/mechanic (A1.2)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('14. Activity (Slice A1.2)', () => {
+  const checkRole = (role: MembershipRole) => {
+    const s = makeSession(role);
+    return filterNavForSession(s, NAV_ITEMS, 'acme').some((i) => i.label === 'Activity');
+  };
+
+  it('Activity is visible to owner (reporting:access)', () => {
+    expect(checkRole('owner')).toBe(true);
+  });
+
+  it('Activity is visible to manager (reporting:access)', () => {
+    expect(checkRole('manager')).toBe(true);
+  });
+
+  it('Activity is visible to dispatcher (reporting:access)', () => {
+    expect(checkRole('dispatcher')).toBe(true);
+  });
+
+  it('Activity is visible to cfi (reporting:access)', () => {
+    expect(checkRole('cfi')).toBe(true);
+  });
+
+  it('Activity is visible to accountant (reporting:access)', () => {
+    expect(checkRole('accountant')).toBe(true);
+  });
+
+  it('Activity is NOT visible to student (no reporting:access)', () => {
+    expect(checkRole('student')).toBe(false);
+  });
+
+  it('Activity is NOT visible to renter (no reporting:access)', () => {
+    expect(checkRole('renter')).toBe(false);
+  });
+
+  it('Activity is NOT visible to mechanic (no reporting:access)', () => {
+    expect(checkRole('mechanic')).toBe(false);
+  });
+
+  it('Activity href resolves to /o/{slug}/activity after slug substitution', () => {
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'test-fbo');
+    const activity = result.find((i) => i.label === 'Activity');
+    expect(activity?.href).toBe('/o/test-fbo/activity');
+    expect(activity?.href).not.toContain('[slug]');
+  });
+
+  it('Activity requiredCapability is reporting:access', () => {
+    const activity = NAV_ITEMS.find((i) => i.label === 'Activity');
+    expect(activity?.requiredCapability).toBe('reporting:access');
+  });
+
+  it('Activity comes after Reports and before Org settings in owner nav', () => {
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const labels = result.map((i) => i.label);
+    const reportsIdx = labels.indexOf('Reports');
+    const activityIdx = labels.indexOf('Activity');
+    const settingsIdx = labels.indexOf('Org settings');
+    expect(activityIdx).toBeGreaterThan(reportsIdx);
+    expect(activityIdx).toBeLessThan(settingsIdx);
+  });
+
+  it('all 8 roles: Activity visibility matches RBAC matrix (reporting:access roles only)', () => {
+    const expectedVisible: MembershipRole[] = ['owner', 'manager', 'dispatcher', 'cfi', 'accountant'];
+    for (const role of ['owner', 'manager', 'dispatcher', 'cfi', 'accountant', 'mechanic', 'renter', 'student'] as MembershipRole[]) {
+      const visible = checkRole(role);
+      const expected = expectedVisible.includes(role);
+      expect(visible, `role=${role}`).toBe(expected);
+    }
   });
 });
 

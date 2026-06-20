@@ -54,8 +54,9 @@ export interface NavItem {
  *   8. Training — Training hub (training:access); after People, before Fleet.
  *   9. Fleet — Aircraft detail hub (fleet:access); after Training, before Maintenance.
  *  10. Maintenance — Squawks + grounding (maintenance:access).
- *  11. Reports — Operational reports (reporting:access); after Maintenance, before Org settings.
- *  12. Org settings — owner + manager only (org:manage_settings).
+ *  11. Reports — Operational reports (reporting:access); after Maintenance, before Activity.
+ *  12. Activity — Audit trail feed (reporting:access); after Reports, before Org settings.
+ *  13. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   // Slice P1.2: Portal — student/renter self-service (+ owner/manager preview).
@@ -118,12 +119,22 @@ export const NAV_ITEMS: readonly NavItem[] = [
     requiredCapability: 'maintenance:access',
   },
   // Slice R1.2: Operational reports — gated by reporting:access (owner/manager/
-  // dispatcher/cfi/accountant). Placed after Maintenance, before Org settings.
+  // dispatcher/cfi/accountant). Placed after Maintenance, before Activity.
   // Visible to: owner, manager, dispatcher, cfi, accountant.
   // NOT visible to: mechanic, renter, student.
   {
     label: 'Reports',
     href: '/o/[slug]/reporting/reports',
+    requiredCapability: 'reporting:access',
+  },
+  // Slice A1.2: Activity feed — audit trail read-only view. Gated by
+  // reporting:access (same audience as Reports + Dashboard).
+  // Placed after Reports, before Org settings.
+  // Visible to: owner, manager, dispatcher, cfi, accountant.
+  // NOT visible to: mechanic, renter, student.
+  {
+    label: 'Activity',
+    href: '/o/[slug]/activity',
     requiredCapability: 'reporting:access',
   },
   {
