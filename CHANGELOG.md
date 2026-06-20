@@ -4,6 +4,33 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] — Deployment + Reporting depth (post-deploy, branch `slice/post-deploy`)
+
+**Deployed** — the full product went live on Vercel + Neon Postgres (migrations applied human-gated, demo
+seeded, non-superuser `aeroops_app` role + RLS verified). Next.js 15.3.3→15.5.19 (security) + a CI
+typecheck-from-source fix. (Open: set `AUTH_SECRET` in Vercel Production to clear the login.)
+
+### Slice R1 — Operational Reports deep-dive (build-complete, awaiting merge)
+
+**Added**
+
+- **An operational Reports page** (`/reporting/reports`) — a range-selectable analytics deep-dive beyond the
+  dashboard snapshot: fleet utilization over time, hours by tail, reservations-vs-flights trend, and training +
+  maintenance throughput trends. Five read-only, RLS-scoped aggregates with pure UTC time-bucketing; lightweight
+  CSS bars (no chart dependency). The accountant role (reporting-only) now gets full data — fixing a fail-closed gap.
+
+**Changed / Fixed**
+
+- A design-language polish pass (brand tokens replacing stray sky-*, architectural corners, one consistent focus +
+  selection system across schedule/maintenance/fleet/training). The dashboard "grounded" card now shows the real
+  operator grounding reason instead of "No reason given".
+
+**Notes**
+
+- Reports are operational figures only — **no money, no migration, no computed FAA/Part-141/airworthiness
+  determination** (verbatim hours + operator-count disclaimers carried forward). Tenant isolation adversarially
+  tested on every aggregate. ADR n/a (read-only). ~2,430 tests green; reviewer + compliance PASS.
+
 ## [Unreleased] — Phase 4 (Maintenance)
 
 ### Slice M1 — Maintenance work-orders foundation (build-complete, awaiting merge)
