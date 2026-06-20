@@ -162,7 +162,8 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('training:manage');
     expect(caps).toContain('maintenance:work_order');
     expect(caps).toContain('portal:access');
-    expect(caps.length).toBe(20);
+    expect(caps).toContain('booking:triage');
+    expect(caps.length).toBe(21);
   });
 
   it('manager returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
@@ -187,7 +188,8 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('training:access');
     expect(caps).toContain('training:manage');
     expect(caps).toContain('portal:access');
-    expect(caps.length).toBe(20);
+    expect(caps).toContain('booking:triage');
+    expect(caps.length).toBe(21);
   });
 
   it('student returns app:access + portal:access (P1.1)', () => {
@@ -293,8 +295,8 @@ describe('10. CAPABILITIES array', () => {
     expect(CAPABILITIES).toContain('reporting:access');
   });
 
-  it('has exactly 20 capabilities (+ portal:access — P1.1)', () => {
-    expect(CAPABILITIES.length).toBe(20);
+  it('has exactly 21 capabilities (+ booking:triage — PB1.2)', () => {
+    expect(CAPABILITIES.length).toBe(21);
   });
 
   it('contains the P1.1 portal:access capability', () => {
