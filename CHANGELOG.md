@@ -22,6 +22,11 @@ typecheck-from-source fix. (Open: set `AUTH_SECRET` in Vercel Production to clea
   warns or blocks (operator scheduling rule, not a duty-time determination). Migration `0014` (human-gated).
 - **In-app alerts bell** — a per-user header bell: your upcoming reservations and a heads-up when an aircraft you've
   booked is grounded. Derived read-only; nothing new persisted.
+- **Public booking-request page** (`/book/[slug]`) — a public, unauthenticated lead-capture form where a prospective
+  renter/student requests a flight; it lands in a staff **triage inbox** (`/o/[slug]/booking`) to contact/convert/decline.
+  Conservative by design: a *request*, not an instant booking — no money, no reservation created, no fleet/schedule exposed.
+  Migration `0015` (human-gated). **Before public launch:** add an edge rate-limiter/WAF + CAPTCHA and a lead-data
+  retention posture (documented as launch predecessors).
 - **A design-language polish pass** + several tracked nit fixes; the demo seed now exercises all of the above.
 
 ### Slice R1 — Operational Reports deep-dive (build-complete, awaiting merge)
