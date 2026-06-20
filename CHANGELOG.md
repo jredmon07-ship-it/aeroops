@@ -4,6 +4,33 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] — Phase 4 (Maintenance)
+
+### Slice M1 — Maintenance work-orders foundation (build-complete, awaiting merge)
+
+**Added**
+
+- **The Maintenance work-orders hub** — open a work order on an aircraft (optionally linked to a squawk),
+  track it `open → in_progress → completed / cancelled`, record free-text work performed + a maintenance
+  sign-off, and **close the loop**: completing a work order can (at the operator's explicit choice) resolve
+  the linked squawk and **return the aircraft to service** (unground it). A `/maintenance/work-orders`
+  surface (list + detail + open/start/complete/cancel) plus an "Open work orders" card on each aircraft's
+  Fleet page. The grounded demo aircraft can now be returned to service through a real maintenance record.
+- The completion is **atomic** — work-order completion, squawk resolution, and ungrounding run in one
+  transaction (any failure rolls the whole loop back), reusing the existing squawk/grounding write paths
+  unchanged. Ungrounding only releases an aircraft grounded **for this work order's reason** (never one
+  grounded for something else), and is always an explicit operator action.
+
+**Notes**
+
+- **Work orders, sign-offs, and "completed" are operator maintenance records — the software computes NO
+  FAA/Part-43 determination** (no airworthiness, return-to-service/§43.9/§43.11, AD compliance, inspection
+  currency, or MEL status). A sign-off is data entry, not an A&P/IA certification or e-signature; the
+  completion UI carries a verbatim disclaimer. A&P/IA credential verification, e-signature, AD/inspection-due
+  tracking, parts inventory, and maintenance billing are deferred (forward seams only). New capability
+  `maintenance:work_order`; ADR-0012; migration `0013` staged + human-gated. No money, no meter access.
+  2,925 tests green; reviewer APPROVE (nits fixed) + compliance PASS.
+
 ## [Unreleased] — Phase 3 (Training)
 
 ### Slice T1 — Training hub foundation (build-complete, awaiting merge)
