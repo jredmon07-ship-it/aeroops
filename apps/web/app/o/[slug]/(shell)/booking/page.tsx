@@ -26,7 +26,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Inbox, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
-import { requireCapability } from '@aeroops/api';
+import { requireCapability, hasCapability } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -84,9 +84,11 @@ function PermissionDeniedPanel() {
 
 interface BookingContentProps {
   slug: string;
+  /** PB2.2 cosmetic gate — true when session has BOTH booking:triage + schedule:create_reservation. */
+  canConvert: boolean;
 }
 
-async function BookingContent({ slug }: BookingContentProps) {
+async function BookingContent({ slug, canConvert }: BookingContentProps) {
   const result = await listBookingRequestsAction({ status: 'new' });
 
   if ('error' in result) {
@@ -107,6 +109,7 @@ async function BookingContent({ slug }: BookingContentProps) {
     <BookingInbox
       initial={result}
       slug={slug}
+      canConvert={canConvert}
     />
   );
 }
@@ -136,6 +139,13 @@ export default async function BookingPage({ params }: BookingPageProps) {
     if (action !== 'forbidden') throw err;
   }
 
+  // PB2.2 cosmetic gate — Convert button visible only when BOTH caps present.
+  // The API is the real gate (requireCapability inside convertBookingRequest).
+  const canConvert =
+    hasAccess &&
+    hasCapability(session, 'booking:triage') &&
+    hasCapability(session, 'schedule:create_reservation');
+
   return (
     <div className="space-y-4">
       {/* ── Heading ────────────────────────────────────────────────────────── */}
@@ -149,7 +159,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
       {/* ── Inbox (Suspense so skeleton fires while the data loads) ──────── */}
       {hasAccess && (
         <Suspense fallback={<BookingInboxSkeleton />}>
-          <BookingContent slug={slug} />
+          <BookingContent slug={slug} canConvert={canConvert} />
         </Suspense>
       )}
     </div>
