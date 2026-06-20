@@ -839,3 +839,28 @@ export type {
   MyAlert,
   MyAlertsResult,
 } from './notifications/types.js';
+
+// ─── Slice PB1.1 — Public booking-request submit (ADR-0013) ──────────────────
+// The ONLY unauthenticated WRITE in the app. Strict ADR-0013 invariants:
+//   - tx body is INSERT-ONLY into booking_request (no cross-table read/write).
+//   - org_id bound ONLY from resolveOrgBySlug (never client input).
+//   - withOrgContext (normal RLS) NOT withPlatformAdminContext.
+//   - booking_request_insert WITH CHECK(org_id=GUC) is the RLS backstop.
+//   - Honeypot (website non-empty) → fake ok, NO DB access.
+//   - Per-org rate guard (≥10 in last 1 min) → silent drop, fake ok, no insert.
+//   - Unknown slug and suspended org are INDISTINGUISHABLE ('unavailable').
+//   - NO id / tenant data echoed in response.
+//
+// bookingRequestSchema re-exported here so apps/web can import it from
+// '@aeroops/api' as well as '@aeroops/core' (belt-and-suspenders re-export).
+// *WithDb form is for test code only (inject a pglite client).
+export {
+  submitBookingRequest,
+  submitBookingRequestWithDb,
+} from './booking/submit-booking-request.js';
+export type { SubmitBookingRequestResult } from './booking/submit-booking-request.js';
+
+// Re-export the shared zod schema so apps/web can import from '@aeroops/api'
+// rather than reaching into '@aeroops/core' directly.
+export { bookingRequestSchema } from '@aeroops/core';
+export type { BookingRequestInput } from '@aeroops/core';

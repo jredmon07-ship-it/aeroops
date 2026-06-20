@@ -192,3 +192,14 @@ export type {
   MobileScheduleResponse,
   MobileApiError,
 } from './mobile/dto.js';
+
+// ─── Slice PB1.1 — Public booking-request submit schema (ADR-0013) ────────────
+// bookingRequestSchema: zod bounds for the unauthenticated public submit.
+//   name 1–120, email format ≤254 (lowercased/trimmed), phone? ≤40,
+//   requestedStart ISO datetime, requestedEnd? > start, aircraftTypePref? ≤80,
+//   message? ≤2000, website honeypot (value accepted here; non-empty → fake-ok
+//   in the orchestrator, no DB access).
+// SHARED by the public submit API (packages/api) and the public form (apps/web).
+// org_id and slug are NEVER in this schema — derived server-side from the URL slug.
+export { bookingRequestSchema } from './booking/booking-request-schema.js';
+export type { BookingRequestInput } from './booking/booking-request-schema.js';

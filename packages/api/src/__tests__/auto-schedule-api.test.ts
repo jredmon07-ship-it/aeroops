@@ -68,6 +68,7 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0012_training.sql'),        'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0013_work_orders.sql'),     'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0014_availability.sql'),     'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0015_booking_request.sql'),  'utf-8'),
 ];
 
 // A deterministic clock + planning window (08:00..20:00 UTC on a fixed day).

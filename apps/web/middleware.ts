@@ -30,6 +30,19 @@ export default auth(function middleware(
   const session = req.auth;
   const { pathname } = req.nextUrl;
 
+  // ── ADR-0013 public booking surface ────────────────────────────────────────
+  // /book/* — public booking page (PB1.3, unauthenticated, no session required).
+  // /api/public/booking/* — public submit endpoint (PB1.1, the only anon WRITE).
+  // Neither is under /o/[slug]/* so they already pass through the org-route
+  // matcher below, but we make the allowance EXPLICIT + documented here so a
+  // future refactor cannot accidentally close off these paths.
+  if (pathname === '/book' || pathname.startsWith('/book/')) {
+    return NextResponse.next();
+  }
+  if (pathname.startsWith('/api/public/')) {
+    return NextResponse.next();
+  }
+
   // Match /o/[slug]/... routes
   const orgRouteMatch = pathname.match(/^\/o\/([^/]+)(\/.*)?$/);
   if (!orgRouteMatch) {
