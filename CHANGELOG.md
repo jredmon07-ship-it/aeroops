@@ -10,6 +10,20 @@ All notable changes to AeroOps are documented here. Format based on
 seeded, non-superuser `aeroops_app` role + RLS verified). Next.js 15.3.3→15.5.19 (security) + a CI
 typecheck-from-source fix. (Open: set `AUTH_SECRET` in Vercel Production to clear the login.)
 
+**Also shipped this phase (each reviewer + compliance PASS; details in `docs/specs/`):**
+
+- **Global search (⌘K)** — a command palette searching aircraft / members / work orders / squawks / courses /
+  reservations, with results scoped to the role's read capabilities (a student sees nothing), RLS-isolated and
+  injection-safe.
+- **Student/renter portal** (`/portal`) — a read-only self-service surface: your reservations, your training
+  progress, your account. Each read is locked to the logged-in member's own data.
+- **Activity feed** (`/activity`) — a read-only timeline of recent audited actions, with curated human summaries.
+- **Resource availability windows** — operators set per-aircraft/instructor operating hours; booking outside them
+  warns or blocks (operator scheduling rule, not a duty-time determination). Migration `0014` (human-gated).
+- **In-app alerts bell** — a per-user header bell: your upcoming reservations and a heads-up when an aircraft you've
+  booked is grounded. Derived read-only; nothing new persisted.
+- **A design-language polish pass** + several tracked nit fixes; the demo seed now exercises all of the above.
+
 ### Slice R1 — Operational Reports deep-dive (build-complete, awaiting merge)
 
 **Added**
