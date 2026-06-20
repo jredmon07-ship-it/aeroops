@@ -55,6 +55,7 @@ import { reportSquawkWithDb } from '../maintenance/report-squawk.js';
 import { groundAircraftWithDb } from '../maintenance/ground-aircraft.js';
 import { openWorkOrderWithDb } from '../maintenance/open-work-order.js';
 import { createAvailabilityWindowWithDb } from '../scheduling/availability-commands.js';
+import { submitBookingRequestWithDb } from '../booking/submit-booking-request.js';
 import { createCourseWithDb } from '../training/create-course.js';
 import { addCourseLessonWithDb } from '../training/add-course-lesson.js';
 import { enrollMemberWithDb } from '../training/enroll-member.js';
@@ -402,6 +403,36 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     });
     if (!win.ok) {
       throw new Error(`[demo] availability window (dow ${dow}) failed — seed cannot continue.`);
+    }
+  }
+
+  // ── 7a3. Public booking requests (Slice PB1) ────────────────────────────
+  // A couple of inbound lead requests (via the real public anon-submit path)
+  // so the staff triage inbox isn't empty. Lead-capture only — NO reservation,
+  // NO money; each lands as status 'new' for staff to triage.
+  const dayMs = 24 * 60 * 60 * 1000;
+  const demoBookingRequests = [
+    {
+      name: 'Jordan Vance',
+      email: 'jordan.vance@example.com',
+      phone: '555-0142',
+      requestedStart: new Date(Date.now() + 3 * dayMs).toISOString(),
+      aircraftTypePref: 'C172 or similar',
+      message: 'Hoping to start my private pilot training — flexible on weekday mornings.',
+      website: '',
+    },
+    {
+      name: 'Maya Chen',
+      email: 'maya.chen@example.com',
+      requestedStart: new Date(Date.now() + 5 * dayMs).toISOString(),
+      message: 'Renter checkout request — ~80 hrs TT, current. What do you need from me?',
+      website: '',
+    },
+  ];
+  for (const req of demoBookingRequests) {
+    const r = await submitBookingRequestWithDb(db, DEMO_SLUG, req);
+    if (!r.ok) {
+      throw new Error('[demo] public booking request failed — seed cannot continue.');
     }
   }
 
