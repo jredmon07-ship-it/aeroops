@@ -8,12 +8,6 @@ importers:
 
   .: {}
 
-  apps/mobile:
-    dependencies:
-      '@aeroops/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-
   apps/web:
     dependencies:
       '@aeroops/api':
