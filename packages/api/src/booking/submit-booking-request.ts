@@ -1,6 +1,6 @@
 /**
  * booking/submit-booking-request.ts — Public booking-request submit orchestrator.
- * (Slice PB1.1 / ADR-0013)
+ * (Slice PB1.1 / ADR-0013; extended by Slice PB-LR.B for the CAPTCHA seam)
  *
  * ── ADR-0013 INVARIANTS (reviewer must reject any violation) ─────────────────
  *   1. The tx body is INSERT-ONLY into booking_request — no SELECT/JOIN/UPDATE/
@@ -19,9 +19,20 @@
  *   8. No tenant data is echoed back — result is always { ok:true } or
  *      { ok:false, reason:'invalid'|'unavailable' }.
  *
+ * ── PB-LR.B ADDITIVE INVARIANTS (CAPTCHA seam) ───────────────────────────────
+ *   9. CAPTCHA verify runs AFTER honeypot, BEFORE org-resolve + tx (zero DB
+ *      access on a honeypot/captcha drop — invariant #5 equivalent).
+ *  10. verify()===false → same { ok:true } silent-drop (anti-enumeration).
+ *  11. verifier THROWS → fail-OPEN (catch → allow; provider outage must NOT
+ *      kill lead capture; log server-side with NO PII).
+ *  12. When verifier is NoopCaptchaVerifier (unconfigured default) → always true
+ *      → path is BYTE-IDENTICAL to pre-PB-LR.B state (existing tests green).
+ *
  * TWO CALLING FORMS:
- *   submitBookingRequest(slug, input)         — app code; uses getDb() internally.
- *   submitBookingRequestWithDb(db, slug, input) — tests; inject pglite client.
+ *   submitBookingRequest(db, slug, input, verifier?, remoteIp?)
+ *     — app code form; verifier defaults to getCaptchaVerifier().
+ *   submitBookingRequestWithDb(db, slug, input, verifier?, remoteIp?)
+ *     — tests; inject pglite client + optional fake verifier.
  *
  * Note: the *WithDb form takes (db, slug, input) — db first, then slug, then input.
  */
@@ -33,6 +44,8 @@ import type { AnyDb } from '@aeroops/db';
 import { bookingRequestSchema } from '@aeroops/core';
 import { resolveOrgBySlug } from '../auth/resolve-org.js';
 import { getDb } from '../db.js';
+import { getCaptchaVerifier } from './captcha.js';
+import type { CaptchaVerifier } from './captcha.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -63,8 +76,13 @@ export type SubmitBookingRequestResult =
 /**
  * _submitImpl — the shared implementation.
  *
- * Execution order (ADR-0013):
+ * Execution order (ADR-0013, extended by PB-LR.B):
  *   (a) Honeypot: if website is non-empty → return { ok:true } with NO DB access.
+ *   (a2) CAPTCHA: call verifier.verify(captchaToken, remoteIp) AFTER honeypot,
+ *        BEFORE org-resolve + tx (zero DB access on a drop).
+ *        - false → fake { ok:true } silent-drop (anti-enumeration like honeypot).
+ *        - throws → FAIL-OPEN (catch → allow; log server-side no PII).
+ *        - unconfigured (Noop default) → always true → BYTE-IDENTICAL to pre-PB-LR.B.
  *   (b) Validate with bookingRequestSchema → generic invalid on failure (no enumeration).
  *   (c) resolveOrgBySlug + active gate → unknown/suspended → generic unavailable.
  *   (d) withOrgContext tx body:
@@ -77,6 +95,8 @@ async function _submitImpl(
   db: AnyDb,
   slug: string,
   rawInput: unknown,
+  verifier: CaptchaVerifier = getCaptchaVerifier(),
+  remoteIp?: string,
 ): Promise<SubmitBookingRequestResult> {
   // ── (a) Honeypot guard ──────────────────────────────────────────────────────
   // Bots fill hidden fields; humans leave `website` empty.
@@ -84,6 +104,31 @@ async function _submitImpl(
   const rawObj = rawInput as Record<string, unknown> | null | undefined;
   if (rawObj && typeof rawObj === 'object' && rawObj['website']) {
     return { ok: true };
+  }
+
+  // ── (a2) CAPTCHA guard (PB-LR.B) ───────────────────────────────────────────
+  // Runs AFTER honeypot, BEFORE org-resolve + tx (zero DB access on a drop).
+  // ADR-0013 invariants unchanged: tx body stays INSERT-only; verifier is
+  // entirely outside the tx; org_id is NEVER from client input.
+  //
+  // When verifier is NoopCaptchaVerifier (default, unconfigured) → always true
+  // → this block is a no-op → the path is BYTE-IDENTICAL to pre-PB-LR.B.
+  const captchaToken =
+    rawObj && typeof rawObj === 'object' && typeof rawObj['captchaToken'] === 'string'
+      ? rawObj['captchaToken']
+      : undefined;
+
+  try {
+    const captchaOk = await verifier.verify(captchaToken, remoteIp);
+    if (!captchaOk) {
+      // Silent-drop — same fake success as honeypot (anti-enumeration).
+      return { ok: true };
+    }
+  } catch {
+    // FAIL-OPEN: verifier threw (provider outage, network error, etc.).
+    // A provider outage must NOT kill lead capture. Log server-side (no PII).
+    // Continue to the normal submission path.
+    console.error('[aeroops] CAPTCHA verifier threw; failing open (no PII logged)');
   }
 
   // ── (b) Validate input ──────────────────────────────────────────────────────
@@ -181,16 +226,23 @@ async function _submitImpl(
  * which obtains the client via getDb() and passes it in.
  * The slug comes from the URL path parameter — NEVER from the request body.
  *
- * @param db    - The Drizzle database client.
- * @param slug  - The org's URL slug (from the URL path, NOT from the body).
- * @param input - The raw (unvalidated) request body from the client.
+ * PB-LR.B: verifier and remoteIp are optional. Both default to the production
+ * values (getCaptchaVerifier() and undefined IP). Existing callers are unaffected.
+ *
+ * @param db       - The Drizzle database client.
+ * @param slug     - The org's URL slug (from the URL path, NOT from the body).
+ * @param input    - The raw (unvalidated) request body from the client.
+ * @param verifier - Optional: CAPTCHA verifier (defaults to getCaptchaVerifier()).
+ * @param remoteIp - Optional: best-effort client IP (never stored/logged with PII).
  */
 export async function submitBookingRequest(
   db: Awaited<ReturnType<typeof getDb>>,
   slug: string,
   input: unknown,
+  verifier?: CaptchaVerifier,
+  remoteIp?: string,
 ): Promise<SubmitBookingRequestResult> {
-  return _submitImpl(db, slug, input);
+  return _submitImpl(db, slug, input, verifier, remoteIp);
 }
 
 /**
@@ -199,14 +251,22 @@ export async function submitBookingRequest(
  * Mirrors submitBookingRequest exactly but accepts any AnyDb so test code
  * can inject the pglite client without calling getDb().
  *
- * @param db    - Any Drizzle-compatible DB client (prod or PGlite).
- * @param slug  - The org URL slug.
- * @param input - The raw (unvalidated) input object.
+ * PB-LR.B: verifier and remoteIp are optional. When absent, getCaptchaVerifier()
+ * is called (which returns NoopCaptchaVerifier in test environments that don't
+ * set CAPTCHA_SECRET_KEY/CAPTCHA_PROVIDER — byte-identical to pre-PB-LR.B).
+ *
+ * @param db       - Any Drizzle-compatible DB client (prod or PGlite).
+ * @param slug     - The org URL slug.
+ * @param input    - The raw (unvalidated) input object.
+ * @param verifier - Optional: CAPTCHA verifier (for test injection).
+ * @param remoteIp - Optional: best-effort client IP (never stored/logged with PII).
  */
 export async function submitBookingRequestWithDb(
   db: AnyDb,
   slug: string,
   input: unknown,
+  verifier?: CaptchaVerifier,
+  remoteIp?: string,
 ): Promise<SubmitBookingRequestResult> {
-  return _submitImpl(db, slug, input);
+  return _submitImpl(db, slug, input, verifier, remoteIp);
 }

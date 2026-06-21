@@ -11,6 +11,7 @@
  *
  * It delegates entirely to submitBookingRequest (in @aeroops/api), which owns:
  *   - honeypot check
+ *   - CAPTCHA verify (PB-LR.B seam — Noop when unconfigured, byte-identical)
  *   - zod validation
  *   - org resolve + active gate (resolveOrgBySlug)
  *   - per-org rate guard
@@ -25,12 +26,20 @@
  *     leaking information through HTTP status codes.
  *   - Never returns a tenant id, org name, or any internal detail.
  *
+ * ── CAPTCHA (PB-LR.B) ────────────────────────────────────────────────────────
+ *   - Best-effort client IP is read from x-forwarded-for (first entry) and
+ *     passed to submitBookingRequest as remoteIp. It is NEVER stored or logged
+ *     alongside any PII — the orchestrator passes it to the verifier only.
+ *   - When CAPTCHA is unconfigured (CAPTCHA_PROVIDER/CAPTCHA_SECRET_KEY absent),
+ *     the NoopCaptchaVerifier is used and remoteIp is effectively a no-op.
+ *
  * ── ACCESSIBLE VIA MIDDLEWARE ─────────────────────────────────────────────────
  * /api/public/booking/* is NOT under /o/[slug]/* so it passes through the
  * existing middleware without hitting the session check. apps/web/middleware.ts
  * has an explicit allowance comment for this path (ADR-0013).
  *
  * [VERIFY-PB1-SEC-1]: edge rate-limiter + WAF + CAPTCHA before public exposure.
+ * PB-LR.B seam is code-complete; the WAF + provider keys are the founder deploy step.
  */
 
 export const runtime = 'nodejs';
@@ -54,19 +63,27 @@ export async function POST(
   // 2. Extract the org slug from the URL path (NEVER from the body).
   const { slug } = await params;
 
-  // 3. Get the production DB client.
+  // 3. Best-effort client IP for the CAPTCHA verifier (PB-LR.B).
+  //    x-forwarded-for may be a comma-separated list; take the first entry.
+  //    NEVER stored, NEVER logged with any PII — passed to the verifier only.
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  const remoteIp = xForwardedFor ? xForwardedFor.split(',')[0]?.trim() : undefined;
+
+  // 4. Get the production DB client.
   const db = await getDb();
 
-  // 4. Delegate to the orchestrator — all security logic lives there.
+  // 5. Delegate to the orchestrator — all security logic lives there.
   //    The orchestrator:
   //      (a) checks honeypot
+  //      (a2) CAPTCHA verify (PB-LR.B — Noop when unconfigured, byte-identical)
   //      (b) validates with bookingRequestSchema
   //      (c) resolves org + active gate
   //      (d) runs the withOrgContext INSERT (RLS backstop)
   //    It returns { ok:true } or { ok:false, reason:'invalid'|'unavailable' }.
-  const result = await submitBookingRequest(db, slug, body);
+  //    verifier defaults to getCaptchaVerifier() inside submitBookingRequest.
+  const result = await submitBookingRequest(db, slug, body, undefined, remoteIp);
 
-  // 5. Return result as JSON.
+  // 6. Return result as JSON.
   //    HTTP 200 for all outcomes — semantic result is in the body.
   return NextResponse.json(result, { status: 200 });
 }

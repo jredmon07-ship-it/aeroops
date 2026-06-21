@@ -851,6 +851,10 @@ export type {
 //   - Unknown slug and suspended org are INDISTINGUISHABLE ('unavailable').
 //   - NO id / tenant data echoed in response.
 //
+// PB-LR.B additive: CaptchaVerifier interface + getCaptchaVerifier() factory
+// re-exported so apps/web route handlers (and tests) can inject fake verifiers.
+// NoopCaptchaVerifier is the default (unconfigured) — path byte-identical to PB1.
+//
 // bookingRequestSchema re-exported here so apps/web can import it from
 // '@aeroops/api' as well as '@aeroops/core' (belt-and-suspenders re-export).
 // *WithDb form is for test code only (inject a pglite client).
@@ -859,6 +863,19 @@ export {
   submitBookingRequestWithDb,
 } from './booking/submit-booking-request.js';
 export type { SubmitBookingRequestResult } from './booking/submit-booking-request.js';
+
+// ─── Slice PB-LR.B — CAPTCHA verification seam ───────────────────────────────
+// CaptchaVerifier: the interface for test injection and custom adapters.
+// NoopCaptchaVerifier: always-true default (unconfigured; byte-identical path).
+// TurnstileCaptchaVerifier: Cloudflare Turnstile adapter (reads CAPTCHA_SECRET_KEY).
+// getCaptchaVerifier(): factory — call once per request; returns Noop when unset.
+// NO money, NO FAA. Deploy step: set CAPTCHA_PROVIDER + CAPTCHA_SECRET_KEY in Vercel.
+export {
+  getCaptchaVerifier,
+  NoopCaptchaVerifier,
+  TurnstileCaptchaVerifier,
+} from './booking/captcha.js';
+export type { CaptchaVerifier } from './booking/captcha.js';
 
 // Re-export the shared zod schema so apps/web can import from '@aeroops/api'
 // rather than reaching into '@aeroops/core' directly.

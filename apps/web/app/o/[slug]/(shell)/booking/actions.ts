@@ -31,6 +31,9 @@ import {
   listBookingRequests,
   updateBookingRequestStatus,
   convertBookingRequest,
+  getBookingRetention,
+  setBookingRetention,
+  purgeExpiredBookingRequests,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -230,6 +233,108 @@ export async function updateBookingRequestStatusAction(
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
     if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── getBookingRetentionAction (PB-LR.A) ──────────────────────────────────────
+
+export type GetBookingRetentionActionResult =
+  | { ok: true; retentionDays: number; includesConverted: boolean }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+/**
+ * getBookingRetentionAction — fetch the org's booking-request retention config.
+ *
+ * Requires org:manage_settings (enforced inside getBookingRetention).
+ * Returns defaults { 365, false } when no row exists.
+ */
+export async function getBookingRetentionAction(): Promise<GetBookingRetentionActionResult> {
+  const session = await auth();
+  try {
+    const result = await getBookingRetention(session);
+    return { ok: true, retentionDays: result.retentionDays, includesConverted: result.includesConverted };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── setBookingRetentionAction (PB-LR.A) ──────────────────────────────────────
+
+export type SetBookingRetentionActionResult =
+  | { ok: true; retentionDays: number; includesConverted: boolean }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * setBookingRetentionAction — upsert booking-request retention config.
+ *
+ * Requires org:manage_settings (enforced inside setBookingRetention).
+ * Validates { retentionDays: 0–3650, includesConverted: boolean }.
+ * Revalidates the booking page path on success.
+ *
+ * @param input - { retentionDays, includesConverted }
+ * @param slug  - Org slug for revalidatePath.
+ */
+export async function setBookingRetentionAction(
+  input: { retentionDays: number; includesConverted: boolean },
+  slug: string,
+): Promise<SetBookingRetentionActionResult> {
+  const session = await auth();
+  try {
+    const result = await setBookingRetention(session, input);
+    revalidatePath(`/o/${slug}/booking`);
+    return { ok: true, retentionDays: result.retentionDays, includesConverted: result.includesConverted };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── purgeBookingRequestsAction (PB-LR.A) ─────────────────────────────────────
+
+export type PurgeBookingRequestsActionResult =
+  | { ok: true; dryRun: boolean; eligibleCount: number; deletedCount: number; retentionDisabled: boolean }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+/**
+ * purgeBookingRequestsAction — count (dry-run) or hard-delete expired booking requests.
+ *
+ * Requires org:manage_settings (enforced inside purgeExpiredBookingRequests).
+ * dryRun defaults to true — the caller MUST explicitly pass dryRun:false to delete.
+ * Revalidates the booking page path only on a successful APPLY (dryRun:false).
+ *
+ * @param input - { dryRun?: boolean }. Defaults to { dryRun: true }.
+ * @param slug  - Org slug for revalidatePath (apply-only).
+ */
+export async function purgeBookingRequestsAction(
+  input: { dryRun?: boolean },
+  slug: string,
+): Promise<PurgeBookingRequestsActionResult> {
+  const session = await auth();
+  try {
+    const result = await purgeExpiredBookingRequests(session, input);
+    // Revalidate only on an actual apply (not a dry-run count).
+    if (!result.dryRun) {
+      revalidatePath(`/o/${slug}/booking`);
+    }
+    return {
+      ok: true,
+      dryRun: result.dryRun,
+      eligibleCount: result.eligibleCount,
+      deletedCount: result.deletedCount,
+      retentionDisabled: result.retentionDisabled,
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
     return { error: 'server' };
   }
 }

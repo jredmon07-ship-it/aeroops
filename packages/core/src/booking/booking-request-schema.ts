@@ -83,6 +83,17 @@ export const bookingRequestSchema = z
     // for non-empty presence and returns fake success without any DB access.
     // Typed as optional string so TypeScript callers can omit it.
     website: z.string().optional(),
+
+    // CAPTCHA response token (Slice PB-LR.B).
+    // Optional and additive — existing callers that omit it remain valid.
+    // When CAPTCHA is configured (getCaptchaVerifier() returns a non-Noop
+    // verifier), the orchestrator calls verify(captchaToken) after the honeypot
+    // check but before org-resolve + tx. A missing/false token → silent-drop
+    // { ok:true } (anti-enumeration). When CAPTCHA is unconfigured, the
+    // NoopCaptchaVerifier returns true unconditionally and the token is ignored —
+    // the path is byte-identical to the pre-PB-LR.B state.
+    // Max 4096 chars — matches the maximum Turnstile / reCAPTCHA token length.
+    captchaToken: z.string().max(4096).optional(),
   })
   .refine(
     (data) => {

@@ -22,6 +22,25 @@
  *     Real users never see or fill it. The orchestrator silently returns fake success
  *     when it is non-empty.
  *
+ * CAPTCHA (PB-LR.B):
+ *   - When NEXT_PUBLIC_CAPTCHA_SITE_KEY is set (deploy step), a CAPTCHA widget
+ *     container is rendered before the submit button. The widget renders via a
+ *     script tag injected into the page (see the CaptchaWidget component below).
+ *   - On submit, the widget's response token is read from the hidden
+ *     `data-captcha-token` attribute of the container and included in the
+ *     POST body as `captchaToken`.
+ *   - When NEXT_PUBLIC_CAPTCHA_SITE_KEY is absent (the default for dev/demo),
+ *     the form renders exactly as before PB-LR.B — no widget, no token, no change
+ *     in behavior (the server-side Noop verifier always returns true).
+ *
+ * PROVIDER SCRIPT NOTE (deploy step):
+ *   To activate Cloudflare Turnstile, add the Turnstile script to the page's
+ *   <head> (e.g. in apps/web/app/book/[slug]/layout.tsx or via next/script):
+ *     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+ *   Then set NEXT_PUBLIC_CAPTCHA_SITE_KEY=<your-site-key> in Vercel env vars.
+ *   The CaptchaWidget component below uses the global `window.turnstile` API
+ *   that the script provides.
+ *
  * A11Y:
  *   - Every input has an associated <Label>.
  *   - Required fields have aria-required="true" and a visual asterisk.
@@ -46,6 +65,44 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { buildIsoDateTime } from '@/lib/book-request-utils';
+
+// ─── CAPTCHA widget (PB-LR.B) ─────────────────────────────────────────────────
+
+/**
+ * CAPTCHA_SITE_KEY — read from the public env var at module load time.
+ * Undefined when the env var is absent (the default for dev/demo).
+ *
+ * This is a NEXT_PUBLIC_ var so it is bundled into the client — that is by design
+ * for a public CAPTCHA site key (which is intentionally public). The secret key
+ * lives only on the server (CAPTCHA_SECRET_KEY in packages/api/src/booking/captcha.ts).
+ */
+const CAPTCHA_SITE_KEY = process.env['NEXT_PUBLIC_CAPTCHA_SITE_KEY'];
+
+/**
+ * CaptchaWidget — renders a Cloudflare Turnstile widget container.
+ *
+ * Rendered ONLY when NEXT_PUBLIC_CAPTCHA_SITE_KEY is set. When absent (default),
+ * this component is never mounted and the form is unchanged from pre-PB-LR.B.
+ *
+ * The widget populates the `cf-turnstile-response` hidden input automatically.
+ * We read that value on form submit and include it as `captchaToken` in the body.
+ *
+ * To activate: add the Turnstile script to the page (see file-level comment) and
+ * set NEXT_PUBLIC_CAPTCHA_SITE_KEY in Vercel env vars. No code change required.
+ *
+ * The `cf-turnstile` div is the standard Turnstile widget mount point; the
+ * `data-sitekey` attribute is how the Turnstile script knows which site key to use.
+ */
+function CaptchaWidget({ disabled }: { disabled: boolean }) {
+  return (
+    <div
+      className="cf-turnstile"
+      data-sitekey={CAPTCHA_SITE_KEY}
+      data-callback="onTurnstileSuccess"
+      aria-disabled={disabled}
+    />
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -126,6 +183,15 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
 
     setStatus({ kind: 'submitting' });
 
+    // ── CAPTCHA token (PB-LR.B) ──────────────────────────────────────────────
+    // When NEXT_PUBLIC_CAPTCHA_SITE_KEY is set, the Turnstile widget auto-populates
+    // a hidden input named `cf-turnstile-response`. Read it from the form data.
+    // When absent (unconfigured default), captchaToken is undefined and the server-
+    // side Noop verifier always returns true — no behavior change.
+    const captchaToken = CAPTCHA_SITE_KEY
+      ? ((formData.get('cf-turnstile-response') as string | null) ?? undefined)
+      : undefined;
+
     const body: Record<string, string | undefined> = {
       name,
       email,
@@ -136,6 +202,8 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       ...(message ? { message } : {}),
       // Honeypot included in the body — the orchestrator checks it.
       website,
+      // CAPTCHA token (PB-LR.B) — only present when site key is configured.
+      ...(captchaToken ? { captchaToken } : {}),
     };
 
     try {
@@ -404,6 +472,11 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
           defaultValue=""
         />
       </div>
+
+      {/* CAPTCHA widget (PB-LR.B) — rendered only when site key is configured.
+          When NEXT_PUBLIC_CAPTCHA_SITE_KEY is absent (dev/demo default), this is
+          a no-op and the form renders exactly as before PB-LR.B. */}
+      {CAPTCHA_SITE_KEY && <CaptchaWidget disabled={isSubmitting} />}
 
       {/* Submit */}
       <Button

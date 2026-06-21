@@ -33,6 +33,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { listBookingRequestsAction } from './actions';
 import { BookingInbox } from './_components/booking-inbox';
+import { RetentionSettingsCard } from './_components/retention-settings';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -86,9 +87,15 @@ interface BookingContentProps {
   slug: string;
   /** PB2.2 cosmetic gate — true when session has BOTH booking:triage + schedule:create_reservation. */
   canConvert: boolean;
+  /**
+   * PB-LR.A cosmetic gate — true when session has org:manage_settings.
+   * The API enforces the cap; this prop controls whether the retention card renders.
+   * UI only — gate enforced by requireCapability inside the server actions.
+   */
+  canManageSettings: boolean;
 }
 
-async function BookingContent({ slug, canConvert }: BookingContentProps) {
+async function BookingContent({ slug, canConvert, canManageSettings }: BookingContentProps) {
   const result = await listBookingRequestsAction({ status: 'new' });
 
   if ('error' in result) {
@@ -106,11 +113,19 @@ async function BookingContent({ slug, canConvert }: BookingContentProps) {
   }
 
   return (
-    <BookingInbox
-      initial={result}
-      slug={slug}
-      canConvert={canConvert}
-    />
+    <div className="space-y-4">
+      {/* ── Retention settings card (org:manage_settings only) ───────────── */}
+      {canManageSettings && (
+        <RetentionSettingsCard canManageSettings={canManageSettings} slug={slug} />
+      )}
+
+      {/* ── Inbox ────────────────────────────────────────────────────────── */}
+      <BookingInbox
+        initial={result}
+        slug={slug}
+        canConvert={canConvert}
+      />
+    </div>
   );
 }
 
@@ -146,6 +161,10 @@ export default async function BookingPage({ params }: BookingPageProps) {
     hasCapability(session, 'booking:triage') &&
     hasCapability(session, 'schedule:create_reservation');
 
+  // PB-LR.A cosmetic gate — Retention card visible only when org:manage_settings is held.
+  // UI only — gate enforced by requireCapability inside the server actions.
+  const canManageSettings = hasCapability(session, 'org:manage_settings');
+
   return (
     <div className="space-y-4">
       {/* ── Heading ────────────────────────────────────────────────────────── */}
@@ -159,7 +178,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
       {/* ── Inbox (Suspense so skeleton fires while the data loads) ──────── */}
       {hasAccess && (
         <Suspense fallback={<BookingInboxSkeleton />}>
-          <BookingContent slug={slug} canConvert={canConvert} />
+          <BookingContent slug={slug} canConvert={canConvert} canManageSettings={canManageSettings} />
         </Suspense>
       )}
     </div>
