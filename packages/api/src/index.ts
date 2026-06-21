@@ -917,3 +917,45 @@ export type {
   ConvertBookingRequestInput,
   ConvertBookingRequestResult,
 } from './booking/convert-booking-request.js';
+
+// ─── Slice PB-LR.A — Booking-request retention config + purge (ADR-0013) ──────
+// getBookingRetention / setBookingRetention — per-org retention config
+//   (stored on dispatch_config). Absent row → defaults {365 days, false}.
+//   retentionDays = 0 means "keep forever" (NOT delete-all).
+//   setBookingRetention: upsert + ONE audit row 'booking_retention.config_changed'
+//     (prev/new — no PII). zod 0–3650.
+// purgeExpiredBookingRequests — session form; org_id from session only.
+//   dryRun=true (default): count eligible rows only, no delete, no audit.
+//   dryRun=false: DELETE + ONE audit row 'booking_request.purged'
+//     { deletedCount, retentionDays, includesConverted, cutoffIso } — COUNTS ONLY.
+//   retentionDays=0 → no-op {retentionDisabled:true} (NEVER delete-all).
+// purgeExpiredBookingRequestsForOrg — internal/script form; wraps withOrgContext
+//   directly (org_id from caller); no session/requireCapability. Used by the
+//   devops CLI script one org at a time.
+// org:manage_settings → owner/manager only (both setter forms).
+// NEVER logs requester PII (name/email/phone). Hard-DELETE. NO money, NO FAA.
+// [VERIFY-PB1-COMP-1]: hard-delete vs anonymize; 365-day default; status-change
+//   audit-row retention post-purge — route to compliance-officer.
+// *WithDb forms are for test code only (inject a pglite client).
+export {
+  getBookingRetention,
+  getBookingRetentionWithDb,
+  setBookingRetention,
+  setBookingRetentionWithDb,
+} from './booking/set-booking-retention.js';
+export type {
+  BookingRetentionView,
+  GetBookingRetentionResult,
+  SetBookingRetentionInput,
+  SetBookingRetentionResult,
+} from './booking/set-booking-retention.js';
+
+export {
+  purgeExpiredBookingRequests,
+  purgeExpiredBookingRequestsWithDb,
+  purgeExpiredBookingRequestsForOrg,
+} from './booking/purge-booking-requests.js';
+export type {
+  PurgeExpiredBookingRequestsInput,
+  PurgeExpiredBookingRequestsResult,
+} from './booking/purge-booking-requests.js';

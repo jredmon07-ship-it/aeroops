@@ -27,7 +27,9 @@
  *
  * UNIQUE (org_id): one config row per org (0..1). Absent row → defaults apply:
  *   { eligibilityMode: 'block', balanceCheckEnabled: false,
- *     twilightConstraintEnabled: false, twilightMode: 'warn', twilightExemptTag: null }
+ *     twilightConstraintEnabled: false, twilightMode: 'warn', twilightExemptTag: null,
+ *     availabilityConstraintEnabled: false, availabilityMode: 'warn',
+ *     bookingRequestRetentionDays: 365, bookingRequestRetentionIncludesConverted: false }
  *
  * ── UNIQUEs ───────────────────────────────────────────────────────────────────
  * dispatch_config_org_id_unique UNIQUE (org_id)
@@ -44,6 +46,9 @@
  *   twilight_mode IN ('block', 'warn')
  * dispatch_config_twilight_exempt_tag_nonempty_check (migration 0010):
  *   twilight_exempt_tag IS NULL OR char_length(btrim(twilight_exempt_tag)) > 0
+ * dispatch_config_booking_retention_days_check (migration 0017):
+ *   booking_request_retention_days >= 0 AND booking_request_retention_days <= 3650
+ *   (0 = retention disabled / keep-forever; 3650 ≈ 10 years; NOT delete-all)
  *
  * Availability scheduling constraint (Slice AV1.1, migration 0014):
  *   availability_constraint_enabled: operator opt-in (default false → gate inert).
@@ -59,6 +64,7 @@ import {
   timestamp,
   text,
   boolean,
+  integer,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { org } from './org.js';
@@ -101,6 +107,17 @@ export const dispatchConfig = pgTable(
 
     // 'warn' (default) | 'block'. CHECK (availability_mode IN ('block','warn')) in migration 0014.
     availabilityMode: text('availability_mode').notNull().default('warn'),
+
+    // Booking-request PII retention config (Slice PB-LR.A, migration 0017).
+    // bookingRequestRetentionDays: 0 = keep forever (retention disabled — NOT delete-all).
+    //   Range: 0–3650 (CHECK in migration 0017). Default 365.
+    //   Absent row → application-layer default {365, false} (same as DB DEFAULT).
+    bookingRequestRetentionDays: integer('booking_request_retention_days').notNull().default(365),
+
+    // When false (default): purge excludes 'converted' rows (they represent confirmed
+    //   customer relationships; typically retained longer than speculative leads).
+    // When true: the retention window also applies to 'converted' rows.
+    bookingRequestRetentionIncludesConverted: boolean('booking_request_retention_includes_converted').notNull().default(false),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

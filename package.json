@@ -17,6 +17,8 @@
     "db:generate": "pnpm --filter @aeroops/db generate",
     "db:migrate": "pnpm --filter @aeroops/db migrate",
     "db:migrate:apply": "pnpm --filter @aeroops/db migrate:apply",
-    "db:seed:demo": "pnpm --filter @aeroops/api seed:demo"
+    "db:seed:demo": "pnpm --filter @aeroops/api seed:demo",
+    "db:purge:booking": "pnpm --filter @aeroops/db purge:booking",
+    "db:purge:booking:apply": "pnpm --filter @aeroops/db purge:booking:apply"
   }
 }

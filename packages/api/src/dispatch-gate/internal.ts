@@ -56,6 +56,8 @@ export async function loadDispatchConfig(
       twilightExemptTag:         dispatchConfig.twilightExemptTag,
       availabilityConstraintEnabled: dispatchConfig.availabilityConstraintEnabled,
       availabilityMode:              dispatchConfig.availabilityMode,
+      bookingRequestRetentionDays:              dispatchConfig.bookingRequestRetentionDays,
+      bookingRequestRetentionIncludesConverted: dispatchConfig.bookingRequestRetentionIncludesConverted,
     })
     .from(dispatchConfig)
     .where(eq(dispatchConfig.orgId, orgId))
@@ -63,7 +65,7 @@ export async function loadDispatchConfig(
 
   const row = rows[0];
   if (!row) {
-    // Absent row → canonical defaults (ADR-0009 + Slice 4a + AV1.2).
+    // Absent row → canonical defaults (ADR-0009 + Slice 4a + AV1.2 + PB-LR.A).
     return {
       eligibilityMode:           'block',
       balanceCheckEnabled:       false,
@@ -72,6 +74,8 @@ export async function loadDispatchConfig(
       twilightExemptTag:         null,
       availabilityConstraintEnabled: false,
       availabilityMode:              'warn',
+      bookingRequestRetentionDays:              365,
+      bookingRequestRetentionIncludesConverted: false,
     };
   }
 
@@ -83,6 +87,8 @@ export async function loadDispatchConfig(
     twilightExemptTag:         row.twilightExemptTag,
     availabilityConstraintEnabled: row.availabilityConstraintEnabled,
     availabilityMode:              row.availabilityMode as 'block' | 'warn',
+    bookingRequestRetentionDays:              row.bookingRequestRetentionDays,
+    bookingRequestRetentionIncludesConverted: row.bookingRequestRetentionIncludesConverted,
   };
 }
 

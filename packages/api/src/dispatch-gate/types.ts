@@ -79,6 +79,20 @@ export interface DispatchConfigView {
   availabilityConstraintEnabled: boolean;
   /** 'block' → out-of-hours booking refused; 'warn' → advisory only. Default 'warn'. */
   availabilityMode: 'block' | 'warn';
+  /**
+   * Number of days after creation to retain booking_request rows for the purge.
+   * 0 = retention disabled (keep forever — NOT delete-all). Range: 0–3650.
+   * Default 365 (absent row or newly-created org without explicit config).
+   * [VERIFY-PB1-COMP-1]: PII retention posture — compliance confirms hard-delete
+   * vs anonymize and whether 365 days is acceptable.
+   */
+  bookingRequestRetentionDays: number;
+  /**
+   * When false (default): the purge excludes 'converted' booking_request rows
+   * (they represent confirmed leads / reservations). When true: the retention
+   * window also applies to 'converted' rows. The linked reservation is NOT deleted.
+   */
+  bookingRequestRetentionIncludesConverted: boolean;
 }
 
 // ─── getResourceRequiredTags result ───────────────────────────────────────────

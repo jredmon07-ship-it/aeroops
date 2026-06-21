@@ -138,6 +138,7 @@ const MIGRATIONS_0002_0008 = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0014_availability.sql'),     'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0015_booking_request.sql'),  'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0016_booking_request_convert.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0017_booking_retention.sql'),        'utf-8'),
 ];
 
 // ── Test state ─────────────────────────────────────────────────────────────────

@@ -61,6 +61,7 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../migrations/0014_availability.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0015_booking_request.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0016_booking_request_convert.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0017_booking_retention.sql'),        'utf-8'),
 ];
 
 // ── Test environment ──────────────────────────────────────────────────────────

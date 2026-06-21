@@ -48,6 +48,9 @@ const updateConfigInputSchema = z.object({
   // Slice AV1.2 — resource operating-hours availability constraint flags.
   availabilityConstraintEnabled: z.boolean().optional(),
   availabilityMode:              z.enum(['block', 'warn']).optional(),
+  // Slice PB-LR.A — booking-request retention config (0=keep-forever, NOT delete-all).
+  bookingRequestRetentionDays:              z.number().int().min(0).max(3650).optional(),
+  bookingRequestRetentionIncludesConverted: z.boolean().optional(),
 });
 
 export interface UpdateDispatchConfigInput {
@@ -58,6 +61,8 @@ export interface UpdateDispatchConfigInput {
   twilightExemptTag?:         string | null;
   availabilityConstraintEnabled?: boolean;
   availabilityMode?:              'block' | 'warn';
+  bookingRequestRetentionDays?:              number;
+  bookingRequestRetentionIncludesConverted?: boolean;
 }
 
 // ─── getDispatchConfig ────────────────────────────────────────────────────────
@@ -115,13 +120,15 @@ async function _updateDispatchConfigImpl(
     const before: DispatchConfigView = await loadDispatchConfig(tx, sess.orgId);
 
     // 4. Compute the merged (after) values — unprovided fields preserved.
-    const afterMode      = input.eligibilityMode           !== undefined ? input.eligibilityMode           : before.eligibilityMode;
-    const afterBalance   = input.balanceCheckEnabled        !== undefined ? input.balanceCheckEnabled        : before.balanceCheckEnabled;
-    const afterTwEnabled = input.twilightConstraintEnabled  !== undefined ? input.twilightConstraintEnabled  : before.twilightConstraintEnabled;
-    const afterTwMode    = input.twilightMode               !== undefined ? input.twilightMode               : before.twilightMode;
-    const afterTwExempt  = input.twilightExemptTag          !== undefined ? input.twilightExemptTag          : before.twilightExemptTag;
-    const afterAvEnabled = input.availabilityConstraintEnabled !== undefined ? input.availabilityConstraintEnabled : before.availabilityConstraintEnabled;
-    const afterAvMode    = input.availabilityMode              !== undefined ? input.availabilityMode              : before.availabilityMode;
+    const afterMode        = input.eligibilityMode           !== undefined ? input.eligibilityMode           : before.eligibilityMode;
+    const afterBalance     = input.balanceCheckEnabled        !== undefined ? input.balanceCheckEnabled        : before.balanceCheckEnabled;
+    const afterTwEnabled   = input.twilightConstraintEnabled  !== undefined ? input.twilightConstraintEnabled  : before.twilightConstraintEnabled;
+    const afterTwMode      = input.twilightMode               !== undefined ? input.twilightMode               : before.twilightMode;
+    const afterTwExempt    = input.twilightExemptTag          !== undefined ? input.twilightExemptTag          : before.twilightExemptTag;
+    const afterAvEnabled   = input.availabilityConstraintEnabled !== undefined ? input.availabilityConstraintEnabled : before.availabilityConstraintEnabled;
+    const afterAvMode      = input.availabilityMode              !== undefined ? input.availabilityMode              : before.availabilityMode;
+    const afterRetDays     = input.bookingRequestRetentionDays              !== undefined ? input.bookingRequestRetentionDays              : before.bookingRequestRetentionDays;
+    const afterRetConverted = input.bookingRequestRetentionIncludesConverted !== undefined ? input.bookingRequestRetentionIncludesConverted : before.bookingRequestRetentionIncludesConverted;
 
     const after: DispatchConfigView = {
       eligibilityMode:           afterMode,
@@ -131,6 +138,8 @@ async function _updateDispatchConfigImpl(
       twilightExemptTag:         afterTwExempt,
       availabilityConstraintEnabled: afterAvEnabled,
       availabilityMode:              afterAvMode,
+      bookingRequestRetentionDays:              afterRetDays,
+      bookingRequestRetentionIncludesConverted: afterRetConverted,
     };
 
     // 5. No-op short-circuit: if nothing actually changes, write NOTHING — no
@@ -142,7 +151,9 @@ async function _updateDispatchConfigImpl(
       before.twilightMode !== after.twilightMode ||
       before.twilightExemptTag !== after.twilightExemptTag ||
       before.availabilityConstraintEnabled !== after.availabilityConstraintEnabled ||
-      before.availabilityMode !== after.availabilityMode;
+      before.availabilityMode !== after.availabilityMode ||
+      before.bookingRequestRetentionDays !== after.bookingRequestRetentionDays ||
+      before.bookingRequestRetentionIncludesConverted !== after.bookingRequestRetentionIncludesConverted;
     if (!changed) {
       return { ok: true, config: after } as const;
     }
@@ -151,7 +162,7 @@ async function _updateDispatchConfigImpl(
     //    The DO UPDATE SET must include ALL columns because the excluded row may
     //    have the opposite partial-preserve. We set to the computed after-values.
     await tx.execute(sql`
-      INSERT INTO dispatch_config (org_id, eligibility_mode, balance_check_enabled, twilight_constraint_enabled, twilight_mode, twilight_exempt_tag, availability_constraint_enabled, availability_mode, created_at, updated_at)
+      INSERT INTO dispatch_config (org_id, eligibility_mode, balance_check_enabled, twilight_constraint_enabled, twilight_mode, twilight_exempt_tag, availability_constraint_enabled, availability_mode, booking_request_retention_days, booking_request_retention_includes_converted, created_at, updated_at)
       VALUES (
         ${sess.orgId}::uuid,
         ${afterMode},
@@ -161,18 +172,22 @@ async function _updateDispatchConfigImpl(
         ${afterTwExempt},
         ${afterAvEnabled},
         ${afterAvMode},
+        ${afterRetDays},
+        ${afterRetConverted},
         NOW(),
         NOW()
       )
       ON CONFLICT (org_id) DO UPDATE SET
-        eligibility_mode                = EXCLUDED.eligibility_mode,
-        balance_check_enabled           = EXCLUDED.balance_check_enabled,
-        twilight_constraint_enabled     = EXCLUDED.twilight_constraint_enabled,
-        twilight_mode                   = EXCLUDED.twilight_mode,
-        twilight_exempt_tag             = EXCLUDED.twilight_exempt_tag,
-        availability_constraint_enabled = EXCLUDED.availability_constraint_enabled,
-        availability_mode               = EXCLUDED.availability_mode,
-        updated_at                      = NOW()
+        eligibility_mode                             = EXCLUDED.eligibility_mode,
+        balance_check_enabled                        = EXCLUDED.balance_check_enabled,
+        twilight_constraint_enabled                  = EXCLUDED.twilight_constraint_enabled,
+        twilight_mode                                = EXCLUDED.twilight_mode,
+        twilight_exempt_tag                          = EXCLUDED.twilight_exempt_tag,
+        availability_constraint_enabled              = EXCLUDED.availability_constraint_enabled,
+        availability_mode                            = EXCLUDED.availability_mode,
+        booking_request_retention_days               = EXCLUDED.booking_request_retention_days,
+        booking_request_retention_includes_converted = EXCLUDED.booking_request_retention_includes_converted,
+        updated_at                                   = NOW()
     `);
 
     // 7. ONE audit row — before/after snapshot. NO dollar value in metadata
@@ -192,6 +207,8 @@ async function _updateDispatchConfigImpl(
           twilightExemptTag:         before.twilightExemptTag,
           availabilityConstraintEnabled: before.availabilityConstraintEnabled,
           availabilityMode:              before.availabilityMode,
+          bookingRequestRetentionDays:              before.bookingRequestRetentionDays,
+          bookingRequestRetentionIncludesConverted: before.bookingRequestRetentionIncludesConverted,
         },
         after: {
           eligibilityMode:           after.eligibilityMode,
@@ -201,6 +218,8 @@ async function _updateDispatchConfigImpl(
           twilightExemptTag:         after.twilightExemptTag,
           availabilityConstraintEnabled: after.availabilityConstraintEnabled,
           availabilityMode:              after.availabilityMode,
+          bookingRequestRetentionDays:              after.bookingRequestRetentionDays,
+          bookingRequestRetentionIncludesConverted: after.bookingRequestRetentionIncludesConverted,
         },
       },
     });
