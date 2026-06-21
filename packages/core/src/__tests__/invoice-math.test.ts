@@ -167,6 +167,14 @@ describe('applyRate — error paths', () => {
     expect(() => applyRate(-Infinity, 100)).toThrow(RangeError);
     expect(() => applyRate(1, -Infinity)).toThrow(RangeError);
   });
+
+  it('fractional ratePerHourCents ⇒ throws RangeError (caller bug guard)', () => {
+    // Rates MUST be integer cents. A fractional rate is a caller bug and must
+    // NOT be silently rounded in audit-grade billing records.
+    expect(() => applyRate(1.0, 12.5)).toThrow(RangeError);
+    expect(() => applyRate(1.0, 100.1)).toThrow(RangeError);
+    expect(() => applyRate(0,   0.5)).toThrow(RangeError);
+  });
 });
 
 // ─── computeLineTotal — alias equivalence ─────────────────────────────────────

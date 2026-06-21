@@ -113,9 +113,13 @@ function roundCents(x: number): number {
  *                         Matches `numeric(10,1)` shape from `flight_time_hours`.
  *                         Off-grid values are accepted (e.g. for manual overrides).
  * @param ratePerHourCents rate per hour in INTEGER CENTS (e.g. 12500 = $125.00).
- *                         Non-negative integer.
+ *                         Non-negative integer. A fractional value is a caller
+ *                         bug and throws RangeError — rates are always stored as
+ *                         integer cents; fractional values must not be silently
+ *                         rounded in audit-grade billing records.
  * @returns integer cents, non-negative. Never fractional. Never negative.
- * @throws RangeError if either argument is negative, NaN, or non-finite.
+ * @throws RangeError if either argument is negative, NaN, or non-finite, or
+ *                    if ratePerHourCents is not an integer.
  */
 export function applyRate(hours: number, ratePerHourCents: number): number {
   if (
@@ -128,12 +132,18 @@ export function applyRate(hours: number, ratePerHourCents: number): number {
       `applyRate: hours (${hours}) and ratePerHourCents (${ratePerHourCents}) must be finite and non-negative`,
     );
   }
-  // Guard non-integer rate (soft: clamp to nearest integer so callers that
-  // store rates from Postgres numeric columns never get a silent fractional).
-  // Rates are always stored as integer cents, but being defensive here.
-  const rateCents = roundCents(ratePerHourCents);
+  // Rates MUST be integer cents — a fractional ratePerHourCents is a caller bug
+  // (rates are always stored as integer cents in the DB). Throw rather than silently
+  // rounding, so callers discover the problem at the boundary instead of getting a
+  // subtly wrong result in audit-grade billing records.
+  if (!Number.isInteger(ratePerHourCents)) {
+    throw new RangeError(
+      `applyRate: ratePerHourCents must be an integer, got ${ratePerHourCents}`,
+    );
+  }
   // Compute product; round-half-up once to integer cents.
-  return roundCents(hours * rateCents);
+  // hours is a legitimate fractional quantity (numeric(10,1) — e.g. 1.3 hours).
+  return roundCents(hours * ratePerHourCents);
 }
 
 /**

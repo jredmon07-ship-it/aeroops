@@ -152,6 +152,19 @@ async function _voidInvoiceImpl(
   const { id } = parsed.data;
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
+    // Read the current status within the transaction BEFORE the guarded UPDATE,
+    // so the audit row can record the true prior status ('draft' or 'finalized').
+    // This is race-safe: the subsequent guarded UPDATE still enforces the
+    // WHERE status IN ('draft','finalized') predicate as the authoritative gate;
+    // if a concurrent void lands between these two statements the UPDATE produces
+    // 0 rows and we fall through to the probe below (unchanged behaviour).
+    const priorRow = await tx
+      .select({ status: invoice.status })
+      .from(invoice)
+      .where(eq(invoice.id, id))
+      .limit(1);
+    const priorStatus = priorRow[0]?.status;
+
     // Guarded UPDATE WHERE status IN ('draft','finalized') — void is terminal.
     const updated = await tx
       .update(invoice)
@@ -192,7 +205,7 @@ async function _voidInvoiceImpl(
       entityId:    id,
       metadata: {
         invoiceId:      id,
-        previousStatus: 'finalized_or_draft', // we know it was draft or finalized
+        previousStatus: priorStatus, // actual prior status: 'draft' or 'finalized'
         memberUserId:   updated[0].memberUserId,
       },
     });

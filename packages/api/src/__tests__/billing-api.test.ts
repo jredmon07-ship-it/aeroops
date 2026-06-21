@@ -1028,7 +1028,7 @@ describe('VOID: voidInvoice', () => {
     finalizedIdForVoid = inv2.invoice.id;
   }, 60_000);
 
-  it('void a draft invoice: status=void + audited', async () => {
+  it('void a draft invoice: status=void + audited with previousStatus=draft', async () => {
     const sess = makeSession(env.orgAId, env.userAId, 'owner');
     const result = await voidInvoiceWithDb(env.db, sess, { id: draftIdForVoid });
     expect(result.ok).toBe(true);
@@ -1045,9 +1045,12 @@ describe('VOID: voidInvoice', () => {
         ).execute(),
     );
     expect(audits).toHaveLength(1);
+    // Audit row must record the ACTUAL prior status, not the literal placeholder.
+    const meta = audits[0]!.metadata as Record<string, unknown>;
+    expect(meta['previousStatus']).toBe('draft');
   });
 
-  it('void a finalized invoice: status=void + audited', async () => {
+  it('void a finalized invoice: status=void + audited with previousStatus=finalized', async () => {
     const sess = makeSession(env.orgAId, env.userAId, 'owner');
     const result = await voidInvoiceWithDb(env.db, sess, { id: finalizedIdForVoid });
     expect(result.ok).toBe(true);
@@ -1064,6 +1067,9 @@ describe('VOID: voidInvoice', () => {
         ).execute(),
     );
     expect(audits).toHaveLength(1);
+    // Audit row must record the ACTUAL prior status, not the literal placeholder.
+    const meta = audits[0]!.metadata as Record<string, unknown>;
+    expect(meta['previousStatus']).toBe('finalized');
   });
 
   it('void→void → already_void', async () => {
