@@ -976,3 +976,101 @@ export type {
   PurgeExpiredBookingRequestsInput,
   PurgeExpiredBookingRequestsResult,
 } from './booking/purge-booking-requests.js';
+
+// ─── Slice B1 — Billing API (records + invoice math, NO Stripe, NO charge) ─────
+// Effective meter: reads the CLOSED dispatch ticket's original meters + applies
+//   the latest dispatch_ticket_correction (if any). READ-ONLY; the FROZEN
+//   close path is untouched. Consumed by generateInvoiceFromDispatch.
+// Correction command: appends one row to dispatch_ticket_correction (INSERT-only).
+//   Requires dispatch:create (same authority as closeDispatch). ONE audit row.
+// Rate CRUD: createRateSchedule/listRateSchedules/deleteRateSchedule.
+//   billing:manage (owner/manager) for writes; billing:access for reads.
+//   amount_cents = INTEGER CENTS (non-negative). Audited create/delete.
+//   deleteRateSchedule: rejects if referenced by any invoice_line_item.
+// generateInvoiceFromDispatch: DRAFT invoice only. Reads effective meter +
+//   stored flight_time_hours (NOT recomputed). Computes integer-cent line total
+//   via @aeroops/core applyRate/computeInvoiceTotals. ONE audit row.
+//   NO Stripe, NO payment, NO charge, NO finalization here.
+// Invoice reads: listInvoices (status/member filters) + getInvoice (with line items).
+//   billing:access required. RLS-scoped. NO money mutations.
+// finalizeInvoice: draft→finalized (sets issued_at; immutable after). billing:manage.
+// voidInvoice: draft|finalized→void (terminal). billing:manage. Audited.
+// MONEY BOUNDARY: all amounts are INTEGER CENTS (never floats). NO Stripe/card/
+//   payment/charge anywhere in this slice. The dispatch gate + close path are
+//   READ-ONLY here (FROZEN; ADR-0007). Migration 0019 staged + human-gated.
+// [VERIFY-B-MONEY-1]: flight_time_hours is the billable basis (ADR-0007).
+// [VERIFY-B0-COMP-1]: meter correction audit-chain before Phase-2 billing.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  getEffectiveMeter,
+} from './billing/effective-meter.js';
+export type {
+  GetEffectiveMeterResult,
+  EffectiveMeterOk,
+} from './billing/effective-meter.js';
+
+export {
+  correctDispatchMeter,
+  correctDispatchMeterWithDb,
+} from './billing/correct-dispatch-meter.js';
+export type {
+  CorrectDispatchMeterInput,
+  CorrectDispatchMeterResult,
+  DispatchCorrectionView,
+} from './billing/correct-dispatch-meter.js';
+
+export {
+  createRateSchedule,
+  createRateScheduleWithDb,
+  listRateSchedules,
+  listRateSchedulesWithDb,
+  deleteRateSchedule,
+  deleteRateScheduleWithDb,
+} from './billing/rate-commands.js';
+export type {
+  RateKind,
+  RateScheduleView,
+  CreateRateScheduleInput,
+  CreateRateScheduleResult,
+  ListRateSchedulesOptions,
+  ListRateSchedulesResult,
+  DeleteRateScheduleInput,
+  DeleteRateScheduleResult,
+} from './billing/rate-commands.js';
+
+export {
+  generateInvoiceFromDispatch,
+  generateInvoiceFromDispatchWithDb,
+} from './billing/generate-invoice.js';
+export type {
+  GenerateInvoiceFromDispatchInput,
+  GenerateInvoiceFromDispatchResult,
+} from './billing/generate-invoice.js';
+
+export {
+  listInvoices,
+  listInvoicesWithDb,
+  getInvoice,
+  getInvoiceWithDb,
+} from './billing/list-invoices.js';
+export type {
+  InvoiceStatus,
+  InvoiceView,
+  InvoiceLineItemView,
+  ListInvoicesOptions,
+  ListInvoicesResult,
+  GetInvoiceInput,
+  GetInvoiceResult,
+} from './billing/list-invoices.js';
+
+export {
+  finalizeInvoice,
+  finalizeInvoiceWithDb,
+  voidInvoice,
+  voidInvoiceWithDb,
+} from './billing/invoice-status-commands.js';
+export type {
+  FinalizeInvoiceResult,
+  VoidInvoiceResult,
+} from './billing/invoice-status-commands.js';

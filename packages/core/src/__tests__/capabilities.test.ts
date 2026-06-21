@@ -140,9 +140,11 @@ describe('7. ROLE_CAPABILITIES exhaustiveness', () => {
 // ─── 8. capabilitiesForRole ──────────────────────────────────────────────────
 
 describe('8. capabilitiesForRole', () => {
-  it('owner returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
+  it('owner returns app + billing:access + billing:manage + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
     const caps = capabilitiesForRole('owner');
     expect(caps).toContain('app:access');
+    expect(caps).toContain('billing:access');
+    expect(caps).toContain('billing:manage');
     expect(caps).toContain('dispatch:access');
     expect(caps).toContain('dispatch:create');
     expect(caps).toContain('dispatch:manage_requirements');
@@ -163,12 +165,14 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('maintenance:work_order');
     expect(caps).toContain('portal:access');
     expect(caps).toContain('booking:triage');
-    expect(caps.length).toBe(21);
+    expect(caps.length).toBe(23);
   });
 
-  it('manager returns app + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
+  it('manager returns app + billing:access + billing:manage + dispatch:access + dispatch:create + dispatch:manage_requirements + fleet:access + fleet:manage + maintenance:* + org + people:access + people:manage + reporting:access + all three schedule capabilities + training:access + training:manage', () => {
     const caps = capabilitiesForRole('manager');
     expect(caps).toContain('app:access');
+    expect(caps).toContain('billing:access');
+    expect(caps).toContain('billing:manage');
     expect(caps).toContain('dispatch:access');
     expect(caps).toContain('dispatch:create');
     expect(caps).toContain('dispatch:manage_requirements');
@@ -189,7 +193,7 @@ describe('8. capabilitiesForRole', () => {
     expect(caps).toContain('training:manage');
     expect(caps).toContain('portal:access');
     expect(caps).toContain('booking:triage');
-    expect(caps.length).toBe(21);
+    expect(caps.length).toBe(23);
   });
 
   it('student returns app:access + portal:access (P1.1)', () => {
@@ -211,14 +215,16 @@ describe('8. capabilitiesForRole', () => {
     expect(caps.length).toBe(2);
   });
 
-  it('accountant returns app:access + reporting:access (2 caps)', () => {
+  it('accountant returns app:access + billing:access + reporting:access (3 caps)', () => {
     const caps = capabilitiesForRole('accountant');
     expect(caps).toContain('app:access');
+    expect(caps).toContain('billing:access');
     expect(caps).toContain('reporting:access');
+    expect(caps).not.toContain('billing:manage');
     expect(caps).not.toContain('org:manage_settings');
     expect(caps).not.toContain('dispatch:access');
     expect(caps).not.toContain('schedule:access');
-    expect(caps.length).toBe(2);
+    expect(caps.length).toBe(3);
   });
 
   it('unknown role returns empty array', () => {
@@ -295,8 +301,8 @@ describe('10. CAPABILITIES array', () => {
     expect(CAPABILITIES).toContain('reporting:access');
   });
 
-  it('has exactly 21 capabilities (+ booking:triage — PB1.2)', () => {
-    expect(CAPABILITIES.length).toBe(21);
+  it('has exactly 23 capabilities (+ billing:access + billing:manage — B1)', () => {
+    expect(CAPABILITIES.length).toBe(23);
   });
 
   it('contains the P1.1 portal:access capability', () => {
@@ -531,16 +537,18 @@ describe('13. SCHED-1 schedule:* capabilities', () => {
     }
   });
 
-  it('accountant has app:access + reporting:access (Slice 7 D3) and nothing else', () => {
+  it('accountant has app:access + billing:access + reporting:access (B1) and nothing else', () => {
     const caps = capabilitiesForRole('accountant');
     expect(caps).toContain('app:access');
+    expect(caps).toContain('billing:access');
     expect(caps).toContain('reporting:access');
-    expect(caps.length).toBe(2);
+    expect(caps.length).toBe(3);
     // Confirm no other schedule/dispatch/maintenance caps
     expect(can('accountant', 'schedule:access')).toBe(false);
     expect(can('accountant', 'dispatch:access')).toBe(false);
     expect(can('accountant', 'maintenance:access')).toBe(false);
     expect(can('accountant', 'org:manage_settings')).toBe(false);
+    expect(can('accountant', 'billing:manage')).toBe(false);
   });
 
   it('schedule:access grant set equals create_reservation grant set (cfi gets both)', () => {
@@ -991,5 +999,88 @@ describe('18. P1.1 portal:access', () => {
 
   it('mechanic does NOT have portal:access', () => {
     expect(can('mechanic', 'portal:access')).toBe(false);
+  });
+});
+
+// ─── 19. B1 billing:* capabilities — exact grants ──────────────────────────────
+//
+// Per Slice B1 (Phase-2 billing pre-build, 2026-06-20):
+//   billing:access → owner, manager, accountant (read billing records)
+//   billing:manage → owner, manager ONLY (write billing records — NOT accountant)
+//   dispatcher/cfi/mechanic/renter/student do NOT get billing caps.
+//   accountant: billing:access YES (read invoices/rates); billing:manage NO (audit role).
+
+describe('19. B1 billing:* capabilities', () => {
+  const ACCESS_GRANTED: MembershipRole[] = ['owner', 'manager', 'accountant'];
+  const ACCESS_EXCLUDED: MembershipRole[] = ['dispatcher', 'cfi', 'mechanic', 'renter', 'student'];
+
+  const MANAGE_GRANTED: MembershipRole[] = ['owner', 'manager'];
+  const MANAGE_EXCLUDED: MembershipRole[] = ['dispatcher', 'cfi', 'mechanic', 'renter', 'student', 'accountant'];
+
+  it('billing:access + billing:manage ∈ CAPABILITIES (sorted, no dup)', () => {
+    expect(CAPABILITIES).toContain('billing:access');
+    expect(CAPABILITIES).toContain('billing:manage');
+    expect([...CAPABILITIES]).toEqual([...CAPABILITIES].sort());
+    expect(new Set(CAPABILITIES).size).toBe(CAPABILITIES.length);
+  });
+
+  describe('billing:access', () => {
+    for (const role of ACCESS_GRANTED) {
+      it(`${role} HAS billing:access`, () => {
+        expect(can(role, 'billing:access')).toBe(true);
+      });
+    }
+    for (const role of ACCESS_EXCLUDED) {
+      it(`${role} does NOT have billing:access`, () => {
+        expect(can(role, 'billing:access')).toBe(false);
+      });
+    }
+  });
+
+  describe('billing:manage', () => {
+    for (const role of MANAGE_GRANTED) {
+      it(`${role} HAS billing:manage`, () => {
+        expect(can(role, 'billing:manage')).toBe(true);
+      });
+    }
+    for (const role of MANAGE_EXCLUDED) {
+      it(`${role} does NOT have billing:manage`, () => {
+        expect(can(role, 'billing:manage')).toBe(false);
+      });
+    }
+
+    it('accountant specifically does NOT have billing:manage (read-only audit role)', () => {
+      expect(can('accountant', 'billing:access')).toBe(true);
+      expect(can('accountant', 'billing:manage')).toBe(false);
+    });
+  });
+
+  it('billing:manage is a strict subset of billing:access', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      if (can(role, 'billing:manage')) {
+        expect(can(role, 'billing:access')).toBe(true);
+      }
+    }
+  });
+
+  it('billing:access grant set = {owner, manager, accountant} (3 roles)', () => {
+    const grantedRoles = MEMBERSHIP_ROLES.filter((r) => can(r, 'billing:access'));
+    expect(grantedRoles.sort()).toEqual(['accountant', 'manager', 'owner']);
+  });
+
+  it('billing:manage grant set = {owner, manager} (2 roles) — same as org:manage_settings', () => {
+    const grantedRoles = MEMBERSHIP_ROLES.filter((r) => can(r, 'billing:manage'));
+    expect(grantedRoles.sort()).toEqual(['manager', 'owner']);
+    // Same grant set as org:manage_settings
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(can(role, 'billing:manage')).toBe(can(role, 'org:manage_settings'));
+    }
+  });
+
+  it('dispatcher/cfi/mechanic/renter/student have NEITHER billing cap', () => {
+    for (const role of ['dispatcher', 'cfi', 'mechanic', 'renter', 'student'] as const) {
+      expect(can(role, 'billing:access')).toBe(false);
+      expect(can(role, 'billing:manage')).toBe(false);
+    }
   });
 });
