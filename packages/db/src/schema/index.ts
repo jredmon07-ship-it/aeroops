@@ -50,16 +50,20 @@
  *     APPEND-ONLY corrections to a closed dispatch ticket's write-once meters.
  *     SELECT + INSERT RLS only (no UPDATE/DELETE policy — mirrors audit_log).
  *     Prerequisite for Phase-2 billing consuming dispatch meters (ADR-0007 §1).
- *     Requester fields (name/email/phone/requested_start/end/aircraft_type_pref/message)
- *     are WRITE-ONCE (set at INSERT, never mutated). Triage fields (status/handled_by/
- *     handled_at/triage_notes) are staff-mutable via booking:triage cap.
- *     ADR-0013: org_id is set ONLY from resolveOrgBySlug (never from client input);
- *     booking_request_insert WITH CHECK is the RLS backstop for the anon write path.
- *     Composite FK (handled_by,org_id) → app_user ON DELETE SET NULL (handled_by) —
- *     column-list syntax: org_id is NEVER nulled; durable "who" in audit_log.
- *     NO requester FK (anon by design); NO reservation FK; NO money.
- *     [VERIFY-PB1-COMP-1]: PII lead-data retention/purge posture before public launch.
- *     [VERIFY-PB1-SEC-1]: edge rate-limiter/WAF+CAPTCHA before public exposure.
+ *     NO money column; NO FAA/Part-43/airworthiness determination.
+ *     [VERIFY-B0-COMP-1]: dual-signature/audit-chain before Phase-2 billing consumes meters.
+ *   rateSchedule (table: rate_schedule) — Slice B1 (migration 0019)
+ *     Operator billing record: pricing rates (wet/dry/instruction/flat).
+ *     amount_cents = INTEGER cents. resource_id nullable = org-wide default.
+ *     NO Stripe/card data. [VERIFY-B-MONEY-1]: Hobbs-basis billable unit.
+ *   invoice (table: invoice) — Slice B1 (migration 0019)
+ *     Operator billing record: draft→finalized→void. subtotal_cents+total_cents INTEGER cents.
+ *     invoice_finalized_shape_check: status='finalized' ⇒ issued_at IS NOT NULL.
+ *     Immutability of finalized invoices enforced in command layer (Phase-2 B1 api).
+ *     [VERIFY-B2-PORTAL]: renter sees ONLY their own invoices.
+ *   invoiceLineItem (table: invoice_line_item) — Slice B1 (migration 0019)
+ *     Operator billing record: individual charge line. quantity_hours=numeric(10,1) QUANTITY only.
+ *     unit_amount_cents+line_total_cents=INTEGER cents. Amounts snapshotted at creation.
  *
  * Platform/control-plane tables (NO RLS):
  *   plan, subscription
@@ -273,3 +277,39 @@ export type {
   DispatchTicketCorrectionSelect,
   DispatchTicketCorrectionInsert,
 } from './dispatch-ticket-correction.js';
+
+// Billing records — tenant-scoped (Slice B1 / migration 0019)
+// Operator billing RECORDS only. Money = INTEGER CENTS. NO Stripe/card data.
+// NO payment processing. Migrations staged + human-gated, NOT applied.
+//
+// rate_schedule: operator-defined pricing rates (wet/dry/instruction/flat).
+//   amount_cents = INTEGER cents (NEVER float). resource_id nullable = org-wide default.
+//   Composite FK (resource_id,org_id) → resource RESTRICT (rate history preserved).
+//   Composite FK (created_by,org_id) → app_user RESTRICT.
+//   Effective-rate lookup: WHERE org_id=$1 [AND resource_id=$2]
+//     AND effective_from <= now() AND (effective_to IS NULL OR effective_to > now()).
+//   [VERIFY-B-MONEY-1]: Hobbs-basis billable unit — confirm with compliance.
+//
+// invoice: billing invoice for a member (draft → finalized → void).
+//   subtotal_cents + total_cents = INTEGER cents (NEVER float).
+//   dispatch_ticket_id nullable = the source flight (composite FK RESTRICT).
+//   invoice_finalized_shape_check: status='finalized' ⇒ issued_at IS NOT NULL.
+//   Immutability of finalized invoices enforced in the command layer (Phase-2 B1 api).
+//   [VERIFY-B2-PORTAL]: renter sees ONLY their own invoices (intra-org self-scope).
+//
+// invoice_line_item: individual charge line on an invoice.
+//   quantity_hours: numeric(10,1) — quantity counter ONLY, NOT money.
+//   unit_amount_cents + line_total_cents = INTEGER cents (NEVER float).
+//   rate_schedule_id nullable = manual line items not tied to a rate.
+//   Amounts snapshotted at creation; later rate changes do NOT affect history.
+//   Composite FK (invoice_id,org_id) → invoice RESTRICT.
+//   Composite FK (rate_schedule_id,org_id) → rate_schedule RESTRICT when present.
+//   No updated_at — treated as immutable once parent invoice is finalized.
+export { rateSchedule } from './rate-schedule.js';
+export type { RateScheduleSelect, RateScheduleInsert } from './rate-schedule.js';
+
+export { invoice } from './invoice.js';
+export type { InvoiceSelect, InvoiceInsert } from './invoice.js';
+
+export { invoiceLineItem } from './invoice-line-item.js';
+export type { InvoiceLineItemSelect, InvoiceLineItemInsert } from './invoice-line-item.js';
