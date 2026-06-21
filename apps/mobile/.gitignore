@@ -1,0 +1,36 @@
+# Expo / React Native build artifacts
+.expo/
+dist/
+web-build/
+ios/
+android/
+
+# Dependencies
+node_modules/
+
+# Build outputs
+*.jsbundle
+*.map
+
+# EAS / Expo CLI
+.easignore
+
+# Environment (NEVER commit)
+.env
+.env.local
+.env.*.local
+
+# Typescript
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# Metro cache
+.metro-health-check*

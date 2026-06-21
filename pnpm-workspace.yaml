@@ -1,3 +1,4 @@
 packages:
   - "apps/*"
+  - "!apps/mobile" # Expo app: isolated install (its React-Native React 18 types must not pollute apps/web's React 19 types). Run its own `pnpm install` inside apps/mobile. Device-target, see apps/mobile/README.md.
   - "packages/*"
