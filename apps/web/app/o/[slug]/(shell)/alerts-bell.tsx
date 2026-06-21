@@ -474,7 +474,8 @@ function AlertRow({ alert, href, isUnseen, isGrounded, onDismiss }: AlertRowProp
         <div className="min-w-0 flex-1">{rowContent}</div>
       )}
 
-      {/* Dismiss button */}
+      {/* Dismiss button — includes alert title for per-alert context when
+          multiple alerts are present (avoids repeated identical labels). */}
       <button
         type="button"
         onClick={(e) => {
@@ -482,7 +483,7 @@ function AlertRow({ alert, href, isUnseen, isGrounded, onDismiss }: AlertRowProp
           e.stopPropagation();
           onDismiss();
         }}
-        aria-label="Dismiss alert"
+        aria-label={`Dismiss alert: ${alert.title}`}
         className={cn(
           'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm',
           'text-slate-300 hover:text-slate-500',

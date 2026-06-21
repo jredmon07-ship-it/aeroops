@@ -512,9 +512,18 @@ export interface ConvertActionButtonProps {
   onClick: () => void;
   /** Disabled while another dialog is submitting. */
   disabled?: boolean;
+  /**
+   * The requester's name — included in the accessible label so screen-reader
+   * users scanning a multi-row table hear "Convert to reservation — Alice Smith"
+   * rather than repeated identical "Convert to reservation" labels.
+   */
+  requesterName?: string;
 }
 
-export function ConvertActionButton({ onClick, disabled }: ConvertActionButtonProps) {
+export function ConvertActionButton({ onClick, disabled, requesterName }: ConvertActionButtonProps) {
+  const label = requesterName
+    ? `Convert to reservation — ${requesterName}`
+    : 'Convert to reservation';
   return (
     <Button
       size="sm"
@@ -522,7 +531,7 @@ export function ConvertActionButton({ onClick, disabled }: ConvertActionButtonPr
       className="h-7 text-xs"
       onClick={onClick}
       disabled={disabled}
-      aria-label="Convert to reservation"
+      aria-label={label}
     >
       <CalendarPlus className="h-3 w-3 mr-1" aria-hidden="true" />
       Convert

@@ -463,10 +463,13 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
       </div>
 
       {/* ── Tab panel ──────────────────────────────────────────────────────── */}
+      {/* tabIndex={0}: ARIA spec requires tabpanel to be keyboard-focusable so
+          keyboard users can Tab into the panel from the tablist. */}
       <div
         role="tabpanel"
         id={`booking-panel-${activeStatus}`}
         aria-labelledby={`booking-tab-${activeStatus}`}
+        tabIndex={0}
       >
         {/* Loading state for tab switches */}
         {tabLoading && (
@@ -498,6 +501,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
               <p className="text-sm text-slate-400">
                 Switch to the{' '}
                 <button
+                  type="button"
                   onClick={() => { void handleTabSwitch('new'); }}
                   className="text-brand underline underline-offset-2 hover:text-brand-ink"
                 >
@@ -761,13 +765,14 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
           <div className="flex items-center justify-end gap-1.5 flex-wrap">
             {/* Primary: Convert to reservation (PB2.2) */}
             {canConvert && (
-              <ConvertActionButton onClick={() => onConvert(row)} />
+              <ConvertActionButton onClick={() => onConvert(row)} requesterName={row.requesterName} />
             )}
             <Button
               size="sm"
               variant="outline"
               className="h-7 text-xs"
               onClick={() => onAction(row, 'contacted')}
+              aria-label={`Mark contacted — ${row.requesterName}`}
             >
               <PhoneCall className="h-3 w-3 mr-1" aria-hidden="true" />
               Mark contacted
@@ -777,6 +782,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
               variant="ghost"
               className="h-7 text-xs text-danger hover:text-danger hover:bg-danger/10"
               onClick={() => onAction(row, 'declined')}
+              aria-label={`Decline request from ${row.requesterName}`}
             >
               <XCircle className="h-3 w-3 mr-1" aria-hidden="true" />
               Decline
@@ -788,13 +794,14 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
             {/* Primary: Convert to reservation (PB2.2).
                 "Mark converted" (flag-only) is REMOVED per PB2.2 spec. */}
             {canConvert && (
-              <ConvertActionButton onClick={() => onConvert(row)} />
+              <ConvertActionButton onClick={() => onConvert(row)} requesterName={row.requesterName} />
             )}
             <Button
               size="sm"
               variant="ghost"
               className="h-7 text-xs text-danger hover:text-danger hover:bg-danger/10"
               onClick={() => onAction(row, 'declined')}
+              aria-label={`Decline request from ${row.requesterName}`}
             >
               <XCircle className="h-3 w-3 mr-1" aria-hidden="true" />
               Decline
@@ -804,6 +811,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
               variant="ghost"
               className="h-7 text-xs text-slate-600"
               onClick={() => onAction(row, 'contacted')}
+              aria-label={`Add note for ${row.requesterName}`}
             >
               + Note
             </Button>

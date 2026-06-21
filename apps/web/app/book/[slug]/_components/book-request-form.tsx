@@ -293,13 +293,16 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
   // ── Unavailable state ──────────────────────────────────────────────────────
   if (status.kind === 'unavailable') {
     return (
+      // role="alert" (assertive) rather than "status" — this is a blocking failure,
+      // not a polite informational update; screen readers should announce immediately.
       <div
         ref={statusRegionRef}
         tabIndex={-1}
         className="focus:outline-none"
-        role="status"
+        role="alert"
+        aria-live="assertive"
       >
-        <Alert variant="destructive" role="alert">
+        <Alert variant="destructive">
           <AlertDescription>
             This operator isn&apos;t accepting online requests right now.
           </AlertDescription>

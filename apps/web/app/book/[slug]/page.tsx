@@ -39,7 +39,9 @@ interface BookPageProps {
 function UnavailableCard() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="w-full max-w-sm" role="main">
+      {/* No role="main" here — <main> is already the main landmark; a child div
+          with role="main" would create a duplicate landmark. */}
+      <div className="w-full max-w-sm">
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Not available</CardTitle>
@@ -69,7 +71,8 @@ export default async function BookPage({ params }: BookPageProps) {
   // ── Active org → render the booking-request form ──────────────────────────
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="w-full max-w-lg" role="main">
+      {/* No role="main" on the wrapper — <main> is already the landmark. */}
+      <div className="w-full max-w-lg">
         <Card>
           <CardHeader className="text-center">
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">
