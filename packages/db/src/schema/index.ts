@@ -46,6 +46,10 @@
  *     dispatch_config.availability_constraint_enabled/mode control the gate.
  *   bookingRequest (table: booking_request) — Slice PB1.1 / ADR-0013 (migration 0015)
  *     Unauthenticated inbound booking enquiry from the public booking page (/book/[slug]).
+ *   dispatchTicketCorrection (table: dispatch_ticket_correction) — Slice B0 (migration 0018)
+ *     APPEND-ONLY corrections to a closed dispatch ticket's write-once meters.
+ *     SELECT + INSERT RLS only (no UPDATE/DELETE policy — mirrors audit_log).
+ *     Prerequisite for Phase-2 billing consuming dispatch meters (ADR-0007 §1).
  *     Requester fields (name/email/phone/requested_start/end/aircraft_type_pref/message)
  *     are WRITE-ONCE (set at INSERT, never mutated). Triage fields (status/handled_by/
  *     handled_at/triage_notes) are staff-mutable via booking:triage cap.
@@ -248,3 +252,24 @@ export type {
   BookingRequestSelect,
   BookingRequestInsert,
 } from './booking-request.js';
+
+// Dispatch ticket corrections — tenant-scoped, APPEND-ONLY (Slice B0 / migration 0018)
+// dispatch_ticket_correction: records-integrity corrections to closed ticket meters.
+//   Append-only posture mirrors audit_log: SELECT + INSERT RLS policies ONLY
+//   (no UPDATE/DELETE policy; FORCE RLS blocks those operations for aeroops_app).
+//   GRANT SELECT, INSERT only — UPDATE/DELETE explicitly REVOKED.
+//   NO updated_at (immutable by design). Latest row per ticket = effective correction.
+//   Effective meter = latest correction ?? original closed _in values.
+//   Composite FK (dispatch_ticket_id,org_id) → dispatch_ticket ON DELETE RESTRICT.
+//   Composite FK (created_by,org_id) → app_user ON DELETE RESTRICT.
+//   corrected_hobbs / corrected_tach: numeric(10,1), non-negative, at-least-one-not-null.
+//   reason: non-empty free-text mandatory.
+//   NO money column; NO FAA/Part-43/airworthiness determination.
+//   [VERIFY-B0-COMP-1]: dual-signature/audit-chain posture for meter corrections
+//     before Phase-2 billing consumes effective meters.
+//   PREREQUISITE for Phase-2 billing (ADR-0007 §1 + [[dispatch-correction-table-predecessor]]).
+export { dispatchTicketCorrection } from './dispatch-ticket-correction.js';
+export type {
+  DispatchTicketCorrectionSelect,
+  DispatchTicketCorrectionInsert,
+} from './dispatch-ticket-correction.js';
