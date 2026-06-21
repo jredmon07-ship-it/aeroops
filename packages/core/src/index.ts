@@ -193,6 +193,23 @@ export type {
   MobileApiError,
 } from './mobile/dto.js';
 
+// ─── Phase-2 B1 — Pure invoice / billing math (integer cents, no Stripe) ────────
+// applyRate: line amount = round-half-up(hours × ratePerHourCents) → integer cents.
+// computeLineTotal: alias for applyRate (line-total vocabulary).
+// computeInvoiceTotals: subtotal = Σ lineTotalCents (exact integer sum); in B1
+//   totalCents === subtotalCents (tax/discount seam noted in module-level comment).
+// applyPricingGroupDiscount: bps discount helper (B4 seam; NOT wired into totals yet).
+// PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
+// Property-tested (hard guardrail): P1..P17 in __tests__/invoice-math.test.ts.
+// [VERIFY-B-MONEY-1]: flight_time_hours is the billable basis (ADR-0007, frozen).
+export {
+  applyRate,
+  computeLineTotal,
+  computeInvoiceTotals,
+  applyPricingGroupDiscount,
+} from './billing/invoice-math.js';
+export type { InvoiceLine, InvoiceTotals } from './billing/invoice-math.js';
+
 // ─── Slice PB1.1 — Public booking-request submit schema (ADR-0013) ────────────
 // bookingRequestSchema: zod bounds for the unauthenticated public submit.
 //   name 1–120, email format ≤254 (lowercased/trimmed), phone? ≤40,
