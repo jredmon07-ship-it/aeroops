@@ -1,4 +1,11 @@
 /** @type {import('next').NextConfig} */
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirnameLocal = path.dirname(__filename);
+// Monorepo root (…/Workflow - FBO SaaS), two levels up from apps/web.
+const REPO_ROOT = path.join(__dirnameLocal, '..', '..');
 
 // ─── Build-phase-only env guard ───────────────────────────────────────────────
 // AUTH_SECRET must be set at runtime. During `next build` (local dev and CI/CD
@@ -25,6 +32,29 @@ if (!process.env.AUTH_SECRET) {
 }
 
 const nextConfig = {
+  // Trace files from the monorepo root — under pnpm, deps live in the
+  // repo-root node_modules/.pnpm store, outside apps/web.
+  outputFileTracingRoot: REPO_ROOT,
+  // Force-include @electric-sql/pglite (the WASM demo/TEST database) in the
+  // serverless functions. It is externalized (require'd at runtime, see the
+  // webpack externals below) but only ever EXECUTED when AEROOPS_DEMO=1. webpack
+  // still emits the require() in a shared server chunk, so without the package
+  // files present the function 500s with "Cannot find module '@electric-sql/pglite'"
+  // on EVERY route. Including the files makes the require resolve (harmless — the
+  // module is never instantiated in production).
+  outputFileTracingIncludes: {
+    '/**': [
+      'node_modules/.pnpm/@electric-sql+pglite@*/node_modules/@electric-sql/pglite/**',
+      // @node-rs/argon2 (native Rust .node addon) is used in production for
+      // password verification — it is externalized but nft misses it the same
+      // way it missed pglite. Include the meta-package AND the platform-specific
+      // binary subpackages (the glob matches whatever the build OS installed —
+      // the linux-x64-gnu binary on Vercel). Without it: "Cannot find module
+      // '@node-rs/argon2'" 500s on every auth/DB route.
+      'node_modules/.pnpm/@node-rs+argon2*/node_modules/@node-rs/**',
+    ],
+  },
+
   // Only transpile @aeroops/core (pure TS, no native binaries, edge-safe).
   // @aeroops/api and @aeroops/db are kept as serverExternalPackages:
   // they contain native binaries (@node-rs/argon2) and pglite (WebAssembly)

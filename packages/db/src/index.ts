@@ -21,12 +21,26 @@ export * from './schema/index.js';
 // Client factories
 export {
   createProdClient,
-  createTestClient,
   applyMigrationSql,
   setTestAppRole,
   execRaw,
 } from './client.js';
 export type { DbClient, PgliteTestClient } from './client.js';
+
+// createTestClient is a LAZY wrapper around ./testing.ts, which STATICALLY imports
+// the @electric-sql/pglite WASM module. Re-exporting it via a dynamic import keeps
+// pglite out of the STATIC graph of @aeroops/db's production consumers (api/web) —
+// the static chain barrel → client → createTestClient → pglite leaked the WASM
+// module into Vercel serverless functions ("Cannot find module '@electric-sql/pglite'"
+// 500s on every route). ./testing.ts is loaded ONLY when createTestClient is
+// actually called (vitest / the AEROOPS_DEMO bootstrap). Signature is unchanged for
+// the 56 callers (they already `await createTestClient()`).
+export async function createTestClient(): Promise<
+  Awaited<ReturnType<typeof import('./testing.js').createTestClient>>
+> {
+  const m = await import('./testing.js');
+  return m.createTestClient();
+}
 
 // Org-context helpers — sanctioned public API only (transaction-scoped wrappers)
 export {

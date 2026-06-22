@@ -19,13 +19,12 @@ import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import postgres from 'postgres';
 import * as schema from './schema/index.js';
-// @electric-sql/pglite is the in-process demo/TEST database ONLY (it ships a WASM
-// bundle). Its import is TYPE-ONLY here (erased at compile time) and DYNAMIC inside
-// createTestClient (only ever reached when AEROOPS_DEMO=1 / under vitest). This keeps
-// it OUT of the production server bundle — a static `import ... from '@electric-sql/pglite'`
-// leaked the WASM module into Vercel's serverless functions, which can't resolve it
-// → "Cannot find module '@electric-sql/pglite'" 500s on every server route. Production
-// uses createProdClient (postgres-js + DATABASE_URL) and never touches pglite.
+// @electric-sql/pglite (the WASM demo/TEST database) is imported TYPE-ONLY here
+// (erased at compile time), so this module has NO runtime reference to it. The
+// real PGlite instance is created in ./testing.ts, re-exported from the barrel as
+// a LAZY dynamic wrapper — a static reference leaked the WASM module into Vercel
+// serverless functions → "Cannot find module '@electric-sql/pglite'" 500s on every
+// route. Production uses createProdClient (postgres-js + DATABASE_URL) only.
 import type { PGlite } from '@electric-sql/pglite';
 
 // ─── Production client ───────────────────────────────────────────────────────
@@ -74,40 +73,15 @@ export async function createProdClient() {
 }
 
 // ─── Test client (PGlite — in-process Postgres, no Docker required) ─────────
+//
+// createTestClient itself lives in ./testing.ts because it STATICALLY imports
+// @electric-sql/pglite (WASM). The @aeroops/db barrel re-exports it as a LAZY
+// (dynamic) wrapper so that WASM module never enters the production server graph.
+// The PgliteTestClient TYPE + the helper functions below stay here: they only
+// reference the PGlite type (erased) or call methods on an already-created
+// instance — no runtime pglite import.
 
 export type PgliteTestClient = ReturnType<typeof drizzlePglite<typeof schema>>;
-
-/**
- * Creates a fresh in-memory PGlite Drizzle client.
- * Call `applyMigration(client, sql)` after creation to initialise the schema.
- *
- * IMPORTANT: PGlite runs as superuser/owner which BYPASSES RLS unless
- * FORCE ROW LEVEL SECURITY is set on every tenant table. The migration
- * sets FORCE on all tenant tables — that's why tests apply the real
- * migration file rather than a hand-rolled CREATE TABLE script.
- */
-export async function createTestClient(): Promise<{
-  db: PgliteTestClient;
-  pglite: PGlite;
-}> {
-  // pgcrypto must be passed as an extension so PGlite loads its WASM bundle.
-  // This enables gen_random_uuid() which every table PK uses.
-  //
-  // btree_gist provides the GiST operator class for scalar types (uuid, etc.)
-  // so they can participate in a GiST multi-column index alongside range types.
-  // Required for the EXCLUDE USING gist (resource_id WITH =, during WITH &&)
-  // constraint on reservation_resource (ADR-0004). Without this registration
-  // the 0002 migration's EXCLUDE constraint will fail with "data type uuid has
-  // no default operator class for access method gist".
-  // Dynamic imports: pglite + its WASM contrib extensions load ONLY here (test/demo),
-  // never in the production server bundle. See the import-block note above.
-  const { PGlite } = await import('@electric-sql/pglite');
-  const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
-  const { btree_gist } = await import('@electric-sql/pglite/contrib/btree_gist');
-  const pglite = await PGlite.create({ extensions: { pgcrypto, btree_gist } });
-  const db = drizzlePglite(pglite, { schema });
-  return { db, pglite };
-}
 
 /**
  * Applies one or more migration SQL strings to a test client (runs as superuser).
