@@ -28,7 +28,12 @@
  *   // Rarely needed: prefer withSessionOrgContext which calls getDb internally.
  */
 import { createProdClient } from '@aeroops/db';
-import { getDemoDb } from './demo/bootstrap.js';
+// NOTE: getDemoDb (./demo/bootstrap.js) is imported DYNAMICALLY inside getDb(),
+// not statically here. The demo bootstrap pulls in the in-process PGlite (WASM)
+// database; a static import would drag it into the production server bundle's
+// EAGER module graph and crash every route with "Cannot find module
+// '@electric-sql/pglite'" on Vercel. The demo path is only reached when
+// AEROOPS_DEMO=1 (the `pnpm demo` launcher), so it loads lazily there.
 
 /**
  * Db — the resolved production Drizzle client type.
@@ -69,7 +74,9 @@ export function getDb(): Promise<Db> {
   // instead of connecting to a real Postgres. Strictly gated on AEROOPS_DEMO=1,
   // which only the `pnpm demo` launcher sets — the production path is untouched.
   if (process.env['AEROOPS_DEMO'] === '1') {
-    return getDemoDb();
+    // Dynamic import keeps the demo/PGlite code OUT of the production bundle's
+    // eager graph (see the import-block note above).
+    return import('./demo/bootstrap.js').then((m) => m.getDemoDb());
   }
   if (_dbPromise === null) {
     _dbPromise = createProdClient();

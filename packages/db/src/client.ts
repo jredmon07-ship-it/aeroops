@@ -17,11 +17,16 @@
  */
 import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
-import { PGlite } from '@electric-sql/pglite';
-import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
-import { btree_gist } from '@electric-sql/pglite/contrib/btree_gist';
 import postgres from 'postgres';
 import * as schema from './schema/index.js';
+// @electric-sql/pglite is the in-process demo/TEST database ONLY (it ships a WASM
+// bundle). Its import is TYPE-ONLY here (erased at compile time) and DYNAMIC inside
+// createTestClient (only ever reached when AEROOPS_DEMO=1 / under vitest). This keeps
+// it OUT of the production server bundle — a static `import ... from '@electric-sql/pglite'`
+// leaked the WASM module into Vercel's serverless functions, which can't resolve it
+// → "Cannot find module '@electric-sql/pglite'" 500s on every server route. Production
+// uses createProdClient (postgres-js + DATABASE_URL) and never touches pglite.
+import type { PGlite } from '@electric-sql/pglite';
 
 // ─── Production client ───────────────────────────────────────────────────────
 
@@ -94,6 +99,11 @@ export async function createTestClient(): Promise<{
   // constraint on reservation_resource (ADR-0004). Without this registration
   // the 0002 migration's EXCLUDE constraint will fail with "data type uuid has
   // no default operator class for access method gist".
+  // Dynamic imports: pglite + its WASM contrib extensions load ONLY here (test/demo),
+  // never in the production server bundle. See the import-block note above.
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
+  const { btree_gist } = await import('@electric-sql/pglite/contrib/btree_gist');
   const pglite = await PGlite.create({ extensions: { pgcrypto, btree_gist } });
   const db = drizzlePglite(pglite, { schema });
   return { db, pglite };
