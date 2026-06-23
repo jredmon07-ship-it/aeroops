@@ -30,6 +30,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { AddCourseLessonResult } from './types.js';
 import { assembleCourseDetail } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -81,7 +82,7 @@ async function _addCourseLessonImpl(
     const courseCheck = await tx.execute(sql`
       SELECT id FROM course WHERE id = ${input.courseId}::uuid LIMIT 1
     `);
-    const courseRows = (courseCheck.rows ?? courseCheck) as Array<{ id: string }>;
+    const courseRows = extractRows<{ id: string }>(courseCheck);
     if (courseRows.length === 0) return { ok: false, reason: 'not_found' };
 
     // 4. Compute next position in-tx (max(position)+1; 0 if no lessons yet).
@@ -90,7 +91,7 @@ async function _addCourseLessonImpl(
       FROM course_lesson
       WHERE course_id = ${input.courseId}::uuid
     `);
-    const maxPosRows = (maxPosResult.rows ?? maxPosResult) as Array<{ maxPos: number | string }>;
+    const maxPosRows = extractRows<{ maxPos: number | string }>(maxPosResult);
     const maxPos = typeof maxPosRows[0]?.maxPos === 'string'
       ? parseInt(maxPosRows[0].maxPos, 10)
       : (maxPosRows[0]?.maxPos ?? -1);

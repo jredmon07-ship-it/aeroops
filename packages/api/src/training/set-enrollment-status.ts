@@ -34,6 +34,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { SetEnrollmentStatusResult } from './types.js';
 import { assembleEnrollmentDetail } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -75,7 +76,7 @@ async function _setEnrollmentStatusImpl(
     const enrollCheck = await tx.execute(sql`
       SELECT id, status FROM enrollment WHERE id = ${input.enrollmentId}::uuid LIMIT 1
     `);
-    const enrollRows = (enrollCheck.rows ?? enrollCheck) as Array<{ id: string; status: string }>;
+    const enrollRows = extractRows<{ id: string; status: string }>(enrollCheck);
     const enrollRow = enrollRows[0];
     if (!enrollRow) return { ok: false, reason: 'not_found' };
 

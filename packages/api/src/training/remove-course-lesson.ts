@@ -33,6 +33,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { RemoveCourseLessonResult } from './types.js';
 import { assembleCourseDetail } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -70,7 +71,7 @@ async function _removeCourseLessonImpl(
       WHERE id = ${input.lessonId}::uuid
       LIMIT 1
     `);
-    const lessonRows = (lessonCheck.rows ?? lessonCheck) as Array<{ id: string; courseId: string }>;
+    const lessonRows = extractRows<{ id: string; courseId: string }>(lessonCheck);
     const lesson = lessonRows[0];
     if (!lesson) return { ok: false, reason: 'not_found' };
 
@@ -81,7 +82,7 @@ async function _removeCourseLessonImpl(
         SELECT 1 FROM lesson_record WHERE lesson_id = ${input.lessonId}::uuid
       ) AS "hasRecords"
     `);
-    const recRows = (recordCheck.rows ?? recordCheck) as Array<{ hasRecords: boolean | string }>;
+    const recRows = extractRows<{ hasRecords: boolean | string }>(recordCheck);
     const hasRecords = recRows[0]?.hasRecords === true || recRows[0]?.hasRecords === 't' || recRows[0]?.hasRecords === 'true';
     if (hasRecords) return { ok: false, reason: 'has_records' };
 

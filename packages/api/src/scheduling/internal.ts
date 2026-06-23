@@ -64,6 +64,7 @@ import type {
 import type { ConflictHit, PolicyViolationView, CreateReservationResult } from './types.js';
 import type { AppSession } from '../auth/types.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
+import { extractRows } from '../db-rows.js';
 
 // RFC-4122 UUID, version-agnostic (mirrors @aeroops/db's UUID_RE). zod v4's
 // z.uuid() strictly validates version/variant nibbles and would reject some
@@ -361,13 +362,13 @@ export async function runConflictProbe(
     ORDER BY rr.resource_id, existing_start
   `);
 
-  const rows = (result.rows ?? result) as unknown as Array<{
+  const rows = extractRows<{
     resource_id: string;
     resource_display_name: string;
     reservation_id: string;
     existing_start: string | Date;
     existing_end: string | Date;
-  }>;
+  }>(result);
 
   return rows.map((row) => ({
     resourceId: row.resource_id,
@@ -461,10 +462,10 @@ export async function loadBlackouts(
     ORDER BY lower(during)
   `);
 
-  const rows = (result.rows ?? result) as unknown as Array<{
+  const rows = extractRows<{
     blackout_start: string | Date;
     blackout_end: string | Date;
-  }>;
+  }>(result);
 
   return rows.map((row) => ({
     start:
@@ -560,11 +561,11 @@ export async function loadTwilightConfig(
     LIMIT 1
   `);
 
-  const rows = (result.rows ?? result) as unknown as Array<{
+  const rows = extractRows<{
     enabled: boolean;
     mode: string;
     exemptTag: string | null;
-  }>;
+  }>(result);
 
   const row = rows[0];
   if (!row) {
@@ -664,12 +665,12 @@ export async function loadTwilightContext(
     WHERE r.id = ANY(ARRAY[${idList}])
   `);
 
-  const rows = (result.rows ?? result) as unknown as Array<{
+  const rows = extractRows<{
     resourceId: string;
     kind: string;
     latitude: string | number | null;
     longitude: string | number | null;
-  }>;
+  }>(result);
 
   const byId = new Map(rows.map((row) => [row.resourceId, row]));
 
@@ -769,10 +770,10 @@ export async function loadAvailabilityConfig(
     LIMIT 1
   `);
 
-  const rows = (result.rows ?? result) as unknown as Array<{
+  const rows = extractRows<{
     enabled: boolean;
     mode: string;
-  }>;
+  }>(result);
 
   const row = rows[0];
   if (!row) {
@@ -868,13 +869,13 @@ export async function loadAvailabilityContext(
     WHERE resource_id = ANY(ARRAY[${idList}])
   `);
 
-  const rows = (result.rows ?? result) as unknown as Array<{
+  const rows = extractRows<{
     resourceId: string;
     dayOfWeek: number;
     startMinute: number;
     endMinute: number;
     tz: string;
-  }>;
+  }>(result);
 
   // Group raw windows by resource.
   const windowsByResource = new Map<string, ResourceAvailabilityWindow[]>();

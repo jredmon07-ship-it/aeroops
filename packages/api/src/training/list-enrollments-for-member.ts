@@ -29,6 +29,7 @@ import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { ListEnrollmentsForMemberResult } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -78,7 +79,7 @@ async function _listEnrollmentsForMemberImpl(
       ORDER BY e.enrolled_at DESC
     `);
 
-    const rows = (result.rows ?? result) as Array<{
+    const rows = extractRows<{
       enrollmentId: string;
       courseId: string;
       courseTitle: string;
@@ -87,7 +88,7 @@ async function _listEnrollmentsForMemberImpl(
       statusChangedAt: Date | string | null;
       totalLessons: number | string;
       completedCount: number | string;
-    }>;
+    }>(result);
 
     return rows.map((r) => {
       const total = typeof r.totalLessons === 'string' ? parseInt(r.totalLessons, 10) : r.totalLessons;

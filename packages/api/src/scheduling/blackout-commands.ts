@@ -32,6 +32,7 @@ import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError, toIso } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 /** Max length of the optional free-text blackout reason (spec §4: ~500). */
 const BLACKOUT_REASON_MAX_LEN = 500;
@@ -103,7 +104,7 @@ async function _listBlackoutsImpl(
       ORDER BY lower(during)
     `);
 
-    const rows = (result.rows ?? result) as unknown as Array<{
+    const rows = extractRows<{
       id: string;
       resource_id: string;
       start_at: string | Date;
@@ -111,7 +112,7 @@ async function _listBlackoutsImpl(
       reason: string | null;
       created_by: string;
       created_at: string | Date;
-    }>;
+    }>(result);
 
     return rows.map((row) => ({
       id: row.id,
@@ -204,7 +205,7 @@ async function _createBlackoutImpl(
         created_at
     `);
 
-    const rows = (result.rows ?? result) as unknown as Array<{
+    const rows = extractRows<{
       id: string;
       resource_id: string;
       start_at: string | Date;
@@ -212,7 +213,7 @@ async function _createBlackoutImpl(
       reason: string | null;
       created_by: string;
       created_at: string | Date;
-    }>;
+    }>(result);
 
     const row = rows[0];
     if (!row) {

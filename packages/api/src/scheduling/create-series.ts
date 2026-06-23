@@ -29,6 +29,7 @@ import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
+import { extractRows } from '../db-rows.js';
 import type { AppSession } from '../auth/types.js';
 import { expandRecurrence } from '@aeroops/core';
 import type { RecurrenceRule, ZonedToUtc } from '@aeroops/core';
@@ -253,7 +254,7 @@ async function _createSeriesImpl(
                 resource_ids, notes, status, created_by, created_at, updated_at
     `);
 
-    const seriesRow = ((seriesRows.rows ?? seriesRows) as unknown as SeriesRow[])[0]!;
+    const seriesRow = extractRows<SeriesRow>(seriesRows)[0]!;
     const seriesId = seriesRow.id;
 
     // 5b. Audit: series.created.

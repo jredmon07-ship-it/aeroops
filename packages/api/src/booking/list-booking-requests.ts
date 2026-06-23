@@ -25,6 +25,7 @@ import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Status domain ────────────────────────────────────────────────────────────
 
@@ -137,7 +138,7 @@ async function _listBookingRequestsImpl(
       FROM booking_request
     `);
 
-    const rawRows = (rowsResult.rows ?? rowsResult) as Array<{
+    const rawRows = extractRows<{
       id: string;
       status: string;
       requesterName: string;
@@ -152,7 +153,7 @@ async function _listBookingRequestsImpl(
       triageNotes: string | null;
       convertedReservationId: string | null;
       createdAt: Date | string;
-    }>;
+    }>(rowsResult);
 
     const rows: BookingRequestRow[] = rawRows.map((r) => ({
       id: r.id,
@@ -183,12 +184,12 @@ async function _listBookingRequestsImpl(
         : new Date(r.createdAt),
     }));
 
-    const countsRow = ((countsResult.rows ?? countsResult) as Array<{
+    const countsRow = extractRows<{
       new: string | number;
       contacted: string | number;
       converted: string | number;
       declined: string | number;
-    }>)[0] ?? { new: 0, contacted: 0, converted: 0, declined: 0 };
+    }>(countsResult)[0] ?? { new: 0, contacted: 0, converted: 0, declined: 0 };
 
     const counts: BookingRequestStatusCounts = {
       new:       Number(countsRow.new),

@@ -25,6 +25,7 @@ import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
 import type { AircraftListRow } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Options ──────────────────────────────────────────────────────────────────
 
@@ -84,10 +85,10 @@ async function _listAircraftImpl(
         AND resource_id = ANY(ARRAY[${idList}])
       GROUP BY resource_id
     `);
-    const squawkRows = (squawkResult.rows ?? squawkResult) as Array<{
+    const squawkRows = extractRows<{
       resourceId: string;
       count: number | string;
-    }>;
+    }>(squawkResult);
     const squawkMap = new Map<string, number>();
     for (const id of ids) squawkMap.set(id, 0);
     for (const row of squawkRows) {
@@ -107,10 +108,10 @@ async function _listAircraftImpl(
         AND resource_id = ANY(ARRAY[${idList}])
       GROUP BY resource_id
     `);
-    const woRows = (woResult.rows ?? woResult) as Array<{
+    const woRows = extractRows<{
       resourceId: string;
       count: number | string;
-    }>;
+    }>(woResult);
     const woMap = new Map<string, number>();
     for (const id of ids) woMap.set(id, 0);
     for (const row of woRows) {

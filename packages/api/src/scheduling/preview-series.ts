@@ -34,6 +34,7 @@ import {
   isValidIanaTz,
 } from './internal.js';
 import type { PreviewSeriesResult, PreviewSeriesOccurrenceReport } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input validation (mirrors create-series) ─────────────────────────────────
 
@@ -175,10 +176,10 @@ async function _previewSeriesImpl(
         FROM resource
         WHERE id = ANY(ARRAY[${idList}])
       `);
-      const rawResources = (resourceRows.rows ?? resourceRows) as Array<{
+      const rawResources = extractRows<{
         id: string;
         display_name: string;
-      }>;
+      }>(resourceRows);
       resourceMeta = rawResources.map((r) => ({ id: r.id, displayName: r.display_name }));
     }
 

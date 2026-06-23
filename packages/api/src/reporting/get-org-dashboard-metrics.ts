@@ -39,6 +39,7 @@ import { ValidationError } from '../scheduling/internal.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
 import { resolveRange } from './internal.js';
 import type { RangeKey } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
@@ -124,10 +125,10 @@ async function _getOrgDashboardMetricsImpl(
         AND closed_at < ${to}
     `);
 
-    const flightsRow = ((flightsResult.rows ?? flightsResult) as Array<{
+    const flightsRow = extractRows<{
       totalFlights: number | string;
       totalFlightHoursRaw: number | string;
-    }>)[0];
+    }>(flightsResult)[0];
 
     const totalFlights = Number(flightsRow?.totalFlights ?? 0);
     const totalFlightHoursRaw = Number(flightsRow?.totalFlightHoursRaw ?? 0);
@@ -145,9 +146,9 @@ async function _getOrgDashboardMetricsImpl(
         AND end_at > ${from}
     `);
 
-    const resvRow = ((resvResult.rows ?? resvResult) as Array<{
+    const resvRow = extractRows<{
       reservationsInRange: number | string;
-    }>)[0];
+    }>(resvResult)[0];
 
     const reservationsInRange = Number(resvRow?.reservationsInRange ?? 0);
 
@@ -158,9 +159,9 @@ async function _getOrgDashboardMetricsImpl(
       WHERE status = 'open'
     `);
 
-    const squawkRow = ((squawkResult.rows ?? squawkResult) as Array<{
+    const squawkRow = extractRows<{
       openSquawkCount: number | string;
-    }>)[0];
+    }>(squawkResult)[0];
 
     const openSquawkCount = Number(squawkRow?.openSquawkCount ?? 0);
 
@@ -172,9 +173,9 @@ async function _getOrgDashboardMetricsImpl(
         AND active = true
     `);
 
-    const aircraftRows = (aircraftResult.rows ?? aircraftResult) as Array<{
+    const aircraftRows = extractRows<{
       id: string;
-    }>;
+    }>(aircraftResult);
 
     const activeAircraftCount = aircraftRows.length;
     const activeAircraftIds = aircraftRows.map((r) => r.id);
@@ -194,9 +195,9 @@ async function _getOrgDashboardMetricsImpl(
       WHERE status = 'active'
     `);
 
-    const memberRow = ((memberResult.rows ?? memberResult) as Array<{
+    const memberRow = extractRows<{
       activeMemberCount: number | string;
-    }>)[0];
+    }>(memberResult)[0];
 
     const activeMemberCount = Number(memberRow?.activeMemberCount ?? 0);
 
@@ -209,9 +210,9 @@ async function _getOrgDashboardMetricsImpl(
       WHERE status IN ('open', 'in_progress')
     `);
 
-    const workOrderRow = ((workOrderResult.rows ?? workOrderResult) as Array<{
+    const workOrderRow = extractRows<{
       openWorkOrderCount: number | string;
-    }>)[0];
+    }>(workOrderResult)[0];
 
     const openWorkOrderCount = Number(workOrderRow?.openWorkOrderCount ?? 0);
 
@@ -224,9 +225,9 @@ async function _getOrgDashboardMetricsImpl(
       WHERE status = 'active'
     `);
 
-    const enrollmentRow = ((enrollmentResult.rows ?? enrollmentResult) as Array<{
+    const enrollmentRow = extractRows<{
       activeEnrollmentCount: number | string;
-    }>)[0];
+    }>(enrollmentResult)[0];
 
     const activeEnrollmentCount = Number(enrollmentRow?.activeEnrollmentCount ?? 0);
 

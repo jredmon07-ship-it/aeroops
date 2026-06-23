@@ -69,6 +69,7 @@ import {
   reProbeInFreshTx,
 } from '../scheduling/internal.js';
 import type { BookingRequestStatus } from './list-booking-requests.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input schema ──────────────────────────────────────────────────────────────
 
@@ -233,13 +234,13 @@ async function _convertBookingRequestImpl(
           WHERE id = ${id}::uuid
           FOR UPDATE
         `);
-        const rows = (loadResult.rows ?? loadResult) as unknown as Array<{
+        const rows = extractRows<{
           id: string;
           status: string;
           requesterName: string;
           requesterEmail: string;
           requesterPhone: string | null;
-        }>;
+        }>(loadResult);
         const requestRow = rows[0];
         if (!requestRow) {
           // Not visible (cross-org / unknown) → not_found. No write.

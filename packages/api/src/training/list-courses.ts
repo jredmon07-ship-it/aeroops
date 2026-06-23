@@ -21,6 +21,7 @@ import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import type { ListCoursesResult } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 export interface ListCoursesOptions {
   /** Filter by status. Omit for all statuses. */
@@ -59,7 +60,7 @@ async function _listCoursesImpl(
       ORDER BY c.title ASC
     `);
 
-    const rows = (result.rows ?? result) as Array<{
+    const rows = extractRows<{
       courseId: string;
       title: string;
       description: string | null;
@@ -68,7 +69,7 @@ async function _listCoursesImpl(
       createdAt: Date | string;
       updatedAt: Date | string;
       lessonCount: number | string;
-    }>;
+    }>(result);
 
     return rows.map((r) => ({
       courseId:    r.courseId,

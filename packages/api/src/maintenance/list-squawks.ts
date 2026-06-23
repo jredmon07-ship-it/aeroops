@@ -27,6 +27,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { toSquawkView } from './report-squawk.js';
 import type { SquawkView } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── UUID validation ──────────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ async function _listSquawksImpl(
       LIMIT ${limit}
     `);
 
-    const rows = (result.rows ?? result) as Array<{
+    const rows = extractRows<{
       id: string;
       resourceId: string;
       dispatchTicketId: string | null;
@@ -110,7 +111,7 @@ async function _listSquawksImpl(
       resolutionNotes: string | null;
       resolvedBy: string | null;
       resolvedAt: Date | string | null;
-    }>;
+    }>(result);
 
     return rows.map(toSquawkView);
   });
@@ -187,10 +188,10 @@ async function _getOpenSquawkCountsImpl(
       GROUP BY resource_id
     `);
 
-    const rows = (queryResult.rows ?? queryResult) as Array<{
+    const rows = extractRows<{
       resourceId: string;
       count: number | string;
-    }>;
+    }>(queryResult);
 
     for (const row of rows) {
       result.set(row.resourceId, typeof row.count === 'string' ? parseInt(row.count, 10) : row.count);

@@ -46,6 +46,7 @@ import {
 } from './internal.js';
 import type { ReportRangeKey, BucketGranularity } from './internal.js';
 import type { ReservationsVsFlightsTrendResult } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
@@ -88,10 +89,10 @@ async function _impl(
       ORDER BY 1
     `);
 
-    const resvRows = (resvResult.rows ?? resvResult) as Array<{
+    const resvRows = extractRows<{
       bucketStart: Date | string;
       reservationsCreated: number | string;
-    }>;
+    }>(resvResult);
 
     // Query 2: flights closed in range (status='closed').
     // Anchor: dispatch_ticket.closed_at. Half-open [from, to).
@@ -107,10 +108,10 @@ async function _impl(
       ORDER BY 1
     `);
 
-    const flightRows = (flightResult.rows ?? flightResult) as Array<{
+    const flightRows = extractRows<{
       bucketStart: Date | string;
       flightsClosed: number | string;
-    }>;
+    }>(flightResult);
 
     // Build lookup maps.
     const resvMap  = new Map<string, number>();

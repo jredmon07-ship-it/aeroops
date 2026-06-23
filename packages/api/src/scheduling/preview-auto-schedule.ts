@@ -52,6 +52,7 @@ import type {
   PreviewAutoScheduleResult,
   PreviewAutoProposalReport,
 } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 interface PreviewAutoScheduleOptions {
   now?: number;
@@ -110,7 +111,7 @@ async function _previewAutoScheduleImpl(
         FROM resource
         WHERE id = ANY(ARRAY[${idList}])
       `);
-      const raw = (rows.rows ?? rows) as Array<{ id: string; display_name: string }>;
+      const raw = extractRows<{ id: string; display_name: string }>(rows);
       resourceMeta = raw.map((r) => ({ id: r.id, displayName: r.display_name }));
     }
     const metaById = new Map(resourceMeta.map((m) => [m.id, m]));

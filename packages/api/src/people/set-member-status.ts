@@ -28,6 +28,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { SetMemberStatusResult } from './types.js';
 import { assembleMemberDetail } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -51,7 +52,7 @@ async function countActiveOwners(tx: AnyDb): Promise<number> {
     WHERE m.role = 'owner'
       AND u.status = 'active'
   `);
-  const rows = (result.rows ?? result) as Array<{ count: number | string }>;
+  const rows = extractRows<{ count: number | string }>(result);
   const raw = rows[0]?.count ?? 0;
   return typeof raw === 'string' ? parseInt(raw, 10) : raw;
 }

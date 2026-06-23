@@ -20,6 +20,7 @@ import type { MembershipRole } from '@aeroops/core';
 import { toDispatchTicketView } from '../dispatch/internal.js';
 import type { MemberDetail, MemberTagView, UpcomingMemberReservationRow } from './types.js';
 import type { DispatchTicketView } from '../dispatch/types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── assembleMemberDetail ─────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ export async function assembleMemberDetail(
     LIMIT 1
   `);
 
-  const identityRows = (identityResult.rows ?? identityResult) as Array<{
+  const identityRows = extractRows<{
     userId: string;
     fullName: string | null;
     email: string;
@@ -64,7 +65,7 @@ export async function assembleMemberDetail(
     status: string;
     role: string;
     joinedAt: Date | string;
-  }>;
+  }>(identityResult);
 
   const identity = identityRows[0];
   if (!identity) return null;
@@ -77,7 +78,7 @@ export async function assembleMemberDetail(
       SELECT 1 FROM auth_credential WHERE user_id = ${userId}::uuid
     ) AS "hasLogin"
   `);
-  const credRows = (credResult.rows ?? credResult) as Array<{ hasLogin: boolean }>;
+  const credRows = extractRows<{ hasLogin: boolean }>(credResult);
   const hasLogin = credRows[0]?.hasLogin === true;
 
   // ── 2. Tags (ORDER BY tag ASC) ────────────────────────────────────────────
@@ -93,12 +94,12 @@ export async function assembleMemberDetail(
     ORDER BY tag ASC
   `);
 
-  const tagRows = (tagsResult.rows ?? tagsResult) as Array<{
+  const tagRows = extractRows<{
     id: string;
     tag: string;
     createdBy: string;
     createdAt: Date | string;
-  }>;
+  }>(tagsResult);
 
   const tags: MemberTagView[] = tagRows.map((r) => ({
     id: r.id,
@@ -124,12 +125,12 @@ export async function assembleMemberDetail(
     LIMIT 10
   `);
 
-  const resRows = (reservationsResult.rows ?? reservationsResult) as Array<{
+  const resRows = extractRows<{
     id: string;
     startAt: Date | string;
     endAt: Date | string;
     seriesId: string | null;
-  }>;
+  }>(reservationsResult);
 
   const upcomingReservations: UpcomingMemberReservationRow[] = resRows.map((r) => ({
     id: r.id,
@@ -165,7 +166,7 @@ export async function assembleMemberDetail(
     LIMIT 10
   `);
 
-  const dispatchRows = (dispatchResult.rows ?? dispatchResult) as Array<{
+  const dispatchRows = extractRows<{
     id: string;
     orgId: string;
     reservationId: string;
@@ -184,7 +185,7 @@ export async function assembleMemberDetail(
     closedAt: Date | string | null;
     createdAt: Date | string;
     updatedAt: Date | string;
-  }>;
+  }>(dispatchResult);
 
   const recentDispatch: DispatchTicketView[] = dispatchRows.map(toDispatchTicketView);
 

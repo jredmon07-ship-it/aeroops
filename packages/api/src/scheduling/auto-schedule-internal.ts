@@ -32,6 +32,7 @@ import type {
 import { ValidationError, loadTwilightContext, loadAvailabilityContext } from './internal.js';
 import type { TwilightConfigView, AvailabilityConfigView } from './internal.js';
 import { makeApiZonedToUtcResolver } from './internal.js';
+import { extractRows } from '../db-rows.js';
 import type { AutoScheduleInput, DemandInput } from './types.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -118,7 +119,7 @@ export async function buildAvailability(
       AND active = true
       AND kind IN ('aircraft', 'instructor')
   `);
-  const bookableRows = (bookableRes.rows ?? bookableRes) as unknown as Array<{ id: string }>;
+  const bookableRows = extractRows<{ id: string }>(bookableRes);
   const bookable = new Set(bookableRows.map((r) => r.id));
 
   // Existing booked windows overlapping the base span (per resource).
@@ -132,11 +133,11 @@ export async function buildAvailability(
       AND rr.status = 'booked'
       AND rr.during && tstzrange(${baseStartIso}::timestamptz, ${baseEndIso}::timestamptz, '[)')
   `);
-  const bookedRows = (bookedRes.rows ?? bookedRes) as unknown as Array<{
+  const bookedRows = extractRows<{
     resourceId: string;
     start: string | Date;
     end: string | Date;
-  }>;
+  }>(bookedRes);
 
   // Blackout windows overlapping the base span (per resource).
   const blackoutRes = await tx.execute(sql`
@@ -148,11 +149,11 @@ export async function buildAvailability(
     WHERE resource_id = ANY(ARRAY[${idList}])
       AND during && tstzrange(${baseStartIso}::timestamptz, ${baseEndIso}::timestamptz, '[)')
   `);
-  const blackoutRows = (blackoutRes.rows ?? blackoutRes) as unknown as Array<{
+  const blackoutRows = extractRows<{
     resourceId: string;
     start: string | Date;
     end: string | Date;
-  }>;
+  }>(blackoutRes);
 
   // Latest grounding state per resource (DISTINCT ON). Grounded → block whole span.
   const groundingRes = await tx.execute(sql`
@@ -163,10 +164,10 @@ export async function buildAvailability(
     WHERE resource_id = ANY(ARRAY[${idList}])
     ORDER BY resource_id, created_at DESC, id DESC
   `);
-  const groundingRows = (groundingRes.rows ?? groundingRes) as unknown as Array<{
+  const groundingRows = extractRows<{
     resourceId: string;
     state: string;
-  }>;
+  }>(groundingRes);
   const grounded = new Set(
     groundingRows.filter((r) => r.state === 'grounded').map((r) => r.resourceId),
   );

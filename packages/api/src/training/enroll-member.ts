@@ -33,6 +33,7 @@ import { ValidationError } from '../scheduling/internal.js';
 import { isUniqueViolation } from '../dispatch/internal.js';
 import type { EnrollMemberResult } from './types.js';
 import { assembleEnrollmentDetail } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -69,14 +70,14 @@ async function _enrollMemberImpl(
     const courseCheck = await tx.execute(sql`
       SELECT id FROM course WHERE id = ${input.courseId}::uuid LIMIT 1
     `);
-    const courseRows = (courseCheck.rows ?? courseCheck) as Array<{ id: string }>;
+    const courseRows = extractRows<{ id: string }>(courseCheck);
     if (courseRows.length === 0) return { ok: false, reason: 'not_found' };
 
     // 4. Check student visible in org (RLS via membership; cross-org → not_found).
     const memberCheck = await tx.execute(sql`
       SELECT user_id FROM membership WHERE user_id = ${input.studentUserId}::uuid LIMIT 1
     `);
-    const memberRows = (memberCheck.rows ?? memberCheck) as Array<{ user_id: string }>;
+    const memberRows = extractRows<{ user_id: string }>(memberCheck);
     if (memberRows.length === 0) return { ok: false, reason: 'not_found' };
 
     // 5. INSERT enrollment. UNIQUE(student_user_id, course_id) → 23505 → duplicate.

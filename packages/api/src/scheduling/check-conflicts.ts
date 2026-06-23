@@ -35,6 +35,7 @@ import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import type { ConflictHit, PolicyViolationView } from './types.js';
 import { parseReservationWindow, runConflictProbe, runPolicyProbe } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 /**
  * Input to checkConflicts — the same window + resource shape as create, minus
@@ -95,10 +96,10 @@ async function _checkConflictsImpl(
       FROM resource
       WHERE id = ANY(ARRAY[${idList}])
     `);
-    const rawResources = (resourceRows.rows ?? resourceRows) as unknown as Array<{
+    const rawResources = extractRows<{
       id: string;
       display_name: string;
-    }>;
+    }>(resourceRows);
     const resourceMeta = rawResources.map((r) => ({
       id: r.id,
       displayName: r.display_name,

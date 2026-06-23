@@ -24,6 +24,7 @@ import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import type { SeriesRow } from './types.js';
 import type { ReservationRow } from './list-reservations.js';
+import { extractRows } from '../db-rows.js';
 
 export interface ListSeriesOccurrencesInput {
   seriesId: string;
@@ -94,10 +95,10 @@ async function _listSeriesOccurrencesImpl(
         FROM reservation_resource
         WHERE reservation_id = ANY(ARRAY[${idList}])
       `);
-      const rawJoin = (joinRows.rows ?? joinRows) as Array<{
+      const rawJoin = extractRows<{
         reservation_id: string;
         resource_id: string;
-      }>;
+      }>(joinRows);
       for (const j of rawJoin) {
         const existing = resourceIdsByReservation.get(j.reservation_id);
         if (existing) {

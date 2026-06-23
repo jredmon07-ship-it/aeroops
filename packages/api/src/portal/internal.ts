@@ -29,6 +29,7 @@ import type {
   MyPortalSummary,
   MyReservationRow,
 } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── readMyTraining ───────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ export async function readMyTraining(
     ORDER BY e.enrolled_at DESC
   `);
 
-  const rows = (result.rows ?? result) as Array<{
+  const rows = extractRows<{
     enrollmentId: string;
     courseId: string;
     courseTitle: string;
@@ -69,7 +70,7 @@ export async function readMyTraining(
     statusChangedAt: Date | string | null;
     totalLessons: number | string;
     completedCount: number | string;
-  }>;
+  }>(result);
 
   return rows.map((r) => {
     const total = typeof r.totalLessons === 'string' ? parseInt(r.totalLessons, 10) : r.totalLessons;
@@ -138,7 +139,7 @@ export async function readMyReservations(
     LIMIT 20
   `);
 
-  const rows = (result.rows ?? result) as Array<{
+  const rows = extractRows<{
     id: string;
     startAt: Date | string;
     endAt: Date | string;
@@ -146,7 +147,7 @@ export async function readMyReservations(
     resourceLabel: string;
     isBooker: boolean;
     isPilot: boolean;
-  }>;
+  }>(result);
 
   // Multiple resources on one reservation produce multiple rows; collapse them,
   // preserving start ASC order and aggregating resource labels + the role flags.
@@ -208,14 +209,14 @@ export async function readMyAccount(
     LIMIT 1
   `);
 
-  const identityRows = (identityResult.rows ?? identityResult) as Array<{
+  const identityRows = extractRows<{
     userId: string;
     fullName: string | null;
     email: string;
     phone: string | null;
     role: string;
     joinedAt: Date | string;
-  }>;
+  }>(identityResult);
 
   const identity = identityRows[0];
   if (!identity) return null;
@@ -227,7 +228,7 @@ export async function readMyAccount(
     ORDER BY tag ASC
   `);
 
-  const tagRows = (tagsResult.rows ?? tagsResult) as Array<{ id: string; tag: string }>;
+  const tagRows = extractRows<{ id: string; tag: string }>(tagsResult);
 
   return {
     userId: identity.userId,

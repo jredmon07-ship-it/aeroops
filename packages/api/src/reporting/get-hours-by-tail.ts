@@ -37,6 +37,7 @@ import { ValidationError } from '../scheduling/internal.js';
 import { resolveReportRange } from './internal.js';
 import type { ReportRangeKey } from './internal.js';
 import type { AircraftUtilizationRow } from './get-aircraft-utilization.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
@@ -95,12 +96,12 @@ async function _impl(
       ORDER BY "flightHoursRaw" DESC, r.tail_number ASC
     `);
 
-    const rows = (queryResult.rows ?? queryResult) as Array<{
+    const rows = extractRows<{
       resourceId: string;
       tailNumber: string;
       flightCount: number | string;
       flightHoursRaw: number | string;
-    }>;
+    }>(queryResult);
 
     return rows.map((row) => {
       const flightHoursRaw = Number(row.flightHoursRaw ?? 0);

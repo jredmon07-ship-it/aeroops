@@ -32,6 +32,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { toDispatchTicketView } from './internal.js';
 import type { DispatchTicketView } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── UUID validation ──────────────────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ async function _getDispatchForReservationImpl(
       ORDER BY reservation_id, created_at DESC
     `);
 
-    const rows = (result.rows ?? result) as unknown as Array<{
+    const rows = extractRows<{
       id: string;
       orgId: string;
       reservationId: string;
@@ -126,7 +127,7 @@ async function _getDispatchForReservationImpl(
       closedAt: Date | string | null;
       createdAt: Date | string;
       updatedAt: Date | string;
-    }>;
+    }>(result);
 
     // Build map — one entry per input reservationId.
     const map = new Map<string, DispatchTicketView | null>();

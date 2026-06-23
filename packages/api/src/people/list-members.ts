@@ -25,6 +25,7 @@ import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import type { OrgMemberListRow } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 export interface ListMembersOptions {
   /** When true, include inactive members. Default: active-only. */
@@ -67,7 +68,7 @@ async function _listMembersImpl(
       ORDER BY u.full_name ASC NULLS LAST, u.email ASC
     `);
 
-    const rows = (result.rows ?? result) as Array<{
+    const rows = extractRows<{
       userId: string;
       fullName: string | null;
       email: string;
@@ -75,7 +76,7 @@ async function _listMembersImpl(
       status: string;
       role: string;
       tags: string[];
-    }>;
+    }>(result);
 
     return rows.map((r) => {
       const tags = Array.isArray(r.tags) ? r.tags : [];

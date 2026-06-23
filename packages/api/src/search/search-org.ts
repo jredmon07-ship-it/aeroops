@@ -56,6 +56,7 @@ import type {
   SearchOrgInput,
   SearchOrgResult,
 } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Zod schema ───────────────────────────────────────────────────────────────
 
@@ -131,13 +132,13 @@ async function _searchOrgImpl(
           lower(COALESCE(tail_number, display_name, '')) ASC
         LIMIT 5
       `);
-      const rows = (result.rows ?? result) as Array<{
+      const rows = extractRows<{
         id: string;
         tailNumber: string | null;
         displayName: string | null;
         make: string | null;
         model: string | null;
-      }>;
+      }>(result);
       const aircraftResults: SearchResult[] = rows.map((r) => {
         const primaryField = r.tailNumber ?? r.displayName ?? '';
         const makeModel = [r.make, r.model].filter(Boolean).join(' ') || null;
@@ -172,11 +173,11 @@ async function _searchOrgImpl(
           lower(COALESCE(u.full_name, u.email)) ASC
         LIMIT 5
       `);
-      const rows = (result.rows ?? result) as Array<{
+      const rows = extractRows<{
         userId: string;
         fullName: string | null;
         email: string;
-      }>;
+      }>(result);
       const memberResults: SearchResult[] = rows.map((r) => {
         const primary = r.fullName ?? r.email;
         const secondary = r.fullName ? r.email : null;
@@ -206,11 +207,11 @@ async function _searchOrgImpl(
           lower(title) ASC
         LIMIT 5
       `);
-      const rows = (result.rows ?? result) as Array<{
+      const rows = extractRows<{
         id: string;
         title: string;
         status: string;
-      }>;
+      }>(result);
       const woResults: SearchResult[] = rows.map((r) => ({
         id: r.id,
         primary: r.title,
@@ -237,12 +238,12 @@ async function _searchOrgImpl(
           lower(title) ASC
         LIMIT 5
       `);
-      const rows = (result.rows ?? result) as Array<{
+      const rows = extractRows<{
         id: string;
         title: string;
         severity: string;
         status: string;
-      }>;
+      }>(result);
       const squawkResults: SearchResult[] = rows.map((r) => ({
         id: r.id,
         primary: r.title,
@@ -268,11 +269,11 @@ async function _searchOrgImpl(
           lower(title) ASC
         LIMIT 5
       `);
-      const rows = (result.rows ?? result) as Array<{
+      const rows = extractRows<{
         id: string;
         title: string;
         status: string;
-      }>;
+      }>(result);
       const courseResults: SearchResult[] = rows.map((r) => ({
         id: r.id,
         primary: r.title,
@@ -299,11 +300,11 @@ async function _searchOrgImpl(
           start_at ASC
         LIMIT 5
       `);
-      const rows = (result.rows ?? result) as Array<{
+      const rows = extractRows<{
         id: string;
         startAt: Date | string;
         notes: string | null;
-      }>;
+      }>(result);
       const reservationResults: SearchResult[] = rows.map((r) => {
         const startDate = r.startAt instanceof Date ? r.startAt : new Date(r.startAt as string);
         // Format: "Jan 10, 2027 08:00 UTC" — unambiguous, human-readable.

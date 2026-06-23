@@ -31,6 +31,7 @@ import type {
   LessonProgressRow,
   LessonRecordView,
 } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── assembleCourseDetail ──────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ export async function assembleCourseDetail(
     LIMIT 1
   `);
 
-  const courseRows = (courseResult.rows ?? courseResult) as Array<{
+  const courseRows = extractRows<{
     courseId: string;
     title: string;
     description: string | null;
@@ -71,7 +72,7 @@ export async function assembleCourseDetail(
     createdBy: string;
     createdAt: Date | string;
     updatedAt: Date | string;
-  }>;
+  }>(courseResult);
 
   const courseRow = courseRows[0];
   if (!courseRow) return null;
@@ -92,7 +93,7 @@ export async function assembleCourseDetail(
     ORDER BY position ASC
   `);
 
-  const lessonRows = (lessonsResult.rows ?? lessonsResult) as Array<{
+  const lessonRows = extractRows<{
     lessonId: string;
     title: string;
     description: string | null;
@@ -100,7 +101,7 @@ export async function assembleCourseDetail(
     position: number;
     createdBy: string;
     createdAt: Date | string;
-  }>;
+  }>(lessonsResult);
 
   return {
     courseId:    courseRow.courseId,
@@ -169,7 +170,7 @@ export async function assembleEnrollmentDetail(
     LIMIT 1
   `);
 
-  const enrollRows = (enrollmentResult.rows ?? enrollmentResult) as Array<{
+  const enrollRows = extractRows<{
     enrollmentId: string;
     courseId: string;
     courseTitle: string;
@@ -179,7 +180,7 @@ export async function assembleEnrollmentDetail(
     enrolledBy: string;
     enrolledAt: Date | string;
     statusChangedAt: Date | string | null;
-  }>;
+  }>(enrollmentResult);
 
   const enroll = enrollRows[0];
   if (!enroll) return null;
@@ -204,13 +205,13 @@ export async function assembleEnrollmentDetail(
     ORDER BY cl.position ASC
   `);
 
-  const lessonRows = (lessonsResult.rows ?? lessonsResult) as Array<{
+  const lessonRows = extractRows<{
     lessonId: string;
     title: string;
     stageLabel: string | null;
     position: number | string;
     completed: boolean | string;
-  }>;
+  }>(lessonsResult);
 
   const lessonProgress: LessonProgressRow[] = lessonRows.map((l) => ({
     lessonId:   l.lessonId,
@@ -244,7 +245,7 @@ export async function assembleEnrollmentDetail(
     ORDER BY lr.created_at DESC
   `);
 
-  const recordRows = (recordsResult.rows ?? recordsResult) as Array<{
+  const recordRows = extractRows<{
     id: string;
     lessonId: string;
     instructorUserId: string;
@@ -258,7 +259,7 @@ export async function assembleEnrollmentDetail(
     voidedReason: string | null;
     voidedAt: Date | string | null;
     createdAt: Date | string;
-  }>;
+  }>(recordsResult);
 
   const records: LessonRecordView[] = recordRows.map((r) => ({
     id:               r.id,

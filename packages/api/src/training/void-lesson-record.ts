@@ -32,6 +32,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { VoidLessonRecordResult } from './types.js';
 import { assembleEnrollmentDetail } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -75,11 +76,11 @@ async function _voidLessonRecordImpl(
       WHERE id = ${input.recordId}::uuid
       LIMIT 1
     `);
-    const recordRows = (recordCheck.rows ?? recordCheck) as Array<{
+    const recordRows = extractRows<{
       id: string;
       status: string;
       enrollmentId: string;
-    }>;
+    }>(recordCheck);
     const record = recordRows[0];
     if (!record) return { ok: false, reason: 'not_found' };
 

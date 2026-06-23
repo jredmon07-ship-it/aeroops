@@ -26,6 +26,7 @@ import { squawk, aircraftGrounding, auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import type { AppSession } from '../auth/types.js';
 import type { SquawkView } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Grounding probe result ───────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export async function loadGroundingProbe(
     ORDER BY resource_id, created_at DESC, id DESC
   `);
 
-  const rows = (queryResult.rows ?? queryResult) as Array<{
+  const rows = extractRows<{
     eventId: string;
     resourceId: string;
     state: string;
@@ -106,7 +107,7 @@ export async function loadGroundingProbe(
     squawkId: string | null;
     groundedBy: string;
     since: Date | string;
-  }>;
+  }>(queryResult);
 
   for (const row of rows) {
     const isGrounded = row.state === 'grounded';

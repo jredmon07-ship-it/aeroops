@@ -47,6 +47,7 @@ import { resolveReportRange } from './internal.js';
 import type { ReportRangeKey } from './internal.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
 import type { MaintenanceTrendResult } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ async function _impl(
         AND reported_at < ${to}
     `);
     const squawksOpenedInRange = Number(
-      ((sqOpenedResult.rows ?? sqOpenedResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(sqOpenedResult)[0]?.count ?? 0,
     );
 
     // Query 2: squawks resolved in range (anchor: resolved_at; status='resolved').
@@ -94,7 +95,7 @@ async function _impl(
         AND resolved_at < ${to}
     `);
     const squawksResolvedInRange = Number(
-      ((sqResolvedResult.rows ?? sqResolvedResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(sqResolvedResult)[0]?.count ?? 0,
     );
 
     // Query 3: work orders opened in range (anchor: opened_at).
@@ -105,7 +106,7 @@ async function _impl(
         AND opened_at < ${to}
     `);
     const workOrdersOpenedInRange = Number(
-      ((woOpenedResult.rows ?? woOpenedResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(woOpenedResult)[0]?.count ?? 0,
     );
 
     // Query 4: work orders completed in range (anchor: signed_off_at; status='completed').
@@ -117,7 +118,7 @@ async function _impl(
         AND signed_off_at < ${to}
     `);
     const workOrdersCompletedInRange = Number(
-      ((woCompletedResult.rows ?? woCompletedResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(woCompletedResult)[0]?.count ?? 0,
     );
 
     // Query 5: open squawk snapshot (point-in-time).
@@ -127,7 +128,7 @@ async function _impl(
       WHERE status = 'open'
     `);
     const openSquawkCount = Number(
-      ((sqOpenCountResult.rows ?? sqOpenCountResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(sqOpenCountResult)[0]?.count ?? 0,
     );
 
     // Query 6: grounded aircraft count via loadGroundingProbe (EXACT dashboard reuse).
@@ -138,7 +139,7 @@ async function _impl(
       WHERE kind = 'aircraft'
         AND active = true
     `);
-    const aircraftRows = (aircraftResult.rows ?? aircraftResult) as Array<{ id: string }>;
+    const aircraftRows = extractRows<{ id: string }>(aircraftResult);
     const activeAircraftIds = aircraftRows.map((r) => r.id);
 
     // Step 6b: probe grounding state for each id (same probe as openDispatch + dashboard).

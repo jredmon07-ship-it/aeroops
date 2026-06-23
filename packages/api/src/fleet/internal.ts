@@ -24,6 +24,7 @@ import type { UpcomingReservationRow, AircraftDetail } from './types.js';
 import type { DispatchTicketView } from '../dispatch/types.js';
 import { toDispatchTicketView } from '../dispatch/internal.js';
 import { loadGroundingProbe, toSquawkView, toWorkOrderView } from '../maintenance/internal.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── loadUpcomingReservations ─────────────────────────────────────────────────
 
@@ -55,12 +56,12 @@ export async function loadUpcomingReservations(
     LIMIT 10
   `);
 
-  const rows = (result.rows ?? result) as Array<{
+  const rows = extractRows<{
     id: string;
     startAt: Date | string;
     endAt: Date | string;
     seriesId: string | null;
-  }>;
+  }>(result);
 
   return rows.map((row) => ({
     id: row.id,
@@ -109,7 +110,7 @@ export async function loadRecentDispatch(
     LIMIT ${limit}
   `);
 
-  const rows = (result.rows ?? result) as Array<{
+  const rows = extractRows<{
     id: string;
     orgId: string;
     reservationId: string;
@@ -128,7 +129,7 @@ export async function loadRecentDispatch(
     closedAt: Date | string | null;
     createdAt: Date | string;
     updatedAt: Date | string;
-  }>;
+  }>(result);
 
   return rows.map(toDispatchTicketView);
 }
@@ -163,11 +164,11 @@ export async function loadCurrentMeters(
     LIMIT 1
   `);
 
-  const rows = (result.rows ?? result) as Array<{
+  const rows = extractRows<{
     hobbsIn: string | number | null;
     tachIn: string | number | null;
     closedAt: Date | string | null;
-  }>;
+  }>(result);
 
   const row = rows[0];
   if (!row || row.hobbsIn == null) {
@@ -235,7 +236,7 @@ export async function assembleAircraftDetail(
     LIMIT 1
   `);
 
-  const identityRows = (identityResult.rows ?? identityResult) as Array<{
+  const identityRows = extractRows<{
     id: string;
     tailNumber: string | null;
     displayName: string;
@@ -250,7 +251,7 @@ export async function assembleAircraftDetail(
     homeBaseLocationId: string | null;
     homeBaseName: string | null;
     homeBaseIcao: string | null;
-  }>;
+  }>(identityResult);
 
   const identityRow = identityRows[0];
 
@@ -277,9 +278,9 @@ export async function assembleAircraftDetail(
     WHERE resource_id = ${resourceId}::uuid
       AND status = 'open'
   `);
-  const squawkCountRows = (squawkCountResult.rows ?? squawkCountResult) as Array<{
+  const squawkCountRows = extractRows<{
     count: number | string;
-  }>;
+  }>(squawkCountResult);
   const openSquawkCount = squawkCountRows[0]
     ? (typeof squawkCountRows[0].count === 'string'
         ? parseInt(squawkCountRows[0].count, 10)
@@ -306,7 +307,7 @@ export async function assembleAircraftDetail(
     ORDER BY reported_at DESC
     LIMIT 10
   `);
-  const squawkRows = (squawkResult.rows ?? squawkResult) as Array<{
+  const squawkRows = extractRows<{
     id: string;
     resourceId: string;
     dispatchTicketId: string | null;
@@ -319,7 +320,7 @@ export async function assembleAircraftDetail(
     resolutionNotes: string | null;
     resolvedBy: string | null;
     resolvedAt: Date | string | null;
-  }>;
+  }>(squawkResult);
   const recentSquawks = squawkRows.map(toSquawkView);
 
   // Recent dispatch ≤10 (incl. voided).
@@ -358,7 +359,7 @@ export async function assembleAircraftDetail(
     ORDER BY created_at DESC
     LIMIT 10
   `);
-  const woRows = (woResult.rows ?? woResult) as Array<{
+  const woRows = extractRows<{
     id: string;
     orgId: string;
     resourceId: string;
@@ -376,7 +377,7 @@ export async function assembleAircraftDetail(
     cancelledAt: Date | string | null;
     createdAt: Date | string;
     updatedAt: Date | string;
-  }>;
+  }>(woResult);
   const openWorkOrders = woRows.map(toWorkOrderView);
 
   const homeBase = identityRow.homeBaseLocationId

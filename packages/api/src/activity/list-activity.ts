@@ -35,6 +35,7 @@ import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
+import { extractRows } from '../db-rows.js';
 import type { AppSession } from '../auth/types.js';
 import { summarizeAuditEntry, activityPath } from '@aeroops/core';
 import type { ActivityEntry, ActivityCursor, ListActivityResult, ListActivityOptions } from './types.js';
@@ -122,7 +123,7 @@ async function _listActivityImpl(
         ORDER BY al.created_at DESC, al.id DESC
         LIMIT ${limit + 1}
       `);
-      rows = (result.rows ?? result) as AuditActivityRow[];
+      rows = extractRows<AuditActivityRow>(result);
     } else {
       const result = await tx.execute(sql`
         SELECT
@@ -140,7 +141,7 @@ async function _listActivityImpl(
         ORDER BY al.created_at DESC, al.id DESC
         LIMIT ${limit + 1}
       `);
-      rows = (result.rows ?? result) as AuditActivityRow[];
+      rows = extractRows<AuditActivityRow>(result);
     }
 
     // 5. Detect next page: if we got limit+1 rows, there is more data.

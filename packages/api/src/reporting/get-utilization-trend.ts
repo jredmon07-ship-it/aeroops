@@ -40,6 +40,7 @@ import {
 } from './internal.js';
 import type { ReportRangeKey, BucketGranularity } from './internal.js';
 import type { UtilizationTrendResult } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
@@ -88,11 +89,11 @@ async function _impl(
       ORDER BY 1
     `);
 
-    const dbRows = (queryResult.rows ?? queryResult) as Array<{
+    const dbRows = extractRows<{
       bucketStart: Date | string;
       flightCount: number | string;
       flightHoursRaw: number | string;
-    }>;
+    }>(queryResult);
 
     // Build a map from bucket ISO string → aggregates for O(1) merge.
     const dbMap = new Map<string, { flightCount: number; flightHoursRaw: number }>();

@@ -26,6 +26,7 @@ import type {
   ListWorkOrdersResult,
   GetWorkOrderDetailResult,
 } from './work-order-types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── UUID validation ──────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ async function _listWorkOrdersImpl(
       LIMIT 50
     `);
 
-    const rows = (result.rows ?? result) as Array<{
+    const rows = extractRows<{
       id: string;
       orgId: string;
       resourceId: string;
@@ -111,7 +112,7 @@ async function _listWorkOrdersImpl(
       cancelledAt: Date | string | null;
       createdAt: Date | string;
       updatedAt: Date | string;
-    }>;
+    }>(result);
 
     return { ok: true, workOrders: rows.map(toWorkOrderView) };
   });
@@ -183,7 +184,7 @@ async function _getWorkOrderDetailImpl(
       LIMIT 1
     `);
 
-    const woRows = (woResult.rows ?? woResult) as Array<{
+    const woRows = extractRows<{
       id: string;
       orgId: string;
       resourceId: string;
@@ -201,7 +202,7 @@ async function _getWorkOrderDetailImpl(
       cancelledAt: Date | string | null;
       createdAt: Date | string;
       updatedAt: Date | string;
-    }>;
+    }>(woResult);
 
     const woRow = woRows[0];
     if (!woRow) {
@@ -232,7 +233,7 @@ async function _getWorkOrderDetailImpl(
         LIMIT 1
       `);
 
-      const sqRows = (sqResult.rows ?? sqResult) as Array<{
+      const sqRows = extractRows<{
         id: string;
         resourceId: string;
         dispatchTicketId: string | null;
@@ -245,7 +246,7 @@ async function _getWorkOrderDetailImpl(
         resolutionNotes: string | null;
         resolvedBy: string | null;
         resolvedAt: Date | string | null;
-      }>;
+      }>(sqResult);
 
       if (sqRows[0]) {
         squawkView = toSquawkView(sqRows[0]);

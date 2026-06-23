@@ -25,6 +25,7 @@ import { sql } from 'drizzle-orm';
 import type { AnyDb } from '@aeroops/db';
 import { loadGroundingProbe } from '../maintenance/internal.js';
 import type { MyAlert } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -121,12 +122,12 @@ export async function deriveMyAlerts(
     ORDER BY lower(rr.during) ASC
   `);
 
-  const qRows = (qResult.rows ?? qResult) as Array<{
+  const qRows = extractRows<{
     reservationId: string;
     startAt: Date | string;
     resourceId: string;
     resourceLabel: string;
-  }>;
+  }>(qResult);
 
   // Collapse multi-resource rows into per-reservation buckets.
   const byReservation = new Map<string, UpcomingReservationRaw>();

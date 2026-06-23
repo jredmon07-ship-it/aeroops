@@ -38,6 +38,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { RecordLessonResult } from './types.js';
 import { assembleEnrollmentDetail } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -96,11 +97,11 @@ async function _recordLessonImpl(
       WHERE id = ${input.enrollmentId}::uuid
       LIMIT 1
     `);
-    const enrollRows = (enrollCheck.rows ?? enrollCheck) as Array<{
+    const enrollRows = extractRows<{
       id: string;
       status: string;
       courseId: string;
-    }>;
+    }>(enrollCheck);
     const enroll = enrollRows[0];
 
     // not_found (invisible/cross-org) vs enrollment_not_active (visible, non-active).
@@ -114,7 +115,7 @@ async function _recordLessonImpl(
         AND course_id = ${enroll.courseId}::uuid
       LIMIT 1
     `);
-    const lessonRows = (lessonCheck.rows ?? lessonCheck) as Array<{ id: string }>;
+    const lessonRows = extractRows<{ id: string }>(lessonCheck);
     if (lessonRows.length === 0) return { ok: false, reason: 'lesson_not_in_course' };
 
     // 5. Pre-check: instructor visible in org.
@@ -123,7 +124,7 @@ async function _recordLessonImpl(
       WHERE user_id = ${input.instructorUserId}::uuid
       LIMIT 1
     `);
-    const instrRows = (instrCheck.rows ?? instrCheck) as Array<{ user_id: string }>;
+    const instrRows = extractRows<{ user_id: string }>(instrCheck);
     if (instrRows.length === 0) return { ok: false, reason: 'not_found' };
 
     // 6. INSERT lesson_record (WRITE-ONCE; no UPDATE path for content fields).

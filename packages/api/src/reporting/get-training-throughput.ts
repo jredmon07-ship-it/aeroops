@@ -41,6 +41,7 @@ import { ValidationError } from '../scheduling/internal.js';
 import { resolveReportRange } from './internal.js';
 import type { ReportRangeKey } from './internal.js';
 import type { TrainingThroughputResult } from './types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ async function _impl(
         AND enrolled_at < ${to}
     `);
     const enrollmentsCreatedInRange = Number(
-      ((createdResult.rows ?? createdResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(createdResult)[0]?.count ?? 0,
     );
 
     // Query 2: enrollments completed in range (anchor: status_changed_at).
@@ -89,7 +90,7 @@ async function _impl(
         AND status_changed_at < ${to}
     `);
     const enrollmentsCompletedInRange = Number(
-      ((completedResult.rows ?? completedResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(completedResult)[0]?.count ?? 0,
     );
 
     // Query 3: lessons recorded in range (anchor: completed_at).
@@ -102,7 +103,7 @@ async function _impl(
         AND completed_at < ${to}
     `);
     const lessonsRecordedInRange = Number(
-      ((lessonsResult.rows ?? lessonsResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(lessonsResult)[0]?.count ?? 0,
     );
 
     // Query 4: active enrollment snapshot (point-in-time, no range filter).
@@ -112,7 +113,7 @@ async function _impl(
       WHERE status = 'active'
     `);
     const activeEnrollmentCount = Number(
-      ((activeResult.rows ?? activeResult) as Array<{ count: number | string }>)[0]?.count ?? 0,
+      extractRows<{ count: number | string }>(activeResult)[0]?.count ?? 0,
     );
 
     return {

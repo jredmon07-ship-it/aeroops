@@ -27,6 +27,7 @@ import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Exported input / result types ───────────────────────────────────────────
 
@@ -126,10 +127,10 @@ async function _listReservationsImpl(
       `,
     );
 
-    const rawJoinRows = (joinRows.rows ?? joinRows) as Array<{
+    const rawJoinRows = extractRows<{
       reservation_id: string;
       resource_id: string;
-    }>;
+    }>(joinRows);
 
     // 3. Build a map from reservation_id → resource_id[].
     const resourceIdsByReservation = new Map<string, string[]>();

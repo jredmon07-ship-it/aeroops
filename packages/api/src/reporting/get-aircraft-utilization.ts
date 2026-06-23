@@ -33,6 +33,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { resolveRange } from './internal.js';
 import type { RangeKey } from './internal.js';
+import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
@@ -107,12 +108,12 @@ async function _getAircraftUtilizationImpl(
       ORDER BY "flightHoursRaw" DESC, r.tail_number ASC
     `);
 
-    const rows = (queryResult.rows ?? queryResult) as Array<{
+    const rows = extractRows<{
       resourceId: string;
       tailNumber: string;
       flightCount: number | string;
       flightHoursRaw: number | string;
-    }>;
+    }>(queryResult);
 
     return rows.map((row) => {
       const flightHoursRaw = Number(row.flightHoursRaw ?? 0);
