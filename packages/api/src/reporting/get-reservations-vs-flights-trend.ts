@@ -72,6 +72,10 @@ async function _impl(
   // 3. Resolve window + granularity.
   const now = new Date();
   const { from, to } = resolveReportRange(rangeKey, now);
+  // In raw sql`` templates, from/to are bound as ISO strings with an explicit
+  // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
+  // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
+  // while PGlite (tests + local demo) can — so tests never catch a raw Date.
   const granularity: BucketGranularity = chooseGranularity(rangeKey);
   const unit = granularity === 'day' ? 'day' : 'week';
 
@@ -83,8 +87,8 @@ async function _impl(
         date_trunc(${unit}, created_at AT TIME ZONE 'UTC') AS "bucketStart",
         COUNT(*)::int AS "reservationsCreated"
       FROM reservation
-      WHERE created_at >= ${from}
-        AND created_at < ${to}
+      WHERE created_at >= ${from.toISOString()}::timestamptz
+        AND created_at < ${to.toISOString()}::timestamptz
       GROUP BY 1
       ORDER BY 1
     `);
@@ -102,8 +106,8 @@ async function _impl(
         COUNT(*)::int AS "flightsClosed"
       FROM dispatch_ticket
       WHERE status = 'closed'
-        AND closed_at >= ${from}
-        AND closed_at < ${to}
+        AND closed_at >= ${from.toISOString()}::timestamptz
+        AND closed_at < ${to.toISOString()}::timestamptz
       GROUP BY 1
       ORDER BY 1
     `);

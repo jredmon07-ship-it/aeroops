@@ -73,14 +73,18 @@ async function _impl(
   // 3. Resolve UTC window.
   const now = new Date();
   const { from, to } = resolveReportRange(rangeKey, now);
+  // In raw sql`` templates, from/to are bound as ISO strings with an explicit
+  // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
+  // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
+  // while PGlite (tests + local demo) can — so tests never catch a raw Date.
 
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     // Query 1: squawks opened in range (anchor: reported_at).
     const sqOpenedResult = await tx.execute(sql`
       SELECT COUNT(*)::int AS "count"
       FROM squawk
-      WHERE reported_at >= ${from}
-        AND reported_at < ${to}
+      WHERE reported_at >= ${from.toISOString()}::timestamptz
+        AND reported_at < ${to.toISOString()}::timestamptz
     `);
     const squawksOpenedInRange = Number(
       extractRows<{ count: number | string }>(sqOpenedResult)[0]?.count ?? 0,
@@ -91,8 +95,8 @@ async function _impl(
       SELECT COUNT(*)::int AS "count"
       FROM squawk
       WHERE status = 'resolved'
-        AND resolved_at >= ${from}
-        AND resolved_at < ${to}
+        AND resolved_at >= ${from.toISOString()}::timestamptz
+        AND resolved_at < ${to.toISOString()}::timestamptz
     `);
     const squawksResolvedInRange = Number(
       extractRows<{ count: number | string }>(sqResolvedResult)[0]?.count ?? 0,
@@ -102,8 +106,8 @@ async function _impl(
     const woOpenedResult = await tx.execute(sql`
       SELECT COUNT(*)::int AS "count"
       FROM work_order
-      WHERE opened_at >= ${from}
-        AND opened_at < ${to}
+      WHERE opened_at >= ${from.toISOString()}::timestamptz
+        AND opened_at < ${to.toISOString()}::timestamptz
     `);
     const workOrdersOpenedInRange = Number(
       extractRows<{ count: number | string }>(woOpenedResult)[0]?.count ?? 0,
@@ -114,8 +118,8 @@ async function _impl(
       SELECT COUNT(*)::int AS "count"
       FROM work_order
       WHERE status = 'completed'
-        AND signed_off_at >= ${from}
-        AND signed_off_at < ${to}
+        AND signed_off_at >= ${from.toISOString()}::timestamptz
+        AND signed_off_at < ${to.toISOString()}::timestamptz
     `);
     const workOrdersCompletedInRange = Number(
       extractRows<{ count: number | string }>(woCompletedResult)[0]?.count ?? 0,

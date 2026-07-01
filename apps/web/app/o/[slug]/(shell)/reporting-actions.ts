@@ -52,6 +52,17 @@ function mapAuthError(err: unknown): AuthErrorResult | null {
   return null;
 }
 
+/**
+ * Log an unexpected (non-auth, non-validation) action failure before mapping it
+ * to the generic { error: 'server' } result. Without this, infrastructure
+ * errors are swallowed silently and the dashboard just shows "try again" with
+ * nothing in the server logs to diagnose.
+ */
+function logServerError(action: string, err: unknown): void {
+  // eslint-disable-next-line no-console
+  console.error(`[reporting-actions] ${action} failed:`, err);
+}
+
 function isValidationError(err: unknown): err is { message: string; code: string } {
   return (
     typeof err === 'object' &&
@@ -165,6 +176,7 @@ export async function getDashboardMetricsAction(input?: {
     if (isValidationError(err)) {
       return { error: 'validation', message: err.message };
     }
+    logServerError('getDashboardMetricsAction', err);
     return { error: 'server' };
   }
 }
@@ -190,6 +202,7 @@ export async function getAircraftUtilizationAction(input?: {
     if (isValidationError(err)) {
       return { error: 'validation', message: err.message };
     }
+    logServerError('getAircraftUtilizationAction', err);
     return { error: 'server' };
   }
 }
@@ -218,6 +231,7 @@ export async function getTodaysFlightsAction(): Promise<GetTodaysFlightsActionRe
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    logServerError('getTodaysFlightsAction', err);
     return { error: 'server' };
   }
 }
@@ -238,6 +252,7 @@ export async function getGroundedAircraftAction(): Promise<GetGroundedAircraftAc
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    logServerError('getGroundedAircraftAction', err);
     return { error: 'server' };
   }
 }
@@ -257,6 +272,7 @@ export async function getOpenSquawksAction(): Promise<GetOpenSquawksActionResult
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    logServerError('getOpenSquawksAction', err);
     return { error: 'server' };
   }
 }

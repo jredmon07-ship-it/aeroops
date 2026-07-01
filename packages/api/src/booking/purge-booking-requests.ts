@@ -46,6 +46,7 @@ import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
+import { extractRows } from '../db-rows.js';
 import type { AppSession } from '../auth/types.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -162,7 +163,7 @@ export async function purgeExpiredBookingRequestsForOrg(
         WHERE created_at < now() - make_interval(days => ${retentionDays})
           AND status IN ${statusList}
       `);
-      const rows = countResult.rows as Array<{ eligible_count: string }>;
+      const rows = extractRows<{ eligible_count: string }>(countResult);
       const eligibleCount = Number(rows[0]?.eligible_count ?? 0);
 
       return {
@@ -182,14 +183,14 @@ export async function purgeExpiredBookingRequestsForOrg(
         AND status IN ${statusList}
       RETURNING id
     `);
-    const deletedRows = deleteResult.rows as Array<{ id: string }>;
+    const deletedRows = extractRows<{ id: string }>(deleteResult);
     const deletedCount = deletedRows.length;
 
     // 5. Compute cutoff ISO timestamp from DB clock for the audit row.
     const cutoffResult = await tx.execute(sql`
       SELECT (now() - make_interval(days => ${retentionDays}))::text AS cutoff_iso
     `);
-    const cutoffRows = cutoffResult.rows as Array<{ cutoff_iso: string }>;
+    const cutoffRows = extractRows<{ cutoff_iso: string }>(cutoffResult);
     const cutoffIso = cutoffRows[0]?.cutoff_iso ?? new Date().toISOString();
 
     // 6. ONE audit_log row — COUNTS ONLY, never requester PII.
@@ -260,7 +261,7 @@ async function _purgeExpiredBookingRequestsImpl(
         WHERE created_at < now() - make_interval(days => ${retentionDays})
           AND status IN ${statusList}
       `);
-      const rows = countResult.rows as Array<{ eligible_count: string }>;
+      const rows = extractRows<{ eligible_count: string }>(countResult);
       const eligibleCount = Number(rows[0]?.eligible_count ?? 0);
 
       return {
@@ -280,14 +281,14 @@ async function _purgeExpiredBookingRequestsImpl(
         AND status IN ${statusList}
       RETURNING id
     `);
-    const deletedRows = deleteResult.rows as Array<{ id: string }>;
+    const deletedRows = extractRows<{ id: string }>(deleteResult);
     const deletedCount = deletedRows.length;
 
     // 7. Compute cutoff ISO timestamp from DB clock.
     const cutoffResult = await tx.execute(sql`
       SELECT (now() - make_interval(days => ${retentionDays}))::text AS cutoff_iso
     `);
-    const cutoffRows = cutoffResult.rows as Array<{ cutoff_iso: string }>;
+    const cutoffRows = extractRows<{ cutoff_iso: string }>(cutoffResult);
     const cutoffIso = cutoffRows[0]?.cutoff_iso ?? new Date().toISOString();
 
     // 8. ONE audit_log row — COUNTS ONLY, NEVER requester PII.

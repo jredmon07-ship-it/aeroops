@@ -67,14 +67,18 @@ async function _impl(
   // 3. Resolve UTC window.
   const now = new Date();
   const { from, to } = resolveReportRange(rangeKey, now);
+  // In raw sql`` templates, from/to are bound as ISO strings with an explicit
+  // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
+  // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
+  // while PGlite (tests + local demo) can — so tests never catch a raw Date.
 
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     // Query 1: enrollments created in range (anchor: enrolled_at).
     const createdResult = await tx.execute(sql`
       SELECT COUNT(*)::int AS "count"
       FROM enrollment
-      WHERE enrolled_at >= ${from}
-        AND enrolled_at < ${to}
+      WHERE enrolled_at >= ${from.toISOString()}::timestamptz
+        AND enrolled_at < ${to.toISOString()}::timestamptz
     `);
     const enrollmentsCreatedInRange = Number(
       extractRows<{ count: number | string }>(createdResult)[0]?.count ?? 0,
@@ -86,8 +90,8 @@ async function _impl(
       SELECT COUNT(*)::int AS "count"
       FROM enrollment
       WHERE status = 'completed'
-        AND status_changed_at >= ${from}
-        AND status_changed_at < ${to}
+        AND status_changed_at >= ${from.toISOString()}::timestamptz
+        AND status_changed_at < ${to.toISOString()}::timestamptz
     `);
     const enrollmentsCompletedInRange = Number(
       extractRows<{ count: number | string }>(completedResult)[0]?.count ?? 0,
@@ -99,8 +103,8 @@ async function _impl(
       SELECT COUNT(*)::int AS "count"
       FROM lesson_record
       WHERE status = 'recorded'
-        AND completed_at >= ${from}
-        AND completed_at < ${to}
+        AND completed_at >= ${from.toISOString()}::timestamptz
+        AND completed_at < ${to.toISOString()}::timestamptz
     `);
     const lessonsRecordedInRange = Number(
       extractRows<{ count: number | string }>(lessonsResult)[0]?.count ?? 0,

@@ -65,6 +65,10 @@ async function _impl(
   // 3. Resolve rolling UTC window.
   const now = new Date();
   const { from, to } = resolveReportRange(rangeKey, now);
+  // In raw sql`` templates, from/to are bound as ISO strings with an explicit
+  // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
+  // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
+  // while PGlite (tests + local demo) can — so tests never catch a raw Date.
 
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     // ONE query: resource LEFT JOIN dispatch_ticket.
@@ -88,8 +92,8 @@ async function _impl(
       LEFT JOIN dispatch_ticket d
         ON  d.resource_id = r.id
         AND d.status = 'closed'
-        AND d.closed_at >= ${from}
-        AND d.closed_at < ${to}
+        AND d.closed_at >= ${from.toISOString()}::timestamptz
+        AND d.closed_at < ${to.toISOString()}::timestamptz
       WHERE r.kind = 'aircraft'
         AND r.active = true
       GROUP BY r.id, r.tail_number

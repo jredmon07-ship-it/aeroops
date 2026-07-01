@@ -44,6 +44,7 @@ import type { AnyDb } from '@aeroops/db';
 import { bookingRequestSchema } from '@aeroops/core';
 import { resolveOrgBySlug } from '../auth/resolve-org.js';
 import { getDb } from '../db.js';
+import { extractRows } from '../db-rows.js';
 import { getCaptchaVerifier } from './captcha.js';
 import type { CaptchaVerifier } from './captcha.js';
 
@@ -181,7 +182,7 @@ async function _submitImpl(
           AND created_at > now() - interval '1 minute'`,
     );
 
-    const rows = countResult.rows as Array<{ cnt: number }>;
+    const rows = extractRows<{ cnt: number }>(countResult);
     const recentCount = rows[0]?.cnt ?? 0;
 
     if (recentCount >= RATE_LIMIT_PER_ORG_PER_MIN) {

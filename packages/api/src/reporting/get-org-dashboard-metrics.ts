@@ -110,6 +110,10 @@ async function _getOrgDashboardMetricsImpl(
   // 3. Resolve the rolling UTC window.
   const now = new Date();
   const { from, to } = resolveRange(rangeKey, now);
+  // In raw sql`` templates, from/to are bound as ISO strings with an explicit
+  // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
+  // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
+  // while PGlite (tests + local demo) can — so tests never catch a raw Date.
 
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     // ── Query 1: flights + hours from closed dispatch tickets in range ────────
@@ -121,8 +125,8 @@ async function _getOrgDashboardMetricsImpl(
         COALESCE(SUM(flight_time_hours::numeric), 0)::numeric AS "totalFlightHoursRaw"
       FROM dispatch_ticket
       WHERE status = 'closed'
-        AND closed_at >= ${from}
-        AND closed_at < ${to}
+        AND closed_at >= ${from.toISOString()}::timestamptz
+        AND closed_at < ${to.toISOString()}::timestamptz
     `);
 
     const flightsRow = extractRows<{
@@ -142,8 +146,8 @@ async function _getOrgDashboardMetricsImpl(
       SELECT COUNT(*)::int AS "reservationsInRange"
       FROM reservation
       WHERE status <> 'cancelled'
-        AND start_at < ${to}
-        AND end_at > ${from}
+        AND start_at < ${to.toISOString()}::timestamptz
+        AND end_at > ${from.toISOString()}::timestamptz
     `);
 
     const resvRow = extractRows<{

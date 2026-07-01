@@ -119,7 +119,7 @@ async function _listActivityImpl(
           u.email                AS "actorEmail"
         FROM audit_log al
         LEFT JOIN app_user u ON u.id = al.actor_user_id
-        WHERE (al.created_at, al.id) < (${cursor.createdAt}::timestamptz, ${cursor.id}::uuid)
+        WHERE (al.created_at, al.id) < (${cursor.createdAt.toISOString()}::timestamptz, ${cursor.id}::uuid)
         ORDER BY al.created_at DESC, al.id DESC
         LIMIT ${limit + 1}
       `);
