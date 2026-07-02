@@ -92,6 +92,9 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0017_booking_retention.sql'),        'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0018_dispatch_ticket_correction.sql'),        'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0019_billing_records.sql'),        'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0020_demo_reset_state.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0021_qbo_integration.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../../db/migrations/0022_billing_ledger.sql'), 'utf-8'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────
@@ -552,7 +555,18 @@ describe('updateDispatchConfig', () => {
     }
   });
 
-  it('audit metadata does NOT contain any dollar value', async () => {
+  it('audit metadata carries NO Stripe/card/payment-processor concept (Slice B2 boundary)', async () => {
+    // [VERIFY-3c-MONEY] ORIGINALLY asserted dispatch_config's audit metadata
+    // carried zero money concept whatsoever. Slice B2 (ADR-0015) deliberately
+    // and reviewedly adds ONE operator-set integer-cents field —
+    // `minimumBalanceCents` — as DATA ONLY: it is consumed exclusively by
+    // `realBalanceSeam` (packages/api/src/billing/real-balance-seam.ts),
+    // which is NOT injected into openDispatch()'s app-code form (see
+    // open-dispatch.ts:338 — still hard-coded to stubBalanceSeam). This test
+    // now guards the NARROWER, still-load-bearing invariant: NO Stripe/
+    // payment-processor/raw-instrument concept ever appears here — no
+    // provider name, no card/bank/account data, no price/currency beyond the
+    // one reviewed integer-cents threshold field.
     const { db, orgBId, userBId } = sharedEnv;
     const sess = makeSession(orgBId, userBId, 'owner');
 
@@ -568,8 +582,12 @@ describe('updateDispatchConfig', () => {
 
     expect(rows.length).toBeGreaterThan(0);
     const meta = JSON.stringify(rows[rows.length - 1]!.metadata);
-    // No dollar/money/amount/minimum/stripe fields
-    expect(meta).not.toMatch(/dollar|amount|minimum|stripe|balance_minimum|price/i);
+    // No Stripe/card/bank/payment-processor concept, no dollar/price fields
+    // beyond the one reviewed minimumBalanceCents integer-cents field.
+    expect(meta).not.toMatch(/stripe|card|bank|pan|cvv|account_number|dollar|price/i);
+    // The reviewed field IS expected to be present (proves this test is not
+    // vacuously passing on an empty/malformed metadata blob).
+    expect(meta).toMatch(/minimumBalanceCents/);
   });
 
   it('invalid eligibilityMode value → ValidationError (thrown)', async () => {

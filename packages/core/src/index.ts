@@ -210,6 +210,17 @@ export {
 } from './billing/invoice-math.js';
 export type { InvoiceLine, InvoiceTotals } from './billing/invoice-math.js';
 
+// ─── Slice B2 — Pure ledger balance math (integer cents, no Stripe) ───────────
+// computeBalance: balance = Σ(credit amounts) − Σ(debit amounts). Order-
+//   independent, deterministic, integer-closed. Does NOT clamp (a negative
+//   balance is a legitimate "member owes money" result).
+// PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
+// Property-tested (hard guardrail): P1..P10 in __tests__/ledger-math.test.ts.
+// [VERIFY-B2-MONEY]: consumed ONLY by packages/api/src/billing/real-balance-seam.ts,
+//   which is NOT injected into the FROZEN openDispatch() app-code path in this slice.
+export { computeBalance } from './billing/ledger-math.js';
+export type { LedgerEntryAmount } from './billing/ledger-math.js';
+
 // ─── Slice PB1.1 — Public booking-request submit schema (ADR-0013) ────────────
 // bookingRequestSchema: zod bounds for the unauthenticated public submit.
 //   name 1–120, email format ≤254 (lowercased/trimmed), phone? ≤40,

@@ -1090,6 +1090,53 @@ export type {
   VoidInvoiceResult,
 } from './billing/invoice-status-commands.js';
 
+// ─── Slice B2 — Billing ledger + balance (NO Stripe, gate stays OFF) ──────────
+// getMemberBalance / listLedgerEntries: billing:access. DERIVED balance —
+//   NO stored/cached balance column anywhere; computeBalance (@aeroops/core)
+//   is always run fresh over that member's ledger_entry rows.
+// recordManualPayment: billing:manage, audited. Posts ONE 'payment' credit
+//   ledger_entry (methodNote = free-text operator reference, e.g. "Check
+//   #1042" — NEVER a raw card/bank value). Makes the balance gate meaningful
+//   with ZERO Stripe.
+// finalizeInvoice (billing/invoice-status-commands.js, unchanged export)
+//   ADDITIVELY posts ONE 'invoice_finalized' debit ledger_entry in the SAME
+//   tx as the status transition — idempotent via a partial UNIQUE index
+//   (migration 0022).
+// makeRealBalanceSeam: a REAL (ledger-backed) BalanceSeam implementation —
+//   SAME interface as core's stubBalanceSeam. [VERIFY-B2-MONEY] HARD MONEY
+//   BOUNDARY: fully built + tested here, but NOT injected into
+//   openDispatch()'s app-code form in this slice — the FROZEN gate stays
+//   wired to stubBalanceSeam (packages/api/src/dispatch/open-dispatch.ts:338).
+//   dispatch_config.minimum_balance_cents (migration 0022, additive column)
+//   is DATA ONLY, consumed exclusively by this seam.
+// Migration 0022 staged + human-gated, NOT applied.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  getMemberBalance,
+  getMemberBalanceWithDb,
+  listLedgerEntries,
+  listLedgerEntriesWithDb,
+} from './billing/ledger-account.js';
+export type {
+  GetMemberBalanceResult,
+  LedgerEntryView,
+  LedgerEntryCursor,
+  ListLedgerEntriesOptions,
+  ListLedgerEntriesResult,
+} from './billing/ledger-account.js';
+
+export {
+  recordManualPayment,
+  recordManualPaymentWithDb,
+} from './billing/record-manual-payment.js';
+export type {
+  RecordManualPaymentInput,
+  RecordManualPaymentResult,
+} from './billing/record-manual-payment.js';
+
+export { makeRealBalanceSeam } from './billing/real-balance-seam.js';
+
 // ─── Slice QB1 — QuickBooks Online integration (bookkeeping EXPORT only) ───────
 // NOT a payment processor. NEVER moves money. Pushes EXISTING finalized B1
 // invoice records into the operator's own connected QBO company file, with
@@ -1209,3 +1256,86 @@ export type {
   ExportInvoiceToQboInput,
   ExportInvoiceToQboResult,
 } from './integrations/qbo/export-invoice.js';
+
+// ─── Slice B3-foundation — Stripe SEAM TO THE KEY BOUNDARY ─────────────────────
+// NO real Stripe call anywhere until STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET
+// are set (stub-when-unconfigured seam, exactly like the QBO + CAPTCHA seams).
+// Migration 0023 staged + human-gated, NOT applied. PCI SAQ-A: NEVER stores
+// raw card/bank data — only Stripe's own ids/amounts/status + Stripe-permitted
+// last4/brand display fields.
+//
+// Provider seam: getStripeClient() (integrations/stripe/client.ts) — stub
+//   when STRIPE_SECRET_KEY is unset (every call throws StripeNotConfiguredError;
+//   callers convert to a typed not_configured refusal), real fetch-based
+//   client (NO stripe npm package) otherwise.
+// verifyStripeSignature: PURE, unit/property-tested HMAC-SHA256 signature
+//   verification (integrations/stripe/webhook-verify.ts) — the ONLY place
+//   webhook signatures are computed.
+// createInvoicePaymentIntent: billing:manage, staff-initiated in this slice.
+//   ACH-FIRST (payment_method_types defaults ['us_bank_account','card']).
+//   Idempotent per invoice (a non-terminal-failure record blocks a second
+//   PaymentIntent). NEVER settles anything — only a verified webhook does.
+// getPaymentStatus: billing:access, READ-ONLY (reads OUR record; does NOT
+//   call Stripe — webhooks are the source of truth, ADR-0015).
+// handleStripeWebhookEvent: THE ONLY place a webhook is processed. Verifies
+//   signature → dedups on stripe_event.event_id (PRIMARY KEY, INSERT-first)
+//   → on payment_intent.succeeded, posts ONE 'payment' credit ledger_entry
+//   (createdBy=null, SYSTEM) + updates payment_intent_record + ONE audit row,
+//   all inside withOrgContext scoped to the org resolved via
+//   resolveOrgByStripePaymentIntentId (a sanctioned platform-admin read,
+//   mirrors auth/resolve-org.ts's resolveOrgBySlug exactly — org_id is NEVER
+//   taken from the unauthenticated webhook payload itself).
+// *WithDb forms / explicit `client` params are for test code only (inject a
+// pglite client + a fake StripeClient — tests never make a real HTTP call).
+
+export {
+  StubStripeClient,
+  RealStripeClient,
+  getStripeClient,
+  __resetStripeClientForTests,
+  StripeNotConfiguredError,
+  StripeProviderError,
+  StripeSignatureVerificationError,
+} from './integrations/stripe/client.js';
+export type {
+  StripeClient,
+  StripeCreateCustomerInput,
+  StripeCustomerResult,
+  StripePaymentMethodType,
+  StripeCreatePaymentIntentInput,
+  StripePaymentIntentResult,
+  StripeRetrievePaymentIntentResult,
+  StripeWebhookEvent,
+} from './integrations/stripe/client.js';
+
+export { verifyStripeSignature } from './integrations/stripe/webhook-verify.js';
+export type {
+  VerifyStripeSignatureResult,
+  VerifyStripeSignatureOptions,
+} from './integrations/stripe/webhook-verify.js';
+
+export { resolveOrgByStripePaymentIntentId } from './integrations/stripe/resolve-payment-intent.js';
+export type { ResolvedPaymentIntent } from './integrations/stripe/resolve-payment-intent.js';
+
+export {
+  createInvoicePaymentIntent,
+  createInvoicePaymentIntentWithDb,
+  DEFAULT_PAYMENT_METHOD_TYPES,
+} from './integrations/stripe/create-payment-intent.js';
+export type {
+  CreateInvoicePaymentIntentInput,
+  CreateInvoicePaymentIntentResult,
+} from './integrations/stripe/create-payment-intent.js';
+
+export {
+  getPaymentStatus,
+  getPaymentStatusWithDb,
+} from './integrations/stripe/get-payment-status.js';
+export type {
+  GetPaymentStatusInput,
+  GetPaymentStatusResult,
+  PaymentIntentRecordView,
+} from './integrations/stripe/get-payment-status.js';
+
+export { handleStripeWebhookEvent } from './integrations/stripe/handle-webhook-event.js';
+export type { HandleStripeWebhookResult } from './integrations/stripe/handle-webhook-event.js';

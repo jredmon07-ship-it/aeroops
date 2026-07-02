@@ -57,6 +57,16 @@
  *   The system computes NO FAA duty-time, rest-period, Part-117/135/121 determination.
  *   These are the times the operator has decided to make a resource available for
  *   scheduling — nothing more. Compliance confirms at QA.
+ *
+ * Balance minimum threshold (Slice B2, migration 0022):
+ *   minimum_balance_cents: operator-set integer-cents threshold. DATA ONLY —
+ *   consumed EXCLUSIVELY by packages/api/src/billing/real-balance-seam.ts
+ *   (realBalanceSeam), which is NOT injected into openDispatch()'s app-code
+ *   form in Slice B2/B3-foundation (the FROZEN gate keeps calling
+ *   stubBalanceSeam, always {ok:true}, regardless of this value or of
+ *   balance_check_enabled). Default 0. [VERIFY-B2-MONEY]: adding/reading this
+ *   column changes NO dispatch gate behaviour by itself — see migration 0022
+ *   header for the full boundary rationale.
  */
 import {
   pgTable,
@@ -118,6 +128,10 @@ export const dispatchConfig = pgTable(
     //   customer relationships; typically retained longer than speculative leads).
     // When true: the retention window also applies to 'converted' rows.
     bookingRequestRetentionIncludesConverted: boolean('booking_request_retention_includes_converted').notNull().default(false),
+
+    // Balance minimum threshold (Slice B2, migration 0022). DATA ONLY — see
+    // file-level comment. CHECK (minimum_balance_cents >= 0) in migration 0022.
+    minimumBalanceCents: integer('minimum_balance_cents').notNull().default(0),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

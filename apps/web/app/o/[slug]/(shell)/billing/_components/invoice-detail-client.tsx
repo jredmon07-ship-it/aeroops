@@ -19,7 +19,8 @@
 'use client';
 
 import * as React from 'react';
-import { CheckCircle2, XCircle, AlertCircle, UploadCloud } from 'lucide-react';
+import Link from 'next/link';
+import { CheckCircle2, XCircle, AlertCircle, UploadCloud, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -151,6 +152,13 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Invoice</h1>
           <p className="mt-1 text-sm text-slate-500 font-mono">{invoice.id}</p>
+          <Link
+            href={`/o/${slug}/billing/accounts/${invoice.memberUserId}`}
+            className="mt-1 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+          >
+            <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+            View member account
+          </Link>
         </div>
         <StatusBadge status={invoice.status} />
       </div>

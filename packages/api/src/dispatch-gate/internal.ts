@@ -58,6 +58,7 @@ export async function loadDispatchConfig(
       availabilityMode:              dispatchConfig.availabilityMode,
       bookingRequestRetentionDays:              dispatchConfig.bookingRequestRetentionDays,
       bookingRequestRetentionIncludesConverted: dispatchConfig.bookingRequestRetentionIncludesConverted,
+      minimumBalanceCents:                      dispatchConfig.minimumBalanceCents,
     })
     .from(dispatchConfig)
     .where(eq(dispatchConfig.orgId, orgId))
@@ -76,6 +77,7 @@ export async function loadDispatchConfig(
       availabilityMode:              'warn',
       bookingRequestRetentionDays:              365,
       bookingRequestRetentionIncludesConverted: false,
+      minimumBalanceCents:                      0,
     };
   }
 
@@ -89,6 +91,7 @@ export async function loadDispatchConfig(
     availabilityMode:              row.availabilityMode as 'block' | 'warn',
     bookingRequestRetentionDays:              row.bookingRequestRetentionDays,
     bookingRequestRetentionIncludesConverted: row.bookingRequestRetentionIncludesConverted,
+    minimumBalanceCents:                      row.minimumBalanceCents,
   };
 }
 

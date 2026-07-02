@@ -51,6 +51,9 @@ const updateConfigInputSchema = z.object({
   // Slice PB-LR.A — booking-request retention config (0=keep-forever, NOT delete-all).
   bookingRequestRetentionDays:              z.number().int().min(0).max(3650).optional(),
   bookingRequestRetentionIncludesConverted: z.boolean().optional(),
+  // Slice B2 — operator-set minimum ledger balance, INTEGER CENTS.
+  // [VERIFY-B2-MONEY]: DATA ONLY — see dispatch-gate/types.ts DispatchConfigView.
+  minimumBalanceCents: z.number().int().min(0).optional(),
 });
 
 export interface UpdateDispatchConfigInput {
@@ -63,6 +66,7 @@ export interface UpdateDispatchConfigInput {
   availabilityMode?:              'block' | 'warn';
   bookingRequestRetentionDays?:              number;
   bookingRequestRetentionIncludesConverted?: boolean;
+  minimumBalanceCents?: number;
 }
 
 // ─── getDispatchConfig ────────────────────────────────────────────────────────
@@ -129,6 +133,7 @@ async function _updateDispatchConfigImpl(
     const afterAvMode      = input.availabilityMode              !== undefined ? input.availabilityMode              : before.availabilityMode;
     const afterRetDays     = input.bookingRequestRetentionDays              !== undefined ? input.bookingRequestRetentionDays              : before.bookingRequestRetentionDays;
     const afterRetConverted = input.bookingRequestRetentionIncludesConverted !== undefined ? input.bookingRequestRetentionIncludesConverted : before.bookingRequestRetentionIncludesConverted;
+    const afterMinBalance  = input.minimumBalanceCents !== undefined ? input.minimumBalanceCents : before.minimumBalanceCents;
 
     const after: DispatchConfigView = {
       eligibilityMode:           afterMode,
@@ -140,6 +145,7 @@ async function _updateDispatchConfigImpl(
       availabilityMode:              afterAvMode,
       bookingRequestRetentionDays:              afterRetDays,
       bookingRequestRetentionIncludesConverted: afterRetConverted,
+      minimumBalanceCents:                      afterMinBalance,
     };
 
     // 5. No-op short-circuit: if nothing actually changes, write NOTHING — no
@@ -153,7 +159,8 @@ async function _updateDispatchConfigImpl(
       before.availabilityConstraintEnabled !== after.availabilityConstraintEnabled ||
       before.availabilityMode !== after.availabilityMode ||
       before.bookingRequestRetentionDays !== after.bookingRequestRetentionDays ||
-      before.bookingRequestRetentionIncludesConverted !== after.bookingRequestRetentionIncludesConverted;
+      before.bookingRequestRetentionIncludesConverted !== after.bookingRequestRetentionIncludesConverted ||
+      before.minimumBalanceCents !== after.minimumBalanceCents;
     if (!changed) {
       return { ok: true, config: after } as const;
     }
@@ -162,7 +169,7 @@ async function _updateDispatchConfigImpl(
     //    The DO UPDATE SET must include ALL columns because the excluded row may
     //    have the opposite partial-preserve. We set to the computed after-values.
     await tx.execute(sql`
-      INSERT INTO dispatch_config (org_id, eligibility_mode, balance_check_enabled, twilight_constraint_enabled, twilight_mode, twilight_exempt_tag, availability_constraint_enabled, availability_mode, booking_request_retention_days, booking_request_retention_includes_converted, created_at, updated_at)
+      INSERT INTO dispatch_config (org_id, eligibility_mode, balance_check_enabled, twilight_constraint_enabled, twilight_mode, twilight_exempt_tag, availability_constraint_enabled, availability_mode, booking_request_retention_days, booking_request_retention_includes_converted, minimum_balance_cents, created_at, updated_at)
       VALUES (
         ${sess.orgId}::uuid,
         ${afterMode},
@@ -174,6 +181,7 @@ async function _updateDispatchConfigImpl(
         ${afterAvMode},
         ${afterRetDays},
         ${afterRetConverted},
+        ${afterMinBalance},
         NOW(),
         NOW()
       )
@@ -187,6 +195,7 @@ async function _updateDispatchConfigImpl(
         availability_mode                            = EXCLUDED.availability_mode,
         booking_request_retention_days               = EXCLUDED.booking_request_retention_days,
         booking_request_retention_includes_converted = EXCLUDED.booking_request_retention_includes_converted,
+        minimum_balance_cents                        = EXCLUDED.minimum_balance_cents,
         updated_at                                   = NOW()
     `);
 
@@ -209,6 +218,7 @@ async function _updateDispatchConfigImpl(
           availabilityMode:              before.availabilityMode,
           bookingRequestRetentionDays:              before.bookingRequestRetentionDays,
           bookingRequestRetentionIncludesConverted: before.bookingRequestRetentionIncludesConverted,
+          minimumBalanceCents:                      before.minimumBalanceCents,
         },
         after: {
           eligibilityMode:           after.eligibilityMode,
@@ -220,6 +230,7 @@ async function _updateDispatchConfigImpl(
           availabilityMode:              after.availabilityMode,
           bookingRequestRetentionDays:              after.bookingRequestRetentionDays,
           bookingRequestRetentionIncludesConverted: after.bookingRequestRetentionIncludesConverted,
+          minimumBalanceCents:                      after.minimumBalanceCents,
         },
       },
     });

@@ -93,6 +93,15 @@ export interface DispatchConfigView {
    * window also applies to 'converted' rows. The linked reservation is NOT deleted.
    */
   bookingRequestRetentionIncludesConverted: boolean;
+  /**
+   * Operator-set minimum ledger balance, in INTEGER CENTS. Default 0.
+   * [VERIFY-B2-MONEY]: DATA ONLY in this slice. Consumed EXCLUSIVELY by
+   * packages/api/src/billing/real-balance-seam.ts (realBalanceSeam), which
+   * is NOT injected into openDispatch()'s app-code form — the FROZEN gate
+   * keeps calling stubBalanceSeam (always {ok:true}) regardless of this
+   * value or of balanceCheckEnabled. See migration 0022 + ADR-0015.
+   */
+  minimumBalanceCents: number;
 }
 
 // ─── getResourceRequiredTags result ───────────────────────────────────────────

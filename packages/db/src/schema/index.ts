@@ -345,3 +345,48 @@ export type { QboAccountMappingSelect, QboAccountMappingInsert } from './qbo-acc
 //   (AEROOPS_DEMO_OWNER_URL); the runtime aeroops_app role has no access.
 export { demoResetState } from './demo-reset-state.js';
 export type { DemoResetStateSelect, DemoResetStateInsert } from './demo-reset-state.js';
+
+// Billing ledger + balance — tenant-scoped (Slice B2 / migration 0022)
+// NO Stripe, NO card/bank data, NO money MOVED by this schema — records
+// money movements that already happened elsewhere (an operator's manual
+// acknowledgement, or later a verified Stripe webhook).
+//
+// billing_account: one ledger account per (org, member). Lazily created.
+//   UNIQUE (org_id, user_id). Holds NO balance column — always derived.
+// ledger_entry: APPEND-ONLY debit/credit history. SELECT + INSERT RLS only
+//   (mirrors dispatch_ticket_correction / qbo_export_log). amount_cents is
+//   always POSITIVE; `direction` carries the sign. Partial UNIQUE
+//   (org_id,invoice_id,entry_type) WHERE entry_type='invoice_finalized'
+//   (migration 0022 SQL only) is the idempotency backstop: one debit per
+//   invoice. [VERIFY-B2-MONEY]: dispatch_config.minimum_balance_cents
+//   (additive column, migration 0022) is consumed ONLY by realBalanceSeam —
+//   NOT injected into openDispatch()'s app-code form in this slice.
+export { billingAccount } from './billing-account.js';
+export type { BillingAccountSelect, BillingAccountInsert } from './billing-account.js';
+
+export { ledgerEntry } from './ledger-entry.js';
+export type { LedgerEntrySelect, LedgerEntryInsert } from './ledger-entry.js';
+
+// Stripe foundation — SEAM TO THE KEY BOUNDARY (Slice B3-foundation / migration
+// 0023). Schema only; the client (integrations/stripe/client.ts) resolves to a
+// stub that throws on every call until STRIPE_SECRET_KEY etc. are set. NEVER
+// stores raw card/bank data — PCI SAQ-A (Stripe Elements/hosted fields own the
+// raw instrument; only Stripe-permitted last4/brand DISPLAY fields + ids here).
+//
+// stripe_customer: one Stripe Customer id per (org, member). UNIQUE (org_id,user_id)
+//   + UNIQUE (stripe_customer_id) (Stripe ids are globally unique).
+// stripe_event: GLOBAL append-only webhook-event dedup ledger. PRIMARY KEY IS
+//   event_id (text) — the structural dedup mechanism (INSERT-or-conflict).
+//   org_id is NULLABLE (signature verification precedes org resolution).
+// payment_intent_record: our record of a Stripe PaymentIntent's lifecycle,
+//   linked to an invoice. amount_cents is our OWN recorded amount — never
+//   independently trusted for settlement; only a verified webhook event
+//   transitions status to 'succeeded'. UNIQUE (stripe_payment_intent_id).
+export { stripeCustomer } from './stripe-customer.js';
+export type { StripeCustomerSelect, StripeCustomerInsert } from './stripe-customer.js';
+
+export { stripeEvent } from './stripe-event.js';
+export type { StripeEventSelect, StripeEventInsert } from './stripe-event.js';
+
+export { paymentIntentRecord } from './payment-intent-record.js';
+export type { PaymentIntentRecordSelect, PaymentIntentRecordInsert } from './payment-intent-record.js';

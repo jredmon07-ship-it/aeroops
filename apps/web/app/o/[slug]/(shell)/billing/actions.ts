@@ -29,10 +29,13 @@ import {
   finalizeInvoice,
   voidInvoice,
   exportInvoiceToQbo,
+  getMemberBalance,
+  listLedgerEntries,
+  recordManualPayment,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
-import type { InvoiceStatus, ListInvoicesOptions } from '@aeroops/api';
+import type { InvoiceStatus, ListInvoicesOptions, LedgerEntryCursor } from '@aeroops/api';
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
 
@@ -208,6 +211,110 @@ export async function exportInvoiceToQboAction(
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── Slice B2 — Ledger / balance / manual payments ──────────────────────────
+// NO Stripe, NO card/bank data. Money = INTEGER CENTS. Read actions require
+// billing:access; recordManualPaymentAction requires billing:manage
+// (enforced inside the @aeroops/api command — this file never re-implements
+// authz).
+
+export type GetMemberBalanceActionResult =
+  | { ok: true; balanceCents: number; minimumBalanceCents: number }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function getMemberBalanceAction(memberUserId: string): Promise<GetMemberBalanceActionResult> {
+  const session = await auth();
+  try {
+    return await getMemberBalance(session, { memberUserId });
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export interface SerializedLedgerEntry {
+  id: string;
+  entryType: 'invoice_finalized' | 'payment' | 'credit_memo' | 'adjustment';
+  direction: 'debit' | 'credit';
+  amountCents: number;
+  invoiceId: string | null;
+  paymentId: string | null;
+  memo: string | null;
+  createdAt: string;
+}
+
+export type ListLedgerEntriesActionResult =
+  | { ok: true; entries: SerializedLedgerEntry[]; nextCursor?: LedgerEntryCursor }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function listLedgerEntriesAction(
+  memberUserId: string,
+  cursor?: LedgerEntryCursor,
+): Promise<ListLedgerEntriesActionResult> {
+  const session = await auth();
+  try {
+    const result = await listLedgerEntries(session, { memberUserId, cursor });
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      entries: result.entries.map((e) => ({
+        id: e.id,
+        entryType: e.entryType,
+        direction: e.direction,
+        amountCents: e.amountCents,
+        invoiceId: e.invoiceId,
+        paymentId: e.paymentId,
+        memo: e.memo,
+        createdAt: e.createdAt.toISOString(),
+      })),
+      ...(result.nextCursor ? { nextCursor: result.nextCursor } : {}),
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export type RecordManualPaymentActionResult =
+  | { ok: true; balanceCentsAfter: number }
+  | { ok: false; reason: 'member_not_found' }
+  | { error: 'validation'; message: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function recordManualPaymentAction(
+  memberUserId: string,
+  amountCents: number,
+  methodNote: string | undefined,
+  slug: string,
+): Promise<RecordManualPaymentActionResult> {
+  const session = await auth();
+  try {
+    const result = await recordManualPayment(session, { memberUserId, amountCents, methodNote });
+    if (!result.ok) return result;
+    revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
+    return { ok: true, balanceCentsAfter: result.balanceCentsAfter };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code: unknown }).code === 'VALIDATION' &&
+      err instanceof Error
+    ) {
+      return { error: 'validation', message: err.message };
+    }
     return { error: 'server' };
   }
 }
