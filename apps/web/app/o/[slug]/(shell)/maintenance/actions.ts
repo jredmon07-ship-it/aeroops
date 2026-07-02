@@ -24,6 +24,7 @@ import {
   updateSquawkStatus,
   listSquawks,
   getOpenSquawkCounts,
+  sendNotification,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -113,7 +114,20 @@ export async function groundAircraftAction(input: {
 }): Promise<GroundAircraftActionResult> {
   const session = await auth();
   try {
-    return await groundAircraft(session, input);
+    const result = await groundAircraft(session, input);
+    // Best-effort notification (Slice P1.3) — fires AFTER the grounding
+    // event is already committed. Keep-simple posture: notifies the staff
+    // member who performed the grounding (a confirmation record), not a
+    // broader operator notify-list (deferred — see
+    // docs/specs/slice-p1-notifications.md).
+    if (result.ok && session) {
+      await sendNotification(session, {
+        toUserId: session.userId,
+        eventType: 'aircraft.grounded',
+        templateData: { resourceId: input.resourceId, reason: input.reason },
+      }).catch(() => {});
+    }
+    return result;
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
@@ -194,7 +208,23 @@ export async function reportSquawkAction(input: {
 }): Promise<ReportSquawkActionResult> {
   const session = await auth();
   try {
-    return await reportSquawk(session, input);
+    const result = await reportSquawk(session, input);
+    // Best-effort notification (Slice P1.3) — fires AFTER the squawk row is
+    // already committed. Keep-simple posture: notifies the reporter (a
+    // confirmation record), not a broader operator notify-list (deferred —
+    // see docs/specs/slice-p1-notifications.md).
+    if (result.ok && session) {
+      await sendNotification(session, {
+        toUserId: session.userId,
+        eventType: 'squawk.reported',
+        templateData: {
+          resourceId: result.squawk.resourceId,
+          title: result.squawk.title,
+          severity: result.squawk.severity,
+        },
+      }).catch(() => {});
+    }
+    return result;
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

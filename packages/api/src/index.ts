@@ -1503,3 +1503,65 @@ export type {
   MemberBillingProfile,
   MemberBillingProfileDefaultPaymentMethod,
 } from './billing/get-member-billing-profile.js';
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice P1.3 — Email notifications
+//
+// Best-effort, never-throwing (mirrors demo/reset.ts's maybeResetDemoTenant).
+// sendNotification is the ONE function every hook calls; it resolves the
+// recipient + pref, renders a pure template, calls the provider seam (stub
+// when EMAIL_API_KEY/EMAIL_FROM unset — never a real HTTP call), and writes
+// exactly one notification_log row. NO SMS/push in this slice. Hooks live at
+// the WEB ACTION LAYER (apps/web) — see docs/specs/slice-p1-notifications.md.
+// ════════════════════════════════════════════════════════════════════════════════
+
+export {
+  getEmailProvider,
+  StubEmailProvider,
+  RealEmailProvider,
+  EmailProviderError,
+  __resetEmailProviderForTests,
+} from './notifications/email-provider.js';
+export type {
+  EmailProvider,
+  SendEmailInput,
+  SendEmailResult,
+} from './notifications/email-provider.js';
+
+export { renderNotificationTemplate } from './notifications/templates.js';
+
+export {
+  NOTIFICATION_EVENT_TYPES,
+  isNotificationEventType,
+} from './notifications/email-event-types.js';
+export type {
+  NotificationEventType,
+  NotificationTemplateDataMap,
+  RenderedEmail,
+  ReservationCreatedData,
+  SquawkReportedData,
+  AircraftGroundedData,
+  InvoiceFinalizedData,
+  PaymentFailedData,
+  DuesGeneratedData,
+} from './notifications/email-event-types.js';
+
+export {
+  sendNotification,
+  sendNotificationWithDb,
+} from './notifications/send-notification.js';
+export type {
+  SendNotificationInput,
+  SendNotificationResult,
+} from './notifications/send-notification.js';
+
+export {
+  getMyNotificationPrefs,
+  getMyNotificationPrefsWithDb,
+  setMyNotificationPref,
+  setMyNotificationPrefWithDb,
+} from './notifications/prefs.js';
+export type {
+  NotificationPrefView,
+  SetMyNotificationPrefResult,
+} from './notifications/prefs.js';

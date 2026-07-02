@@ -36,6 +36,7 @@ import {
   createDuesSchedule,
   setDuesScheduleActive,
   generateDuesInvoices,
+  sendNotification,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -166,6 +167,31 @@ export async function finalizeInvoiceAction(id: string, slug: string): Promise<F
     const result = await finalizeInvoice(session, { id });
     if (!result.ok) return { ok: false, reason: result.reason };
     revalidatePath(`/o/${slug}/billing/${id}`);
+
+    // Best-effort notifications (Slice P1.3) — fire AFTER finalize (and its
+    // own autopay attempt) have already committed/completed. sendNotification
+    // never throws; .catch here is defense-in-depth only.
+    if (session) {
+      await sendNotification(session, {
+        toUserId: result.invoice.memberUserId,
+        eventType: 'invoice.finalized',
+        templateData: { invoiceId: result.invoice.id, totalCents: result.invoice.totalCents },
+      }).catch(() => {});
+
+      // 'payment.failed' — this codebase has no async Stripe webhook 'failed'
+      // event (only *.succeeded is handled — see handle-webhook-event.ts); a
+      // synchronous off-session decline (StripeCardDeclinedError) is the
+      // actual payment-failure signal, surfaced here as autopay.outcome ===
+      // 'declined'. Functionally equivalent hook point for this event.
+      if (result.autopay?.outcome === 'declined') {
+        await sendNotification(session, {
+          toUserId: result.invoice.memberUserId,
+          eventType: 'payment.failed',
+          templateData: { invoiceId: result.invoice.id, amountCents: result.invoice.totalCents },
+        }).catch(() => {});
+      }
+    }
+
     return { ok: true, invoice: serializeInvoice(result.invoice) };
   } catch (err) {
     const authErr = mapAuthError(err);
@@ -424,6 +450,19 @@ export async function runDuesForPeriodAction(periodKey: string, slug: string): P
   try {
     const result = await generateDuesInvoices(session, { periodKey });
     revalidatePath(`/o/${slug}/billing`);
+
+    // Best-effort notifications (Slice P1.3) — one per newly-created dues
+    // invoice, fired AFTER the generate tx has already committed.
+    if (session) {
+      for (const created of result.created) {
+        await sendNotification(session, {
+          toUserId: created.userId,
+          eventType: 'dues.generated',
+          templateData: { invoiceId: created.invoiceId, periodKey, amountCents: created.amountCents },
+        }).catch(() => {});
+      }
+    }
+
     return { ok: true, createdCount: result.created.length, skippedCount: result.skipped.length };
   } catch (err) {
     const authErr = mapAuthError(err);

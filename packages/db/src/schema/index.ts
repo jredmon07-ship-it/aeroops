@@ -434,3 +434,17 @@ export type { DuesScheduleSelect, DuesScheduleInsert } from './dues-schedule.js'
 
 export { duesRun } from './dues-run.js';
 export type { DuesRunSelect, DuesRunInsert } from './dues-run.js';
+
+// Slice P1.3: Email notifications — tenant-scoped (migration 0026). NO SMS/
+// push in this slice (see docs/specs/slice-p1-notifications.md deferred
+// list). notification_log NEVER carries a rendered email body.
+//
+// notification_log: APPEND-ONLY audit of every send ATTEMPT (SELECT+INSERT
+//   RLS only, mirrors dues_run/ledger_entry/audit_log/stripe_event).
+// notification_pref: per-user per-event-type opt-out. Absence of a row
+//   means "enabled" — enforced in application code, not this schema.
+export { notificationLog } from './notification-log.js';
+export type { NotificationLogSelect, NotificationLogInsert } from './notification-log.js';
+
+export { notificationPref } from './notification-pref.js';
+export type { NotificationPrefSelect, NotificationPrefInsert } from './notification-pref.js';

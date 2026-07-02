@@ -42,6 +42,7 @@ import {
   getDispatchForReservation,
   listDispatchPilots,
   previewAvailability,
+  sendNotification,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -145,7 +146,23 @@ export async function createReservationAction(input: {
 }): Promise<CreateReservationActionResult> {
   const session = await auth();
   try {
-    return await createReservation(session, input);
+    const result = await createReservation(session, input);
+    // Best-effort notification (Slice P1.3) — fires AFTER the reservation is
+    // already committed. sendNotification never throws; the .catch here is
+    // defense-in-depth so a notification hiccup can never surface as a
+    // create-reservation failure.
+    if (result.ok && session) {
+      await sendNotification(session, {
+        toUserId: session.userId,
+        eventType: 'reservation.created',
+        templateData: {
+          startAt: result.reservation.startAt,
+          endAt: result.reservation.endAt,
+          resourceIds: result.reservation.resourceIds,
+        },
+      }).catch(() => {});
+    }
+    return result;
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

@@ -115,6 +115,16 @@ export default async function OrgShellLayout({
               userId={session.userId}
             />
 
+            {/* Notification email settings — every role holds app:access;
+                self-scoped page, intentionally kept out of the primary
+                sidebar (see notifications/page.tsx doc comment). */}
+            <Link
+              href={`/o/${slug}/notifications`}
+              className="hidden text-xs font-medium text-slate-500 hover:text-slate-800 sm:block"
+            >
+              Notifications
+            </Link>
+
             <Separator orientation="vertical" className="h-5" />
 
             <span className="hidden text-sm text-slate-500 sm:block">
