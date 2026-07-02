@@ -62,6 +62,15 @@ export type GenerateDuesInvoicesInput = z.infer<typeof generateDuesInvoicesInput
 export interface GenerateDuesInvoicesCreated {
   scheduleId: string;
   invoiceId: string;
+  /**
+   * Additive (Slice P1.3): the dues-payer's user id + the invoice amount,
+   * so the web action layer can fire a best-effort 'dues.generated'
+   * notification without needing its own DB read (apps/web never imports
+   * @aeroops/db). amountCents mirrors dues_schedule.amount_cents exactly —
+   * INTEGER CENTS, no float math.
+   */
+  userId: string;
+  amountCents: number;
 }
 
 export interface GenerateDuesInvoicesSkipped {
@@ -160,7 +169,12 @@ async function _generateDuesInvoicesImpl(
           return invoiceRow.id;
         });
 
-        created.push({ scheduleId: schedule.id, invoiceId: createdInvoiceId });
+        created.push({
+          scheduleId: schedule.id,
+          invoiceId: createdInvoiceId,
+          userId: schedule.userId,
+          amountCents: schedule.amountCents,
+        });
       } catch (err) {
         if (err instanceof DuesAlreadyRunError) {
           skipped.push({ scheduleId: schedule.id, reason: 'already_run' });
