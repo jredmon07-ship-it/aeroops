@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Expo / React Native parity app (iOS + Android). Slice 4M — secure login + read-only schedule.",
-  "main": "src/app/index.ts",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
@@ -13,10 +13,12 @@
     "test": "echo \"(mobile) no device tests in CI — see README for device gate\""
   },
   "dependencies": {
-    "@aeroops/core": "workspace:*",
+    "@aeroops/core": "file:../../packages/core",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
     "expo": "~51.0.28",
+    "expo-constants": "~16.0.2",
+    "expo-linking": "~6.3.1",
     "expo-router": "~3.5.23",
     "expo-secure-store": "~13.0.2",
     "expo-status-bar": "~1.12.1",

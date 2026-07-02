@@ -31,26 +31,27 @@ function RootNavigator(): React.ReactElement {
     );
   }
 
-  if (!token) {
-    // No token in keychain → redirect to login.
-    return <Redirect href="/login" />;
-  }
-
-  // Authenticated → the index route (schedule) is the home.
+  // The navigator must mount on the FIRST render — expo-router throws
+  // "Attempted to navigate before mounting the Root Layout" if a bare
+  // <Redirect> is returned instead of a navigator. So the Stack always
+  // renders; the unauthenticated redirect rides alongside it.
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: '#1d4ed8' },
-        headerTintColor: '#ffffff',
-        headerTitleStyle: { fontWeight: 'bold' },
-      }}
-    >
-      <Stack.Screen name="index" options={{ title: 'Schedule' }} />
-      <Stack.Screen
-        name="login"
-        options={{ title: 'Sign In', headerShown: false }}
-      />
-    </Stack>
+    <>
+      {!token ? <Redirect href="/login" /> : null}
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: '#1d4ed8' },
+          headerTintColor: '#ffffff',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      >
+        <Stack.Screen name="index" options={{ title: 'Schedule' }} />
+        <Stack.Screen
+          name="login"
+          options={{ title: 'Sign In', headerShown: false }}
+        />
+      </Stack>
+    </>
   );
 }
 
