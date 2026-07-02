@@ -448,3 +448,23 @@ export type { NotificationLogSelect, NotificationLogInsert } from './notificatio
 
 export { notificationPref } from './notification-pref.js';
 export type { NotificationPrefSelect, NotificationPrefInsert } from './notification-pref.js';
+
+// Slice P1.7: Flight Circle data importer — tenant-scoped (migration 0027).
+// Operator-provided CSV import of members + aircraft roster data ONLY. NO
+// ledger/financial-history import in this slice (see docs/specs/
+// slice-p1-fc-import.md deferred list). Members import as ROSTER ENTRIES
+// ONLY via the EXISTING addMember path; aircraft via the EXISTING
+// createResource + updateAircraft paths — no bespoke INSERT anywhere here.
+//
+// import_batch: one row per uploaded CSV file. STANDARD 4-policy mutable RLS
+//   (mirrors migration 0024) — status + counts are updated through the
+//   pending → previewed → committed|failed lifecycle.
+// import_row: one row per parsed CSV line, staged at preview time and
+//   updated in place at commit time (SELECT+INSERT+UPDATE RLS, NO DELETE —
+//   see migration 0027 file header for why this is NOT the fully-immutable
+//   append-only posture used by audit_log/ledger_entry/etc).
+export { importBatch } from './import-batch.js';
+export type { ImportBatchSelect, ImportBatchInsert } from './import-batch.js';
+
+export { importRow } from './import-row.js';
+export type { ImportRowSelect, ImportRowInsert } from './import-row.js';

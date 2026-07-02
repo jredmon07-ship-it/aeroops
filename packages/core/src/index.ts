@@ -231,3 +231,36 @@ export type { LedgerEntryAmount } from './billing/ledger-math.js';
 // org_id and slug are NEVER in this schema — derived server-side from the URL slug.
 export { bookingRequestSchema } from './booking/booking-request-schema.js';
 export type { BookingRequestInput } from './booking/booking-request-schema.js';
+
+// ─── Slice P1.7 — Flight Circle data importer (pure CSV + normalize layer) ────
+// parseCsv: dependency-free, RFC-4180-ish CSV parser. PURE, never throws —
+//   the first thing an operator-uploaded file touches must be robust to
+//   arbitrary bytes. No new dependency added (see csv.ts file header).
+// guessColumnMapping: best-effort header→field heuristic that pre-fills the
+//   operator's column-mapping confirmation step. NEVER assumes a provider's
+//   exact column headers are stable.
+// looksLikeSalesTransactionsExport: detects a Flight-Circle-style ledger/
+//   financial-history export so previewImport can mark it out-of-scope-for-
+//   commit (NO ledger/financial-history import in this slice).
+// normalizeMemberRow / normalizeAircraftRow: PURE row → typed candidate |
+//   skip-reason. dedupeKey = normalized email (members) / tail number
+//   (aircraft). NEVER throws on garbage input.
+// [VERIFY] no FAA/regulatory meaning attached to any imported field — plain
+//   roster/identity import only, same posture as addMember / createResource.
+export { parseCsv } from './import/csv.js';
+export type { ParsedCsv } from './import/csv.js';
+
+export {
+  guessColumnMapping,
+  looksLikeSalesTransactionsExport,
+  MEMBER_FIELDS,
+  AIRCRAFT_FIELDS,
+} from './import/column-mapping.js';
+export type { ImportKind, ColumnMapping } from './import/column-mapping.js';
+
+export { normalizeMemberRow, normalizeAircraftRow } from './import/normalize.js';
+export type {
+  NormalizeResult,
+  MemberCandidate,
+  AircraftCandidate,
+} from './import/normalize.js';

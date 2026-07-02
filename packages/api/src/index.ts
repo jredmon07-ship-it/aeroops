@@ -1565,3 +1565,42 @@ export type {
   NotificationPrefView,
   SetMyNotificationPrefResult,
 } from './notifications/prefs.js';
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice P1.7 — Flight Circle data importer
+//
+// Operator-provided CSV import of members + aircraft roster data (the
+// fast-onboarding path — "migrate off Flight Circle" in an afternoon). ALL
+// writes route through the EXISTING addMember (people) / createResource +
+// updateAircraft (fleet) paths — never a bespoke INSERT into app_user or
+// resource. NO ledger/financial-history import in this slice — see
+// docs/specs/slice-p1-fc-import.md.
+// ════════════════════════════════════════════════════════════════════════════════
+
+export { previewImport, previewImportWithDb } from './import/preview-import.js';
+
+export { commitImport, commitImportWithDb } from './import/commit-import.js';
+
+export {
+  listImportBatches,
+  listImportBatchesWithDb,
+} from './import/list-import-batches.js';
+export type { ListImportBatchesInput } from './import/list-import-batches.js';
+
+export { getImportBatch, getImportBatchWithDb } from './import/get-import-batch.js';
+export type { GetImportBatchInput } from './import/get-import-batch.js';
+
+export type {
+  ImportKind,
+  ColumnMapping,
+  ImportBatchStatus,
+  ImportRowStatus,
+  ImportBatchView,
+  ImportRowView,
+  PreviewImportInput,
+  PreviewImportResult,
+  CommitImportInput,
+  CommitImportRowResult,
+  CommitImportResult,
+  GetImportBatchResult,
+} from './import/types.js';

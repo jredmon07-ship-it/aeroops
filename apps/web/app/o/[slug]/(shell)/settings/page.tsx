@@ -21,11 +21,13 @@
  *   Unauthenticated   → redirect to login
  */
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { auth } from '@/auth';
 import { requireCapability, getSessionOrg } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { QboSettingsCard } from './_components/qbo-settings-card';
 
 interface OrgSettingsPageProps {
@@ -107,6 +109,23 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
       <div className="max-w-2xl">
         <QboSettingsCard slug={slug} />
       </div>
+
+      {/* ── Flight Circle data importer (Slice P1.7) ───────────────────────── */}
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle className="text-base">Import from Flight Circle</CardTitle>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-6 space-y-3">
+          <p className="text-sm text-slate-500">
+            Migrating off another provider? Upload a members or aircraft export CSV — review a preview before
+            anything is created.
+          </p>
+          <Button asChild type="button" size="sm">
+            <Link href={`/o/${slug}/settings/import`}>Import data</Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
