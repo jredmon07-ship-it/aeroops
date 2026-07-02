@@ -26,6 +26,7 @@ import { requireCapability, getSessionOrg } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { QboSettingsCard } from './_components/qbo-settings-card';
 
 interface OrgSettingsPageProps {
   params: Promise<{ slug: string }>;
@@ -101,6 +102,11 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
           </dl>
         </CardContent>
       </Card>
+
+      {/* ── QuickBooks Online integration card (Slice QB1) ────────────────── */}
+      <div className="max-w-2xl">
+        <QboSettingsCard slug={slug} />
+      </div>
     </div>
   );
 }

@@ -65,6 +65,21 @@ export type {
   MobileClaims,
 } from './auth/index.js';
 
+// ─── Public-demo reset-on-open (packages/api/src/demo/reset.ts) ───────────────
+// resetDemoTenant(slug)          — production entry: wipe + re-seed a demo tenant
+//                                  via the privileged AEROOPS_DEMO_OWNER_URL client.
+// resetDemoTenantWithDb(db, slug) — test-injectable core (inject a pglite client).
+// maybeResetDemoTenant(slug)     — best-effort login-path trigger (env-flag gated).
+// Guarded by a hard slug allowlist + AEROOPS_DEMO_RESET_ENABLED. See DEPLOY.md.
+export {
+  resetDemoTenant,
+  resetDemoTenantWithDb,
+  maybeResetDemoTenant,
+  DEMO_RESET_ALLOWLIST,
+  RESET_INTERVAL_MS,
+} from './demo/reset.js';
+export type { ResetResult } from './demo/reset.js';
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export { getDashboardSummary, getDashboardSummaryWithDb } from './dashboard/get-dashboard-summary.js';
 export type { DashboardSummary } from './dashboard/get-dashboard-summary.js';
@@ -1074,3 +1089,123 @@ export type {
   FinalizeInvoiceResult,
   VoidInvoiceResult,
 } from './billing/invoice-status-commands.js';
+
+// ─── Slice QB1 — QuickBooks Online integration (bookkeeping EXPORT only) ───────
+// NOT a payment processor. NEVER moves money. Pushes EXISTING finalized B1
+// invoice records into the operator's own connected QBO company file, with
+// each line item mapped to its own QBO Item by kind (per-line-item GL
+// mapping — never a lump-sum line). Migration 0021 staged + human-gated.
+//
+// Provider seam: getQboClient() (integrations/qbo/client.ts) — stub when
+//   QBO_CLIENT_ID/QBO_CLIENT_SECRET are unset (every call throws
+//   QboNotConfiguredError; callers convert to a typed not_configured
+//   refusal), real fetch-based client otherwise. [VERIFY-QB1-SEC-1]: OAuth
+//   tokens are stored PLAINTEXT in qbo_connection — encryption-at-rest is a
+//   flagged production follow-up.
+// mapInvoiceToQboPayload: PURE money-math boundary (integrations/qbo/
+//   map-invoice.ts) — property-tested. Refuses (never lumps) when any
+//   line's kind has no mapping and no 'default' fallback row exists.
+// Account mapping: setQboAccountMapping/deleteQboAccountMapping —
+//   org:manage_settings, audited. line_kind mirrors rate_schedule.rate_kind
+//   (migration 0019) plus 'other' (no-rate-schedule lines) + 'default'
+//   (catch-all). [VERIFY-QB1-B]: rate_kind CHECK domain is frozen here.
+// getQboStatus: billing:access. Connection status (NEVER tokens) + last 20
+//   export-log rows + the current account mapping + providerConfigured.
+// exportInvoiceToQbo: billing:manage. Refuses draft/void invoices; ONLY
+//   finalized. Idempotent (an already-exported invoice is never re-pushed —
+//   backed by migration 0021's partial UNIQUE index). Every attempt writes
+//   a qbo_export_log row ('exported' or 'error' — errors NEVER silently
+//   swallowed) + ONE audit row. On stub/unconfigured → clean typed
+//   { ok:false, reason:'not_configured' }, never a crash.
+// OAuth connect: buildQboAuthorizeUrl/completeQboOAuth/disconnectQbo —
+//   org:manage_settings. State = a short-lived signed token bound to
+//   (orgId,userId) (integrations/qbo/state.ts, reuses AUTH_SECRET) —
+//   org_id is NEVER taken from the unauthenticated OAuth callback query.
+// *WithDb forms are for test code only (inject a pglite client + a fake
+// QboClient — tests never make a real HTTP call).
+
+export {
+  StubQboClient,
+  RealQboClient,
+  getQboClient,
+  __resetQboClientForTests,
+  QboNotConfiguredError,
+  QboProviderError,
+  QBO_AUTHORIZE_URL,
+  QBO_TOKEN_URL,
+  QBO_ACCOUNTING_SCOPE,
+} from './integrations/qbo/client.js';
+export type {
+  QboClient,
+  QboInvoiceLine,
+  QboInvoicePayload,
+  QboCreateCustomerInput,
+  QboRequestContext,
+  QboTokenSet,
+} from './integrations/qbo/client.js';
+
+export {
+  QBO_LINE_KINDS,
+  QBO_MAPPABLE_LINE_KINDS,
+  resolveLineKind,
+  isQboLineKind,
+} from './integrations/qbo/line-kind.js';
+export type { QboLineKind, QboMappableLineKind } from './integrations/qbo/line-kind.js';
+
+export { mapInvoiceToQboPayload } from './integrations/qbo/map-invoice.js';
+export type {
+  QboLineItemInput,
+  QboAccountMappingEntry,
+  QboAccountMap,
+  MapInvoiceInput,
+  MapInvoiceResult,
+} from './integrations/qbo/map-invoice.js';
+
+export {
+  setQboAccountMapping,
+  setQboAccountMappingWithDb,
+  deleteQboAccountMapping,
+  deleteQboAccountMappingWithDb,
+} from './integrations/qbo/account-mapping.js';
+export type {
+  QboAccountMappingView,
+  SetQboAccountMappingInput,
+  SetQboAccountMappingResult,
+  DeleteQboAccountMappingInput,
+  DeleteQboAccountMappingResult,
+} from './integrations/qbo/account-mapping.js';
+
+export {
+  getQboStatus,
+  getQboStatusWithDb,
+  isQboProviderConfigured,
+} from './integrations/qbo/status.js';
+export type {
+  QboConnectionStatus,
+  QboConnectionView,
+  QboExportLogView,
+  GetQboStatusResult,
+} from './integrations/qbo/status.js';
+
+export {
+  buildQboAuthorizeUrl,
+  completeQboOAuth,
+  completeQboOAuthWithDb,
+  disconnectQbo,
+  disconnectQboWithDb,
+} from './integrations/qbo/connect.js';
+export type {
+  BuildQboAuthorizeUrlResult,
+  CompleteQboOAuthInput,
+  CompleteQboOAuthResult,
+  DisconnectQboResult,
+} from './integrations/qbo/connect.js';
+
+export {
+  exportInvoiceToQbo,
+  exportInvoiceToQboWithDb,
+} from './integrations/qbo/export-invoice.js';
+export type {
+  ExportInvoiceToQboInput,
+  ExportInvoiceToQboResult,
+} from './integrations/qbo/export-invoice.js';

@@ -56,9 +56,11 @@ export interface NavItem {
  *  10. Maintenance — Squawks + grounding (maintenance:access).
  *  11. Booking requests — public-lead triage inbox (booking:triage); after Maintenance.
  *      owner / manager / dispatcher. Placed near People/operational ops.
- *  12. Reports — Operational reports (reporting:access); after Booking, before Activity.
- *  13. Activity — Audit trail feed (reporting:access); after Reports, before Org settings.
- *  14. Org settings — owner + manager only (org:manage_settings).
+ *  12. Billing — invoices + QuickBooks Online export (billing:access); after Booking
+ *      requests, before Reports. owner / manager / accountant (Slice QB1).
+ *  13. Reports — Operational reports (reporting:access); after Billing, before Activity.
+ *  14. Activity — Audit trail feed (reporting:access); after Reports, before Org settings.
+ *  15. Org settings — owner + manager only (org:manage_settings).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   // Slice P1.2: Portal — student/renter self-service (+ owner/manager preview).
@@ -128,6 +130,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Booking requests',
     href: '/o/[slug]/booking',
     requiredCapability: 'booking:triage',
+  },
+  // Slice QB1: Billing (invoices + QuickBooks Online export) — gated by
+  // billing:access (owner/manager/accountant). Placed after Booking requests,
+  // before Reports. NOT visible to: dispatcher, cfi, mechanic, renter, student.
+  {
+    label: 'Billing',
+    href: '/o/[slug]/billing',
+    requiredCapability: 'billing:access',
   },
   // Slice R1.2: Operational reports — gated by reporting:access (owner/manager/
   // dispatcher/cfi/accountant). Placed after Maintenance, before Activity.

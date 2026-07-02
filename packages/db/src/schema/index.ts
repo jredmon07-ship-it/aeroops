@@ -313,3 +313,35 @@ export type { InvoiceSelect, InvoiceInsert } from './invoice.js';
 
 export { invoiceLineItem } from './invoice-line-item.js';
 export type { InvoiceLineItemSelect, InvoiceLineItemInsert } from './invoice-line-item.js';
+
+// QuickBooks Online integration — tenant-scoped (Slice QB1 / migration 0021)
+// Bookkeeping EXPORT of existing operator invoice records. NO Stripe, NO
+// card/bank data, NO payment processing — this slice never moves money.
+//
+// qbo_connection: one OAuth2 connection per org (org_id UNIQUE). Stores
+//   realm_id + access/refresh tokens. [VERIFY-QB1-SEC-1]: tokens are
+//   PLAINTEXT — encryption-at-rest is a flagged production follow-up.
+// qbo_export_log: APPEND-ONLY push-attempt history (invoice/customer).
+//   Partial UNIQUE (org_id,entity_type,entity_id) WHERE status='exported'
+//   (migration 0021 SQL only — Drizzle cannot express partial indexes) is
+//   the idempotency backstop: an entity exports at most once per org.
+// qbo_account_mapping: per-org, per-line-item-kind → QBO Item mapping (the
+//   "real-time line-item GL mapping" competitive wedge). line_kind mirrors
+//   rate_schedule.rate_kind (migration 0019) plus 'other'/'default'.
+//   [VERIFY-QB1-B]: rate_schedule.rate_kind CHECK domain is frozen here.
+export { qboConnection } from './qbo-connection.js';
+export type { QboConnectionSelect, QboConnectionInsert } from './qbo-connection.js';
+
+export { qboExportLog } from './qbo-export-log.js';
+export type { QboExportLogSelect, QboExportLogInsert } from './qbo-export-log.js';
+
+export { qboAccountMapping } from './qbo-account-mapping.js';
+export type { QboAccountMappingSelect, QboAccountMappingInsert } from './qbo-account-mapping.js';
+
+// Demo infrastructure — NOT tenant-scoped, NO RLS (migration 0020)
+// demo_reset_state: throttle bookkeeping for the public-demo reset-on-open
+//   feature (packages/api/src/demo/reset.ts). One row per demo slug records
+//   last_reset_at. Written ONLY by the privileged demo-owner connection
+//   (AEROOPS_DEMO_OWNER_URL); the runtime aeroops_app role has no access.
+export { demoResetState } from './demo-reset-state.js';
+export type { DemoResetStateSelect, DemoResetStateInsert } from './demo-reset-state.js';
