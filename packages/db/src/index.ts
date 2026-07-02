@@ -21,6 +21,7 @@ export * from './schema/index.js';
 // Client factories
 export {
   createProdClient,
+  createDemoOwnerClient,
   applyMigrationSql,
   setTestAppRole,
   execRaw,

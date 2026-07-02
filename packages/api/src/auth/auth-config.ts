@@ -65,6 +65,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { verifyLoginAndIssueClaims } from './verify-login.js';
+import { maybeResetDemoTenant, isDemoResetCandidate } from '../demo/reset.js';
 
 // ─── Re-export edge-safe callbacks and edge config ───────────────────────────
 //
@@ -166,14 +167,37 @@ export function buildAuthConfig(): any {
             return null;
           }
 
+          // Step 7 (public-demo reset-on-open): on a SUCCESSFUL login to an
+          // allowlisted demo tenant, wipe + re-seed it to the seeded baseline
+          // BEFORE issuing the session, so the visitor lands on fresh data and
+          // nothing they do persists. No-op unless AEROOPS_DEMO_RESET_ENABLED is
+          // set AND the slug is allowlisted; throttled + advisory-locked;
+          // best-effort (never fails a real login). Because a reset recreates the
+          // org with a NEW org_id (the seed also recreates owner@alpha.aero /
+          // demo1234), we re-issue the claims against the fresh data.
+          //
+          // The re-verify runs whenever the feature is LIVE for this slug — not
+          // only when THIS login's reset ran: a CONCURRENT login's reset may have
+          // swapped the org between our verify and now ({ reset: false } here
+          // also covers "another reset held the advisory lock"), and issuing the
+          // earlier claims would hand out an 8-hour JWT pointing at a deleted
+          // org_id (every RLS-scoped query would fail-close to empty).
+          await maybeResetDemoTenant(parsed.data.slug);
+          const finalClaims = isDemoResetCandidate(parsed.data.slug)
+            ? await verifyLoginAndIssueClaims(db, parsed.data)
+            : claims;
+          if (!finalClaims) {
+            return null;
+          }
+
           // Return the user object for Auth.js to embed in the JWT.
           // `id` is Auth.js's canonical user identifier field (maps to userId).
           return {
-            id: claims.userId,
-            orgId: claims.orgId,
-            slug: claims.slug,
-            role: claims.role,
-            email: claims.email,
+            id: finalClaims.userId,
+            orgId: finalClaims.orgId,
+            slug: finalClaims.slug,
+            role: finalClaims.role,
+            email: finalClaims.email,
           };
         },
       }),

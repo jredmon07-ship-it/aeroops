@@ -82,6 +82,20 @@ export const DEMO_LOGINS: DemoLogin[] = [
   { email: 'student@alpha.aero', fullName: 'Sam Student', role: 'student', phone: '(614) 555-0105' },
 ];
 
+/**
+ * Memoized argon2id hash of the (constant) demo password. The reset-on-open
+ * feature runs seedDemo on the login path INSIDE the reset transaction — while
+ * the advisory lock is held and the org row is deleted — so recomputing a
+ * 19 MiB memory-hard hash of a fixed string there would stretch that critical
+ * window on every reset for no informational gain. Same pattern as DUMMY_HASH
+ * in auth/hash.ts.
+ */
+let _demoPasswordHashCache: Promise<string> | null = null;
+function demoPasswordHash(): Promise<string> {
+  _demoPasswordHashCache ??= hashPassword(DEMO_PASSWORD);
+  return _demoPasswordHashCache;
+}
+
 /** A Date at `hour:minute` local time, `dayOffset` days from today. */
 function atLocal(dayOffset: number, hour: number, minute = 0): Date {
   const d = new Date();
@@ -102,9 +116,13 @@ export async function seedDemo(db: AnyDb): Promise<void> {
       .insert(org)
       .values({ name: 'Alpha Flight School', slug: DEMO_SLUG, status: 'active' })
       .returning();
+    // Idempotent on the (global, non-org-scoped) plan: a demo reset deletes only
+    // the org row (scoped wipe), so the 'growth' plan survives across resets.
+    // On a fresh DB this inserts; on re-seed it returns the existing plan.
     const [p] = await tx
       .insert(plan)
       .values({ code: 'growth', name: 'Growth' })
+      .onConflictDoUpdate({ target: plan.code, set: { name: 'Growth' } })
       .returning();
     await tx
       .insert(subscription)
@@ -115,7 +133,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   const orgId = orgRow.id;
 
   // ── 2. Tenant: users + memberships + credentials + resources ────────────
-  const passwordHash = await hashPassword(DEMO_PASSWORD);
+  const passwordHash = await demoPasswordHash();
 
   const ids = await withOrgContext(db, orgId, async (tx) => {
     // Users + memberships + a credential per login.

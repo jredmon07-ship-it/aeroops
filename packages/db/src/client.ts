@@ -72,6 +72,45 @@ export async function createProdClient() {
   return db;
 }
 
+// ─── Privileged demo-owner client (public-demo reset-on-open ONLY) ──────────
+
+/**
+ * Creates the privileged Drizzle client used by the public-demo
+ * "reset-on-open" feature to WIPE and RE-SEED a demo tenant.
+ *
+ * Reads AEROOPS_DEMO_OWNER_URL — the OWNER / DDL-role connection string
+ * (e.g. Neon's `neondb_owner`), NOT the RLS-restricted `aeroops_app` role.
+ * Resetting a whole tenant is a scoped `DELETE FROM org` (FK-cascade) +
+ * control-plane re-inserts, which need elevated rights the runtime app role
+ * deliberately does not have. NOTE: this owner role is still a NON-superuser
+ * on Neon, so FORCE RLS binds it too — the reset must scope the org GUCs
+ * before the wipe (see reset.ts); "owner" does NOT mean "bypasses RLS".
+ *
+ * Deliberately does NOT run createProdClient()'s non-superuser assertion:
+ * this connection is EXPECTED to be privileged. It must therefore ONLY be
+ * used by resetDemoTenant (packages/api/src/demo/reset.ts) — never for
+ * serving tenant requests. The reset function is itself gated behind
+ * AEROOPS_DEMO_RESET_ENABLED + a hard-coded slug allowlist.
+ *
+ * THROWS if AEROOPS_DEMO_OWNER_URL is unset — a misconfigured reset feature
+ * fails loud rather than silently doing nothing.
+ */
+export function createDemoOwnerClient() {
+  const url = process.env['AEROOPS_DEMO_OWNER_URL'];
+  if (!url) {
+    throw new Error(
+      '[createDemoOwnerClient] AEROOPS_DEMO_OWNER_URL is not set. ' +
+        'The public-demo reset-on-open feature needs the OWNER/DDL connection ' +
+        'string (NOT the aeroops_app role) to wipe and re-seed the demo tenant. ' +
+        'Set it ONLY on the demo deployment — see DEPLOY.md.',
+    );
+  }
+  // Small pool: resets are infrequent and mutually excluded by a Postgres
+  // advisory lock, so a couple of connections is plenty.
+  const pgClient = postgres(url, { max: 2, idle_timeout: 60, connect_timeout: 30 });
+  return drizzlePg(pgClient, { schema });
+}
+
 // ─── Test client (PGlite — in-process Postgres, no Docker required) ─────────
 //
 // createTestClient itself lives in ./testing.ts because it STATICALLY imports

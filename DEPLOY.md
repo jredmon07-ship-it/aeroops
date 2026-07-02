@@ -213,6 +213,31 @@ For a local production run, set these in `.env.local` (never commit them).
 |---|---|---|
 | `EXPO_PUBLIC_API_BASE_URL` | `https://your-domain.com` | Set this in the Expo app (`apps/mobile`) once the web API is deployed. Required for the mobile client to reach the API. |
 
+### Public-demo "reset-on-open" (DEMO DEPLOYMENT ONLY)
+
+Set these **only** on the throwaway public-demo deployment (the one behind
+`/o/alpha/login`). **Never** set them on a deployment that serves real customer
+data — they authorize wiping a tenant.
+
+| Variable | Value | Notes |
+|---|---|---|
+| `AEROOPS_DEMO_RESET_ENABLED` | `1` (or `true`/`yes`/`on`) | Turns the feature on. Unset/empty = never resets. When on, a **successful** login to an allowlisted demo slug (hard-coded: only `alpha`) wipes + re-seeds that tenant to its clean seeded baseline **before** the session is issued, so nothing a visitor does persists. Throttled to at most one reset per 60s and guarded by a Postgres advisory lock. |
+| `AEROOPS_DEMO_OWNER_URL` | `postgres://neondb_owner:PASS@HOST/DB?sslmode=require` | The **owner/DDL** connection string used ONLY to perform the wipe + re-seed (a scoped `DELETE FROM org` + control-plane re-inserts need elevated rights the runtime role lacks). This is the **owner** role — NOT the `aeroops_app` role in `DATABASE_URL`. Note: on Neon this owner is a non-superuser, so FORCE RLS still applies to it — the reset code scopes the org GUCs itself; no extra grants are needed beyond ownership. |
+
+How it works: the reset deletes and recreates the `alpha` org (a **new** `org_id`
+each time); the seed recreates `owner@alpha.aero` / `demo1234`, so the just-submitted
+login still succeeds and lands on fresh data. If the feature flag is off, the slug
+is not allowlisted, or the reset errors, login proceeds normally with no reset.
+
+**Migration prerequisite:** apply `0020_demo_reset_state.sql` (the throttle
+bookkeeping table) to the demo database before enabling this — run it with the
+**owner/DDL** connection string, the same way as every other migration in
+"Step 4 — Run migrations (human-gated)".
+
+**Caveat (concurrent visitors):** because a reset can fire on login, two visitors
+active at the same time can reset each other's data mid-session. This is acceptable
+for a single-visitor sales/QA demo; it is **not** a multi-tenant isolation mechanism.
+
 ### Must NOT be set in production
 
 | Variable | Reason |
