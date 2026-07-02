@@ -390,3 +390,47 @@ export type { StripeEventSelect, StripeEventInsert } from './stripe-event.js';
 
 export { paymentIntentRecord } from './payment-intent-record.js';
 export type { PaymentIntentRecordSelect, PaymentIntentRecordInsert } from './payment-intent-record.js';
+
+// P0 revenue engine: payment methods + auto-pay — tenant-scoped (Slice
+// P0-REV / migration 0024). Builds on the Stripe seam-to-the-key-boundary
+// (migration 0023). NEVER stores raw card/bank data — PCI SAQ-A.
+//
+// stripe_payment_method: a saved instrument, DISPLAY fields only (last4/
+//   brand/type). UNIQUE (stripe_payment_method_id) is the idempotency
+//   backstop across the confirm-callback vs setup_intent.succeeded-webhook
+//   race — whichever INSERT lands first wins.
+// autopay_setting: one row per member. enabled + default_payment_method_id.
+//   autopay_enabled_requires_pm CHECK (migration 0024 SQL only) is the
+//   STRUCTURAL guarantee that autopay can never be armed without a saved PM.
+//   UNIQUE (org_id, user_id) is the upsert target for setMyAutopay.
+// migration 0024 also replaces stripe_customer_select (0023) to admit a
+//   platform-admin read, mirroring payment_intent_record_select — needed by
+//   the setup_intent.succeeded webhook to resolve org before any GUC is set.
+export { stripePaymentMethod } from './stripe-payment-method.js';
+export type {
+  StripePaymentMethodSelect,
+  StripePaymentMethodInsert,
+} from './stripe-payment-method.js';
+
+export { autopaySetting } from './autopay-setting.js';
+export type { AutopaySettingSelect, AutopaySettingInsert } from './autopay-setting.js';
+
+// P0 revenue engine: recurring dues — tenant-scoped (Slice P0-REV / migration
+// 0025). NO Stripe/card data; NO money charged by this schema itself — a
+// generated invoice only ever charges when LATER finalized (via the
+// migration-0024 autopay path, unchanged by this migration).
+//
+// dues_schedule: operator-configured recurring-dues line for one member.
+//   amount_cents = INTEGER CENTS. cadence constrained to 'monthly' (forward
+//   seam). day_of_month BETWEEN 1 AND 28 (avoids short-month drift;
+//   informational/planning only — no cron in this slice).
+// dues_run: APPEND-ONLY period marker — THE STRUCTURAL no-double-bill
+//   mechanism. SELECT + INSERT RLS only (mirrors ledger_entry /
+//   dispatch_ticket_correction / stripe_event). UNIQUE (org_id,
+//   dues_schedule_id, period_key) is the idempotency key: a schedule
+//   generates AT MOST ONE invoice per period, structurally.
+export { duesSchedule } from './dues-schedule.js';
+export type { DuesScheduleSelect, DuesScheduleInsert } from './dues-schedule.js';
+
+export { duesRun } from './dues-run.js';
+export type { DuesRunSelect, DuesRunInsert } from './dues-run.js';

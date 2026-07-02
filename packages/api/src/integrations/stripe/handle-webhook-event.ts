@@ -57,11 +57,20 @@
  */
 
 import { eq, and, ne } from 'drizzle-orm';
-import { invoice, ledgerEntry, auditLog, stripeEvent, paymentIntentRecord, withOrgContext } from '@aeroops/db';
+import {
+  invoice,
+  ledgerEntry,
+  auditLog,
+  stripeEvent,
+  paymentIntentRecord,
+  stripePaymentMethod,
+  withOrgContext,
+} from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { getStripeClient, StripeNotConfiguredError, StripeSignatureVerificationError } from './client.js';
 import type { StripeClient } from './client.js';
 import { resolveOrgByStripePaymentIntentId } from './resolve-payment-intent.js';
+import { resolveOrgByStripeCustomerId } from './resolve-payment-customer.js';
 import { ensureBillingAccountTx } from '../../billing/ledger-internal.js';
 import { isUniqueViolation } from '../../dispatch/internal.js';
 
@@ -102,6 +111,16 @@ export async function handleStripeWebhookEvent(
       const resolved = await resolveOrgByStripePaymentIntentId(db, piId);
       resolvedOrgId = resolved?.orgId ?? null;
     }
+  } else if (event.type === 'setup_intent.succeeded') {
+    // Slice P0-REV: org is resolved from OUR OWN stripe_customer table via
+    // the (verified) event's `customer` id — NEVER from the payload's
+    // caller-suppliable metadata (see step 3b below for the metadata
+    // cross-check, which is defense-in-depth, not the authorization source).
+    const customerId = (event.data.object as { customer?: string }).customer;
+    if (customerId) {
+      const resolved = await resolveOrgByStripeCustomerId(db, customerId);
+      resolvedOrgId = resolved?.orgId ?? null;
+    }
   }
 
   // 3. DEDUP: INSERT FIRST. event_id is the PRIMARY KEY (migration 0023) —
@@ -137,6 +156,10 @@ export async function handleStripeWebhookEvent(
 
   if (alreadyProcessed) {
     return { ok: true, alreadyProcessed: true };
+  }
+
+  if (event.type === 'setup_intent.succeeded') {
+    return handleSetupIntentSucceeded(db, event);
   }
 
   if (event.type !== 'payment_intent.succeeded') {
@@ -207,6 +230,75 @@ export async function handleStripeWebhookEvent(
         amountCents: updated[0].amountCents,
       },
     });
+  });
+
+  return { ok: true, alreadyProcessed: false };
+}
+
+/**
+ * handleSetupIntentSucceeded — Slice P0-REV backstop path for
+ * setup_intent.succeeded (dedup row already written by the caller before
+ * this is invoked). Records the saved payment method IF it is not already
+ * recorded (the confirm-callback saveMyPaymentMethod may have already won
+ * the race — ON CONFLICT DO NOTHING on stripe_payment_method_id makes this
+ * idempotent either way).
+ *
+ * org_id is resolved via resolveOrgByStripeCustomerId (step 2 above) —
+ * ALREADY determined from OUR OWN stripe_customer table, never trusted from
+ * the payload. `metadata.userId` (set by createInvoiceSetupIntent /
+ * saveMyPaymentMethod's ensureStripeCustomerTx call) is used ONLY as a
+ * cross-check against the resolved stripe_customer's own userId — a
+ * mismatch means the metadata was tampered with or stale, and the write is
+ * skipped (never trusted as the org/user source of truth).
+ */
+async function handleSetupIntentSucceeded(
+  db: AnyDb,
+  event: { data: { object: Record<string, unknown> } },
+): Promise<HandleStripeWebhookResult> {
+  const obj = event.data.object as {
+    customer?: string;
+    payment_method?: string;
+    metadata?: { userId?: string };
+  };
+  const customerId = obj.customer;
+  const paymentMethodId = obj.payment_method;
+  if (!customerId || !paymentMethodId) {
+    return { ok: true, alreadyProcessed: false };
+  }
+
+  const resolved = await resolveOrgByStripeCustomerId(db, customerId);
+  if (!resolved) {
+    // We have no record of this Customer — nothing to record.
+    return { ok: true, alreadyProcessed: false };
+  }
+
+  // Cross-check (defense-in-depth, NOT the authorization source): if the
+  // SetupIntent's metadata carries a userId, it must match the customer's
+  // own recorded userId. A mismatch is treated as untrustworthy and skipped.
+  if (obj.metadata?.userId && obj.metadata.userId !== resolved.userId) {
+    return { ok: true, alreadyProcessed: false };
+  }
+
+  await withOrgContext(db, resolved.orgId, async (tx) => {
+    await tx
+      .insert(stripePaymentMethod)
+      .values({
+        orgId: resolved.orgId,
+        userId: resolved.userId,
+        stripeCustomerId: customerId,
+        stripePaymentMethodId: paymentMethodId,
+        // Webhook payload does not carry Stripe's display fields for this
+        // event type in a stable shape across PM types — the confirm-
+        // callback path (saveMyPaymentMethod, via attachPaymentMethod) is
+        // the primary source for last4/brand; this backstop records the
+        // linkage with type defaulted to 'card' when undetectable, refined
+        // by a later saveMyPaymentMethod call if it still runs (idempotent
+        // via ON CONFLICT — the row is not re-created, just left as-is).
+        type: 'card',
+        last4: null,
+        brand: null,
+      })
+      .onConflictDoNothing({ target: stripePaymentMethod.stripePaymentMethodId });
   });
 
   return { ok: true, alreadyProcessed: false };

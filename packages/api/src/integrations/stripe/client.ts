@@ -94,6 +94,26 @@ export class StripeSignatureVerificationError extends Error {
   }
 }
 
+/**
+ * StripeCardDeclinedError — thrown by realStripeClient.createPaymentIntent on
+ * an off-session decline (HTTP 402 whose body carries a payment_intent —
+ * Stripe's shape for "authentication_required"/card-declined on an
+ * off_session:true, confirm:true attempt). Carries the PaymentIntent id (when
+ * present) so the caller (autopay.ts) can still record a 'failed'
+ * payment_intent_record — never a card/bank value.
+ */
+export class StripeCardDeclinedError extends Error {
+  readonly code = 'STRIPE_CARD_DECLINED' as const;
+  readonly stripePaymentIntentId: string | undefined;
+  readonly status: string | undefined;
+  constructor(message: string, stripePaymentIntentId?: string, status?: string) {
+    super(message);
+    this.name = 'StripeCardDeclinedError';
+    this.stripePaymentIntentId = stripePaymentIntentId;
+    this.status = status;
+  }
+}
+
 // ─── Payload / result types ───────────────────────────────────────────────────
 
 export interface StripeCreateCustomerInput {
@@ -115,6 +135,16 @@ export interface StripeCreatePaymentIntentInput {
   customerId: string;
   paymentMethodTypes: StripePaymentMethodType[];
   metadata?: Record<string, string>;
+  /** Additive (P0-REV) — a specific saved PaymentMethod to charge off-session. */
+  paymentMethodId?: string;
+  /** Additive (P0-REV) — true for an auto-pay charge with no customer present. */
+  offSession?: boolean;
+  /** Additive (P0-REV) — confirm the PaymentIntent immediately (paired with paymentMethodId). */
+  confirm?: boolean;
+  /** Additive (P0-REV) — Stripe's setup_future_usage, only 'off_session' used here. */
+  setupFutureUsage?: 'off_session';
+  /** Additive (P0-REV) — sent as the Idempotency-Key HTTP header (never in the body). */
+  idempotencyKey?: string;
 }
 
 export interface StripePaymentIntentResult {
@@ -134,6 +164,34 @@ export interface StripeWebhookEvent {
   id: string;
   type: string;
   data: { object: Record<string, unknown> };
+}
+
+// ─── SetupIntent (save a PM for future off-session use) — Slice P0-REV ───────
+
+export interface StripeCreateSetupIntentInput {
+  customerId: string;
+  paymentMethodTypes: StripePaymentMethodType[];
+  /** e.g. { orgId, userId } — used by the setup_intent.succeeded webhook backstop. */
+  metadata?: Record<string, string>;
+}
+
+export interface StripeSetupIntentResult {
+  stripeSetupIntentId: string;
+  clientSecret: string;
+  status: string;
+}
+
+export interface StripeAttachPaymentMethodInput {
+  paymentMethodId: string;
+  customerId: string;
+}
+
+/** Stripe-permitted DISPLAY fields ONLY — never a raw PAN/account number. */
+export interface StripePaymentMethodDisplay {
+  stripePaymentMethodId: string;
+  type: 'card' | 'us_bank_account';
+  last4: string | null;
+  brand: string | null;
 }
 
 // ─── Interface ────────────────────────────────────────────────────────────────
@@ -161,6 +219,10 @@ export interface StripeClient {
    * dashboard).
    */
   constructWebhookEvent(rawBody: string, signatureHeader: string | null): Promise<StripeWebhookEvent>;
+  /** Slice P0-REV — create a SetupIntent to save a PM for future off-session use. */
+  createSetupIntent(input: StripeCreateSetupIntentInput): Promise<StripeSetupIntentResult>;
+  /** Slice P0-REV — attach an existing PaymentMethod to a Customer. Returns DISPLAY fields only. */
+  attachPaymentMethod(input: StripeAttachPaymentMethodInput): Promise<StripePaymentMethodDisplay>;
 }
 
 // ─── Stub (default — unconfigured) ───────────────────────────────────────────
@@ -177,6 +239,12 @@ export class StubStripeClient implements StripeClient {
   }
   async constructWebhookEvent(): Promise<StripeWebhookEvent> {
     throw new StripeNotConfiguredError('verify a Stripe webhook event');
+  }
+  async createSetupIntent(): Promise<StripeSetupIntentResult> {
+    throw new StripeNotConfiguredError('create a Stripe SetupIntent');
+  }
+  async attachPaymentMethod(): Promise<StripePaymentMethodDisplay> {
+    throw new StripeNotConfiguredError('attach a Stripe PaymentMethod');
   }
 }
 
@@ -196,17 +264,39 @@ export class RealStripeClient implements StripeClient {
     return `Basic ${basic}`;
   }
 
-  private async post(path: string, form: URLSearchParams): Promise<unknown> {
+  private async post(path: string, form: URLSearchParams, headers?: Record<string, string>): Promise<unknown> {
     const res = await fetch(`${STRIPE_API_BASE}${path}`, {
       method: 'POST',
       headers: {
         Authorization: this.authHeader(),
         'Content-Type': 'application/x-www-form-urlencoded',
         Accept: 'application/json',
+        ...headers,
       },
       body: form.toString(),
     });
     if (!res.ok) {
+      // Off-session decline / authentication_required: Stripe returns HTTP 402
+      // with a body carrying the (unconfirmed/failed) payment_intent. Surface
+      // this distinctly so the caller (autopay.ts) can record a 'failed'
+      // payment_intent_record with the PI id, rather than a generic provider
+      // error with none.
+      if (res.status === 402) {
+        let body: { error?: { payment_intent?: { id?: string; status?: string } } } = {};
+        try {
+          body = (await res.json()) as typeof body;
+        } catch {
+          // Malformed body — fall through to the generic provider error below.
+        }
+        const pi = body.error?.payment_intent;
+        if (pi) {
+          throw new StripeCardDeclinedError(
+            `Stripe ${path} declined (HTTP 402)`,
+            pi.id,
+            pi.status,
+          );
+        }
+      }
       throw new StripeProviderError(`Stripe ${path} failed (HTTP ${res.status})`, res.status);
     }
     return res.json();
@@ -250,7 +340,14 @@ export class RealStripeClient implements StripeClient {
         form.set(`metadata[${k}]`, v);
       }
     }
-    const json = (await this.post('/v1/payment_intents', form)) as {
+    // Additive (P0-REV) — off-session auto-pay fields.
+    if (input.paymentMethodId) form.set('payment_method', input.paymentMethodId);
+    if (input.offSession) form.set('off_session', 'true');
+    if (input.confirm) form.set('confirm', 'true');
+    if (input.setupFutureUsage) form.set('setup_future_usage', input.setupFutureUsage);
+
+    const headers = input.idempotencyKey ? { 'Idempotency-Key': input.idempotencyKey } : undefined;
+    const json = (await this.post('/v1/payment_intents', form, headers)) as {
       id?: string;
       client_secret?: string;
       status?: string;
@@ -300,6 +397,49 @@ export class RealStripeClient implements StripeClient {
       type: event.type,
       data: { object: event.data.object as Record<string, unknown> },
     };
+  }
+
+  async createSetupIntent(input: StripeCreateSetupIntentInput): Promise<StripeSetupIntentResult> {
+    const form = new URLSearchParams();
+    form.set('customer', input.customerId);
+    input.paymentMethodTypes.forEach((type, i) => {
+      form.set(`payment_method_types[${i}]`, type);
+    });
+    if (input.metadata) {
+      for (const [k, v] of Object.entries(input.metadata)) {
+        form.set(`metadata[${k}]`, v);
+      }
+    }
+    const json = (await this.post('/v1/setup_intents', form)) as {
+      id?: string;
+      client_secret?: string;
+      status?: string;
+    };
+    if (!json.id || !json.client_secret || !json.status) {
+      throw new StripeProviderError('Stripe createSetupIntent: response missing required fields');
+    }
+    return { stripeSetupIntentId: json.id, clientSecret: json.client_secret, status: json.status };
+  }
+
+  async attachPaymentMethod(input: StripeAttachPaymentMethodInput): Promise<StripePaymentMethodDisplay> {
+    const form = new URLSearchParams();
+    form.set('customer', input.customerId);
+    const json = (await this.post(
+      `/v1/payment_methods/${encodeURIComponent(input.paymentMethodId)}/attach`,
+      form,
+    )) as {
+      id?: string;
+      type?: string;
+      card?: { last4?: string; brand?: string };
+      us_bank_account?: { last4?: string; bank_name?: string };
+    };
+    if (!json.id || !json.type) {
+      throw new StripeProviderError('Stripe attachPaymentMethod: response missing required fields');
+    }
+    const type = json.type === 'us_bank_account' ? 'us_bank_account' : 'card';
+    const last4 = type === 'card' ? (json.card?.last4 ?? null) : (json.us_bank_account?.last4 ?? null);
+    const brand = type === 'card' ? (json.card?.brand ?? null) : (json.us_bank_account?.bank_name ?? null);
+    return { stripePaymentMethodId: json.id, type, last4, brand };
   }
 }
 

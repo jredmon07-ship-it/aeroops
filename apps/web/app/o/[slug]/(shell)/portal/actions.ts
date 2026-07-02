@@ -18,13 +18,23 @@
  *
  * [VERIFY-T1-B]: progressRatio is content-coverage, NOT a regulatory outcome.
  * [VERIFY-6-A]: tags are free-text only — no FAA/currency/medical meaning.
- * [MONEY BOUNDARY]: No price, rate, balance, or billing data in the portal.
+ * [MONEY BOUNDARY — P1]: the P1 summary above carries NO price/rate/balance.
+ *
+ * Slice P0-REV ADDITIVELY extends this file with self-pay actions
+ * (getMyBillingAction / createMySetupIntentAction / saveMyPaymentMethodAction /
+ * setMyAutopayAction / payMyInvoiceAction / getStripePublishableConfigAction)
+ * — see that section below for its own self-scoping + PCI notes.
  */
 'use server';
 
 import { auth } from '@/auth';
 import {
   getMyPortalSummary,
+  getMyBilling,
+  createMySetupIntent,
+  saveMyPaymentMethod,
+  setMyAutopay,
+  payMyInvoice,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -33,6 +43,9 @@ import type {
   MyAccountView,
   MyReservationRow,
   MyEnrollmentRow,
+  InvoiceView,
+  SavedPaymentMethodView,
+  AutopaySettingView,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -171,6 +184,176 @@ export async function getMyPortalSummaryAction(): Promise<GetMyPortalSummaryActi
   try {
     const summary = await getMyPortalSummary(session);
     return { ok: true, summary: serializeSummary(summary) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice P0-REV — Portal self-pay actions
+//
+// SELF-SCOPING (unchanged pattern): every function below takes NO
+// row-identifying / userId input — the subject is ALWAYS session.userId from
+// the verified JWT, enforced inside the @aeroops/api command (portal:access +
+// self-scope). NEVER a card/bank value crosses this file — only Stripe's own
+// ids (client_secret / setupIntentId / paymentMethodId) and Stripe-returned
+// DISPLAY fields (type/last4/brand). The raw card/bank entry happens on a
+// Stripe-hosted Element client-side, entirely outside this server (PCI SAQ-A).
+// ════════════════════════════════════════════════════════════════════════════════
+
+/** Serialized InvoiceView — mirrors billing/actions.ts's SerializedInvoiceRow shape. */
+export interface SerializedMyInvoiceRow {
+  id: string;
+  status: string;
+  subtotalCents: number;
+  totalCents: number;
+  issuedAt: string | null;
+  createdAt: string;
+}
+
+function serializeMyInvoice(inv: InvoiceView): SerializedMyInvoiceRow {
+  return {
+    id: inv.id,
+    status: inv.status,
+    subtotalCents: inv.subtotalCents,
+    totalCents: inv.totalCents,
+    issuedAt: inv.issuedAt ? inv.issuedAt.toISOString() : null,
+    createdAt: inv.createdAt.toISOString(),
+  };
+}
+
+export interface SerializedMyBilling {
+  balanceCents: number;
+  invoices: SerializedMyInvoiceRow[];
+  paymentMethods: SavedPaymentMethodView[];
+  autopay: AutopaySettingView;
+}
+
+export type GetMyBillingActionResult =
+  | { ok: true; billing: SerializedMyBilling }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+/** getMyBillingAction — own balance + own invoices + own saved PMs + own autopay setting. */
+export async function getMyBillingAction(): Promise<GetMyBillingActionResult> {
+  const session = await auth();
+  try {
+    const billing = await getMyBilling(session);
+    return {
+      ok: true,
+      billing: {
+        balanceCents: billing.balanceCents,
+        invoices: billing.invoices.map(serializeMyInvoice),
+        paymentMethods: billing.paymentMethods,
+        autopay: billing.autopay,
+      },
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── getStripePublishableConfigAction ─────────────────────────────────────────
+
+export interface StripePublishableConfig {
+  configured: boolean;
+  publishableKey?: string;
+}
+
+/**
+ * getStripePublishableConfigAction — the publishable key is PUBLIC (safe to
+ * send to the browser by design — Stripe's own docs). The SECRET key never
+ * leaves the server. `configured:false` when STRIPE_PUBLISHABLE_KEY is unset
+ * — the client renders a clean "payments not enabled by your operator yet"
+ * state in that case.
+ */
+export async function getStripePublishableConfigAction(): Promise<StripePublishableConfig> {
+  const key = process.env['STRIPE_PUBLISHABLE_KEY'];
+  if (!key) return { configured: false };
+  return { configured: true, publishableKey: key };
+}
+
+// ─── createMySetupIntentAction ─────────────────────────────────────────────────
+
+export type CreateMySetupIntentActionResult =
+  | { ok: true; clientSecret: string; setupIntentId: string }
+  | { ok: false; reason: 'not_configured' }
+  | { ok: false; reason: 'provider_error'; message?: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function createMySetupIntentAction(): Promise<CreateMySetupIntentActionResult> {
+  const session = await auth();
+  try {
+    return await createMySetupIntent(session);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── saveMyPaymentMethodAction ─────────────────────────────────────────────────
+
+export type SaveMyPaymentMethodActionResult =
+  | { ok: true; paymentMethod: SavedPaymentMethodView }
+  | { ok: false; reason: 'not_configured' }
+  | { ok: false; reason: 'provider_error'; message?: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function saveMyPaymentMethodAction(paymentMethodId: string): Promise<SaveMyPaymentMethodActionResult> {
+  const session = await auth();
+  try {
+    return await saveMyPaymentMethod(session, { paymentMethodId });
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── setMyAutopayAction ─────────────────────────────────────────────────────────
+
+export type SetMyAutopayActionResult =
+  | { ok: true; setting: AutopaySettingView }
+  | { ok: false; reason: 'pm_required' | 'pm_not_found' }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function setMyAutopayAction(
+  enabled: boolean,
+  defaultPaymentMethodId?: string,
+): Promise<SetMyAutopayActionResult> {
+  const session = await auth();
+  try {
+    return await setMyAutopay(session, { enabled, defaultPaymentMethodId });
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── payMyInvoiceAction ─────────────────────────────────────────────────────────
+
+export type PayMyInvoiceActionResult =
+  | { ok: true; paymentIntentId: string; clientSecret: string; status: string; alreadyExists: boolean }
+  | { ok: false; reason: 'not_configured' }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'not_finalized' }
+  | { ok: false; reason: 'provider_error'; message?: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function payMyInvoiceAction(invoiceId: string): Promise<PayMyInvoiceActionResult> {
+  const session = await auth();
+  try {
+    return await payMyInvoice(session, { invoiceId });
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

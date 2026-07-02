@@ -106,6 +106,8 @@ const MIGRATION_SQL = [
   migrationSql('0021_qbo_integration.sql'),
   migrationSql('0022_billing_ledger.sql'),
   migrationSql('0023_stripe_foundation.sql'),
+  migrationSql('0024_payment_methods_autopay.sql'),
+  migrationSql('0025_recurring_dues.sql'),
 ];
 
 // ── Fake StripeClient — NO real HTTP call, ever ────────────────────────────────
@@ -148,6 +150,21 @@ class FakeStripeClient implements StripeClient {
     // (stripe-webhook-verify.test.ts) — this fake trusts rawBody directly so
     // these integration tests focus on the DB-level dedup/ledger logic.
     return JSON.parse(rawBody) as StripeWebhookEvent;
+  }
+
+  // Slice P0-REV — not exercised by this file's tests (see
+  // payments-autopay.test.ts / portal-self-pay.test.ts), stubbed only to
+  // satisfy the StripeClient interface.
+  async createSetupIntent(): Promise<{ stripeSetupIntentId: string; clientSecret: string; status: string }> {
+    throw new Error('FakeStripeClient.createSetupIntent not exercised in this file');
+  }
+  async attachPaymentMethod(): Promise<{
+    stripePaymentMethodId: string;
+    type: 'card' | 'us_bank_account';
+    last4: string | null;
+    brand: string | null;
+  }> {
+    throw new Error('FakeStripeClient.attachPaymentMethod not exercised in this file');
   }
 }
 

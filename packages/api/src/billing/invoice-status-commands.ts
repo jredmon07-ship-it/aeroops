@@ -56,6 +56,10 @@ import { ValidationError } from '../scheduling/internal.js';
 import { toInvoiceView } from './list-invoices.js';
 import type { InvoiceView } from './list-invoices.js';
 import { ensureBillingAccountTx } from './ledger-internal.js';
+import { getStripeClient } from '../integrations/stripe/client.js';
+import type { StripeClient } from '../integrations/stripe/client.js';
+import { triggerAutopayOnFinalize } from '../integrations/stripe/autopay.js';
+import type { AutopayResult } from '../integrations/stripe/autopay.js';
 
 // ─── UUID validation ──────────────────────────────────────────────────────────
 
@@ -69,13 +73,14 @@ const invoiceIdSchema = z.object({
 // ─── finalizeInvoice ─────────────────────────────────────────────────────────
 
 export type FinalizeInvoiceResult =
-  | { ok: true;  invoice: InvoiceView }
+  | { ok: true;  invoice: InvoiceView; autopay?: AutopayResult }
   | { ok: false; reason: 'not_found' | 'not_draft' };
 
 async function _finalizeInvoiceImpl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: unknown,
+  client: StripeClient = getStripeClient(),
 ): Promise<FinalizeInvoiceResult> {
   requireCapability(session, 'billing:manage');
 
@@ -88,7 +93,10 @@ async function _finalizeInvoiceImpl(
   }
   const { id } = parsed.data;
 
-  return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
+  // Slice P0-REV: the finalize tx (UPDATE + ledger debit + audit) stays
+  // BYTE-IDENTICAL below — autopay runs AFTER this tx commits (external HTTP
+  // must never be held inside a DB tx), as a separate step further down.
+  const result = await withSessionOrgContextWithDb(db, session, async (sess, tx) => {
     // Guarded UPDATE WHERE status='draft' (race-safe: 0 rows → not draft or not found).
     const updated = await tx
       .update(invoice)
@@ -159,24 +167,39 @@ async function _finalizeInvoiceImpl(
       },
     });
 
-    return { ok: true, invoice: toInvoiceView(updated[0]) };
+    return { ok: true, invoice: toInvoiceView(updated[0]) } as const;
   });
+
+  // Slice P0-REV: autopay runs AFTER the finalize tx above has committed —
+  // NEVER inside it (external HTTP must never be held inside a DB tx). Only
+  // attempted for a successful finalize with a non-zero total (a $0 invoice
+  // has nothing to charge — mirrors the ledger-debit skip above). `session`
+  // is guaranteed valid AppSession here: withSessionOrgContextWithDb above
+  // would have thrown UnauthenticatedError before reaching this line
+  // otherwise. The invoice is finalized regardless of this step's outcome.
+  if (result.ok && result.invoice.totalCents > 0) {
+    const autopay = await triggerAutopayOnFinalize(db, session as AppSession, id, client);
+    return { ok: true, invoice: result.invoice, autopay };
+  }
+  return result;
 }
 
 export async function finalizeInvoice(
   session: AppSession | null | undefined,
   input: unknown,
+  client?: StripeClient,
 ): Promise<FinalizeInvoiceResult> {
   const db = await getDb();
-  return _finalizeInvoiceImpl(db, session, input);
+  return _finalizeInvoiceImpl(db, session, input, client);
 }
 
 export async function finalizeInvoiceWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   input: unknown,
+  client?: StripeClient,
 ): Promise<FinalizeInvoiceResult> {
-  return _finalizeInvoiceImpl(db, session, input);
+  return _finalizeInvoiceImpl(db, session, input, client);
 }
 
 // ─── voidInvoice ─────────────────────────────────────────────────────────────

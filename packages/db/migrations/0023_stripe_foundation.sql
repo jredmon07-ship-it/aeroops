@@ -52,7 +52,12 @@
 --       Customer per member per org (mirrors billing_account).
 --   (5) payment_intent_record.stripe_payment_intent_id is UNIQUE (global —
 --       Stripe ids are globally unique) — the idempotency backstop for
---       "have we already recorded this PaymentIntent".
+--       "have we already recorded this PaymentIntent". ADDITIONALLY, a
+--       partial UNIQUE index on (invoice_id) WHERE status IN
+--       ('pending','processing','succeeded') caps every invoice at ONE
+--       non-terminal payment_intent_record row at a time — the atomic DB
+--       backstop behind the app-level one-active-PI-per-invoice guard (see
+--       §(4) Indexes below for the full rationale).
 --   (6) stripe_event is APPEND-ONLY (SELECT + INSERT policies only, GRANT
 --       SELECT+INSERT, explicit REVOKE UPDATE/DELETE) — mirrors
 --       dispatch_ticket_correction / ledger_entry / qbo_export_log exactly.
@@ -271,6 +276,28 @@ CREATE INDEX "stripe_event_org_processed_idx"
 -- payment_intent_record: per-invoice lookup (getPaymentStatus) + per-org listing.
 CREATE INDEX "payment_intent_record_org_invoice_idx"
   ON "payment_intent_record" ("org_id", "invoice_id");
+
+-- payment_intent_record: ATOMIC one-active-PaymentIntent-per-invoice backstop
+-- (P0-REV money-invariant fix). The application-level idempotency check
+-- (SELECT for an existing pending/processing/succeeded row, THEN INSERT) in
+-- createPaymentIntentForInvoiceTx / triggerAutopayOnFinalize is NOT atomic on
+-- its own — two concurrent callers for the SAME invoice (auto-pay-on-finalize
+-- racing a member's self-pay click, or a double self-pay click) can both pass
+-- the read check before either INSERTs. This partial UNIQUE index is the DB-
+-- level backstop, mirroring dispatch_ticket's one-open-per-aircraft partial
+-- UNIQUE (migration 0005, ADR-0007 §2): at most ONE payment_intent_record row
+-- per invoice_id may ever be in a non-terminal status at a time. A losing
+-- concurrent INSERT raises Postgres 23505 (unique_violation); the caller
+-- catches it (isUniqueViolation, dispatch/internal.ts) and returns the
+-- winner's already-recorded PaymentIntent instead of creating a second row.
+-- Because the Stripe webhook (the SOLE settlement path) resolves org/invoice
+-- via a payment_intent_record row match (resolveOrgByStripePaymentIntentId),
+-- a PaymentIntent that never gets its own row can never post a ledger credit
+-- — so at most one settling PaymentIntent, and at most one 'payment' ledger
+-- credit, can ever exist per invoice.
+CREATE UNIQUE INDEX "payment_intent_record_invoice_active_unique"
+  ON "payment_intent_record" ("invoice_id")
+  WHERE "status" IN ('pending', 'processing', 'succeeded');
 
 
 -- ── (5) ENABLE + FORCE RLS ────────────────────────────────────────────────────

@@ -32,6 +32,15 @@
  *   for "have we already recorded this PaymentIntent".
  * payment_intent_record_id_org_id_unique UNIQUE (id, org_id) — composite
  *   candidate key.
+ * payment_intent_record_invoice_active_unique — a partial UNIQUE index on
+ *   (invoice_id) WHERE status IN ('pending','processing','succeeded'),
+ *   hand-written in migration 0023 SQL (Drizzle cannot express partial
+ *   indexes in table config — mirrors dispatch_ticket's one-open-per-
+ *   aircraft backstop). Caps every invoice at ONE non-terminal
+ *   payment_intent_record row at a time — the atomic DB backstop behind the
+ *   app-level guard in createPaymentIntentForInvoiceTx /
+ *   triggerAutopayOnFinalize (integrations/stripe/*.ts): "at most one
+ *   settling PaymentIntent per invoice" (P0-REV money-invariant fix).
  */
 import {
   pgTable,

@@ -1296,6 +1296,7 @@ export {
   StripeNotConfiguredError,
   StripeProviderError,
   StripeSignatureVerificationError,
+  StripeCardDeclinedError,
 } from './integrations/stripe/client.js';
 export type {
   StripeClient,
@@ -1306,6 +1307,10 @@ export type {
   StripePaymentIntentResult,
   StripeRetrievePaymentIntentResult,
   StripeWebhookEvent,
+  StripeCreateSetupIntentInput,
+  StripeSetupIntentResult,
+  StripeAttachPaymentMethodInput,
+  StripePaymentMethodDisplay,
 } from './integrations/stripe/client.js';
 
 export { verifyStripeSignature } from './integrations/stripe/webhook-verify.js';
@@ -1339,3 +1344,162 @@ export type {
 
 export { handleStripeWebhookEvent } from './integrations/stripe/handle-webhook-event.js';
 export type { HandleStripeWebhookResult } from './integrations/stripe/handle-webhook-event.js';
+
+// ─── Slice P0-REV — Revenue engine (self-pay + auto-pay + recurring dues) ─────
+// Builds ADDITIVELY on B1 (invoices)/B2 (ledger+balance)/B3-foundation (Stripe
+// seam). Migrations 0024 (payment methods + autopay) + 0025 (recurring dues)
+// staged + human-gated, NOT applied. STOPS at the Stripe-KEY BOUNDARY — every
+// call routes through the stub-when-unconfigured StripeClient seam; typed
+// not_configured until keys exist. FROZEN dispatch gate
+// (dispatch/open-dispatch.ts) is BYTE-IDENTICAL — untouched by this slice.
+// WEBHOOKS REMAIN THE SOLE SETTLEMENT PATH: creating any PaymentIntent
+// (staff, self-pay, OR off-session autopay) posts NO ledger entry — only a
+// verified payment_intent.succeeded event (handleStripeWebhookEvent,
+// unchanged credit logic) ever does.
+//
+// ensureStripeCustomerTx / createPaymentIntentForInvoiceTx: extracted shared
+//   cores (reuse-or-create a stripe_customer; the PI-creation+idempotency
+//   logic) — createInvoicePaymentIntent (staff) and payMyInvoice (self-pay
+//   portal) both call the SAME core; behavior stays byte-equivalent to the
+//   pre-extraction B3-foundation implementation.
+// createInvoiceSetupIntent: billing:manage. Begins the save-a-PM flow
+//   (SetupIntent client_secret for a Stripe Element). Audited.
+// saveMyPaymentMethod (portal, self-scoped to session.userId): the confirm-
+//   callback primary path — attaches the PM + records stripe_payment_method,
+//   idempotent (ON CONFLICT DO NOTHING) vs the setup_intent.succeeded webhook
+//   backstop (handle-webhook-event.ts, additive branch — resolves org via
+//   resolveOrgByStripeCustomerId, a sanctioned platform-admin read backed by
+//   migration 0024's stripe_customer_select policy addition).
+// setMyAutopay (portal, self-scoped): explicit member opt-in. Requires a
+//   SELF-OWNED saved PM when enabling — the DB CHECK
+//   autopay_enabled_requires_pm (migration 0024) is the structural backstop.
+// payMyInvoice (portal, self-scoped): pay one of the caller's OWN finalized
+//   invoices — self-scope checked BEFORE the shared PI-creation core; a
+//   foreign invoice returns not_found (zero-IDOR).
+// getMyBilling (portal, self-scoped): own balance + own invoices + own saved
+//   PMs (display only) + own autopay setting, in ONE org context.
+//   [VERIFY-B2-PORTAL] resolved.
+// triggerAutopayOnFinalize: called by finalizeInvoice (billing/invoice-
+//   status-commands.js, additively extended — the finalize UPDATE+ledger-
+//   debit+audit tx is BYTE-IDENTICAL) AFTER that tx commits. Off-session
+//   PaymentIntent with a DETERMINISTIC `autopay:<invoiceId>` idempotency key
+//   — three structural layers make a double-charge impossible (guarded
+//   draft→finalized UPDATE fires once; the existing-payment_intent_record
+//   guard; Stripe's own Idempotency-Key header). NEVER posts a ledger credit
+//   itself. Declined → payment_intent_record 'failed', no credit, invoice
+//   still finalized. Unconfigured → 'not_configured', invoice still
+//   finalizes normally.
+// createDuesSchedule / setDuesScheduleActive: billing:manage. Configure a
+//   member's recurring-dues line. amount_cents = INTEGER CENTS.
+// generateDuesInvoices: billing:manage, audited ('billing.dues_generated').
+//   One DRAFT invoice per active dues_schedule per period, IDEMPOTENT per
+//   (schedule, period) via dues_run's UNIQUE (org_id, dues_schedule_id,
+//   period_key) — THE structural no-double-bill mechanism. SAFE TO CALL
+//   REPEATEDLY. Finalizing a generated invoice flows into
+//   triggerAutopayOnFinalize above, unchanged.
+// getMemberBillingProfile (staff, billing:access, READ-ONLY): autopay status
+//   + saved-PM presence (display only) + active dues schedules, for the
+//   staff billing/accounts UI.
+// *WithDb forms / explicit `client` params are for test code only (inject a
+// pglite client + a fake StripeClient — tests never make a real HTTP call).
+
+export { ensureStripeCustomerTx } from './integrations/stripe/ensure-customer.js';
+export type { EnsureStripeCustomerResult } from './integrations/stripe/ensure-customer.js';
+
+export {
+  createPaymentIntentForInvoiceTx,
+} from './integrations/stripe/create-payment-intent-core.js';
+export type { CreatePaymentIntentForInvoiceResult } from './integrations/stripe/create-payment-intent-core.js';
+
+export { resolveOrgByStripeCustomerId } from './integrations/stripe/resolve-payment-customer.js';
+export type { ResolvedStripeCustomer } from './integrations/stripe/resolve-payment-customer.js';
+
+export {
+  createInvoiceSetupIntent,
+  createInvoiceSetupIntentWithDb,
+  DEFAULT_SETUP_PAYMENT_METHOD_TYPES,
+} from './integrations/stripe/setup-intent-commands.js';
+export type {
+  CreateInvoiceSetupIntentInput,
+  CreateInvoiceSetupIntentResult,
+} from './integrations/stripe/setup-intent-commands.js';
+
+export { triggerAutopayOnFinalize } from './integrations/stripe/autopay.js';
+export type { AutopayOutcome, AutopayResult } from './integrations/stripe/autopay.js';
+
+export {
+  createMySetupIntent,
+  createMySetupIntentWithDb,
+} from './portal/create-my-setup-intent.js';
+export type { CreateMySetupIntentResult } from './portal/create-my-setup-intent.js';
+
+export {
+  saveMyPaymentMethod,
+  saveMyPaymentMethodWithDb,
+} from './portal/save-payment-method.js';
+export type {
+  SaveMyPaymentMethodInput,
+  SaveMyPaymentMethodResult,
+  SavedPaymentMethodView,
+} from './portal/save-payment-method.js';
+
+export {
+  setMyAutopay,
+  setMyAutopayWithDb,
+} from './portal/set-autopay.js';
+export type {
+  SetMyAutopayInput,
+  SetMyAutopayResult,
+  AutopaySettingView,
+} from './portal/set-autopay.js';
+
+export {
+  payMyInvoice,
+  payMyInvoiceWithDb,
+} from './portal/pay-invoice.js';
+export type {
+  PayMyInvoiceInput,
+  PayMyInvoiceResult,
+} from './portal/pay-invoice.js';
+
+export {
+  getMyBilling,
+  getMyBillingWithDb,
+} from './portal/get-my-billing.js';
+export type { MyBillingView } from './portal/get-my-billing.js';
+
+export {
+  createDuesSchedule,
+  createDuesScheduleWithDb,
+  setDuesScheduleActive,
+  setDuesScheduleActiveWithDb,
+} from './billing/dues-schedule-commands.js';
+export type {
+  DuesScheduleView,
+  CreateDuesScheduleInput,
+  CreateDuesScheduleResult,
+  SetDuesScheduleActiveInput,
+  SetDuesScheduleActiveResult,
+} from './billing/dues-schedule-commands.js';
+
+export {
+  generateDuesInvoices,
+  generateDuesInvoicesWithDb,
+} from './billing/generate-dues-invoices.js';
+export type {
+  GenerateDuesInvoicesInput,
+  GenerateDuesInvoicesResult,
+  GenerateDuesInvoicesCreated,
+  GenerateDuesInvoicesSkipped,
+} from './billing/generate-dues-invoices.js';
+
+export {
+  getMemberBillingProfile,
+  getMemberBillingProfileWithDb,
+} from './billing/get-member-billing-profile.js';
+export type {
+  GetMemberBillingProfileInput,
+  GetMemberBillingProfileResult,
+  MemberBillingProfile,
+  MemberBillingProfileDefaultPaymentMethod,
+} from './billing/get-member-billing-profile.js';

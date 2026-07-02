@@ -53,6 +53,7 @@ ALTER TABLE "stripe_customer"       DISABLE ROW LEVEL SECURITY;
 
 -- ── (4) Drop indexes ─────────────────────────────────────────────────────────
 
+DROP INDEX IF EXISTS "payment_intent_record_invoice_active_unique";
 DROP INDEX IF EXISTS "payment_intent_record_org_invoice_idx";
 DROP INDEX IF EXISTS "stripe_event_org_processed_idx";
 DROP INDEX IF EXISTS "stripe_customer_org_user_idx";

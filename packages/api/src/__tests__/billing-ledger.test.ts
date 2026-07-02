@@ -93,6 +93,9 @@ const MIGRATION_SQL = [
   migrationSql('0020_demo_reset_state.sql'),
   migrationSql('0021_qbo_integration.sql'),
   migrationSql('0022_billing_ledger.sql'),
+  migrationSql('0023_stripe_foundation.sql'),
+  migrationSql('0024_payment_methods_autopay.sql'),
+  migrationSql('0025_recurring_dues.sql'),
 ];
 
 // ── Shared test environment ───────────────────────────────────────────────────

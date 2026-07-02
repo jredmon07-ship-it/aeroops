@@ -32,10 +32,19 @@ import {
   getMemberBalance,
   listLedgerEntries,
   recordManualPayment,
+  getMemberBillingProfile,
+  createDuesSchedule,
+  setDuesScheduleActive,
+  generateDuesInvoices,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
-import type { InvoiceStatus, ListInvoicesOptions, LedgerEntryCursor } from '@aeroops/api';
+import type {
+  InvoiceStatus,
+  ListInvoicesOptions,
+  LedgerEntryCursor,
+  MemberBillingProfile,
+} from '@aeroops/api';
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
 
@@ -303,6 +312,119 @@ export async function recordManualPaymentAction(
     if (!result.ok) return result;
     revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
     return { ok: true, balanceCentsAfter: result.balanceCentsAfter };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code: unknown }).code === 'VALIDATION' &&
+      err instanceof Error
+    ) {
+      return { error: 'validation', message: err.message };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── Slice P0-REV — auto-pay status / saved-PM presence / recurring dues ────
+// DISPLAY ONLY: getMemberBillingProfileAction never returns a PAN/CVV/account
+// number — only Stripe-permitted last4/brand DISPLAY fields (see
+// @aeroops/api's MemberBillingProfile shape). Dues create/run require
+// billing:manage (enforced inside the @aeroops/api commands).
+
+export type GetMemberBillingProfileActionResult =
+  | { ok: true; profile: MemberBillingProfile }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function getMemberBillingProfileAction(memberUserId: string): Promise<GetMemberBillingProfileActionResult> {
+  const session = await auth();
+  try {
+    return await getMemberBillingProfile(session, { memberUserId });
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export type CreateDuesScheduleActionResult =
+  | { ok: true }
+  | { ok: false; reason: 'member_not_found' }
+  | { error: 'validation'; message: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function createDuesScheduleAction(
+  memberUserId: string,
+  amountCents: number,
+  dayOfMonth: number,
+  memo: string | undefined,
+  slug: string,
+): Promise<CreateDuesScheduleActionResult> {
+  const session = await auth();
+  try {
+    const result = await createDuesSchedule(session, { memberUserId, amountCents, dayOfMonth, memo });
+    if (!result.ok) return result;
+    revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
+    return { ok: true };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code: unknown }).code === 'VALIDATION' &&
+      err instanceof Error
+    ) {
+      return { error: 'validation', message: err.message };
+    }
+    return { error: 'server' };
+  }
+}
+
+export type SetDuesScheduleActiveActionResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function setDuesScheduleActiveAction(
+  scheduleId: string,
+  active: boolean,
+  memberUserId: string,
+  slug: string,
+): Promise<SetDuesScheduleActiveActionResult> {
+  const session = await auth();
+  try {
+    const result = await setDuesScheduleActive(session, { scheduleId, active });
+    if (!result.ok) return result;
+    revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
+    return { ok: true };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export type RunDuesForPeriodActionResult =
+  | { ok: true; createdCount: number; skippedCount: number }
+  | { error: 'validation'; message: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+/** runDuesForPeriodAction — manual trigger, billing:manage. Safe to call repeatedly (idempotent per period). */
+export async function runDuesForPeriodAction(periodKey: string, slug: string): Promise<RunDuesForPeriodActionResult> {
+  const session = await auth();
+  try {
+    const result = await generateDuesInvoices(session, { periodKey });
+    revalidatePath(`/o/${slug}/billing`);
+    return { ok: true, createdCount: result.created.length, skippedCount: result.skipped.length };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

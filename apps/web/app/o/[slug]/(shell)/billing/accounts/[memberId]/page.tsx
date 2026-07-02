@@ -31,7 +31,7 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getMemberBalanceAction, listLedgerEntriesAction } from '../../actions';
+import { getMemberBalanceAction, listLedgerEntriesAction, getMemberBillingProfileAction } from '../../actions';
 import { AccountDetailClient } from '../_components/account-detail-client';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
@@ -55,9 +55,10 @@ interface DetailContentProps {
 }
 
 async function DetailContent({ memberId, slug, canManage }: DetailContentProps) {
-  const [balanceResult, entriesResult] = await Promise.all([
+  const [balanceResult, entriesResult, billingProfileResult] = await Promise.all([
     getMemberBalanceAction(memberId),
     listLedgerEntriesAction(memberId),
+    getMemberBillingProfileAction(memberId),
   ]);
 
   if ('error' in balanceResult || 'error' in entriesResult) {
@@ -89,6 +90,9 @@ async function DetailContent({ memberId, slug, canManage }: DetailContentProps) 
     );
   }
 
+  const billingProfile =
+    'ok' in billingProfileResult && billingProfileResult.ok ? billingProfileResult.profile : null;
+
   return (
     <AccountDetailClient
       memberId={memberId}
@@ -97,6 +101,7 @@ async function DetailContent({ memberId, slug, canManage }: DetailContentProps) 
       minimumBalanceCents={balanceResult.minimumBalanceCents}
       initialEntries={entriesResult.entries}
       canManage={canManage}
+      initialBillingProfile={billingProfile}
     />
   );
 }

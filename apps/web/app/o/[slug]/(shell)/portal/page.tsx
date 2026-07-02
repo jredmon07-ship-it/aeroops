@@ -455,6 +455,15 @@ async function PortalContent({ slug }: PortalContentProps) {
         </p>
       </div>
 
+      {/* ── Billing (Slice P0-REV) ────────────────────────────────────────── */}
+      <Link
+        href={`/o/${slug}/portal/billing`}
+        className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-xs hover:border-brand/40 hover:text-brand-ink"
+      >
+        Billing — balance, invoices, and payment methods
+        <span aria-hidden="true">→</span>
+      </Link>
+
       {/* ── B. My upcoming reservations ─────────────────────────────────── */}
       <SectionCard
         title="My upcoming reservations"
