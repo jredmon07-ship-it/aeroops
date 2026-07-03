@@ -36,15 +36,17 @@ import { SeriesPreviewPanel } from './series-preview-panel';
 import { SeriesCreateResult } from './series-create-result';
 import { TwilightIndicator } from './twilight-indicator';
 import { AvailabilityIndicator } from './availability-indicator';
+import { WeatherChip } from './weather-chip';
 import { useConflictCheck } from '../_hooks/use-conflict-check';
 import { useSeriesPreview } from '../_hooks/use-series-preview';
-import { createReservationAction, createSeriesAction, previewTwilightAction, previewAvailabilityAction } from '../../actions';
+import { createReservationAction, createSeriesAction, previewTwilightAction, previewAvailabilityAction, getMetarForAircraftAction } from '../../actions';
 import { getGroundingStatusAction } from '../../../maintenance/actions';
 import { toDateInputValue } from '../../_utils/format-time';
-import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView, PreviewTwilightResourceReport, TwilightHit, PreviewAvailabilityResourceReport } from '@aeroops/api';
+import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView, PreviewTwilightResourceReport, TwilightHit, PreviewAvailabilityResourceReport, ParsedMetar } from '@aeroops/api';
 import type { RecurrenceValue, RecurrenceFieldErrors } from './recurrence-controls';
 import type { TwilightPreviewState } from './twilight-indicator';
 import type { AvailabilityPreviewState } from './availability-indicator';
+import type { WeatherChipState } from './weather-chip';
 
 interface NewReservationFormProps {
   resources: ResourceRow[];
@@ -125,6 +127,11 @@ export function NewReservationForm({
   const [availabilityState, setAvailabilityState] = React.useState<AvailabilityPreviewState>('idle');
   const [availabilityPerResource, setAvailabilityPerResource] = React.useState<PreviewAvailabilityResourceReport[]>([]);
   const availabilityTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Current weather (Slice W1, advisory only — never blocks the form).
+  // [VERIFY-W1-A]: informational, NOT a go/no-go or airworthiness determination.
+  const [weatherState, setWeatherState] = React.useState<WeatherChipState>('idle');
+  const [weather, setWeather] = React.useState<ParsedMetar | null>(null);
 
   // ── Recurrence (Slice 2b) ──────────────────────────────────────────────────
   const [repeatEnabled, setRepeatEnabled] = React.useState(false);
@@ -310,6 +317,41 @@ export function NewReservationForm({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aircraftId, date, startTime, endTime]);
+
+  // Current weather (Slice W1, advisory only — never blocks submit). Fires
+  // once per aircraft selection (independent of date/time — this is a "now"
+  // snapshot, not a forecast). Best-effort: any failure shows the chip's
+  // muted empty state, never an error banner.
+  // [VERIFY-W1-A]: informational only, NOT a go/no-go or airworthiness determination.
+  React.useEffect(() => {
+    if (!aircraftId) {
+      setWeatherState('idle');
+      setWeather(null);
+      return;
+    }
+
+    let cancelled = false;
+    setWeatherState('loading');
+    setWeather(null);
+
+    getMetarForAircraftAction({ resourceId: aircraftId })
+      .then((result) => {
+        if (cancelled) return;
+        if ('error' in result) {
+          setWeatherState('error');
+          return;
+        }
+        setWeather(result.weather);
+        setWeatherState('loaded');
+      })
+      .catch(() => {
+        if (!cancelled) setWeatherState('error');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [aircraftId]);
 
   // Client-side validation for the base fields (shared by both paths)
   function validateBase(): boolean {
@@ -1052,6 +1094,18 @@ export function NewReservationForm({
             state={availabilityState}
             perResource={availabilityPerResource}
             resourceNames={aircraftNameMap}
+          />
+        )}
+
+        {/* Current weather chip (Slice W1, advisory only). Shown whenever an
+            aircraft is selected — independent of Repeat/date/time (this is a
+            "now" snapshot). Never blocks submit — informational only.
+            [VERIFY-W1-A]: NOT a go/no-go or airworthiness determination. */}
+        {aircraftId && (
+          <WeatherChip
+            state={weatherState}
+            weather={weather}
+            aircraftName={aircraftNameMap.get(aircraftId) ?? aircraftId}
           />
         )}
 

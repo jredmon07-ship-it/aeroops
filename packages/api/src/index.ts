@@ -1912,3 +1912,39 @@ export type {
   CreateCounterSaleInput,
   CreateCounterSaleResult,
 } from './billing/counter-sale.js';
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice W1 — METAR weather (display-only, informational)
+//
+// getMetarForAircraft: read-only current METAR for an aircraft's home-base
+// ICAO (cap: schedule:access — the same base viewing capability the board and
+// new-reservation surfaces already require). Resolves the aircraft →
+// home-base → ICAO via the RLS-scoped resource/location join (mirrors
+// loadTwilightContext exactly); no ICAO configured, a non-aircraft resource,
+// a cross-org id, or ANY provider failure all converge on `null` — a graceful
+// no-chip empty state, never a 500, never a peek.
+//
+// getWeatherProvider/AwcWeatherProvider: the free, keyless AWC (Aviation
+// Weather Center) fetch-client seam — best-effort, NEVER throws.
+//
+// COMPLIANCE: weather is advisory/situational ONLY — NEVER a computed go/
+// no-go, airworthiness, or dispatch determination (same posture as civil
+// twilight / grounding). See docs/specs/slice-weather-metar.md. Must NEVER be
+// wired into a gate/block write path — this is a passive display read.
+// ════════════════════════════════════════════════════════════════════════════
+
+export {
+  getMetarForAircraft,
+  getMetarForAircraftWithDb,
+} from './weather/get-metar-for-aircraft.js';
+export type { GetMetarForAircraftInput } from './weather/get-metar-for-aircraft.js';
+// ParsedMetar/FlightCategory are @aeroops/core types — re-exported here so web
+// callers of getMetarForAircraft never need a direct @aeroops/core import.
+export type { ParsedMetar, FlightCategory } from '@aeroops/core';
+
+export {
+  getWeatherProvider,
+  AwcWeatherProvider,
+  __resetWeatherProviderForTests,
+} from './weather/provider.js';
+export type { WeatherProvider } from './weather/provider.js';

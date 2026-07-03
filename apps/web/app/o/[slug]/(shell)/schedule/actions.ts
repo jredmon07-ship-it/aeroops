@@ -43,6 +43,7 @@ import {
   listDispatchPilots,
   previewAvailability,
   sendNotification,
+  getMetarForAircraft,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -71,6 +72,7 @@ import type {
   CloseDispatchResult,
   VoidDispatchResult,
   DispatchTicketView,
+  ParsedMetar,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -831,6 +833,50 @@ export async function rescheduleAction(input: {
   const session = await auth();
   try {
     return await rescheduleReservation(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── getMetarForAircraftAction ────────────────────────────────────────────────
+// Slice W1 — METAR weather (display-only, informational). Read-only; writes
+// nothing, no audit row. Authz: schedule:access (enforced server-side by
+// getMetarForAircraft — same base viewing capability as the board / this
+// form). NEVER a go/no-go, airworthiness, or dispatch determination — the
+// pilot in command decides. See docs/specs/slice-weather-metar.md.
+//
+// Result is `ParsedMetar | null` — null covers EVERY graceful-empty case
+// uniformly (no ICAO configured, non-aircraft resource, cross-org id, or a
+// weather-provider outage) so the chip's empty state is a single code path.
+
+export type GetMetarForAircraftActionResult =
+  | { ok: true; weather: ParsedMetar | null }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * getMetarForAircraftAction — read-only current METAR for an aircraft's
+ * home-base airport.
+ *
+ * Maps:
+ *   ForbiddenError       → { error: 'forbidden' }
+ *   UnauthenticatedError → { error: 'unauthenticated' }
+ *   ValidationError      → { error: 'validation', message }
+ *   otherwise            → { ok: true, weather } (weather may be null)
+ */
+export async function getMetarForAircraftAction(input: {
+  resourceId: string;
+}): Promise<GetMetarForAircraftActionResult> {
+  const session = await auth();
+  try {
+    const weather = await getMetarForAircraft(session, input);
+    return { ok: true, weather };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
