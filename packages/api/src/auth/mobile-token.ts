@@ -9,7 +9,14 @@
  *   - ONE secret: AUTH_SECRET (same env var as the web session).
  *   - ONE token format: @auth/core JWE (A256CBC-HS512), same salt as the web
  *     session cookie ("authjs.session-token") — ONE format, not forked.
- *   - 8-hour expiry (maxAge = 60 * 60 * 8) — mirrors web session.maxAge.
+ *   - [VERIFY-4M-SEC-1] SHORT-LIVED expiry (maxAge = 60 * 15 = 15 minutes) —
+ *     changed from the original 8h (Slice 4M.1) as part of the mobile
+ *     token-revocation predecessor (Slice 4M-REVOKE, migration 0033). A
+ *     stateless JWT can never be revoked mid-flight; keeping it short-lived
+ *     means the ONLY way to get a new one is a refresh that IS checked
+ *     against the revocable `mobile_session` table (see
+ *     packages/api/src/auth/mobile-session.ts) — that is where instant
+ *     revocation actually lives, not in this file.
  *   - REFUSE to mint if AUTH_SECRET is unset or is the build-time placeholder
  *     (mirrors apps/web/auth.ts fail-fast guard).
  *   - verifyMobileToken returns null on bad signature / expired / malformed /
@@ -45,9 +52,16 @@ import type { MobileClaims } from './verify-login.js';
 const MOBILE_TOKEN_SALT = 'authjs.session-token';
 
 /**
- * MOBILE_TOKEN_MAX_AGE — 8 hours in seconds (mirrors web session.maxAge).
+ * MOBILE_ACCESS_TOKEN_MAX_AGE_SECONDS — 15 minutes in seconds.
+ *
+ * [VERIFY-4M-SEC-1] Short-lived by design (Slice 4M-REVOKE): the access
+ * token itself is never revoked/checked against the DB — it just expires
+ * fast. Instant revocation is achieved by requiring a refresh (checked
+ * against the revocable `mobile_session` table) to mint a new one. Exported
+ * so issueMobileSession/refreshMobileSession (mobile-session.ts) can compute
+ * the matching `accessExpiresAt` without duplicating the literal.
  */
-const MOBILE_TOKEN_MAX_AGE = 60 * 60 * 8;
+export const MOBILE_ACCESS_TOKEN_MAX_AGE_SECONDS = 60 * 15;
 
 /**
  * BUILD_PHASE_PLACEHOLDER — the known-bad placeholder that must never be used
@@ -112,7 +126,7 @@ export async function signMobileToken(claims: MobileClaims): Promise<string> {
     },
     secret,
     salt: MOBILE_TOKEN_SALT,
-    maxAge: MOBILE_TOKEN_MAX_AGE,
+    maxAge: MOBILE_ACCESS_TOKEN_MAX_AGE_SECONDS,
   });
 }
 

@@ -6,18 +6,22 @@
  * TRANSPORT ADAPTER: this route contains NO SQL, NO @aeroops/db import,
  * and NO business logic. It delegates entirely to:
  *   - verifyLoginAndIssueClaims  (login orchestration — in @aeroops/api)
- *   - signMobileToken            (token minting — in @aeroops/api)
+ *   - issueMobileSession         (short-lived access token + a revocable,
+ *     rotating refresh token — Slice 4M-REVOKE, [VERIFY-4M-SEC-1])
  *
- * SECURITY INVARIANTS (ADR-0010):
+ * SECURITY INVARIANTS (ADR-0010 + Slice 4M-REVOKE):
  *   - Anti-enumeration: ALL auth failures → 401 { error: 'invalid_credentials' }
  *     (byte-identical body + status; no which-step distinction).
  *   - org_id is NEVER trusted from the request body or headers; it comes from
  *     the signed token claim (derived server-side from the slug lookup).
  *   - Never returns password_hash, userId beyond need, or cross-org data.
+ *   - The refresh token is returned to the client EXACTLY ONCE, here — the
+ *     server only ever stores a hash of it (see mobile-session.ts).
  *   - Unexpected errors → 500 with no internal detail leaked to the client.
  *
  * RESPONSE (200 on success):
- *   { token, expiresAt, org: { slug, name }, user: { email, role } }
+ *   { accessToken, accessExpiresAt, refreshToken, refreshExpiresAt,
+ *     org: { slug, name }, user: { email, role } }
  *
  * [VERIFY-4M-SEC-2] Rate-limit + WAF on this route before distribution.
  */
@@ -25,10 +29,8 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { getDb, loginSchema, verifyLoginAndIssueClaims, signMobileToken } from '@aeroops/api';
+import { getDb, loginSchema, verifyLoginAndIssueClaims, issueMobileSession } from '@aeroops/api';
 import { resolveOrgBySlug } from '@aeroops/api';
-
-const MOBILE_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 8; // 8 hours
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -58,8 +60,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'invalid_credentials' }, { status: 401 });
     }
 
-    // 5. Mint the mobile bearer token.
-    const token = await signMobileToken(claims);
+    // 5. Issue a short-lived access token + a revocable, rotating refresh
+    //    token (records one mobile_session row — see mobile-session.ts).
+    const issued = await issueMobileSession(db, claims);
 
     // 6. Fetch the org name for the response body (minimal read — only name).
     //    resolveOrgBySlug is safe here: it only returns {id,name,slug,status}.
@@ -72,16 +75,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     const resolvedOrg = await resolveOrgBySlug(db, claims.slug);
     const orgName = resolvedOrg?.name ?? claims.slug;
 
-    // 7. Build the expiresAt timestamp.
-    const expiresAt = new Date(Date.now() + MOBILE_TOKEN_MAX_AGE_SECONDS * 1000).toISOString();
-
-    // 8. Return the response.
+    // 7. Return the response.
     //    userId is NEVER returned — it is exclusively a signed-token claim.
     //    orgId is NEVER returned on the wire body.
     return NextResponse.json(
       {
-        token,
-        expiresAt,
+        accessToken: issued.accessToken,
+        accessExpiresAt: issued.accessExpiresAt,
+        refreshToken: issued.refreshToken,
+        refreshExpiresAt: issued.refreshExpiresAt,
         org: {
           slug: claims.slug,
           name: orgName,

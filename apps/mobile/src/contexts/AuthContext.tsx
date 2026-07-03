@@ -1,17 +1,28 @@
 /**
  * contexts/AuthContext.tsx — Authentication context for the AeroOps mobile app.
  *
+ * Slice 4M-REVOKE ([VERIFY-4M-SEC-1]): the app now holds an access token
+ * (short-lived, ~15 min) AND a refresh token (revocable, rotating). `token`
+ * (the field name existing screens already read) is the ACCESS token — no
+ * screen changes were needed for this slice.
+ *
  * Provides:
- *   - token: the stored bearer token (null if not authenticated)
+ *   - token: the stored access token (null if not authenticated)
  *   - isLoading: true while the initial keychain read is in progress
  *   - userInfo: org/user fields from the login response (display only)
- *   - signIn(req): POST login → store token → update context
- *   - signOut(): clear token from keychain → clear context
+ *   - signIn(req): POST login → store BOTH tokens → update context
+ *   - signOut(): best-effort server-side revoke (POST /auth/logout) → clear
+ *     BOTH tokens from keychain → clear context
  *
- * SECURITY INVARIANTS (ADR-0010):
- *   - Token is sourced exclusively from expo-secure-store (never from params).
- *   - On sign-out: token deleted from keychain and cleared from state.
- *   - On 401 from any API call: callers invoke signOut() to clear state.
+ * SECURITY INVARIANTS (ADR-0010 + Slice 4M-REVOKE):
+ *   - Tokens are sourced exclusively from expo-secure-store (never from params).
+ *   - On sign-out: the refresh token is revoked server-side (best-effort) and
+ *     both tokens are deleted from keychain and cleared from state.
+ *   - On 401 from any API call (after api.ts's silent refresh-and-retry
+ *     fails): callers invoke signOut() to clear state — unchanged contract.
+ *   - A SILENT background refresh (triggered inside lib/api.ts, not here)
+ *     updates this context's in-memory token via setAuthTokenListener, so
+ *     the next screen read doesn't present a stale access token.
  *   - AUTH_SECRET never touches the device (it's the server's private key).
  *   - org_id never stored in context (comes from the signed token server-side).
  *
@@ -28,8 +39,8 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { login as apiLogin, AuthError } from '../lib/api';
-import { getToken, saveToken, deleteToken } from '../lib/token-store';
+import { login as apiLogin, logout as apiLogout, AuthError, setAuthTokenListener } from '../lib/api';
+import { getTokens, saveTokens, getRefreshToken, clearTokens } from '../lib/token-store';
 import type { LoginRequest, LoginResponse } from '../lib/api';
 
 // ─── Context shape ─────────────────────────────────────────────────────────────
@@ -76,16 +87,18 @@ export function AuthProvider({ children }: AuthProviderProps): React.ReactElemen
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
-  // On mount: load any stored token from the keychain.
-  // If present, the app proceeds to the schedule screen.
+  // On mount: load any stored tokens from the keychain.
+  // If an access token is present, the app proceeds to the schedule screen
+  // (even if it has since expired — the first authenticated read will
+  // silently refresh it via lib/api.ts's apiFetch).
   // If absent, it shows the login screen.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const stored = await getToken();
+        const stored = await getTokens();
         if (!cancelled) {
-          setToken(stored);
+          setToken(stored.accessToken);
         }
       } finally {
         if (!cancelled) {
@@ -96,6 +109,20 @@ export function AuthProvider({ children }: AuthProviderProps): React.ReactElemen
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Register the token-update listener: a SILENT background refresh
+  // (triggered inside lib/api.ts on a 401) calls this with the new access
+  // token (or null on a hard failure) so this context's in-memory state
+  // never presents a stale token to the next screen read.
+  useEffect(() => {
+    setAuthTokenListener((accessToken) => {
+      setToken(accessToken);
+      if (accessToken === null) {
+        setUserInfo(null);
+      }
+    });
+    return () => setAuthTokenListener(null);
   }, []);
 
   const signIn = useCallback(async (req: LoginRequest): Promise<void> => {
@@ -110,11 +137,12 @@ export function AuthProvider({ children }: AuthProviderProps): React.ReactElemen
       throw err;
     }
 
-    // Store the token in the keychain (ONLY safe store).
-    await saveToken(resp.token);
+    // Store BOTH tokens in the keychain (ONLY safe store). The refresh token
+    // is never logged and is only ever sent to /auth/refresh or /auth/logout.
+    await saveTokens({ accessToken: resp.accessToken, refreshToken: resp.refreshToken });
 
     // Update context.
-    setToken(resp.token);
+    setToken(resp.accessToken);
     setUserInfo({
       email: resp.user.email,
       role: resp.user.role,
@@ -124,7 +152,14 @@ export function AuthProvider({ children }: AuthProviderProps): React.ReactElemen
   }, []);
 
   const signOut = useCallback(async (): Promise<void> => {
-    await deleteToken();
+    // Best-effort server-side revoke — a network failure here must never
+    // block sign-out (the local tokens are cleared regardless).
+    const refreshToken = await getRefreshToken();
+    if (refreshToken) {
+      await apiLogout(refreshToken);
+    }
+
+    await clearTokens();
     setToken(null);
     setUserInfo(null);
   }, []);

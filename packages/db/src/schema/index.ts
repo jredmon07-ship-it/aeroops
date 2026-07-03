@@ -548,3 +548,18 @@ export type { ProductCatalogSelect, ProductCatalogInsert } from './product-catal
 //   (re-signing after a void must remain possible).
 export { lessonSignature } from './lesson-signature.js';
 export type { LessonSignatureSelect, LessonSignatureInsert } from './lesson-signature.js';
+
+// Slice 4M-REVOKE: mobile refresh-token sessions — tenant-scoped (migration
+// 0033). [VERIFY-4M-SEC-1] PREDECESSOR: replaces the 8h non-revocable mobile
+// bearer token with a short-lived (~15 min) signed access token + a
+// revocable, rotating refresh token recorded here. NEVER stores the raw
+// refresh token — only a sha256 hash (see packages/api/src/auth/
+// mobile-session.ts for why). STANDARD 4-policy mutable RLS, PLUS a
+// platform-admin SELECT branch (mirrors calendar_feed_select) —
+// resolveMobileSessionByHash is the ONE sanctioned platform-admin read in
+// the refresh/logout path (no org context is known until the hash resolves
+// which org+user a session belongs to). rotated_to_id is the rotation-chain
+// pointer; reuse of an already-rotated token revokes the whole chain
+// (fail-closed theft response).
+export { mobileSession } from './mobile-session.js';
+export type { MobileSessionSelect, MobileSessionInsert } from './mobile-session.js';

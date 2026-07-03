@@ -54,6 +54,19 @@ export {
   signMobileToken,
   verifyMobileToken,
   sessionFromMobileClaims,
+  MOBILE_ACCESS_TOKEN_MAX_AGE_SECONDS,
+  // Slice 4M-REVOKE — Mobile refresh-token sessions ([VERIFY-4M-SEC-1])
+  resolveMobileSessionByHash,
+  issueMobileSession,
+  issueMobileSessionWithDb,
+  refreshMobileSession,
+  refreshMobileSessionWithDb,
+  revokeMobileSession,
+  revokeMobileSessionWithDb,
+  revokeAllMobileSessionsForUser,
+  revokeAllMobileSessionsForUserWithDb,
+  generateRefreshToken,
+  hashRefreshToken,
 } from './auth/index.js';
 
 export type {
@@ -63,6 +76,10 @@ export type {
   SessionOrgData,
   // Slice 4M.1 — Mobile claims type
   MobileClaims,
+  // Slice 4M-REVOKE — Mobile refresh-token session types
+  ResolvedMobileSession,
+  IssuedMobileSession,
+  IssueMobileSessionOpts,
 } from './auth/index.js';
 
 // ─── Public-demo reset-on-open (packages/api/src/demo/reset.ts) ───────────────

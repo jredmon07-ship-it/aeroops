@@ -19,4 +19,26 @@ export { ForbiddenError, requireCapability, hasCapability } from './require-capa
 // ─── Slice 4M.1 — Mobile auth pipeline ───────────────────────────────────────
 export { verifyLoginAndIssueClaims, verifyLoginAndIssueClaimsWithDb } from './verify-login.js';
 export type { MobileClaims } from './verify-login.js';
-export { signMobileToken, verifyMobileToken, sessionFromMobileClaims } from './mobile-token.js';
+export {
+  signMobileToken,
+  verifyMobileToken,
+  sessionFromMobileClaims,
+  MOBILE_ACCESS_TOKEN_MAX_AGE_SECONDS,
+} from './mobile-token.js';
+
+// ─── Slice 4M-REVOKE — Mobile refresh-token sessions ([VERIFY-4M-SEC-1]) ──────
+export { resolveMobileSessionByHash } from './resolve-mobile-session.js';
+export type { ResolvedMobileSession } from './resolve-mobile-session.js';
+export {
+  issueMobileSession,
+  issueMobileSessionWithDb,
+  refreshMobileSession,
+  refreshMobileSessionWithDb,
+  revokeMobileSession,
+  revokeMobileSessionWithDb,
+  revokeAllMobileSessionsForUser,
+  revokeAllMobileSessionsForUserWithDb,
+  generateRefreshToken,
+  hashRefreshToken,
+} from './mobile-session.js';
+export type { IssuedMobileSession, IssueMobileSessionOpts } from './mobile-session.js';
