@@ -41,6 +41,16 @@ export type { RecordLessonInput } from './record-lesson.js';
 export { voidLessonRecord, voidLessonRecordWithDb } from './void-lesson-record.js';
 export type { VoidLessonRecordInput } from './void-lesson-record.js';
 
+// Slice P2-ESIGN
+export { signLessonRecord, signLessonRecordWithDb } from './sign-lesson-record.js';
+export type { SignLessonRecordInput } from './sign-lesson-record.js';
+
+export { voidLessonSignature, voidLessonSignatureWithDb } from './void-lesson-signature.js';
+export type { VoidLessonSignatureInput } from './void-lesson-signature.js';
+
+export { getLessonSignatures, getLessonSignaturesWithDb } from './get-lesson-signatures.js';
+export type { GetLessonSignaturesInput } from './get-lesson-signatures.js';
+
 // Types
 export type {
   CourseListRow,
@@ -50,6 +60,7 @@ export type {
   LessonProgressRow,
   LessonRecordView,
   MemberEnrollmentRow,
+  LessonSignatureView,
   ListCoursesResult,
   GetCourseDetailResult,
   ListEnrollmentsResult,
@@ -62,4 +73,7 @@ export type {
   SetEnrollmentStatusResult,
   RecordLessonResult,
   VoidLessonRecordResult,
+  SignLessonRecordResult,
+  VoidLessonSignatureResult,
+  GetLessonSignaturesResult,
 } from './types.js';

@@ -37,6 +37,9 @@ import {
   setEnrollmentStatus,
   recordLesson,
   voidLessonRecord,
+  signLessonRecord,
+  voidLessonSignature,
+  getLessonSignatures,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -48,6 +51,7 @@ import type {
   LessonProgressRow,
   LessonRecordView,
   MemberEnrollmentRow,
+  LessonSignatureView,
   ListCoursesOptions,
   ListEnrollmentsOptions,
   GetCourseDetailInput,
@@ -60,6 +64,9 @@ import type {
   SetEnrollmentStatusInput,
   RecordLessonInput,
   VoidLessonRecordInput,
+  SignLessonRecordInput,
+  VoidLessonSignatureInput,
+  GetLessonSignaturesInput,
 } from '@aeroops/api';
 import type { ProgressRatioResult } from '@aeroops/core';
 
@@ -138,6 +145,31 @@ export interface SerializedEnrollmentDetail {
    * Content-coverage progress ratio. [VERIFY-T1-B]: NOT a Part-141 determination.
    */
   progressRatio: SerializedProgressRatioResult;
+}
+
+/**
+ * SerializedLessonSignatureView — Dates → ISO strings for client components.
+ *
+ * COMPLIANCE HARD LINE [VERIFY-P2-A]: a lesson_signature is an operator/
+ * instructor ATTESTATION artifact — NOT an FAA-recognized digital/electronic
+ * signature, NOT a §61.51/§61.65/Part-141 endorsement of record, and
+ * computes NO training-completion/stage/graduation/currency determination.
+ * contentHash is a TAMPER-EVIDENCE digest only — NOT a cryptographic/PKI
+ * signature.
+ */
+export interface SerializedLessonSignatureView {
+  id: string;
+  lessonRecordId: string;
+  signerUserId: string;
+  signerName: string;
+  roleAtSigning: string;
+  attestationText: string;
+  contentHash: string;
+  voidedBySignatureId: string | null;
+  isTombstone: boolean;
+  isVoided: boolean;
+  signedAt: string;
+  createdAt: string;
 }
 
 export interface SerializedMemberEnrollmentRow {
@@ -265,6 +297,23 @@ function serializeEnrollmentDetail(e: EnrollmentDetail): SerializedEnrollmentDet
     lessonProgress: e.lessonProgress.map(serializeLessonProgressRow),
     records: e.records.map(serializeLessonRecord),
     progressRatio: serializeProgressRatio(e.progressRatio),
+  };
+}
+
+function serializeLessonSignature(s: LessonSignatureView): SerializedLessonSignatureView {
+  return {
+    id: s.id,
+    lessonRecordId: s.lessonRecordId,
+    signerUserId: s.signerUserId,
+    signerName: s.signerName,
+    roleAtSigning: s.roleAtSigning,
+    attestationText: s.attestationText,
+    contentHash: s.contentHash,
+    voidedBySignatureId: s.voidedBySignatureId,
+    isTombstone: s.isTombstone,
+    isVoided: s.isVoided,
+    signedAt: serializeDate(s.signedAt) ?? '',
+    createdAt: serializeDate(s.createdAt) ?? '',
   };
 }
 
@@ -574,6 +623,83 @@ export async function voidLessonRecordAction(
     const result = await voidLessonRecord(session, input);
     if (!result.ok) return { ok: false, reason: result.reason };
     return { ok: true, enrollment: serializeEnrollmentDetail(result.enrollment) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── Slice P2-ESIGN: signLessonRecordAction / voidLessonSignatureAction / getLessonSignaturesAction ──
+//
+// COMPLIANCE HARD LINE [VERIFY-P2-A]: a lesson_signature is an operator/
+// instructor ATTESTATION artifact — NOT an FAA-recognized digital/electronic
+// signature, NOT a §61.51/§61.65/Part-141 endorsement of record, and
+// computes NO training-completion/stage/graduation/currency determination.
+
+export type SignLessonRecordActionResult =
+  | { ok: true; signatures: SerializedLessonSignatureView[] }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'already_signed' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function signLessonRecordAction(
+  input: SignLessonRecordInput,
+): Promise<SignLessonRecordActionResult> {
+  const session = await auth();
+  try {
+    const result = await signLessonRecord(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, signatures: result.signatures.map(serializeLessonSignature) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+export type VoidLessonSignatureActionResult =
+  | { ok: true; signatures: SerializedLessonSignatureView[] }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'cannot_void_tombstone' }
+  | { ok: false; reason: 'already_voided' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function voidLessonSignatureAction(
+  input: VoidLessonSignatureInput,
+): Promise<VoidLessonSignatureActionResult> {
+  const session = await auth();
+  try {
+    const result = await voidLessonSignature(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, signatures: result.signatures.map(serializeLessonSignature) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+export type GetLessonSignaturesActionResult =
+  | { ok: true; signatures: SerializedLessonSignatureView[] }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getLessonSignaturesAction(
+  input: GetLessonSignaturesInput,
+): Promise<GetLessonSignaturesActionResult> {
+  const session = await auth();
+  try {
+    const signatures = await getLessonSignatures(session, input);
+    return { ok: true, signatures: signatures.map(serializeLessonSignature) };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

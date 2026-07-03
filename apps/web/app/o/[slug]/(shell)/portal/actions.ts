@@ -41,6 +41,8 @@ import {
   regenerateCalendarFeed,
   getMyDocuments,
   getMyDocumentDownloadUrl,
+  getMyPilotLog,
+  exportMyPilotLogCsv,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -54,6 +56,8 @@ import type {
   AutopaySettingView,
   CalendarFeedView,
   DocumentView,
+  PilotLog,
+  PilotLogEntry,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -501,6 +505,104 @@ export async function regenerateCalendarFeedAction(
     const result = await regenerateCalendarFeed(session, { feedId });
     if (!result.ok) return { ok: false, reason: result.reason };
     return { ok: true, feed: serializeCalendarFeed(result.feed) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice P2 — Pilot logbook actions (portal self-scope)
+//
+// COMPLIANCE HARD LINE: a CONVENIENCE VIEW of the operator's dispatch history —
+// NOT the pilot's official/certified §61.51 logbook of record. Makes NO
+// currency/experience/§61.51/§61.57 determination. See the verbatim disclaimer
+// rendered on portal/logbook/page.tsx.
+//
+// SELF-SCOPING (unchanged pattern): NO row-identifying input — the subject is
+// ALWAYS session.userId, enforced inside the @aeroops/api command
+// (portal:access + self-scope).
+// ════════════════════════════════════════════════════════════════════════════════
+
+export interface SerializedPilotLogEntry {
+  ticketId: string;
+  date: string; // ISO string
+  tail: string;
+  make: string | null;
+  model: string | null;
+  hobbsOut: number;
+  hobbsIn: number;
+  flightTimeHours: number;
+  runningTotalHours: number;
+}
+
+export interface SerializedPilotLog {
+  entries: SerializedPilotLogEntry[];
+  totalHours: number;
+}
+
+function serializePilotLogEntry(e: PilotLogEntry): SerializedPilotLogEntry {
+  return {
+    ticketId: e.ticketId,
+    date: e.date instanceof Date ? e.date.toISOString() : String(e.date),
+    tail: e.tail,
+    make: e.make,
+    model: e.model,
+    hobbsOut: e.hobbsOut,
+    hobbsIn: e.hobbsIn,
+    flightTimeHours: e.flightTimeHours,
+    runningTotalHours: e.runningTotalHours,
+  };
+}
+
+function serializePilotLog(log: PilotLog): SerializedPilotLog {
+  return {
+    entries: log.entries.map(serializePilotLogEntry),
+    totalHours: log.totalHours,
+  };
+}
+
+export interface PilotLogDateBounds {
+  from?: string;
+  to?: string;
+}
+
+export type GetMyPilotLogActionResult =
+  | { ok: true; log: SerializedPilotLog }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getMyPilotLogAction(
+  input?: PilotLogDateBounds,
+): Promise<GetMyPilotLogActionResult> {
+  const session = await auth();
+  try {
+    const log = await getMyPilotLog(session, input);
+    return { ok: true, log: serializePilotLog(log) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+export type ExportMyPilotLogCsvActionResult =
+  | { ok: true; filename: string; csv: string }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function exportMyPilotLogCsvAction(
+  input?: PilotLogDateBounds,
+): Promise<ExportMyPilotLogCsvActionResult> {
+  const session = await auth();
+  try {
+    const result = await exportMyPilotLogCsv(session, input);
+    return { ok: true, filename: result.filename, csv: result.csv };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

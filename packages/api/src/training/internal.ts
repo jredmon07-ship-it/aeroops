@@ -30,6 +30,7 @@ import type {
   EnrollmentDetail,
   LessonProgressRow,
   LessonRecordView,
+  LessonSignatureView,
 } from './types.js';
 import { extractRows } from '../db-rows.js';
 
@@ -308,4 +309,80 @@ export async function assembleEnrollmentDetail(
     records,
     progressRatio,
   };
+}
+
+// ─── assembleLessonSignatures (Slice P2-ESIGN) ────────────────────────────────
+
+/**
+ * assembleLessonSignatures — full signature list for a single lesson_record,
+ * newest-first, inside an existing org context (RLS-scoped by the caller's
+ * withSessionOrgContextWithDb). ONE query, no N+1.
+ *
+ * `isTombstone` = voided_by_signature_id IS NOT NULL (this row itself voids
+ * another signature). `isVoided` = some OTHER row in the table references
+ * this row's id as its voided_by_signature_id — computed via a correlated
+ * EXISTS so a tombstone can never read as voided (nothing may target a
+ * tombstone; enforced in the command layer).
+ *
+ * COMPLIANCE [VERIFY-P2-A]: a lesson_signature is an operator/instructor
+ * ATTESTATION artifact, NOT an FAA-recognized digital/electronic signature or
+ * §61/§141 endorsement of record. contentHash is a tamper-evidence digest
+ * only.
+ *
+ * NEVER sets org GUC itself.
+ */
+export async function assembleLessonSignatures(
+  tx: AnyDb,
+  lessonRecordId: string,
+): Promise<LessonSignatureView[]> {
+  const result = await tx.execute(sql`
+    SELECT
+      ls.id                       AS "id",
+      ls.lesson_record_id         AS "lessonRecordId",
+      ls.signer_user_id           AS "signerUserId",
+      COALESCE(su.full_name, su.email) AS "signerName",
+      ls.role_at_signing          AS "roleAtSigning",
+      ls.attestation_text         AS "attestationText",
+      ls.content_hash             AS "contentHash",
+      ls.voided_by_signature_id   AS "voidedBySignatureId",
+      ls.signed_at                AS "signedAt",
+      ls.created_at               AS "createdAt",
+      EXISTS (
+        SELECT 1 FROM lesson_signature t
+        WHERE t.voided_by_signature_id = ls.id
+      ) AS "isVoided"
+    FROM lesson_signature ls
+    JOIN app_user su ON su.id = ls.signer_user_id
+    WHERE ls.lesson_record_id = ${lessonRecordId}::uuid
+    ORDER BY ls.created_at DESC
+  `);
+
+  const rows = extractRows<{
+    id: string;
+    lessonRecordId: string;
+    signerUserId: string;
+    signerName: string;
+    roleAtSigning: string;
+    attestationText: string;
+    contentHash: string;
+    voidedBySignatureId: string | null;
+    signedAt: Date | string;
+    createdAt: Date | string;
+    isVoided: boolean | string;
+  }>(result);
+
+  return rows.map((r) => ({
+    id:                  r.id,
+    lessonRecordId:      r.lessonRecordId,
+    signerUserId:        r.signerUserId,
+    signerName:          r.signerName,
+    roleAtSigning:       r.roleAtSigning,
+    attestationText:     r.attestationText,
+    contentHash:         r.contentHash,
+    voidedBySignatureId: r.voidedBySignatureId ?? null,
+    isTombstone:         r.voidedBySignatureId != null,
+    isVoided:            r.isVoided === true || r.isVoided === 't' || r.isVoided === 'true',
+    signedAt:            r.signedAt instanceof Date ? r.signedAt : new Date(r.signedAt),
+    createdAt:           r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt),
+  }));
 }

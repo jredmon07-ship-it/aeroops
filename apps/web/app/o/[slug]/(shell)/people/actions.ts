@@ -29,6 +29,8 @@ import {
   addMemberTag,
   removeMemberTag,
   addMember,
+  getPilotLog,
+  exportPilotLogCsv,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -49,6 +51,8 @@ import type {
   AddMemberTagInput,
   RemoveMemberTagInput,
   AddMemberInput,
+  PilotLog,
+  PilotLogEntry,
 } from '@aeroops/api';
 import type { DispatchTicketView } from '@aeroops/api';
 
@@ -372,6 +376,108 @@ export async function addMemberAction(
     const result: AddMemberResult = await addMember(session, input);
     if (!result.ok) return { ok: false, reason: result.reason };
     return { ok: true, member: serializeMemberDetail(result.member) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice P2 — Pilot logbook facet (staff read, per member)
+//
+// COMPLIANCE HARD LINE: a CONVENIENCE VIEW of the operator's dispatch history
+// for this member — NOT their official/certified §61.51 logbook of record.
+// Makes NO currency/experience/§61.51/§61.57 determination.
+//
+// Gated on people:access (getPilotLogAction) inside the @aeroops/api command.
+// A cross-org / non-member userId → { ok:false, reason:'not_found' }.
+// ════════════════════════════════════════════════════════════════════════════════
+
+export interface SerializedPilotLogEntry {
+  ticketId: string;
+  date: string; // ISO string
+  tail: string;
+  make: string | null;
+  model: string | null;
+  hobbsOut: number;
+  hobbsIn: number;
+  flightTimeHours: number;
+  runningTotalHours: number;
+}
+
+export interface SerializedPilotLog {
+  entries: SerializedPilotLogEntry[];
+  totalHours: number;
+}
+
+function serializePilotLogEntry(e: PilotLogEntry): SerializedPilotLogEntry {
+  return {
+    ticketId: e.ticketId,
+    date: e.date instanceof Date ? e.date.toISOString() : String(e.date),
+    tail: e.tail,
+    make: e.make,
+    model: e.model,
+    hobbsOut: e.hobbsOut,
+    hobbsIn: e.hobbsIn,
+    flightTimeHours: e.flightTimeHours,
+    runningTotalHours: e.runningTotalHours,
+  };
+}
+
+function serializePilotLog(log: PilotLog): SerializedPilotLog {
+  return {
+    entries: log.entries.map(serializePilotLogEntry),
+    totalHours: log.totalHours,
+  };
+}
+
+export interface PilotLogDateBounds {
+  from?: string;
+  to?: string;
+}
+
+export type GetPilotLogActionResult =
+  | { ok: true; log: SerializedPilotLog }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getPilotLogAction(
+  userId: string,
+  input?: PilotLogDateBounds,
+): Promise<GetPilotLogActionResult> {
+  const session = await auth();
+  try {
+    const result = await getPilotLog(session, { userId, ...input });
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, log: serializePilotLog(result.log) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+export type ExportPilotLogCsvActionResult =
+  | { ok: true; filename: string; csv: string }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function exportPilotLogCsvAction(
+  userId: string,
+  input?: PilotLogDateBounds,
+): Promise<ExportPilotLogCsvActionResult> {
+  const session = await auth();
+  try {
+    const result = await exportPilotLogCsv(session, { userId, ...input });
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, filename: result.filename, csv: result.csv };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

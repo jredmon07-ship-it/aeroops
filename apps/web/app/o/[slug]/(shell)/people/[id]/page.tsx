@@ -42,6 +42,7 @@ import { getMemberDetailAction } from '../actions';
 import type { SerializedMemberDetail } from '../actions';
 import { MemberDetailClient } from '../_components/member-detail-client';
 import { MemberTrainingCard } from '../_components/member-training-card';
+import { MemberLogbookCard } from '../_components/member-logbook-card';
 import { DocumentsCard } from '../../documents-card';
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
@@ -333,6 +334,22 @@ async function DetailContent({ userId, slug, canManage }: DetailContentProps) {
         }
       >
         <MemberTrainingCard userId={member.userId} slug={slug} />
+      </Suspense>
+
+      {/* ── Logbook card (Slice P2) — fetched in Suspense ─────────────────── */}
+      {/* Convenience view of dispatch history — NOT a §61.51 record of record. */}
+      <Suspense
+        fallback={
+          <div className="rounded-md border border-slate-200 bg-white p-4 animate-pulse" aria-busy="true">
+            <div className="h-4 w-20 bg-slate-200 rounded mb-3" />
+            <div className="space-y-2">
+              <div className="h-8 w-full bg-slate-100 rounded" />
+              <div className="h-8 w-full bg-slate-100 rounded" />
+            </div>
+          </div>
+        }
+      >
+        <MemberLogbookCard userId={member.userId} />
       </Suspense>
     </div>
   );

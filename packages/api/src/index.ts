@@ -792,6 +792,30 @@ export type { RecordLessonInput } from './training/record-lesson.js';
 export { voidLessonRecord, voidLessonRecordWithDb } from './training/void-lesson-record.js';
 export type { VoidLessonRecordInput } from './training/void-lesson-record.js';
 
+// ─── Slice P2-ESIGN — E-signature on lesson records (APPEND-ONLY, migration 0032) ──
+// COMPLIANCE HARD LINE [VERIFY-P2-A]: a lesson_signature is an operator/instructor
+// ATTESTATION artifact — NOT an FAA-recognized digital/electronic signature, NOT a
+// §61.51/§61.65/Part-141 endorsement of record, and computes NO training-completion/
+// stage/graduation/currency determination. content_hash is a tamper-evidence digest
+// (sha256 of canonicalLessonRecordSnapshot, @aeroops/core) — NOT a cryptographic/PKI
+// signature. Voiding APPENDS a tombstone row (voided_by_signature_id self-ref) —
+// there is NO UPDATE/DELETE code path (RLS backstop, migration 0032). Both write
+// commands require training:manage; getLessonSignatures requires training:access.
+export { signLessonRecord, signLessonRecordWithDb } from './training/sign-lesson-record.js';
+export type { SignLessonRecordInput } from './training/sign-lesson-record.js';
+
+export {
+  voidLessonSignature,
+  voidLessonSignatureWithDb,
+} from './training/void-lesson-signature.js';
+export type { VoidLessonSignatureInput } from './training/void-lesson-signature.js';
+
+export {
+  getLessonSignatures,
+  getLessonSignaturesWithDb,
+} from './training/get-lesson-signatures.js';
+export type { GetLessonSignaturesInput } from './training/get-lesson-signatures.js';
+
 // Training result/IO types.
 export type {
   CourseListRow,
@@ -801,6 +825,7 @@ export type {
   LessonProgressRow,
   LessonRecordView,
   MemberEnrollmentRow,
+  LessonSignatureView,
   ListCoursesResult,
   GetCourseDetailResult,
   ListEnrollmentsResult,
@@ -813,6 +838,9 @@ export type {
   SetEnrollmentStatusResult,
   RecordLessonResult,
   VoidLessonRecordResult,
+  SignLessonRecordResult,
+  VoidLessonSignatureResult,
+  GetLessonSignaturesResult,
 } from './training/types.js';
 
 // ─── Slice S1.1 — Global search (READ-ONLY, no migration, no money) ───────────
@@ -1786,3 +1814,101 @@ export {
   getMyDocumentDownloadUrlWithDb,
 } from './portal/get-my-document-download-url.js';
 export type { GetMyDocumentDownloadUrlInput } from './portal/get-my-document-download-url.js';
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice P2 — Pilot Logbook (derived, read-only + CSV export; NO migration)
+//
+// A CONVENIENCE VIEW of the operator's dispatch history — NOT the pilot's
+// official/certified §61.51 logbook of record. Makes NO currency/experience/
+// §61.51/§61.57 determination (disclaimer verbatim on the web surfaces).
+// Reads CLOSED dispatch_ticket rows only (open/voided excluded); flightTime
+// is DERIVED via @aeroops/core's deriveFlightTime (display-only, never
+// persisted/recomputed on the FROZEN dispatch write paths). Deliberately does
+// NOT apply dispatch_ticket_correction — see [VERIFY-P2-LOG-A].
+//
+// SECURITY INVARIANTS:
+//   - getMyPilotLog/exportMyPilotLogCsv: requireCapability('portal:access')
+//     FIRST; subject is ALWAYS session.userId (self-scoped, zero IDOR).
+//   - getPilotLog/exportPilotLogCsv: requireCapability('people:access')
+//     FIRST; cross-org/non-member userId → not_found (never rows).
+//   - org_id from session only; RLS is the org backstop.
+//   - CSV exports write exactly ONE audit_log row (action
+//     'pilot_log.exported'); non-export reads are NOT audited. NO money.
+// *WithDb forms are for test code only (inject a pglite client).
+// ════════════════════════════════════════════════════════════════════════════
+
+export { getMyPilotLog, getMyPilotLogWithDb } from './logbook/get-my-pilot-log.js';
+export type { GetMyPilotLogInput } from './logbook/get-my-pilot-log.js';
+
+export { getPilotLog, getPilotLogWithDb } from './logbook/get-pilot-log.js';
+export type { GetPilotLogInput, GetPilotLogResult } from './logbook/get-pilot-log.js';
+
+export {
+  exportMyPilotLogCsv,
+  exportMyPilotLogCsvWithDb,
+} from './logbook/export-my-pilot-log-csv.js';
+export type { ExportMyPilotLogCsvInput } from './logbook/export-my-pilot-log-csv.js';
+
+export {
+  exportPilotLogCsv,
+  exportPilotLogCsvWithDb,
+} from './logbook/export-pilot-log-csv.js';
+export type {
+  ExportPilotLogCsvInput,
+  ExportPilotLogCsvResult,
+} from './logbook/export-pilot-log-csv.js';
+
+export type { PilotLogEntry, PilotLog, PilotLogCsvResult } from './logbook/types.js';
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice P2 — POS / Counter Sales (product catalog + non-dispatch sale)
+//
+// Sell non-flight items (headsets, charts, fuel, merch) as an invoice whose
+// lines are catalog/ad-hoc items instead of dispatch-derived ones. Rides the
+// EXISTING B1 invoice/invoice_line_item write path (via
+// insertDraftInvoiceWithLinesTx — NO bespoke invoice INSERT) + the existing
+// B2 ledger + P0 payments unchanged: a counter-sale draft invoice finalizes
+// through the SAME, untouched finalizeInvoice.
+//
+// MONEY: INTEGER CENTS ONLY throughout (product_catalog.unit_price_cents CHECK
+// > 0; computeCounterSaleLineTotal is an EXACT integer product — no rounding,
+// no float step). NO Stripe/card/bank data here — createCounterSale only
+// ever creates a DRAFT invoice; money moves later, only via finalizeInvoice's
+// existing, unchanged path.
+//
+// CAPS: billing:manage (owner/manager) for catalog writes + createCounterSale;
+// billing:access (+ accountant) for catalog reads. NO new caps.
+//
+// COMPLIANCE: sku/category are FREE-TEXT operator labels — NOT a tax class.
+// This slice computes NO tax. [VERIFY-P2-A]: sales-tax posture deferred.
+// See docs/specs/slice-p2-pos.md.
+// ════════════════════════════════════════════════════════════════════════════
+
+export {
+  createProductCatalogItem,
+  createProductCatalogItemWithDb,
+  updateProductCatalogItem,
+  updateProductCatalogItemWithDb,
+  listProductCatalogItems,
+  listProductCatalogItemsWithDb,
+  deleteProductCatalogItem,
+  deleteProductCatalogItemWithDb,
+} from './billing/product-catalog-commands.js';
+export type {
+  ProductCatalogView,
+  CreateProductCatalogItemInput,
+  CreateProductCatalogItemResult,
+  UpdateProductCatalogItemInput,
+  UpdateProductCatalogItemResult,
+  ListProductCatalogItemsOptions,
+  ListProductCatalogItemsResult,
+  DeleteProductCatalogItemInput,
+  DeleteProductCatalogItemResult,
+} from './billing/product-catalog-commands.js';
+
+export { createCounterSale, createCounterSaleWithDb } from './billing/counter-sale.js';
+export type {
+  CounterSaleLineInput,
+  CreateCounterSaleInput,
+  CreateCounterSaleResult,
+} from './billing/counter-sale.js';

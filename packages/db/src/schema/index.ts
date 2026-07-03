@@ -519,3 +519,32 @@ export type { CalendarFeedScope } from './calendar-feed.js';
 //   the object-storage side. status: pending → stored (confirmUpload only).
 export { document } from './document.js';
 export type { DocumentSelect, DocumentInsert } from './document.js';
+
+// Slice P2: POS / Counter Sales — tenant-scoped (migration 0031).
+// product_catalog: operator-defined price list of non-flight goods/services
+//   (headsets, charts, fuel, merch). unit_price_cents is INTEGER CENTS,
+//   CHECK > 0 — NEVER a float. sku/category are FREE-TEXT operator labels —
+//   NOT a tax class. [VERIFY-P2-A]: sales-tax posture deferred.
+//   A counter sale SNAPSHOTS name+price into invoice_line_item at sale time
+//   (mirrors rate_schedule → generate-invoice.ts) — NO FK from
+//   invoice_line_item back to product_catalog, so a price change or a
+//   hard-delete of a catalog item never alters a historical sale.
+export { productCatalog } from './product-catalog.js';
+export type { ProductCatalogSelect, ProductCatalogInsert } from './product-catalog.js';
+
+// Slice P2-ESIGN: E-signature on lesson records — tenant-scoped (migration 0032).
+// APPEND-ONLY (SELECT + INSERT RLS only, mirrors ledger_entry): a
+// lesson_signature is an operator/instructor ATTESTATION artifact — NOT an
+// FAA-recognized digital/electronic signature, NOT a §61.51/§61.65/Part-141
+// endorsement of record, and computes NO training-completion/stage/currency
+// determination. [VERIFY-P2-A]
+//
+// lesson_signature: who signed, when, what they attested to, and a
+//   content_hash (sha256 of canonicalLessonRecordSnapshot @aeroops/core) of the
+//   signed lesson_record snapshot — tamper-evidence, NOT a cryptographic
+//   signature. Voiding APPENDS a tombstone row (voided_by_signature_id
+//   self-ref) — never an UPDATE/DELETE. "One active signature" is enforced in
+//   the command layer under a FOR UPDATE lock, NOT a partial unique index
+//   (re-signing after a void must remain possible).
+export { lessonSignature } from './lesson-signature.js';
+export type { LessonSignatureSelect, LessonSignatureInsert } from './lesson-signature.js';

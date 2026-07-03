@@ -43,6 +43,7 @@ import {
   computeLineTotal,
   computeInvoiceTotals,
   applyPricingGroupDiscount,
+  computeCounterSaleLineTotal,
 } from '../billing/invoice-math.js';
 import type { InvoiceLine, InvoiceTotals } from '../billing/invoice-math.js';
 
@@ -657,5 +658,143 @@ describe('type exports — compile-time structural assertions', () => {
     const totals: InvoiceTotals = computeInvoiceTotals([{ lineTotalCents: 100 }]);
     const keys = Object.keys(totals).sort();
     expect(keys).toEqual(['subtotalCents', 'totalCents']);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice P2 — computeCounterSaleLineTotal (POS / counter sales)
+//
+// P-CS-1  For arbitrary positive-int quantity + non-negative-int price, result
+//         is a non-negative integer and equals repeated addition (no float step).
+// P-CS-2  No-float-drift: computeInvoiceTotals over many computeCounterSaleLineTotal
+//         lines is the EXACT integer sum — pinned across many randomized cases.
+// P-CS-3  Throws RangeError on non-integer/zero/negative quantity, non-integer/
+//         negative price, non-finite inputs.
+// ════════════════════════════════════════════════════════════════════════════
+
+/** A positive integer quantity [1..10_000] (item count, not hours). */
+const posQuantity = fc.integer({ min: 1, max: 10_000 });
+
+/** A non-negative integer unit price in cents [0..1_000_000] ($0–$10,000). */
+const unitPriceCentsGen = fc.integer({ min: 0, max: 1_000_000 });
+
+describe('computeCounterSaleLineTotal — unit edges', () => {
+  it('quantity=1, price=0 ⇒ 0', () => {
+    expect(computeCounterSaleLineTotal(1, 0)).toBe(0);
+  });
+
+  it('quantity=2, price=15000 ⇒ 30000', () => {
+    expect(computeCounterSaleLineTotal(2, 15000)).toBe(30000);
+  });
+
+  it('quantity=1, price=1 ⇒ 1', () => {
+    expect(computeCounterSaleLineTotal(1, 1)).toBe(1);
+  });
+});
+
+describe('computeCounterSaleLineTotal — error paths', () => {
+  it('quantity=0 ⇒ throws RangeError', () => {
+    expect(() => computeCounterSaleLineTotal(0, 100)).toThrow(RangeError);
+  });
+
+  it('negative quantity ⇒ throws RangeError', () => {
+    expect(() => computeCounterSaleLineTotal(-1, 100)).toThrow(RangeError);
+  });
+
+  it('non-integer quantity ⇒ throws RangeError', () => {
+    expect(() => computeCounterSaleLineTotal(1.5, 100)).toThrow(RangeError);
+  });
+
+  it('negative price ⇒ throws RangeError', () => {
+    expect(() => computeCounterSaleLineTotal(1, -1)).toThrow(RangeError);
+  });
+
+  it('non-integer price ⇒ throws RangeError', () => {
+    expect(() => computeCounterSaleLineTotal(1, 100.5)).toThrow(RangeError);
+  });
+
+  it('NaN quantity ⇒ throws RangeError', () => {
+    expect(() => computeCounterSaleLineTotal(NaN, 100)).toThrow(RangeError);
+  });
+
+  it('Infinity price ⇒ throws RangeError', () => {
+    expect(() => computeCounterSaleLineTotal(1, Infinity)).toThrow(RangeError);
+  });
+});
+
+describe('P-CS-1 — non-negative integer result, equals repeated addition', () => {
+  it('result is a non-negative integer and equals quantity copies of price added', () => {
+    fc.assert(
+      fc.property(posQuantity, unitPriceCentsGen, (q, p) => {
+        const result = computeCounterSaleLineTotal(q, p);
+        expect(Number.isInteger(result)).toBe(true);
+        expect(result).toBeGreaterThanOrEqual(0);
+
+        // Repeated addition (bounded — cap q at a small sample to keep the
+        // property fast without losing coverage of the invariant).
+        const sampleQ = Math.min(q, 200);
+        let sum = 0;
+        for (let i = 0; i < sampleQ; i += 1) sum += p;
+        if (sampleQ === q) {
+          expect(result).toBe(sum);
+        } else {
+          // For large q, verify via the exact multiplication identity instead
+          // (both are integers — no float step possible).
+          expect(result).toBe(q * p);
+        }
+      }),
+    );
+  });
+});
+
+describe('P-CS-2 — no float drift across many randomized lines', () => {
+  it('computeInvoiceTotals over computeCounterSaleLineTotal lines is the exact integer sum', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.tuple(posQuantity, unitPriceCentsGen), { minLength: 0, maxLength: 500 }),
+        (pairs) => {
+          const lines = pairs.map(([q, p]) => ({
+            lineTotalCents: computeCounterSaleLineTotal(q, p),
+          }));
+          const totals = computeInvoiceTotals(lines);
+          const exactSum = pairs.reduce((acc, [q, p]) => acc + q * p, 0);
+          expect(totals.subtotalCents).toBe(exactSum);
+          expect(totals.totalCents).toBe(exactSum);
+          expect(Number.isInteger(totals.subtotalCents)).toBe(true);
+        },
+      ),
+    );
+  });
+});
+
+describe('P-CS-3 — throws RangeError on invalid inputs (property)', () => {
+  it('zero/negative/non-integer quantity ⇒ always throws', () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.integer({ min: -1000, max: 0 }),
+          fc.double({ min: 0.1, max: 1000, noNaN: true, noDefaultInfinity: true }).filter((x) => !Number.isInteger(x)),
+        ),
+        unitPriceCentsGen,
+        (badQ, p) => {
+          expect(() => computeCounterSaleLineTotal(badQ, p)).toThrow(RangeError);
+        },
+      ),
+    );
+  });
+
+  it('negative or non-integer price ⇒ always throws', () => {
+    fc.assert(
+      fc.property(
+        posQuantity,
+        fc.oneof(
+          fc.integer({ min: -1_000_000, max: -1 }),
+          fc.double({ min: 0.1, max: 1000, noNaN: true, noDefaultInfinity: true }).filter((x) => !Number.isInteger(x)),
+        ),
+        (q, badP) => {
+          expect(() => computeCounterSaleLineTotal(q, badP)).toThrow(RangeError);
+        },
+      ),
+    );
   });
 });

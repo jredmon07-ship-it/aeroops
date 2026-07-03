@@ -465,6 +465,15 @@ async function PortalContent({ slug }: PortalContentProps) {
         <span aria-hidden="true">→</span>
       </Link>
 
+      {/* ── Logbook (Slice P2) ──────────────────────────────────────────── */}
+      <Link
+        href={`/o/${slug}/portal/logbook`}
+        className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-xs hover:border-brand/40 hover:text-brand-ink"
+      >
+        Logbook — your flight history and CSV export
+        <span aria-hidden="true">→</span>
+      </Link>
+
       {/* ── B. My upcoming reservations ─────────────────────────────────── */}
       <SectionCard
         title="My upcoming reservations"

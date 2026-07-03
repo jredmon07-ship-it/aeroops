@@ -202,6 +202,52 @@ export function computeInvoiceTotals(
 }
 
 /**
+ * computeCounterSaleLineTotal — line total for a POS / counter-sale line
+ * (Slice P2). Non-flight goods/services are sold by an INTEGER QUANTITY
+ * (e.g. "2 headsets"), not by fractional hours — so unlike `applyRate`, this
+ * is an EXACT integer product with NO rounding step at all: integer ×
+ * integer stays integer.
+ *
+ * line total = quantity × unitPriceCents   (exact, no float step)
+ *
+ * CONCRETE EXAMPLE: computeCounterSaleLineTotal(2, 15000) = 30000 cents ($300.00).
+ * CONCRETE EXAMPLE: computeCounterSaleLineTotal(1, 1) = 1 cent.
+ *
+ * @param quantity        item count. Must be a POSITIVE integer (a sale line
+ *                        always sells at least one unit — there is no
+ *                        "0-quantity" line; omit the line instead).
+ * @param unitPriceCents  price per unit in INTEGER CENTS. Must be a
+ *                        NON-NEGATIVE integer (0 is allowed here — an ad-hoc
+ *                        comped/free line — though the DB's product_catalog
+ *                        CHECK requires > 0 for catalog rows themselves).
+ * @returns integer cents, non-negative. Never fractional.
+ * @throws RangeError if either argument is non-finite, non-integer, if
+ *                    `quantity` is <= 0, or if `unitPriceCents` is negative.
+ */
+export function computeCounterSaleLineTotal(
+  quantity: number,
+  unitPriceCents: number,
+): number {
+  if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity <= 0) {
+    throw new RangeError(
+      `computeCounterSaleLineTotal: quantity must be a positive integer, got ${quantity}`,
+    );
+  }
+  if (
+    !Number.isFinite(unitPriceCents) ||
+    !Number.isInteger(unitPriceCents) ||
+    unitPriceCents < 0
+  ) {
+    throw new RangeError(
+      `computeCounterSaleLineTotal: unitPriceCents must be a non-negative integer, got ${unitPriceCents}`,
+    );
+  }
+  // Exact integer product — no rounding, no float step (both operands are
+  // already integers).
+  return quantity * unitPriceCents;
+}
+
+/**
  * applyPricingGroupDiscount — apply a basis-point discount to an amount.
  *
  * FUTURE SEAM (B1 ships this helper, B4 block-time / pricing-group wiring consumes

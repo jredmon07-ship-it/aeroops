@@ -180,6 +180,14 @@ export type { EnrollmentStatus, LessonRecordStatus } from './training/enums.js';
 export { progressRatioFromCounts } from './training/progress.js';
 export type { ProgressRatioResult } from './training/progress.js';
 
+// ─── Slice P2-ESIGN — canonical lesson_record snapshot (tamper-evidence, NOT a signature) ──
+// [VERIFY-P2-A]: canonicalLessonRecordSnapshot is a PURE, deterministic, key-order-
+// independent serializer. The API layer sha256s its output for lesson_signature.content_hash.
+// This is a tamper-evidence digest ONLY — NOT a cryptographic/PKI signature, NOT an
+// FAA-recognized digital/electronic signature, and confers no §61/§141 endorsement meaning.
+export { canonicalLessonRecordSnapshot } from './training/lesson-record-snapshot.js';
+export type { LessonRecordSnapshotInput } from './training/lesson-record-snapshot.js';
+
 // ─── Slice S1.1 — Global search pure helpers ──────────────────────────────────
 // escapeLike: escape LIKE metacharacters (\, %, _) — backslash FIRST.
 // rankResults / makePrefixComparator: prefix-first then lower(primary) alpha.
@@ -218,14 +226,19 @@ export type {
 // computeInvoiceTotals: subtotal = Σ lineTotalCents (exact integer sum); in B1
 //   totalCents === subtotalCents (tax/discount seam noted in module-level comment).
 // applyPricingGroupDiscount: bps discount helper (B4 seam; NOT wired into totals yet).
+// computeCounterSaleLineTotal (Slice P2 — POS): line total = quantity ×
+//   unitPriceCents, EXACT integer product (no rounding — both operands are
+//   already integers). Consumed by createCounterSale.
 // PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
-// Property-tested (hard guardrail): P1..P17 in __tests__/invoice-math.test.ts.
+// Property-tested (hard guardrail): P1..P17 in __tests__/invoice-math.test.ts;
+//   P-CS-1..3 (Slice P2) cover computeCounterSaleLineTotal.
 // [VERIFY-B-MONEY-1]: flight_time_hours is the billable basis (ADR-0007, frozen).
 export {
   applyRate,
   computeLineTotal,
   computeInvoiceTotals,
   applyPricingGroupDiscount,
+  computeCounterSaleLineTotal,
 } from './billing/invoice-math.js';
 export type { InvoiceLine, InvoiceTotals } from './billing/invoice-math.js';
 
@@ -268,6 +281,12 @@ export type { BookingRequestInput } from './booking/booking-request-schema.js';
 //   roster/identity import only, same posture as addMember / createResource.
 export { parseCsv } from './import/csv.js';
 export type { ParsedCsv } from './import/csv.js';
+
+// serializeCsv: pure RFC-4180 CSV serializer, round-trips with parseCsv.
+// neutralizeCsvFormula: spreadsheet-injection guard for operator free-text
+//   columns (tail/make/model, etc.) — applied by callers, not by serializeCsv
+//   itself, so the round-trip property stays clean (Slice P2 logbook export).
+export { serializeCsv, neutralizeCsvFormula } from './import/csv-write.js';
 
 export {
   guessColumnMapping,

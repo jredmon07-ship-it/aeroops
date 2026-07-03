@@ -257,6 +257,55 @@ export interface MemberEnrollmentRow {
   progressRatio: ProgressRatioResult;
 }
 
+// ─── LessonSignatureView (Slice P2-ESIGN) ─────────────────────────────────────
+
+/**
+ * LessonSignatureView — one lesson_signature row as seen by API callers.
+ *
+ * COMPLIANCE HARD LINE [VERIFY-P2-A]: a lesson_signature is an operator/
+ * instructor ATTESTATION artifact — a record of who signed, when, what they
+ * attested to, and a content hash of the signed lesson_record snapshot. It is
+ * NOT an FAA-recognized digital/electronic signature, NOT a §61.51 / §61.65 /
+ * Part-141 endorsement of record, and it computes NO training-completion,
+ * stage, graduation, or currency determination of any kind. role_at_signing
+ * is a snapshot of the signer's operator role at signing time; a later role
+ * change never rewrites a past attestation. A stored signature does not
+ * verify eligibility, endorsement validity, or airworthiness — a human still
+ * makes every regulatory call.
+ *
+ * `contentHash` is a TAMPER-EVIDENCE digest (sha256 of
+ * canonicalLessonRecordSnapshot, @aeroops/core) — NOT a cryptographic/PKI
+ * signature.
+ *
+ * `isTombstone` = true when this row itself voids another signature
+ * (`voidedBySignatureId` is set on the TARGET record it appears in — see
+ * getLessonSignatures for the exact aggregation). `isVoided` = true when some
+ * OTHER (tombstone) row in the same set voids this row. A tombstone's own
+ * `isVoided` is always false (a tombstone can never itself be voided).
+ */
+export interface LessonSignatureView {
+  id: string;
+  lessonRecordId: string;
+  /** Always session.userId at the time this row was inserted — never another user's id. */
+  signerUserId: string;
+  /** Display name of the signer (fullName ?? email). */
+  signerName: string;
+  /** Snapshot of the signer's membership.role AT SIGNING TIME. */
+  roleAtSigning: string;
+  /** FREE-TEXT: what the signer attested to. On a tombstone, the void reason. */
+  attestationText: string;
+  /** sha256 tamper-evidence digest. NOT a cryptographic/PKI signature. [VERIFY-P2-A] */
+  contentHash: string;
+  /** Non-null when this row IS a tombstone: the id of the signature it voids. */
+  voidedBySignatureId: string | null;
+  /** true when voidedBySignatureId is non-null (this row is itself a tombstone). */
+  isTombstone: boolean;
+  /** true when some tombstone row in the set references this row's id. Always false for a tombstone. */
+  isVoided: boolean;
+  signedAt: Date;
+  createdAt: Date;
+}
+
 // ─── Result unions ────────────────────────────────────────────────────────────
 
 // Reads
@@ -322,3 +371,21 @@ export type VoidLessonRecordResult =
   | { ok: true; enrollment: EnrollmentDetail }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'already_voided' };
+
+// ─── Slice P2-ESIGN result unions ─────────────────────────────────────────────
+
+/** signLessonRecord result */
+export type SignLessonRecordResult =
+  | { ok: true; signatures: LessonSignatureView[] }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'already_signed' };
+
+/** voidLessonSignature result */
+export type VoidLessonSignatureResult =
+  | { ok: true; signatures: LessonSignatureView[] }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'cannot_void_tombstone' }
+  | { ok: false; reason: 'already_voided' };
+
+/** getLessonSignatures result */
+export type GetLessonSignaturesResult = LessonSignatureView[];

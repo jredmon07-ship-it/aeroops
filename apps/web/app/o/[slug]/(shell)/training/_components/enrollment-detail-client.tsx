@@ -21,7 +21,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CheckCircle2, Circle, XCircle, Loader2, AlertTriangle,
-  ClipboardList, BookOpen,
+  ClipboardList, BookOpen, PenLine, ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,11 +35,18 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import type { SerializedEnrollmentDetail, SerializedLessonRecordView } from '../actions';
+import type {
+  SerializedEnrollmentDetail,
+  SerializedLessonRecordView,
+  SerializedLessonSignatureView,
+} from '../actions';
 import {
   setEnrollmentStatusAction,
   recordLessonAction,
   voidLessonRecordAction,
+  signLessonRecordAction,
+  voidLessonSignatureAction,
+  getLessonSignaturesAction,
 } from '../actions';
 import { listMembersAction } from '../../people/actions';
 import {
@@ -544,6 +551,479 @@ function VoidRecordDialog({ record, onSuccess }: VoidRecordDialogProps) {
   );
 }
 
+// ─── E-signature panel (Slice P2-ESIGN) ────────────────────────────────────────
+//
+// COMPLIANCE HARD LINE [VERIFY-P2-A]: a lesson_signature is an operator/
+// instructor ATTESTATION artifact — a record of who signed, when, what they
+// attested to, and a content hash of the signed lesson_record snapshot. It is
+// NOT an FAA-recognized digital/electronic signature, NOT a §61.51 / §61.65 /
+// Part-141 endorsement of record, and it computes NO training-completion,
+// stage, graduation, or currency determination of any kind. A stored
+// signature does not verify eligibility, endorsement validity, or
+// airworthiness — a human still makes every regulatory call.
+
+const ESIGN_DISCLAIMER_FULL =
+  'A signature here is an operator/instructor ATTESTATION artifact — a record of who signed, ' +
+  'when, what they attested to, and a content hash of the signed lesson record snapshot. It is ' +
+  'NOT an FAA-recognized digital/electronic signature, NOT a §61.51 / §61.65 / Part-141 ' +
+  'endorsement of record, and it computes NO training-completion, stage, graduation, or ' +
+  'currency determination of any kind. A stored signature does not verify eligibility, ' +
+  'endorsement validity, or airworthiness — a human still makes every regulatory call.';
+
+const ESIGN_DISCLAIMER_SHORT =
+  'This is an operator/instructor attestation — NOT an FAA-recognized digital/electronic ' +
+  'signature or a §61/§141 endorsement of record. It computes no training-completion, stage, ' +
+  'or currency determination.';
+
+interface SignLessonDialogProps {
+  lessonRecordId: string;
+  onSuccess: (signatures: SerializedLessonSignatureView[]) => void;
+}
+
+function SignLessonDialog({ lessonRecordId, onSuccess }: SignLessonDialogProps) {
+  const [open, setOpen] = React.useState(false);
+  const [attestationText, setAttestationText] = React.useState('');
+  const [fieldError, setFieldError] = React.useState<string | null>(null);
+  const [dialogError, setDialogError] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      setAttestationText('');
+      setFieldError(null);
+      setDialogError(null);
+    }
+  }, [open]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setDialogError(null);
+    setFieldError(null);
+
+    if (!attestationText.trim()) {
+      setFieldError('An attestation statement is required.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await signLessonRecordAction({
+        lessonRecordId,
+        attestationText: attestationText.trim(),
+      });
+
+      if ('error' in result) {
+        if (result.error === 'validation') {
+          setFieldError(result.message);
+          return;
+        }
+        if (result.error === 'forbidden' || result.error === 'unauthenticated') {
+          setDialogError('You do not have permission to sign lesson records.');
+          return;
+        }
+        setDialogError('Something went wrong. Please try again.');
+        return;
+      }
+
+      if (!result.ok) {
+        if (result.reason === 'already_signed') {
+          setDialogError('This record already has an active signature.');
+          return;
+        }
+        if (result.reason === 'not_found') {
+          setDialogError('Lesson record not found.');
+          return;
+        }
+        setDialogError('Something went wrong. Please try again.');
+        return;
+      }
+
+      setOpen(false);
+      onSuccess(result.signatures);
+    } catch {
+      setDialogError('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="text-xs"
+      >
+        <PenLine className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+        Sign
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sign lesson record</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} noValidate className="space-y-4 pt-1">
+            <Alert className="border-slate-200 bg-slate-50" role="note">
+              <ShieldCheck className="h-4 w-4 text-slate-500" aria-hidden="true" />
+              <AlertDescription className="text-xs text-slate-600">
+                {ESIGN_DISCLAIMER_FULL}
+              </AlertDescription>
+            </Alert>
+
+            {dialogError && (
+              <Alert variant="destructive" role="alert" aria-live="assertive">
+                <XCircle className="h-4 w-4" aria-hidden="true" />
+                <AlertDescription>{dialogError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="sl-attestation">
+                Attestation statement <span aria-hidden="true" className="text-red-500">*</span>
+              </Label>
+              <textarea
+                id="sl-attestation"
+                value={attestationText}
+                onChange={(e) => {
+                  setAttestationText(e.target.value);
+                  setFieldError(null);
+                }}
+                placeholder="e.g. I attest this lesson was conducted as described in this record."
+                rows={3}
+                disabled={isSubmitting}
+                aria-required="true"
+                aria-invalid={fieldError ? 'true' : undefined}
+                aria-describedby={fieldError ? 'sl-attestation-err' : undefined}
+                className={`flex min-h-[80px] w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors ${fieldError ? 'border-red-500' : 'border-slate-300'}`}
+              />
+              {fieldError && (
+                <p id="sl-attestation-err" role="alert" className="text-xs text-red-600">
+                  {fieldError}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={isSubmitting}>
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
+                    Signing…
+                  </>
+                ) : (
+                  'Sign record'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+interface VoidSignatureDialogProps {
+  signatureId: string;
+  onSuccess: (signatures: SerializedLessonSignatureView[]) => void;
+}
+
+function VoidSignatureDialog({ signatureId, onSuccess }: VoidSignatureDialogProps) {
+  const [open, setOpen] = React.useState(false);
+  const [reason, setReason] = React.useState('');
+  const [reasonError, setReasonError] = React.useState<string | null>(null);
+  const [dialogError, setDialogError] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      setReason('');
+      setReasonError(null);
+      setDialogError(null);
+    }
+  }, [open]);
+
+  async function handleConfirm() {
+    setDialogError(null);
+    setReasonError(null);
+
+    if (!reason.trim()) {
+      setReasonError('A void reason is required.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await voidLessonSignatureAction({
+        signatureId,
+        reason: reason.trim(),
+      });
+
+      if ('error' in result) {
+        if (result.error === 'validation') {
+          setReasonError(result.message);
+          return;
+        }
+        if (result.error === 'forbidden' || result.error === 'unauthenticated') {
+          setDialogError('You do not have permission to void signatures.');
+          return;
+        }
+        setDialogError('Something went wrong. Please try again.');
+        return;
+      }
+
+      if (!result.ok) {
+        if (result.reason === 'already_voided') {
+          setDialogError('This signature has already been voided.');
+          return;
+        }
+        if (result.reason === 'cannot_void_tombstone') {
+          setDialogError('A void record cannot itself be voided.');
+          return;
+        }
+        if (result.reason === 'not_found') {
+          setDialogError('Signature not found.');
+          return;
+        }
+        setDialogError('Something went wrong. Please try again.');
+        return;
+      }
+
+      setOpen(false);
+      onSuccess(result.signatures);
+    } catch {
+      setDialogError('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="text-slate-400 hover:text-danger hover:bg-danger/5 text-xs"
+        aria-label="Void this signature"
+      >
+        Void signature
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Void signature</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-1">
+            <p className="text-sm text-slate-700">
+              Voiding appends a new tombstone entry — the original signature is never edited or
+              deleted, only marked voided.
+            </p>
+
+            {dialogError && (
+              <Alert variant="destructive" role="alert" aria-live="assertive">
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                <AlertDescription>{dialogError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="vs-reason">
+                Reason for voiding <span aria-hidden="true" className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="vs-reason"
+                value={reason}
+                onChange={(e) => {
+                  setReason(e.target.value);
+                  setReasonError(null);
+                }}
+                placeholder="e.g. Signed the wrong record…"
+                disabled={isSubmitting}
+                aria-required="true"
+                aria-invalid={reasonError ? 'true' : undefined}
+                aria-describedby={reasonError ? 'vs-reason-err' : undefined}
+                className={reasonError ? 'border-red-500' : ''}
+              />
+              {reasonError && (
+                <p id="vs-reason-err" role="alert" className="text-xs text-red-600">
+                  {reasonError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isSubmitting}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={handleConfirm} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
+                  Voiding…
+                </>
+              ) : (
+                'Void signature'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+interface SignaturePanelProps {
+  lessonRecordId: string;
+  canManage: boolean;
+}
+
+/**
+ * SignaturePanel — per-record e-signature status + actions (Slice P2-ESIGN).
+ *
+ * States: loading (spinner after ~200ms) / error (Alert + Retry) / empty
+ * ("Not signed." + Sign button when canManage) / active (Signed badge +
+ * details + Void action) / voided (struck-through + Voided chip + Sign
+ * button reappears since re-signing is allowed).
+ */
+function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
+  const [signatures, setSignatures] = React.useState<SerializedLessonSignatureView[] | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [showSpinner, setShowSpinner] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    setError(null);
+    try {
+      const result = await getLessonSignaturesAction({ lessonRecordId });
+      if ('error' in result) {
+        setError(
+          result.error === 'forbidden' || result.error === 'unauthenticated'
+            ? 'You do not have permission to view signatures.'
+            : 'Could not load signatures.',
+        );
+        return;
+      }
+      setSignatures(result.signatures);
+    } catch {
+      setError('Could not load signatures.');
+    }
+  }, [lessonRecordId]);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Loading spinner only after ~200ms to avoid flicker on fast responses.
+  React.useEffect(() => {
+    if (signatures !== null || error) {
+      setShowSpinner(false);
+      return;
+    }
+    const t = setTimeout(() => setShowSpinner(true), 200);
+    return () => clearTimeout(t);
+  }, [signatures, error]);
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2">
+        <Alert variant="destructive" role="alert" aria-live="assertive" className="py-1.5 px-2.5">
+          <AlertDescription className="text-xs">{error}</AlertDescription>
+        </Alert>
+        <Button variant="outline" size="sm" className="text-xs" onClick={() => void load()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (signatures === null) {
+    return showSpinner ? (
+      <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+        Loading…
+      </span>
+    ) : null;
+  }
+
+  const active = signatures.find((s) => !s.isTombstone && !s.isVoided) ?? null;
+  const voidedOriginal = signatures.find((s) => !s.isTombstone && s.isVoided) ?? null;
+  const tombstone = voidedOriginal
+    ? signatures.find((s) => s.voidedBySignatureId === voidedOriginal.id) ?? null
+    : null;
+
+  return (
+    <div className="space-y-1.5">
+      {active && (
+        <div className="space-y-0.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span
+              className="inline-flex items-center gap-1 rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-700"
+              title="Operator/instructor attestation — not an FAA-recognized signature. [VERIFY-P2-A]"
+            >
+              <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+              Signed
+            </span>
+            {canManage && (
+              <VoidSignatureDialog signatureId={active.id} onSuccess={setSignatures} />
+            )}
+          </div>
+          <p className="text-xs text-slate-400">
+            {active.signerName} ({active.roleAtSigning}) · {formatDateTime(active.signedAt)}
+          </p>
+          <p
+            className="nums text-[10px] text-slate-300 truncate max-w-[220px]"
+            title="Tamper-evidence digest — not an FAA signature. [VERIFY-P2-A]"
+          >
+            {active.contentHash.slice(0, 16)}…
+          </p>
+        </div>
+      )}
+
+      {!active && voidedOriginal && (
+        <div className="space-y-0.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="line-through text-xs text-slate-400">
+              {voidedOriginal.signerName} ({voidedOriginal.roleAtSigning})
+            </span>
+            <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-red-700">
+              Voided
+            </span>
+          </div>
+          {tombstone && (
+            <p className="text-xs text-slate-400">
+              by {tombstone.signerName} · {formatDateTime(tombstone.signedAt)} — {tombstone.attestationText}
+            </p>
+          )}
+          {canManage && (
+            <SignLessonDialog lessonRecordId={lessonRecordId} onSuccess={setSignatures} />
+          )}
+        </div>
+      )}
+
+      {!active && !voidedOriginal && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-slate-400 italic">Not signed.</span>
+          {canManage && (
+            <SignLessonDialog lessonRecordId={lessonRecordId} onSuccess={setSignatures} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Status controls ───────────────────────────────────────────────────────────
 // Only active enrollments can be transitioned.
 
@@ -883,6 +1363,8 @@ export function EnrollmentDetailClient({
         <p className="text-xs text-slate-400">
           Instructor-recorded data entry — not a regulatory sign-off or e-signature.
         </p>
+        {/* [VERIFY-P2-A]: condensed disclaimer; full text shown in the Sign dialog. */}
+        <p className="text-xs text-slate-400">{ESIGN_DISCLAIMER_SHORT}</p>
 
         {enrollment.records.length === 0 ? (
           <p className="text-sm text-slate-400 italic">No records yet.</p>
@@ -905,6 +1387,9 @@ export function EnrollmentDetailClient({
                   </th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
                     Status
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                    Signature
                   </th>
                   {canManage && (
                     <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide w-16">
@@ -961,6 +1446,9 @@ export function EnrollmentDetailClient({
                             Recorded
                           </span>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <SignaturePanel lessonRecordId={record.id} canManage={canManage} />
                       </td>
                       {canManage && (
                         <td className="px-4 py-3 text-right">
