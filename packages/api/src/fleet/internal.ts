@@ -192,6 +192,81 @@ export async function loadCurrentMeters(
   };
 }
 
+// ─── loadCurrentMetersBatch ───────────────────────────────────────────────────
+
+/**
+ * loadCurrentMetersBatch — batched form of loadCurrentMeters for MULTIPLE
+ * resources in one query (Slice P1.5). Avoids an N+1 fetch-in-loop when a
+ * caller (e.g. listMaintenanceDue) needs the last-recorded meters for many
+ * aircraft at once.
+ *
+ * DISTINCT ON (resource_id) picks the latest status='closed' dispatch ticket
+ * per aircraft — same "last recorded" semantics as loadCurrentMeters.
+ * [VERIFY-5-A] label as "last recorded" in the UI, not an authoritative total.
+ *
+ * RLS-scoped by caller's GUC. Never sets org context itself.
+ *
+ * @param tx          - Active Drizzle tx with org GUC already set.
+ * @param resourceIds - The aircraft resource IDs to probe (may be empty → empty Map).
+ * @returns Map<resourceId, CurrentMeters> — every requested id keyed (absent
+ *          ids get all-null, meaning no closed ticket exists yet).
+ */
+export async function loadCurrentMetersBatch(
+  tx: AnyDb,
+  resourceIds: string[],
+): Promise<Map<string, CurrentMeters>> {
+  const result = new Map<string, CurrentMeters>();
+  for (const id of resourceIds) {
+    result.set(id, { currentHobbs: null, currentTach: null, currentMetersAsOf: null });
+  }
+
+  if (resourceIds.length === 0) return result;
+
+  const idList = sql.join(
+    resourceIds.map((id) => sql`${id}::uuid`),
+    sql`, `,
+  );
+
+  const queryResult = await tx.execute(sql`
+    SELECT DISTINCT ON (resource_id)
+      resource_id AS "resourceId",
+      hobbs_in    AS "hobbsIn",
+      tach_in     AS "tachIn",
+      closed_at   AS "closedAt"
+    FROM dispatch_ticket
+    WHERE resource_id = ANY(ARRAY[${idList}])
+      AND status = 'closed'
+    ORDER BY resource_id, closed_at DESC
+  `);
+
+  const rows = extractRows<{
+    resourceId: string;
+    hobbsIn: string | number | null;
+    tachIn: string | number | null;
+    closedAt: Date | string | null;
+  }>(queryResult);
+
+  const parseNum = (v: string | number | null): number | null => {
+    if (v == null) return null;
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    return isNaN(n) ? null : n;
+  };
+
+  for (const row of rows) {
+    if (row.hobbsIn == null) continue; // shouldn't happen (hobbs_out/hobbs_in are write-once required on close), defensive
+    const asOf = row.closedAt
+      ? (row.closedAt instanceof Date ? row.closedAt : new Date(row.closedAt))
+      : null;
+    result.set(row.resourceId, {
+      currentHobbs: parseNum(row.hobbsIn),
+      currentTach: parseNum(row.tachIn),
+      currentMetersAsOf: asOf,
+    });
+  }
+
+  return result;
+}
+
 // ─── assembleAircraftDetail ───────────────────────────────────────────────────
 
 /**

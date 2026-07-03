@@ -106,3 +106,55 @@ export type SquawkSeverity = (typeof SQUAWK_SEVERITIES)[number];
 export function isSquawkSeverity(value: unknown): value is SquawkSeverity {
   return typeof value === 'string' && (SQUAWK_SEVERITIES as readonly string[]).includes(value);
 }
+
+// ─── Maintenance-item track basis (Slice P1.5) ────────────────────────────────
+
+/**
+ * MAINTENANCE_TRACK_BY — how a maintenance_item's due point is measured.
+ *
+ * 'hours' — due when a recorded meter (see METER_BASIS) reaches due_value_hours.
+ * 'date'  — due on/after due_date (calendar date, no time-of-day).
+ *
+ * TEXT + CHECK in the DB (not a pgEnum) — mirrors rate_schedule.rate_kind's
+ * additive/reversible-value-domain posture. This tuple is the single source
+ * of truth for the app-layer Zod validation; the DB CHECK is the backstop.
+ *
+ * OPERATOR DATA ONLY: this is an operator-entered maintenance-tracking
+ * threshold, NOT a computed FAA/Part-43/91.409 airworthiness or
+ * inspection-due determination. [VERIFY-P1.5-A]
+ */
+export const MAINTENANCE_TRACK_BY = ['hours', 'date'] as const;
+
+/** Union type of all valid maintenance track-by strings. */
+export type MaintenanceTrackBy = (typeof MAINTENANCE_TRACK_BY)[number];
+
+/**
+ * isMaintenanceTrackBy — runtime type guard for MaintenanceTrackBy.
+ * Same contract as isGroundingState, over MAINTENANCE_TRACK_BY.
+ */
+export function isMaintenanceTrackBy(value: unknown): value is MaintenanceTrackBy {
+  return typeof value === 'string' && (MAINTENANCE_TRACK_BY as readonly string[]).includes(value);
+}
+
+// ─── Meter basis (Slice P1.5) ─────────────────────────────────────────────────
+
+/**
+ * METER_BASIS — which recorded engine meter an 'hours' maintenance_item is
+ * measured against. Required iff track_by='hours'; NULL iff track_by='date'.
+ *
+ * The recorded meter itself is READ DISPLAY-ONLY from the last-closed
+ * dispatch ticket (fleet/internal.ts loadCurrentMeters) — this slice never
+ * recomputes or writes a Hobbs/tach reading.
+ */
+export const METER_BASIS = ['hobbs', 'tach'] as const;
+
+/** Union type of all valid meter-basis strings. */
+export type MeterBasis = (typeof METER_BASIS)[number];
+
+/**
+ * isMeterBasis — runtime type guard for MeterBasis.
+ * Same contract as isGroundingState, over METER_BASIS.
+ */
+export function isMeterBasis(value: unknown): value is MeterBasis {
+  return typeof value === 'string' && (METER_BASIS as readonly string[]).includes(value);
+}

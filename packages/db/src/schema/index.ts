@@ -486,4 +486,20 @@ export type { ImportRowSelect, ImportRowInsert } from './import-row.js';
 //   ambiguous about what it feeds.
 export { calendarFeed } from './calendar-feed.js';
 export type { CalendarFeedSelect, CalendarFeedInsert } from './calendar-feed.js';
+
+// Slice P1.5: Maintenance-due reminders — tenant-scoped (migration 0029).
+// OPERATOR-ENTERED tracking thresholds + arithmetic reminders. NO computed
+// FAA/Part-43/91.409 airworthiness or inspection-due DETERMINATION — a
+// mechanic/IA still makes the airworthiness call. [VERIFY-P1.5-A]
+//
+// maintenance_item: per-aircraft maintenance-due item, tracked by either an
+//   'hours' threshold (against the aircraft's LAST-RECORDED Hobbs/tach —
+//   DISPLAY-ONLY read, never recomputed) or a calendar 'date'.
+//   maintenance_item_shape_check is the structural guarantee that
+//   track_by/meter_basis/due_value_hours/due_date can never be inconsistent.
+//   NO completion-history table in this slice — markMaintenanceItemServiced
+//   advances due_value_hours/due_date in place + writes ONE audit_log row
+//   (see maintenance-item.ts header for the documented rationale).
+export { maintenanceItem } from './maintenance-item.js';
+export type { MaintenanceItemSelect, MaintenanceItemInsert } from './maintenance-item.js';
 export type { CalendarFeedScope } from './calendar-feed.js';

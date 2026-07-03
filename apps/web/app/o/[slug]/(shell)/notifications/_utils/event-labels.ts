@@ -34,6 +34,10 @@ const EVENT_LABELS: Record<NotificationEventType, EventLabelInfo> = {
     label: 'Dues invoice notices',
     description: 'When a new recurring dues invoice is generated for you.',
   },
+  'maintenance.due': {
+    label: 'Maintenance due',
+    description: 'A maintenance item on an aircraft is coming due or overdue.',
+  },
 };
 
 /** Pure lookup — falls back to the raw event type string if ever unmapped. */

@@ -44,6 +44,9 @@ import { DispatchRequirementsCard } from '../_components/dispatch-requirements-c
 import { AvailabilityWindowsCard } from '../_components/availability-windows-card';
 import { AircraftCalendarFeedCard } from '../_components/aircraft-calendar-feed-card';
 import { OpenWorkOrdersCard } from '../_components/open-work-orders-card';
+import { MaintenanceDueCard } from '../_components/maintenance-due-card';
+import { listMaintenanceDueAction } from '../../maintenance/due-actions';
+import type { SerializedMaintenanceDueView } from '../../maintenance/due-actions';
 import type { SerializedAircraftDetail } from '../actions';
 import type { AircraftListRow } from '@aeroops/api';
 
@@ -143,9 +146,10 @@ interface DetailContentProps {
 }
 
 async function DetailContent({ resourceId, slug, canManage, canManageRequirements, canManageResources, canWorkOrder }: DetailContentProps) {
-  const [result, aircraftListResult] = await Promise.all([
+  const [result, aircraftListResult, maintenanceDueResult] = await Promise.all([
     getAircraftDetailAction({ resourceId }),
     listAircraftAction({ includeInactive: false }),
+    listMaintenanceDueAction({ resourceId }),
   ]);
 
   // Auth / server errors
@@ -189,6 +193,11 @@ async function DetailContent({ resourceId, slug, canManage, canManageRequirement
   const aircraft = result.aircraft;
   const aircraftList =
     'ok' in aircraftListResult && aircraftListResult.ok ? aircraftListResult.aircraft : [];
+  // Best-effort fail-closed: a role with fleet:access but not maintenance:access
+  // (none currently in the matrix, but this mirrors the R7 at-a-glance nit
+  // posture) sees an empty maintenance-due card rather than an error.
+  const maintenanceDueItems =
+    'ok' in maintenanceDueResult && maintenanceDueResult.ok ? maintenanceDueResult.items : [];
 
   return (
     <AircraftDetailView
@@ -199,6 +208,7 @@ async function DetailContent({ resourceId, slug, canManage, canManageRequirement
       canManageResources={canManageResources}
       canWorkOrder={canWorkOrder}
       aircraftList={aircraftList}
+      maintenanceDueItems={maintenanceDueItems}
     />
   );
 }
@@ -213,9 +223,10 @@ interface AircraftDetailViewProps {
   canManageResources: boolean;
   canWorkOrder: boolean;
   aircraftList: AircraftListRow[];
+  maintenanceDueItems: SerializedMaintenanceDueView[];
 }
 
-function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, canManageResources, canWorkOrder, aircraftList }: AircraftDetailViewProps) {
+function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, canManageResources, canWorkOrder, aircraftList, maintenanceDueItems }: AircraftDetailViewProps) {
   const { grounding } = aircraft;
 
   return (
@@ -513,6 +524,15 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
         aircraft={aircraftList}
         slug={slug}
         canWorkOrder={canWorkOrder}
+      />
+
+      {/* ── Maintenance due card (Slice P1.5) [VERIFY-P1.5-A] ──────────────── */}
+      <MaintenanceDueCard
+        resourceId={aircraft.id}
+        items={maintenanceDueItems}
+        aircraft={aircraftList}
+        slug={slug}
+        canManage={canWorkOrder}
       />
     </div>
   );

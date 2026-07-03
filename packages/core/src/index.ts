@@ -86,6 +86,25 @@ export type {
 } from './maintenance/work-order-rules.js';
 
 export {
+  MAINTENANCE_TRACK_BY,
+  METER_BASIS,
+  isMaintenanceTrackBy,
+  isMeterBasis,
+} from './maintenance/enums.js';
+export type { MaintenanceTrackBy, MeterBasis } from './maintenance/enums.js';
+
+export {
+  evaluateMaintenanceDue,
+  MAINTENANCE_DUE_STATUS_RANK,
+} from './maintenance/maintenance-due.js';
+export type {
+  MaintenanceDueItemInput,
+  CurrentMetersInput,
+  MaintenanceDueStatus,
+  MaintenanceDueEvaluation,
+} from './maintenance/maintenance-due.js';
+
+export {
   computeSolarEvents,
   evaluateTwilightGate,
 } from './scheduling/civil-twilight.js';

@@ -52,6 +52,7 @@ import {
   getGroundedAircraftAction,
   getOpenSquawksAction,
 } from './reporting-actions';
+import { getMaintenanceDueSummaryAction } from './maintenance/due-actions';
 
 // ─── Local alias ─────────────────────────────────────────────────────────────
 
@@ -88,7 +89,7 @@ function DashboardSkeleton() {
       <div>
         <Skeleton className="h-3 w-16 mb-2" />
         <div className="rounded-md border border-slate-200 bg-white shadow-xs divide-x divide-slate-200 flex">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="flex-1 px-4 py-4 space-y-2">
               <Skeleton className="h-2.5 w-14" />
               <Skeleton className="h-7 w-10" />
@@ -174,13 +175,14 @@ interface DashboardContentProps {
 
 async function DashboardContent({ slug, range }: DashboardContentProps) {
   // Parallel-fetch all dashboard data.
-  const [metricsResult, utilizationResult, todaysFlightsResult, groundedResult, squawksResult] =
+  const [metricsResult, utilizationResult, todaysFlightsResult, groundedResult, squawksResult, maintenanceDueSummaryResult] =
     await Promise.all([
       getDashboardMetricsAction({ range }),
       getAircraftUtilizationAction({ range }),
       getTodaysFlightsAction(),
       getGroundedAircraftAction(),
       getOpenSquawksAction(),
+      getMaintenanceDueSummaryAction(),
     ]);
 
   // Error state: any core metric failure renders an error block.
@@ -215,6 +217,13 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
     squawksResult && 'ok' in squawksResult && squawksResult.ok
       ? squawksResult.squawks
       : [];
+  // Best-effort fail-closed (Slice P1.5): a reporting:access-only role
+  // lacking maintenance:access (e.g. accountant) sees the tile as "—" rather
+  // than an error — mirrors the existing at-a-glance-lists posture (R7 tracked nit).
+  const maintenanceDueSummary =
+    maintenanceDueSummaryResult && 'ok' in maintenanceDueSummaryResult && maintenanceDueSummaryResult.ok
+      ? maintenanceDueSummaryResult.summary
+      : null;
 
   if (!metrics) {
     return (
@@ -386,6 +395,46 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                   {metrics.activeEnrollmentCount === 0 ? 'none yet' : 'students in training'}
                 </Link>
               </p>
+            </div>
+
+            {/* Tile 7: Maintenance due (Slice P1.5) [VERIFY-P1.5-A] */}
+            <div className="flex-1 px-5 py-4">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+                Maintenance due
+              </p>
+              {maintenanceDueSummary === null ? (
+                <>
+                  <p className="nums mt-1 text-2xl font-bold leading-none text-slate-300">—</p>
+                  <p className="mt-1 text-xs text-slate-400">not available</p>
+                </>
+              ) : (
+                <>
+                  <p
+                    className={[
+                      'nums mt-1 text-2xl font-bold leading-none',
+                      maintenanceDueSummary.overdueCount > 0
+                        ? 'text-danger'
+                        : maintenanceDueSummary.dueSoonCount > 0
+                          ? 'text-amber-700'
+                          : 'text-slate-400',
+                    ].join(' ')}
+                  >
+                    {maintenanceDueSummary.overdueCount + maintenanceDueSummary.dueSoonCount}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    <Link
+                      href={`/o/${slug}/maintenance/due`}
+                      className="hover:text-brand underline-offset-2 hover:underline"
+                    >
+                      {maintenanceDueSummary.overdueCount > 0
+                        ? `${maintenanceDueSummary.overdueCount} overdue`
+                        : maintenanceDueSummary.dueSoonCount > 0
+                          ? `${maintenanceDueSummary.dueSoonCount} due soon`
+                          : 'none due'}
+                    </Link>
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>

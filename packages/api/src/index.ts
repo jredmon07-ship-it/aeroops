@@ -453,6 +453,72 @@ export type {
   CancelWorkOrderResult,
 } from './maintenance/work-order-types.js';
 
+// ─── Slice P1.5 — Maintenance-due reminders (migration 0029) ──────────────────
+// Operator-defined per-aircraft maintenance items, tracked by an HOURS
+// threshold (against the aircraft's LAST-RECORDED Hobbs/tach — DISPLAY-ONLY
+// read, never recomputed) or a calendar DATE. evaluateMaintenanceDue
+// (@aeroops/core, pure) computes ok/due_soon/overdue/unknown — ARITHMETIC on
+// operator-entered thresholds, NOT a computed FAA/Part-43/91.409
+// airworthiness or inspection-due determination. [VERIFY-P1.5-A]
+// Reuses the EXISTING maintenance:access (read) / maintenance:work_order
+// (write) caps — no new capability added for this slice.
+// NO completion-history table — markMaintenanceItemServiced advances the
+// threshold in place + writes one audit_log row (see maintenance-item.ts
+// schema-file header for the rationale).
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  createMaintenanceItem,
+  createMaintenanceItemWithDb,
+} from './maintenance/create-maintenance-item.js';
+export type { CreateMaintenanceItemInput } from './maintenance/create-maintenance-item.js';
+
+export {
+  updateMaintenanceItem,
+  updateMaintenanceItemWithDb,
+} from './maintenance/update-maintenance-item.js';
+export type { UpdateMaintenanceItemInput } from './maintenance/update-maintenance-item.js';
+
+export {
+  deactivateMaintenanceItem,
+  deactivateMaintenanceItemWithDb,
+} from './maintenance/deactivate-maintenance-item.js';
+export type { DeactivateMaintenanceItemInput } from './maintenance/deactivate-maintenance-item.js';
+
+export {
+  markMaintenanceItemServiced,
+  markMaintenanceItemServicedWithDb,
+} from './maintenance/mark-maintenance-item-serviced.js';
+export type { MarkMaintenanceItemServicedInput } from './maintenance/mark-maintenance-item-serviced.js';
+
+export {
+  listMaintenanceDue,
+  listMaintenanceDueWithDb,
+  getMaintenanceDueSummary,
+  getMaintenanceDueSummaryWithDb,
+} from './maintenance/list-maintenance-due.js';
+export type { ListMaintenanceDueInput } from './maintenance/list-maintenance-due.js';
+
+export {
+  notifyMaintenanceDue,
+  notifyMaintenanceDueWithDb,
+} from './maintenance/notify-maintenance-due.js';
+export type {
+  NotifyMaintenanceDueInput,
+  NotifyMaintenanceDueResult,
+} from './maintenance/notify-maintenance-due.js';
+
+// Maintenance-due result/IO types.
+export type {
+  MaintenanceItemView,
+  MaintenanceDueView,
+  MaintenanceDueSummary,
+  CreateMaintenanceItemResult,
+  UpdateMaintenanceItemResult,
+  DeactivateMaintenanceItemResult,
+  MarkMaintenanceItemServicedResult,
+} from './maintenance/maintenance-item-types.js';
+
 // ─── Slice 5 — Fleet (FLEET-5.2) ──────────────────────────────────────────────
 // Aircraft list + detail aggregation + identity edit + location picker.
 // fleet:access → owner/manager/dispatcher/cfi/mechanic.

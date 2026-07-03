@@ -24,8 +24,10 @@
 import { sql, eq, and } from 'drizzle-orm';
 import { squawk, aircraftGrounding, auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
+import type { MaintenanceTrackBy, MeterBasis } from '@aeroops/core';
 import type { AppSession } from '../auth/types.js';
 import type { SquawkView } from './types.js';
+import type { MaintenanceItemView } from './maintenance-item-types.js';
 import { extractRows } from '../db-rows.js';
 
 // ─── Grounding probe result ───────────────────────────────────────────────────
@@ -404,5 +406,55 @@ export function toWorkOrderView(row: {
     cancelledAt:     asDateOrNull(row.cancelledAt),
     createdAt:       asDate(row.createdAt),
     updatedAt:       asDate(row.updatedAt),
+  };
+}
+
+// ─── toMaintenanceItemView mapper ─────────────────────────────────────────────
+
+/**
+ * toMaintenanceItemView — pure mapper from a maintenance_item DB row to the
+ * public MaintenanceItemView shape (Slice P1.5).
+ *
+ * Centralised here so every maintenance-item command shares exactly the same
+ * projection and can never diverge.
+ */
+export function toMaintenanceItemView(row: {
+  id: string;
+  resourceId: string;
+  title: string;
+  trackBy: string;
+  meterBasis: string | null;
+  dueValueHours: string | number | null;
+  dueDate: string | null;
+  warnThresholdHours: string | number | null;
+  warnLeadDays: number | null;
+  notes: string | null;
+  active: boolean;
+  createdBy: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}): MaintenanceItemView {
+  const asDate = (v: Date | string): Date => (v instanceof Date ? v : new Date(v));
+  const parseNum = (v: string | number | null): number | null => {
+    if (v == null) return null;
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    return isNaN(n) ? null : n;
+  };
+
+  return {
+    id:                 row.id,
+    resourceId:         row.resourceId,
+    title:              row.title,
+    trackBy:            row.trackBy as MaintenanceTrackBy,
+    meterBasis:         row.meterBasis as MeterBasis | null,
+    dueValueHours:      parseNum(row.dueValueHours),
+    dueDate:            row.dueDate,
+    warnThresholdHours: parseNum(row.warnThresholdHours),
+    warnLeadDays:       row.warnLeadDays,
+    notes:              row.notes,
+    active:             row.active,
+    createdBy:          row.createdBy,
+    createdAt:          asDate(row.createdAt),
+    updatedAt:          asDate(row.updatedAt),
   };
 }

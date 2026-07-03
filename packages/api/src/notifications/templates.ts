@@ -22,6 +22,7 @@ import type {
   InvoiceFinalizedData,
   PaymentFailedData,
   DuesGeneratedData,
+  MaintenanceDueData,
 } from './email-event-types.js';
 import type { NotificationEventType } from './email-event-types.js';
 
@@ -141,6 +142,26 @@ function renderDuesGenerated(data: DuesGeneratedData): RenderedEmail {
   };
 }
 
+function renderMaintenanceDue(data: MaintenanceDueData): RenderedEmail {
+  const lines = data.items.map((i) => `- ${i.title} (${i.status === 'overdue' ? 'overdue' : 'due soon'})`);
+  const text =
+    `Maintenance items need attention.\n\n` +
+    `Overdue: ${data.overdueCount}\nDue soon: ${data.dueSoonCount}\n\n` +
+    (lines.length > 0 ? `${lines.join('\n')}\n\n` : '') +
+    `This reflects thresholds you set — it does not by itself determine airworthiness; a mechanic makes that call.`;
+  return {
+    subject: 'Maintenance items due',
+    text,
+    html: wrapHtml([
+      'Maintenance items need attention.',
+      `Overdue: ${data.overdueCount}`,
+      `Due soon: ${data.dueSoonCount}`,
+      ...lines,
+      'This reflects thresholds you set — it does not by itself determine airworthiness; a mechanic makes that call.',
+    ]),
+  };
+}
+
 /**
  * renderNotificationTemplate — dispatch to the per-event pure renderer.
  *
@@ -166,6 +187,8 @@ export function renderNotificationTemplate<E extends NotificationEventType>(
       return renderPaymentFailed(data as PaymentFailedData);
     case 'dues.generated':
       return renderDuesGenerated(data as DuesGeneratedData);
+    case 'maintenance.due':
+      return renderMaintenanceDue(data as MaintenanceDueData);
     default: {
       const _exhaustive: never = eventType;
       throw new Error(`[notifications] unknown event type: ${String(_exhaustive)}`);

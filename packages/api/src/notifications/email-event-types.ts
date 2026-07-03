@@ -26,6 +26,7 @@ export const NOTIFICATION_EVENT_TYPES = [
   'invoice.finalized',
   'payment.failed',
   'dues.generated',
+  'maintenance.due',
 ] as const;
 
 export type NotificationEventType = (typeof NOTIFICATION_EVENT_TYPES)[number];
@@ -74,6 +75,19 @@ export interface DuesGeneratedData {
   amountCents: number;
 }
 
+/**
+ * MaintenanceDueData — Slice P1.5's "heads-up" digest data for
+ * notifyMaintenanceDue. `items` is bounded (≤10, caller-side) — this is a
+ * heads-up, not an exhaustive report. `status` is 'overdue' | 'due_soon'
+ * only (never 'ok'/'unknown' — those are never notified). OPERATOR-ENTERED
+ * tracking data; NO FAA/Part-43/91.409 determination. [VERIFY-P1.5-A]
+ */
+export interface MaintenanceDueData {
+  overdueCount: number;
+  dueSoonCount: number;
+  items: { title: string; status: string }[];
+}
+
 /** Maps each event type to its typed template-data shape. */
 export interface NotificationTemplateDataMap {
   'reservation.created': ReservationCreatedData;
@@ -82,6 +96,7 @@ export interface NotificationTemplateDataMap {
   'invoice.finalized': InvoiceFinalizedData;
   'payment.failed': PaymentFailedData;
   'dues.generated': DuesGeneratedData;
+  'maintenance.due': MaintenanceDueData;
 }
 
 /** The rendered output of a template — text-first; html is a simple wrapper. */
