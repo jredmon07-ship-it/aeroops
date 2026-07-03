@@ -371,10 +371,44 @@ export async function refreshMobileSession(
   // ── Expired — fail closed. ──
   if (resolved.expiresAt.getTime() <= now) return null;
 
-  // ── Valid — rotate. ──
+  // ── Valid — atomically CLAIM the parent, then rotate. ──
   return withOrgContext(db, resolved.orgId, async (tx) => {
+    // SINGLE-USE under concurrency: the consume is a guarded conditional UPDATE
+    // (rotated_to_id IS NULL AND revoked_at IS NULL). Postgres serializes the two
+    // concurrent UPDATEs on the row lock, so exactly ONE refresh wins. Losing
+    // (0 rows) means a concurrent refresh already rotated/revoked this token —
+    // treat it as reuse and FAIL CLOSED (revoke the whole chain). Without this
+    // guard, two simultaneous refreshes of one captured token both read the same
+    // pre-tx snapshot and each spawn a live, independently-rotating chain that
+    // reuse-detection never catches. [security: audit MEDIUM, atomic rotation]
+    const claimed = await tx
+      .update(mobileSession)
+      .set({ revokedAt: new Date(now), lastUsedAt: new Date(now) })
+      .where(
+        and(
+          eq(mobileSession.id, resolved.id),
+          isNull(mobileSession.rotatedToId),
+          isNull(mobileSession.revokedAt),
+        ),
+      )
+      .returning({ id: mobileSession.id });
+
+    if (claimed.length === 0) {
+      // Lost the race / already consumed → indistinguishable from token reuse.
+      await revokeChainFrom(tx, resolved.id, resolved.orgId);
+      await tx.insert(auditLog).values({
+        orgId: resolved.orgId,
+        actorUserId: resolved.userId,
+        action: 'mobile.session_reuse_detected',
+        entityType: 'mobile_session',
+        entityId: resolved.id,
+        metadata: { reason: 'rotation_race' },
+      });
+      return null;
+    }
+
     const claims = await loadMobileClaims(tx, resolved.orgId, resolved.userId);
-    if (!claims) return null; // org suspended / user removed since login.
+    if (!claims) return null; // org suspended / user removed (parent already revoked).
 
     const rawNewRefreshToken = generateRefreshToken();
     const newRefreshTokenHash = hashRefreshToken(rawNewRefreshToken);
@@ -394,9 +428,10 @@ export async function refreshMobileSession(
     const newRow = inserted[0];
     if (!newRow) throw new Error('[auth] refreshMobileSession: insert returned no row');
 
+    // Link parent → child (the parent was already revoked by the guarded claim).
     await tx
       .update(mobileSession)
-      .set({ rotatedToId: newRow.id, revokedAt: new Date(now), lastUsedAt: new Date(now) })
+      .set({ rotatedToId: newRow.id })
       .where(eq(mobileSession.id, resolved.id));
 
     await tx.insert(auditLog).values({
