@@ -32,6 +32,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchSchedule, weekWindow, AuthError, NetworkError } from '../lib/api';
 import { ReservationCard } from '../components/ReservationCard';
+import { BottomNav } from '../components/BottomNav';
 import type { MobileReservationDTO, MobileResourceDTO } from '@aeroops/core';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -216,7 +217,9 @@ export default function ScheduleScreen(): React.ReactElement {
       </View>
 
       {/* Main content */}
-      {renderContent()}
+      <View style={styles.content}>{renderContent()}</View>
+
+      <BottomNav />
     </View>
   );
 }
@@ -225,6 +228,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  content: {
+    flex: 1,
   },
   topBar: {
     flexDirection: 'row',

@@ -19,6 +19,11 @@ import type {
   MobileReservationDTO,
   MobileResourceDTO,
   MobileScheduleResponse,
+  MobileFleetListResponse,
+  MobileFleetDetailResponse,
+  MobileAircraftDetailDTO,
+  MobileSquawksResponse,
+  MobileAlertsResponse,
 } from '@aeroops/core';
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
@@ -226,4 +231,98 @@ export function weekWindow(): { from: string; to: string } {
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 7);
   return { from: start.toISOString(), to: end.toISOString() };
+}
+
+// ─── Fleet API ────────────────────────────────────────────────────────────────
+
+/**
+ * fetchFleet — GET /api/mobile/v1/fleet
+ *
+ * READ-ONLY. Requires a valid Bearer token. The role must hold fleet:access
+ * server-side (enforced inside listAircraft) — a role without it surfaces as
+ * ForbiddenError here.
+ *
+ * Failure paths:
+ *   - 401 → throws AuthError (caller clears token, redirects to login).
+ *   - 403 → throws ForbiddenError.
+ *   - Network failure → throws NetworkError.
+ */
+export async function fetchFleet(token: string): Promise<MobileFleetListResponse> {
+  const response = await apiFetch('/api/mobile/v1/fleet', { method: 'GET', token });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, `Fleet fetch failed (${response.status.toString()})`);
+  }
+
+  return (await response.json()) as MobileFleetListResponse;
+}
+
+/**
+ * fetchAircraftDetail — GET /api/mobile/v1/fleet/[id]
+ *
+ * READ-ONLY. Returns null when the server responds ok:false 'not_found'
+ * (unknown id or cross-org — RLS-collapsed, never distinguished).
+ *
+ * Failure paths:
+ *   - 401 → throws AuthError.
+ *   - 403 → throws ForbiddenError.
+ *   - 404 (not_found) → resolves to null (caller renders an empty state).
+ *   - Network failure → throws NetworkError.
+ */
+export async function fetchAircraftDetail(
+  token: string,
+  id: string,
+): Promise<MobileAircraftDetailDTO | null> {
+  const response = await apiFetch(`/api/mobile/v1/fleet/${encodeURIComponent(id)}`, {
+    method: 'GET',
+    token,
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new ApiError(response.status, `Aircraft detail fetch failed (${response.status.toString()})`);
+  }
+
+  const data = (await response.json()) as MobileFleetDetailResponse;
+  return data.ok ? data.aircraft : null;
+}
+
+// ─── Squawks API ──────────────────────────────────────────────────────────────
+
+/**
+ * fetchSquawks — GET /api/mobile/v1/squawks
+ *
+ * READ-ONLY. Returns the org's OPEN squawks (newest-first, tail-numbered).
+ * The role must hold maintenance:access server-side (enforced inside
+ * listSquawks) — a role without it surfaces as ForbiddenError here.
+ */
+export async function fetchSquawks(token: string): Promise<MobileSquawksResponse> {
+  const response = await apiFetch('/api/mobile/v1/squawks', { method: 'GET', token });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, `Squawks fetch failed (${response.status.toString()})`);
+  }
+
+  return (await response.json()) as MobileSquawksResponse;
+}
+
+// ─── Alerts API ───────────────────────────────────────────────────────────────
+
+/**
+ * fetchAlerts — GET /api/mobile/v1/alerts
+ *
+ * READ-ONLY. Self-scoped server-side to the caller's own userId — there is
+ * no per-user id in this request. Held by ALL roles (app:access).
+ */
+export async function fetchAlerts(token: string): Promise<MobileAlertsResponse> {
+  const response = await apiFetch('/api/mobile/v1/alerts', { method: 'GET', token });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, `Alerts fetch failed (${response.status.toString()})`);
+  }
+
+  return (await response.json()) as MobileAlertsResponse;
 }

@@ -46,6 +46,10 @@ function RootNavigator(): React.ReactElement {
         }}
       >
         <Stack.Screen name="index" options={{ title: 'Schedule' }} />
+        <Stack.Screen name="fleet/index" options={{ title: 'Fleet' }} />
+        <Stack.Screen name="fleet/[id]" options={{ title: 'Aircraft' }} />
+        <Stack.Screen name="squawks" options={{ title: 'Squawks' }} />
+        <Stack.Screen name="alerts" options={{ title: 'Alerts' }} />
         <Stack.Screen
           name="login"
           options={{ title: 'Sign In', headerShown: false }}

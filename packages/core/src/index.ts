@@ -211,6 +211,10 @@ export {
   mobileScheduleWindowSchema,
   toMobileReservationDTO,
   toMobileResourceDTO,
+  toMobileAircraftListDTO,
+  toMobileSquawkDTO,
+  toMobileAircraftDetailDTO,
+  toMobileAlertDTO,
 } from './mobile/dto.js';
 export type {
   MobileScheduleWindow,
@@ -218,6 +222,15 @@ export type {
   MobileResourceDTO,
   MobileScheduleResponse,
   MobileApiError,
+  MobileAircraftListDTO,
+  MobileFleetListResponse,
+  MobileSquawkDTO,
+  MobileSquawksResponse,
+  MobileUpcomingReservationDTO,
+  MobileAircraftDetailDTO,
+  MobileFleetDetailResponse,
+  MobileAlertDTO,
+  MobileAlertsResponse,
 } from './mobile/dto.js';
 
 // ─── Phase-2 B1 — Pure invoice / billing math (integer cents, no Stripe) ────────
@@ -312,3 +325,18 @@ export type {
 //   own line-terminator grammar — see calendar/build-ics.ts header.
 export { buildIcs, escapeIcsText, foldLine, formatIcsUtc } from './calendar/build-ics.js';
 export type { IcsEvent, BuildIcsOptions } from './calendar/build-ics.js';
+
+// ─── Slice W1 — METAR weather (display-only, informational) ─────────────────
+// deriveFlightCategory: PURE flight-category classifier (standard AWC/FAA
+//   ceiling+visibility thresholds; worse-of-the-two governs; property-tested
+//   for monotonicity). parseMetarJson: the primary path — parses AWC's
+//   `/api/data/metar?format=json` element shape. parseMetarText: a defensive
+//   raw-text fallback (round-trip property-tested). NEVER a go/no-go,
+//   airworthiness, or dispatch determination — advisory only. See
+//   docs/specs/slice-weather-metar.md.
+export {
+  deriveFlightCategory,
+  parseMetarJson,
+  parseMetarText,
+} from './weather/metar.js';
+export type { FlightCategory, ParsedMetar, ParseMetarOptions } from './weather/metar.js';

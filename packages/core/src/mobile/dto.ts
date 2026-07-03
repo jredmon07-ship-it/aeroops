@@ -125,6 +125,7 @@ export type MobileApiError =
   | { error: 'unauthenticated' }
   | { error: 'forbidden' }
   | { error: 'invalid_window' }
+  | { error: 'not_found' }
   | { error: 'internal_error' };
 
 // ─── Mapper functions (pure, unit-testable) ────────────────────────────────────
@@ -197,4 +198,268 @@ export function toMobileResourceDTO(row: ResourceRowLike): MobileResourceDTO {
     tailNumber: row.tailNumber,
     // orgId is intentionally not on ResourceRow and not in the DTO
   };
+}
+
+// ─── MobileAircraftListDTO (fleet list) ───────────────────────────────────────
+
+/**
+ * MobileAircraftListDTO — wire-safe projection of one AircraftListRow.
+ * Thin summary for the fleet list screen: tail, make/model, grounded, active.
+ */
+export interface MobileAircraftListDTO {
+  id: string;
+  tailNumber: string;
+  make: string | null;
+  model: string | null;
+  grounded: boolean;
+  active: boolean;
+  // orgId intentionally ABSENT; groundingReason/squawk/work-order counts kept
+  // off the list DTO by design (detail-only) — see MobileAircraftDetailDTO.
+}
+
+/** AircraftListRowLike — the fields toMobileAircraftListDTO reads. */
+interface AircraftListRowLike {
+  id: string;
+  tailNumber: string;
+  make: string | null;
+  model: string | null;
+  grounded: boolean;
+  active: boolean;
+}
+
+/**
+ * toMobileAircraftListDTO — maps a server-side AircraftListRow to the wire DTO.
+ * PURE: no I/O.
+ */
+export function toMobileAircraftListDTO(row: AircraftListRowLike): MobileAircraftListDTO {
+  return {
+    id: row.id,
+    tailNumber: row.tailNumber,
+    make: row.make,
+    model: row.model,
+    grounded: row.grounded,
+    active: row.active,
+  };
+}
+
+// ─── MobileSquawkDTO ───────────────────────────────────────────────────────────
+
+/**
+ * MobileSquawkDTO — wire-safe projection of a squawk row, joined with the
+ * aircraft's tail number (squawk rows only carry resourceId; the tail number
+ * is resolved by the route handler via a second, capability-checked read of
+ * the same aircraft set — see the /squawks and /fleet/[id] routes).
+ */
+export interface MobileSquawkDTO {
+  id: string;
+  resourceId: string;
+  tailNumber: string;
+  title: string;
+  severity: string;
+  status: string;
+  reportedAt: string; // ISO-8601
+}
+
+/** SquawkRowLike — the fields toMobileSquawkDTO reads from a squawk row. */
+interface SquawkRowLike {
+  id: string;
+  resourceId: string;
+  title: string;
+  severity: string;
+  status: string;
+  reportedAt: Date;
+}
+
+/**
+ * toMobileSquawkDTO — maps a server-side SquawkView (+ resolved tailNumber)
+ * to the wire DTO. PURE: no I/O. Date → ISO string.
+ *
+ * @param row        - A SquawkView (or compatible shape).
+ * @param tailNumber - The tail number of row.resourceId, resolved by the caller
+ *                     (fallback '' when the aircraft could not be resolved —
+ *                     never throws, never blocks the squawk from rendering).
+ */
+export function toMobileSquawkDTO(row: SquawkRowLike, tailNumber: string): MobileSquawkDTO {
+  return {
+    id: row.id,
+    resourceId: row.resourceId,
+    tailNumber,
+    title: row.title,
+    severity: row.severity,
+    status: row.status,
+    reportedAt: row.reportedAt.toISOString(),
+  };
+}
+
+// ─── MobileSquawksResponse ─────────────────────────────────────────────────────
+
+export interface MobileSquawksResponse {
+  squawks: MobileSquawkDTO[];
+}
+
+// ─── MobileUpcomingReservationDTO ──────────────────────────────────────────────
+
+export interface MobileUpcomingReservationDTO {
+  id: string;
+  startAt: string; // ISO-8601
+  endAt: string;   // ISO-8601
+}
+
+/** UpcomingReservationRowLike — fields read from UpcomingReservationRow. */
+interface UpcomingReservationRowLike {
+  id: string;
+  startAt: Date;
+  endAt: Date;
+}
+
+// ─── MobileAircraftDetailDTO (fleet detail) ────────────────────────────────────
+
+/**
+ * MobileAircraftDetailDTO — wire-safe projection of AircraftDetail.
+ *
+ * [VERIFY-5-A] currentHobbs/currentTach: "last recorded" reading only — NOT an
+ * authoritative airframe total or maintenance value (mirrors the web fleet
+ * detail page's disclaimer posture).
+ * [VERIFY-5-B] grounding: operator data, NEVER "not airworthy" language.
+ */
+export interface MobileAircraftDetailDTO {
+  id: string;
+  tailNumber: string;
+  displayName: string;
+  make: string | null;
+  model: string | null;
+  active: boolean;
+  hasHobbs: boolean;
+  hasTach: boolean;
+
+  grounded: boolean;
+  groundingReason: string | null;
+  groundingSince: string | null; // ISO-8601, null when not grounded
+
+  openSquawkCount: number;
+  recentSquawks: MobileSquawkDTO[]; // ≤10, newest-first
+
+  currentHobbs: number | null;
+  currentTach: number | null;
+  currentMetersAsOf: string | null; // ISO-8601
+
+  upcomingReservations: MobileUpcomingReservationDTO[]; // ≤10, ASC
+}
+
+/**
+ * AircraftDetailLike — the fields toMobileAircraftDetailDTO reads from
+ * AircraftDetail. Declared inline so @aeroops/core stays free of an
+ * @aeroops/api dependency (mirrors ReservationRowLike / ResourceRowLike).
+ */
+interface AircraftDetailLike {
+  id: string;
+  tailNumber: string;
+  displayName: string;
+  make: string | null;
+  model: string | null;
+  active: boolean;
+  hasHobbs: boolean;
+  hasTach: boolean;
+  grounding: {
+    grounded: boolean;
+    reason: string | null;
+    since: Date | null;
+  };
+  openSquawkCount: number;
+  recentSquawks: SquawkRowLike[];
+  currentHobbs: number | null;
+  currentTach: number | null;
+  currentMetersAsOf: Date | null;
+  upcomingReservations: UpcomingReservationRowLike[];
+}
+
+/**
+ * toMobileAircraftDetailDTO — maps a server-side AircraftDetail to the wire DTO.
+ * PURE: no I/O. Dates → ISO strings. Every squawk in recentSquawks is stamped
+ * with the SAME tailNumber as the aircraft itself (a squawk always belongs to
+ * the aircraft it was reported against — no cross-aircraft join needed here).
+ */
+export function toMobileAircraftDetailDTO(detail: AircraftDetailLike): MobileAircraftDetailDTO {
+  return {
+    id: detail.id,
+    tailNumber: detail.tailNumber,
+    displayName: detail.displayName,
+    make: detail.make,
+    model: detail.model,
+    active: detail.active,
+    hasHobbs: detail.hasHobbs,
+    hasTach: detail.hasTach,
+
+    grounded: detail.grounding.grounded,
+    groundingReason: detail.grounding.reason,
+    groundingSince: detail.grounding.since ? detail.grounding.since.toISOString() : null,
+
+    openSquawkCount: detail.openSquawkCount,
+    recentSquawks: detail.recentSquawks.map((s) => toMobileSquawkDTO(s, detail.tailNumber)),
+
+    currentHobbs: detail.currentHobbs,
+    currentTach: detail.currentTach,
+    currentMetersAsOf: detail.currentMetersAsOf ? detail.currentMetersAsOf.toISOString() : null,
+
+    upcomingReservations: detail.upcomingReservations.map((r) => ({
+      id: r.id,
+      startAt: r.startAt.toISOString(),
+      endAt: r.endAt.toISOString(),
+    })),
+  };
+}
+
+// ─── MobileFleetListResponse / MobileFleetDetailResponse ──────────────────────
+
+export interface MobileFleetListResponse {
+  aircraft: MobileAircraftListDTO[];
+}
+
+export type MobileFleetDetailResponse =
+  | { ok: true; aircraft: MobileAircraftDetailDTO }
+  | { ok: false; reason: 'not_found' };
+
+// ─── MobileAlertDTO (alerts) ────────────────────────────────────────────────────
+
+/**
+ * MobileAlertDTO — wire-safe projection of a MyAlert (Slice N1.1).
+ * Self-scoped server-side (session.userId only) — no row-identifying input.
+ */
+export interface MobileAlertDTO {
+  id: string;
+  kind: string;
+  title: string;
+  detail: string;
+  path: string | null;
+  at: string; // ISO-8601
+}
+
+/** MyAlertLike — the fields toMobileAlertDTO reads from a MyAlert. */
+interface MyAlertLike {
+  id: string;
+  kind: string;
+  title: string;
+  detail: string;
+  path: string | null;
+  at: Date;
+}
+
+/**
+ * toMobileAlertDTO — maps a server-side MyAlert to the wire DTO.
+ * PURE: no I/O. Date → ISO string.
+ */
+export function toMobileAlertDTO(alert: MyAlertLike): MobileAlertDTO {
+  return {
+    id: alert.id,
+    kind: alert.kind,
+    title: alert.title,
+    detail: alert.detail,
+    path: alert.path,
+    at: alert.at.toISOString(),
+  };
+}
+
+export interface MobileAlertsResponse {
+  alerts: MobileAlertDTO[];
+  count: number;
 }
