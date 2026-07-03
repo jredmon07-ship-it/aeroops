@@ -47,6 +47,7 @@ import { OpenWorkOrdersCard } from '../_components/open-work-orders-card';
 import { MaintenanceDueCard } from '../_components/maintenance-due-card';
 import { listMaintenanceDueAction } from '../../maintenance/due-actions';
 import type { SerializedMaintenanceDueView } from '../../maintenance/due-actions';
+import { DocumentsCard } from '../../documents-card';
 import type { SerializedAircraftDetail } from '../actions';
 import type { AircraftListRow } from '@aeroops/api';
 
@@ -534,6 +535,9 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
         slug={slug}
         canManage={canWorkOrder}
       />
+
+      {/* ── Documents card (Slice P1.6) [VERIFY-P1.6-A] ─────────────────────── */}
+      <DocumentsCard ownerType="aircraft" ownerId={aircraft.id} canManage={canManage} />
     </div>
   );
 }

@@ -39,6 +39,8 @@ import {
   listMyCalendarFeeds,
   revokeCalendarFeed,
   regenerateCalendarFeed,
+  getMyDocuments,
+  getMyDocumentDownloadUrl,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -51,6 +53,7 @@ import type {
   SavedPaymentMethodView,
   AutopaySettingView,
   CalendarFeedView,
+  DocumentView,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────

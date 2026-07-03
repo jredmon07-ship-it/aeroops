@@ -503,3 +503,19 @@ export type { CalendarFeedSelect, CalendarFeedInsert } from './calendar-feed.js'
 export { maintenanceItem } from './maintenance-item.js';
 export type { MaintenanceItemSelect, MaintenanceItemInsert } from './maintenance-item.js';
 export type { CalendarFeedScope } from './calendar-feed.js';
+
+// Slice P1.6: Document storage — tenant-scoped (migration 0030).
+// Uploaded-file METADATA only — NO file bytes in Postgres (object storage
+// holds the bytes; see packages/api/src/storage/provider.ts). A document is
+// STORED, NEVER INTERPRETED: no OCR/parsing, no computed FAA/currency/
+// medical-validity/eligibility/airworthiness determination. category =
+// FREE-TEXT operator label only. [VERIFY-P1.6-A]
+//
+// document: owner_type ('member'|'aircraft') + owner_id is POLYMORPHIC — NO
+//   FK (mirrors audit_log.entity_id / qbo_export_log.entity_id precedent);
+//   the command layer verifies the owner exists in-org before every INSERT.
+//   storage_key is ALWAYS server-generated + org-prefixed (`org/<org_id>/...`)
+//   — NEVER client-supplied — the structural tenant-isolation guarantee for
+//   the object-storage side. status: pending → stored (confirmUpload only).
+export { document } from './document.js';
+export type { DocumentSelect, DocumentInsert } from './document.js';

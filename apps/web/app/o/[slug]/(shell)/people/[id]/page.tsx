@@ -42,6 +42,7 @@ import { getMemberDetailAction } from '../actions';
 import type { SerializedMemberDetail } from '../actions';
 import { MemberDetailClient } from '../_components/member-detail-client';
 import { MemberTrainingCard } from '../_components/member-training-card';
+import { DocumentsCard } from '../../documents-card';
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -314,6 +315,9 @@ async function DetailContent({ userId, slug, canManage }: DetailContentProps) {
       <StaticContactCard member={member} />
       <StaticUpcomingReservationsCard member={member} />
       <StaticDispatchCard member={member} />
+
+      {/* ── Documents card (Slice P1.6) [VERIFY-P1.6-A] ─────────────────────── */}
+      <DocumentsCard ownerType="member" ownerId={member.userId} canManage={canManage} />
 
       {/* ── Training card (Slice T1.3) — fetched in Suspense ────────────── */}
       {/* Renders for people:access holders; [VERIFY-T1-B] applies. */}

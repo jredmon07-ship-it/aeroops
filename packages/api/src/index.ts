@@ -1722,3 +1722,67 @@ export { resolveFeedByToken } from './calendar/resolve-feed.js';
 export type { ResolvedCalendarFeed } from './calendar/resolve-feed.js';
 
 export { buildIcsForFeed } from './calendar/build-ics-for-feed.js';
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice P1.6 — Document storage
+//
+// File uploads attached to a MEMBER (app_user) or an AIRCRAFT (resource) via
+// pre-signed object-storage URLs — the browser PUTs/GETs directly to
+// storage; the Node server only ever signs URLs and stores metadata rows.
+// NO file bytes ever pass through Postgres or the app server.
+//
+// COMPLIANCE (HARD LINE): a document is STORED, NEVER INTERPRETED — no OCR,
+// no computed FAA/currency/medical-validity/eligibility/airworthiness
+// determination from an uploaded file's contents. category = FREE-TEXT
+// operator label only. [VERIFY-P1.6-A]
+//
+// TENANT ISOLATION: storage_key is ALWAYS server-generated (documents/
+// internal.ts generateStorageKey), ALWAYS prefixed `org/<sess.orgId>/...`
+// from the session — NEVER client input. One org's signed URL can never be
+// minted for a key under a different org's prefix.
+// ════════════════════════════════════════════════════════════════════════════
+
+// storage provider seam
+export {
+  getStorageProvider,
+  StubStorageProvider,
+  RealStorageProvider,
+  __resetStorageProviderForTests,
+} from './storage/provider.js';
+export type { StorageProvider, StorageSignResult, StorageDeleteResult } from './storage/provider.js';
+
+export { requestUpload, requestUploadWithDb } from './documents/request-upload.js';
+export type { RequestUploadInput } from './documents/request-upload.js';
+
+export { confirmUpload, confirmUploadWithDb } from './documents/confirm-upload.js';
+export type { ConfirmUploadInput } from './documents/confirm-upload.js';
+
+export { listDocuments, listDocumentsWithDb } from './documents/list-documents.js';
+export type { ListDocumentsInput } from './documents/list-documents.js';
+
+export { getDownloadUrl, getDownloadUrlWithDb } from './documents/get-download-url.js';
+export type { GetDownloadUrlInput } from './documents/get-download-url.js';
+
+export { deleteDocument, deleteDocumentWithDb } from './documents/delete-document.js';
+export type { DeleteDocumentInput } from './documents/delete-document.js';
+
+export type {
+  DocumentOwnerType,
+  DocumentStatus,
+  DocumentView,
+  RequestUploadResult,
+  ConfirmUploadResult,
+  ListDocumentsResult,
+  GetDownloadUrlResult,
+  DeleteDocumentResult,
+} from './documents/types.js';
+
+// Portal self-scoped reads (Slice P1.6 — read-only in the portal this slice;
+// upload/delete stay staff-only). SELF-SCOPED to session.userId ONLY.
+export { getMyDocuments, getMyDocumentsWithDb } from './portal/get-my-documents.js';
+
+export {
+  getMyDocumentDownloadUrl,
+  getMyDocumentDownloadUrlWithDb,
+} from './portal/get-my-document-download-url.js';
+export type { GetMyDocumentDownloadUrlInput } from './portal/get-my-document-download-url.js';
