@@ -61,6 +61,8 @@ export interface NavItem {
  *  13. Reports — Operational reports (reporting:access); after Billing, before Activity.
  *  14. Activity — Audit trail feed (reporting:access); after Reports, before Org settings.
  *  15. Org settings — owner + manager only (org:manage_settings).
+ *  16. Help — Self-serve knowledge base (app:access — every role); LAST item,
+ *      after Org settings (Slice P1.8).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   // Slice P1.2: Portal — student/renter self-service (+ owner/manager preview).
@@ -162,6 +164,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Org settings',
     href: '/o/[slug]/settings',
     requiredCapability: 'org:manage_settings',
+  },
+  // Slice P1.8: Help / knowledge base — gated on app:access, the broadest
+  // capability (every role has it). Placed LAST — a support/reference
+  // surface, not an operational one. Content is static (no DB/schema).
+  {
+    label: 'Help',
+    href: '/o/[slug]/help',
+    requiredCapability: 'app:access',
   },
 ] as const;
 

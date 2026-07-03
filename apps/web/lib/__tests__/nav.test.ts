@@ -14,11 +14,12 @@
  *   8. Items that session lacks capability for are completely absent (not just hidden)
  *   9. Empty items array → returns []
  *  10. Consistency: filterNavForSession result matches hasCapability predictions
- *  11. NAV_ITEMS registry validation [14 items; Booking requests after Maintenance, Activity after Reports, before Org settings]
+ *  11. NAV_ITEMS registry validation [16 items; Booking requests after Maintenance, Activity after Reports, before Org settings, Help last]
  *  **12. isPortalOnly — truth table for all 8 roles + null/undefined (Slice P1.2)**
  *  **13. Portal visible to student/renter/owner/manager; Dashboard hidden from student/renter**
  *  [14. Activity visible to owner/manager/dispatcher/cfi/accountant; hidden from student/renter/mechanic]
  *  {15. Booking requests visible to owner/manager/dispatcher; hidden from cfi/mechanic/renter/student/accountant}
+ *  16. Help — visible to ALL 8 roles (app:access); always the last nav item (Slice P1.8)
  *
  * These are PURE unit tests — no DOM, no Next.js, no DB.
  *
@@ -42,6 +43,10 @@
  *   - "Booking requests" NAV_ITEM added after "Maintenance" (booking:triage).
  *     owner/manager/dispatcher see it; cfi/mechanic/renter/student/accountant do NOT.
  *   - Total NAV_ITEMS: 14 (was 13).
+ *
+ * Slice P1.8 changes applied:
+ *   - "Help" NAV_ITEM added LAST, after "Org settings" (app:access — every role).
+ *   - Total NAV_ITEMS: 16 (was 15).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -105,15 +110,16 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 //   Reports          reporting:access            → owner, manager, dispatcher, cfi, accountant
 //   Activity         reporting:access            → owner, manager, dispatcher, cfi, accountant
 //   Org settings     org:manage_settings         → owner, manager
+//   Help             app:access                  → ALL 8 roles (Slice P1.8)
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Billing', 'Reports', 'Activity', 'Org settings'],
-  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Billing', 'Reports', 'Activity', 'Org settings'],
-  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Reports', 'Activity'],
-  cfi:        ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity'],
-  mechanic:   ['Fleet', 'Maintenance'],
-  renter:     ['Portal'],
-  student:    ['Portal'],
-  accountant: ['Dashboard', 'Billing', 'Reports', 'Activity'],
+  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Billing', 'Reports', 'Activity', 'Org settings', 'Help'],
+  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Billing', 'Reports', 'Activity', 'Org settings', 'Help'],
+  dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Reports', 'Activity', 'Help'],
+  cfi:        ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity', 'Help'],
+  mechanic:   ['Fleet', 'Maintenance', 'Help'],
+  renter:     ['Portal', 'Help'],
+  student:    ['Portal', 'Help'],
+  accountant: ['Dashboard', 'Billing', 'Reports', 'Activity', 'Help'],
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -146,8 +152,8 @@ describe('2. owner gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 15 items (full nav incl. Portal + Dashboard + Booking requests + Billing + Activity + all staff items)', () => {
-    expect(result.length).toBe(15);
+  it('returns exactly 16 items (full nav incl. Portal + Dashboard + Booking requests + Billing + Activity + Help + all staff items)', () => {
+    expect(result.length).toBe(16);
   });
 
   it('includes Portal (first item for owner)', () => {
@@ -189,8 +195,8 @@ describe('3. manager gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 15 items (full nav)', () => {
-    expect(result.length).toBe(15);
+  it('returns exactly 16 items (full nav)', () => {
+    expect(result.length).toBe(16);
   });
 
   it('includes Portal', () => {
@@ -384,25 +390,25 @@ describe('8. Items that session lacks are completely absent (not just hidden)', 
     }
   });
 
-  it('student result has exactly 1 item (Portal only)', () => {
+  it('student result has exactly 2 items (Portal + Help)', () => {
     const session = makeSession('student');
     const result = filterNavForSession(session, NAV_ITEMS, 'acme');
-    expect(result.length).toBe(1);
-    expect(result[0]?.label).toBe('Portal');
+    expect(result.length).toBe(2);
+    expect(result.map((i) => i.label)).toEqual(['Portal', 'Help']);
   });
 
-  it('renter result has exactly 1 item (Portal only)', () => {
+  it('renter result has exactly 2 items (Portal + Help)', () => {
     const session = makeSession('renter');
     const result = filterNavForSession(session, NAV_ITEMS, 'acme');
-    expect(result.length).toBe(1);
-    expect(result[0]?.label).toBe('Portal');
+    expect(result.length).toBe(2);
+    expect(result.map((i) => i.label)).toEqual(['Portal', 'Help']);
   });
 
-  it('mechanic result has exactly 2 items (Fleet + Maintenance)', () => {
+  it('mechanic result has exactly 3 items (Fleet + Maintenance + Help)', () => {
     const session = makeSession('mechanic');
     const result = filterNavForSession(session, NAV_ITEMS, 'acme');
-    expect(result.length).toBe(2);
-    expect(result.map((i) => i.label)).toEqual(['Fleet', 'Maintenance']);
+    expect(result.length).toBe(3);
+    expect(result.map((i) => i.label)).toEqual(['Fleet', 'Maintenance', 'Help']);
   });
 });
 
@@ -452,8 +458,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 15 items (Portal + Dashboard + Booking requests + Billing + Activity + 10 staff items)', () => {
-    expect(NAV_ITEMS.length).toBe(15);
+  it('NAV_ITEMS has exactly 16 items (Portal + Dashboard + Booking requests + Billing + Activity + Help + 10 staff items)', () => {
+    expect(NAV_ITEMS.length).toBe(16);
   });
 
   it('first item is Portal with portal:access (Slice P1.2 addition)', () => {
@@ -598,12 +604,19 @@ describe('11. NAV_ITEMS registry', () => {
     expect(fleetIdx).toBeLessThan(maintenanceIdx);
   });
 
-  it('last item is Org settings with org:manage_settings', () => {
+  it('second-to-last item is Org settings with org:manage_settings', () => {
+    const settings = NAV_ITEMS[NAV_ITEMS.length - 2];
+    expect(settings?.label).toBe('Org settings');
+    expect(settings?.requiredCapability).toBe('org:manage_settings');
+    expect(settings?.href).toContain('[slug]');
+    expect(settings?.href).toContain('settings');
+  });
+
+  it('last item is Help with app:access (Slice P1.8)', () => {
     const last = NAV_ITEMS[NAV_ITEMS.length - 1];
-    expect(last?.label).toBe('Org settings');
-    expect(last?.requiredCapability).toBe('org:manage_settings');
-    expect(last?.href).toContain('[slug]');
-    expect(last?.href).toContain('settings');
+    expect(last?.label).toBe('Help');
+    expect(last?.requiredCapability).toBe('app:access');
+    expect(last?.href).toBe('/o/[slug]/help');
   });
 
   it('all NAV_ITEMS have [slug] placeholder in href', () => {
@@ -1007,6 +1020,45 @@ describe('16. Booking requests (Slice PB1.2)', () => {
       const visible = checkRole(role);
       const expected = expectedVisible.includes(role);
       expect(visible, `role=${role}`).toBe(expected);
+    }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 17. Help (Slice P1.8) — visible to ALL 8 roles (app:access); always last
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('17. Help (Slice P1.8)', () => {
+  const checkRole = (role: MembershipRole) => {
+    const s = makeSession(role);
+    return filterNavForSession(s, NAV_ITEMS, 'acme').some((i) => i.label === 'Help');
+  };
+
+  it('Help requiredCapability is app:access', () => {
+    const item = NAV_ITEMS.find((i) => i.label === 'Help');
+    expect(item?.requiredCapability).toBe('app:access');
+    expect(item?.href).toBe('/o/[slug]/help');
+  });
+
+  it('Help href resolves to /o/{slug}/help after slug substitution', () => {
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'test-fbo');
+    const item = result.find((i) => i.label === 'Help');
+    expect(item?.href).toBe('/o/test-fbo/help');
+    expect(item?.href).not.toContain('[slug]');
+  });
+
+  it('all 8 roles see Help (app:access is universal)', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(checkRole(role), `role=${role}`).toBe(true);
+    }
+  });
+
+  it('Help is always the LAST item in every role’s filtered nav', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      const session = makeSession(role);
+      const result = filterNavForSession(session, NAV_ITEMS, 'acme');
+      expect(result[result.length - 1]?.label, `role=${role}`).toBe('Help');
     }
   });
 });
