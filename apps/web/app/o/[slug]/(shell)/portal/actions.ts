@@ -35,6 +35,10 @@ import {
   saveMyPaymentMethod,
   setMyAutopay,
   payMyInvoice,
+  createCalendarFeed,
+  listMyCalendarFeeds,
+  revokeCalendarFeed,
+  regenerateCalendarFeed,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -46,6 +50,7 @@ import type {
   InvoiceView,
   SavedPaymentMethodView,
   AutopaySettingView,
+  CalendarFeedView,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -357,6 +362,146 @@ export async function payMyInvoiceAction(invoiceId: string): Promise<PayMyInvoic
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice P1.4 — Calendar feed actions
+//
+// SELF-SCOPED (unchanged pattern): subject is ALWAYS session.userId, enforced
+// inside the @aeroops/api command. createCalendarFeedAction is GENERIC over
+// scope — it also backs the Fleet-detail "get this aircraft's calendar feed"
+// card (apps/web/app/o/[slug]/(shell)/fleet/_components/aircraft-calendar-
+// feed-card.tsx imports this same action), since a feed is always owned by
+// the caller regardless of which page created it. The feed_token itself is a
+// bearer secret — this file never logs it, only passes it through to the
+// client component that renders the copyable URL.
+// ════════════════════════════════════════════════════════════════════════════════
+
+function isValidationError(err: unknown): err is { message: string; code: string } {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code: unknown }).code === 'VALIDATION'
+  );
+}
+
+export type ValidationErrorResult = { error: 'validation'; message: string };
+
+/** Serialized CalendarFeedView — Dates replaced with ISO strings. */
+export interface SerializedCalendarFeedView {
+  id: string;
+  scope: 'my_reservations' | 'aircraft';
+  resourceId: string | null;
+  feedToken: string;
+  active: boolean;
+  createdAt: string;
+}
+
+function serializeCalendarFeed(f: CalendarFeedView): SerializedCalendarFeedView {
+  return {
+    id: f.id,
+    scope: f.scope,
+    resourceId: f.resourceId,
+    feedToken: f.feedToken,
+    active: f.active,
+    createdAt: f.createdAt.toISOString(),
+  };
+}
+
+// ─── createCalendarFeedAction ─────────────────────────────────────────────────
+
+export type CreateCalendarFeedActionResult =
+  | { ok: true; feed: SerializedCalendarFeedView }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * createCalendarFeedAction — scope='my_reservations' (self, no resourceId) or
+ * scope='aircraft' (staff, resourceId required — the Fleet-detail card).
+ * Capability gating happens INSIDE createCalendarFeed, keyed off scope.
+ */
+export async function createCalendarFeedAction(
+  input: { scope: 'my_reservations' } | { scope: 'aircraft'; resourceId: string },
+): Promise<CreateCalendarFeedActionResult> {
+  const session = await auth();
+  try {
+    const result = await createCalendarFeed(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, feed: serializeCalendarFeed(result.feed) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── listMyCalendarFeedsAction ─────────────────────────────────────────────────
+
+export type ListMyCalendarFeedsActionResult =
+  | { ok: true; feeds: SerializedCalendarFeedView[] }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function listMyCalendarFeedsAction(): Promise<ListMyCalendarFeedsActionResult> {
+  const session = await auth();
+  try {
+    const feeds = await listMyCalendarFeeds(session);
+    return { ok: true, feeds: feeds.map(serializeCalendarFeed) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── revokeCalendarFeedAction ─────────────────────────────────────────────────
+
+export type RevokeCalendarFeedActionResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function revokeCalendarFeedAction(feedId: string): Promise<RevokeCalendarFeedActionResult> {
+  const session = await auth();
+  try {
+    return await revokeCalendarFeed(session, { feedId });
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── regenerateCalendarFeedAction ──────────────────────────────────────────────
+
+export type RegenerateCalendarFeedActionResult =
+  | { ok: true; feed: SerializedCalendarFeedView }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function regenerateCalendarFeedAction(
+  feedId: string,
+): Promise<RegenerateCalendarFeedActionResult> {
+  const session = await auth();
+  try {
+    const result = await regenerateCalendarFeed(session, { feedId });
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, feed: serializeCalendarFeed(result.feed) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
     return { error: 'server' };
   }
 }

@@ -42,6 +42,7 @@ import { getAircraftDetailAction, listAircraftAction } from '../actions';
 import { EditAircraftDialog } from '../_components/edit-aircraft-dialog';
 import { DispatchRequirementsCard } from '../_components/dispatch-requirements-card';
 import { AvailabilityWindowsCard } from '../_components/availability-windows-card';
+import { AircraftCalendarFeedCard } from '../_components/aircraft-calendar-feed-card';
 import { OpenWorkOrdersCard } from '../_components/open-work-orders-card';
 import type { SerializedAircraftDetail } from '../actions';
 import type { AircraftListRow } from '@aeroops/api';
@@ -303,6 +304,9 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
         resourceId={aircraft.id}
         canManageResources={canManageResources}
       />
+
+      {/* ── Calendar feed card (Slice P1.4) ────────────────────────────────── */}
+      <AircraftCalendarFeedCard resourceId={aircraft.id} />
 
       {/* ── Meters card ───────────────────────────────────────────────────── */}
       {/* [VERIFY-5-A] label as "last recorded" — not an airworthiness total */}

@@ -468,3 +468,22 @@ export type { ImportBatchSelect, ImportBatchInsert } from './import-batch.js';
 
 export { importRow } from './import-row.js';
 export type { ImportRowSelect, ImportRowInsert } from './import-row.js';
+
+// Slice P1.4: iCal / subscribable calendar feeds — tenant-scoped (migration
+// 0028). A read-only .ics subscription pointer, NOT a reservation/booking
+// itself — the calendar app's periodic GET reads through the EXISTING
+// scoped reservation reads (self-scoped for 'my_reservations', per-tail for
+// 'aircraft'); this table only records WHO/WHAT a given feed_token points to.
+//
+// calendar_feed: STANDARD 4-policy mutable RLS, PLUS a platform-admin SELECT
+//   branch (mirrors payment_intent_record_select / stripe_customer_select) —
+//   the public .ics route resolves a feed_token to {orgId,userId,scope,
+//   resourceId} BEFORE any org GUC can be set (an unauthenticated calendar-
+//   app request carries no AeroOps session). Every WRITE stays org-GUC-only.
+//   feed_token = the URL secret (globally UNIQUE — also the lookup index).
+//   calendar_feed_scope_shape_check: resource_id IS NOT NULL iff
+//   scope='aircraft' — the structural guarantee a feed can never be
+//   ambiguous about what it feeds.
+export { calendarFeed } from './calendar-feed.js';
+export type { CalendarFeedSelect, CalendarFeedInsert } from './calendar-feed.js';
+export type { CalendarFeedScope } from './calendar-feed.js';

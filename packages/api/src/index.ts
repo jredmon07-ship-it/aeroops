@@ -1604,3 +1604,55 @@ export type {
   CommitImportResult,
   GetImportBatchResult,
 } from './import/types.js';
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice P1.4 — iCal / subscribable calendar feeds
+//
+// Read-only .ics subscription feeds for Apple Calendar / Google Calendar /
+// Outlook: either a member's OWN reservations (scope='my_reservations',
+// self-scoped) or one aircraft's schedule (scope='aircraft'). Served over an
+// UNAUTHENTICATED-but-UNGUESSABLE per-feed token URL (a calendar app cannot
+// do session auth) — the same capability-URL pattern as the mobile bearer
+// token (ADR-0010). resolveFeedByToken is the ONE sanctioned platform-admin
+// read in this path (mirrors resolveOrgBySlug / resolveOrgByStripe
+// PaymentIntentId); buildIcsForFeed does every reservation read inside
+// withOrgContext using the org_id THAT function resolved from calendar_feed,
+// never from caller input. NO money; NO FAA/regulatory determination — a
+// plain read-only calendar mirror of existing scheduling data.
+// ════════════════════════════════════════════════════════════════════════════════
+
+export {
+  createCalendarFeed,
+  createCalendarFeedWithDb,
+} from './calendar/create-calendar-feed.js';
+export type {
+  CreateCalendarFeedInput,
+  CreateCalendarFeedResult,
+  CalendarFeedView,
+} from './calendar/create-calendar-feed.js';
+
+export {
+  listMyCalendarFeeds,
+  listMyCalendarFeedsWithDb,
+} from './calendar/list-my-calendar-feeds.js';
+
+export {
+  revokeCalendarFeed,
+  revokeCalendarFeedWithDb,
+  regenerateCalendarFeed,
+  regenerateCalendarFeedWithDb,
+} from './calendar/revoke-calendar-feed.js';
+export type {
+  RevokeCalendarFeedInput,
+  RevokeCalendarFeedResult,
+  RegenerateCalendarFeedInput,
+  RegenerateCalendarFeedResult,
+} from './calendar/revoke-calendar-feed.js';
+
+// resolveFeedByToken / buildIcsForFeed: the public .ics route's ONLY two
+// calls (apps/web/app/api/calendar/[token]/route.ts) — see each file's
+// header for the platform-admin-read / org-context-read justification.
+export { resolveFeedByToken } from './calendar/resolve-feed.js';
+export type { ResolvedCalendarFeed } from './calendar/resolve-feed.js';
+
+export { buildIcsForFeed } from './calendar/build-ics-for-feed.js';

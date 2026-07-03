@@ -56,6 +56,7 @@ import type { SerializedMyPortalSummary } from './actions';
 // unit-tested without the Next.js/React imports in this page.
 // Imported for use within this file; the utils file is the canonical export.
 import { deriveFirstName, reservationRoleLabel } from './_utils/portal-display';
+import { CalendarFeedCard } from './_components/calendar-feed-card';
 
 /**
  * formatLocalDateTime — formats an ISO string to a readable local date+time.
@@ -471,6 +472,9 @@ async function PortalContent({ slug }: PortalContentProps) {
       >
         <ReservationsSection reservations={summary.reservations} />
       </SectionCard>
+
+      {/* ── Calendar feed (Slice P1.4) ────────────────────────────────────── */}
+      <CalendarFeedCard />
 
       {/* ── C. My training ────────────────────────────────────────────────── */}
       <SectionCard title="My training" aria-label="My training">

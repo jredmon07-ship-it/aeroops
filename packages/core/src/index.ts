@@ -264,3 +264,13 @@ export type {
   MemberCandidate,
   AircraftCandidate,
 } from './import/normalize.js';
+
+// ─── Slice P1.4 — iCal / subscribable calendar feeds ─────────────────────────
+// buildIcs: PURE RFC-5545 serializer. escapeIcsText / foldLine / formatIcsUtc
+//   are exported individually so the property tests can exercise each
+//   invariant (escaping, folding, UTC formatting) in isolation as well as
+//   through the full buildIcs document. SECURITY-SENSITIVE: this is the one
+//   place untrusted operator/member text is embedded into a format with its
+//   own line-terminator grammar — see calendar/build-ics.ts header.
+export { buildIcs, escapeIcsText, foldLine, formatIcsUtc } from './calendar/build-ics.js';
+export type { IcsEvent, BuildIcsOptions } from './calendar/build-ics.js';

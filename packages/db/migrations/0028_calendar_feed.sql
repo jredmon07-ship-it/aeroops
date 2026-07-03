@@ -1,0 +1,237 @@
+-- ============================================================
+-- AeroOps — Slice P1.4: iCal / subscribable calendar feeds
+-- Migration: 0028_calendar_feed.sql
+--
+-- !! HUMAN-GATED — NEVER AUTO-RUN !!
+-- This file is staged for human review ONLY.
+-- No tooling in this repo executes it automatically.
+-- A human must review and run it manually against the
+-- target database after explicit sign-off.
+--
+-- Prerequisites: 0000_loud_prodigy.sql … 0027_data_import.sql
+--               must already be applied.
+--
+-- Implements P1.4: read-only .ics (iCalendar) subscription feeds — either a
+-- member's OWN reservations (scope='my_reservations', self-scoped to the
+-- feed's owning user_id) or one aircraft's schedule (scope='aircraft'). A
+-- calendar app (Apple/Google/Outlook) cannot do session auth, so each feed is
+-- addressed by a long, cryptographically-random, per-feed opaque token in the
+-- URL — the SAME unauthenticated-but-unguessable-token pattern already used
+-- by Slice 4M's mobile bearer token, and the standard "secret address" iCal
+-- pattern used by Google Calendar / Outlook themselves.
+--
+--   calendar_feed — one row per (owner, scope[, resource]) subscription.
+--     feed_token is the URL secret (globally UNIQUE — the lookup key).
+--     active=false (revoke) leaves the row for audit; regenerate = revoke +
+--     create a new row with a new token (never reuses/rotates a token value
+--     in place).
+--
+-- Key guarantees:
+--   (1) Tenant-scoped: org_id NOT NULL + ENABLE+FORCE RLS. UNLIKE the plain
+--       4-policy pattern, calendar_feed_select ADDITIONALLY admits
+--       platform-admin context — mirrors payment_intent_record_select /
+--       stripe_customer_select's EXACT precedent (migrations 0023/0024): the
+--       public .ics route (apps/web/app/api/calendar/[token]/route.ts) is an
+--       UNAUTHENTICATED entry point (a calendar app's periodic GET, no
+--       AeroOps session) that must resolve which org+user a bearer token
+--       belongs to BEFORE any org GUC can be set
+--       (resolveFeedByToken, packages/api/src/calendar/resolve-feed.ts).
+--       READ-ONLY: every WRITE policy (UPDATE/INSERT/DELETE) below stays
+--       org-GUC-only — the last_accessed_at bump and the revoke/regenerate
+--       writes all happen ONLY inside withOrgContext(feed.orgId, ...) once
+--       the org is known, never under platform-admin context.
+--   (2) Composite FKs are all hand-written (Drizzle cannot express multi-col
+--       FKs). Named constraints follow the {table}_{fk_col}_org_fk convention.
+--       (user_id, org_id) → app_user(id, org_id) ON DELETE RESTRICT: a feed
+--       has no meaning without its owner, but RESTRICT (not CASCADE) is used
+--       here — matching resource_availability_window's created_by /
+--       rate_schedule's created_by precedent — so an owner cannot be
+--       deleted out from under an active subscription without an explicit
+--       revoke first. (resource_id, org_id) → resource(id, org_id) ON DELETE
+--       RESTRICT for the same reason (an aircraft feed cannot be silently
+--       orphaned by a resource delete — there is no hard-delete path on
+--       resource today, but this is the structural backstop for one).
+--   (3) calendar_feed_scope_shape_check — THE STRUCTURAL GUARANTEE:
+--       resource_id IS NOT NULL iff scope='aircraft'. A row can never be
+--       inserted/updated into a shape that is ambiguous about what it feeds.
+--   (4) UNIQUE (feed_token) — the URL secret is globally unique (across ALL
+--       orgs) and IS the lookup key for resolveFeedByToken; this unique
+--       index also serves as the "index on feed_token" (no separate plain
+--       index needed — mirrors stripe_payment_method_stripe_id_unique).
+--   (5) UNIQUE (id, org_id) — composite candidate key, consistent with every
+--       other tenant table.
+--   (6) NO PII beyond what already exists elsewhere (user_id / resource_id
+--       are references, not raw text); feed_token itself carries no meaning
+--       beyond "possession = read access to this one feed" (capability-URL
+--       pattern) — same posture as the mobile bearer token (ADR-0010).
+--   (7) STRICTLY ADDITIVE — no existing tables/columns/constraints modified.
+--       Only the one new table is created.
+--   (8) NO money column; NO Stripe/card/bank data; NO FAA/Part-91/etc.
+--       determination — this table is a read-only calendar-subscription
+--       pointer, nothing else.
+--
+-- ORDER within this file:
+--   (1) CREATE TABLE calendar_feed (FKs + CHECKs + UNIQUEs)
+--   (2) Indexes
+--   (3) ENABLE + FORCE RLS
+--   (4) RLS policies (SELECT admits platform-admin; writes stay org-GUC-only)
+--   (5) GRANT to aeroops_app
+-- ============================================================
+
+
+-- ── (1) TABLE calendar_feed ────────────────────────────────────────────────
+--
+-- One row per (owner, scope[, resource]) subscription. feed_token is the URL
+-- secret — a long, cryptographically-random opaque string generated by
+-- createCalendarFeed (node:crypto randomBytes → base64url), stored as-is
+-- (it is a bearer capability, not a password — no hashing, same posture as
+-- the mobile bearer token; see packages/api/src/calendar/create-calendar-
+-- feed.ts).
+--
+-- Composite FKs (all hand-written):
+--
+--   FK (org_id) → org(id) ON DELETE CASCADE:
+--     Tenant spine.
+--
+--   Composite FK (user_id, org_id) → app_user(id, org_id) ON DELETE RESTRICT:
+--     The feed's owner must be a user in the same org.
+--     Targets app_user_id_org_id_unique (migration 0000).
+--
+--   Composite FK (resource_id, org_id) → resource(id, org_id) ON DELETE RESTRICT:
+--     Nullable — NULL for scope='my_reservations'. When present (scope=
+--     'aircraft'), the resource must be in the same org.
+--     Targets resource_id_org_id_unique (migration 0002).
+--
+-- CHECKs:
+--   calendar_feed_scope_check: scope IN ('my_reservations', 'aircraft')
+--   calendar_feed_scope_shape_check — THE STRUCTURAL GUARANTEE:
+--     (scope = 'aircraft' AND resource_id IS NOT NULL) OR
+--     (scope = 'my_reservations' AND resource_id IS NULL)
+--   calendar_feed_token_nonempty_check: char_length(btrim(feed_token)) > 0
+
+CREATE TABLE "calendar_feed" (
+  "id"                uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "org_id"            uuid NOT NULL,
+  "user_id"           uuid NOT NULL,
+  "scope"             text NOT NULL,
+  "resource_id"       uuid,
+  "feed_token"        text NOT NULL,
+  "active"            boolean NOT NULL DEFAULT true,
+  "last_accessed_at"  timestamptz,
+  "created_at"        timestamptz NOT NULL DEFAULT now(),
+  "updated_at"        timestamptz NOT NULL DEFAULT now(),
+
+  -- Tenant spine FK.
+  CONSTRAINT "calendar_feed_org_id_fk"
+    FOREIGN KEY ("org_id") REFERENCES "org"("id") ON DELETE CASCADE,
+
+  -- Composite FK: the feed's owner must be a user in the same org.
+  -- ON DELETE RESTRICT: an owner cannot be deleted out from under an active
+  -- subscription without an explicit revoke first.
+  -- Targets app_user_id_org_id_unique (migration 0000).
+  CONSTRAINT "calendar_feed_user_org_fk"
+    FOREIGN KEY ("user_id", "org_id")
+    REFERENCES "app_user"("id", "org_id") ON DELETE RESTRICT,
+
+  -- Composite FK: the aircraft feed's resource (when present) must be in the
+  -- same org. ON DELETE RESTRICT: no silent orphaning.
+  -- Targets resource_id_org_id_unique (migration 0002).
+  CONSTRAINT "calendar_feed_resource_org_fk"
+    FOREIGN KEY ("resource_id", "org_id")
+    REFERENCES "resource"("id", "org_id") ON DELETE RESTRICT,
+
+  -- Scope domain.
+  CONSTRAINT "calendar_feed_scope_check" CHECK (
+    "scope" IN ('my_reservations', 'aircraft')
+  ),
+
+  -- THE STRUCTURAL GUARANTEE: resource_id shape must match scope.
+  CONSTRAINT "calendar_feed_scope_shape_check" CHECK (
+    ("scope" = 'aircraft' AND "resource_id" IS NOT NULL) OR
+    ("scope" = 'my_reservations' AND "resource_id" IS NULL)
+  ),
+
+  CONSTRAINT "calendar_feed_token_nonempty_check" CHECK (
+    char_length(btrim("feed_token")) > 0
+  ),
+
+  -- The URL secret is globally unique — the lookup key for resolveFeedByToken.
+  -- This UNIQUE index also serves as "the index on feed_token" (no separate
+  -- plain index needed — mirrors stripe_payment_method_stripe_id_unique).
+  CONSTRAINT "calendar_feed_token_unique"
+    UNIQUE ("feed_token"),
+
+  -- Composite candidate key — consistent with all other tenant tables.
+  CONSTRAINT "calendar_feed_id_org_id_unique"
+    UNIQUE ("id", "org_id")
+);
+
+
+-- ── (2) Indexes ───────────────────────────────────────────────────────────────
+
+-- calendar_feed: per-owner listing (listMyCalendarFeeds).
+CREATE INDEX "calendar_feed_org_user_idx"
+  ON "calendar_feed" ("org_id", "user_id");
+
+
+-- ── (3) ENABLE + FORCE RLS ────────────────────────────────────────────────────
+-- FORCE is mandatory: PGlite (and any superuser/owner connection) bypasses
+-- ENABLE without FORCE. Production must also connect as a non-owner role,
+-- but FORCE is the structural backstop.
+
+ALTER TABLE "calendar_feed" ENABLE  ROW LEVEL SECURITY;
+ALTER TABLE "calendar_feed" FORCE   ROW LEVEL SECURITY;
+
+
+-- ── (4) RLS policies ──────────────────────────────────────────────────────────
+-- Predicate: NULLIF(current_setting('app.current_org_id', true), '')::uuid
+--   - current_setting(..., true) = missing_ok → returns NULL when GUC unset
+--   - NULLIF converts '' to NULL
+--   - NULL = NULL is false in SQL → 0 rows / 0 writes (fail-closed)
+
+-- calendar_feed_select ALSO permits platform-admin context (mirrors
+-- payment_intent_record_select / stripe_customer_select's EXACT precedent,
+-- migrations 0023/0024): resolveFeedByToken (packages/api/src/calendar/
+-- resolve-feed.ts) is the ONE sanctioned platform-admin read in the public
+-- .ics feed path — an unauthenticated calendar-app GET carries no AeroOps
+-- session/org GUC until AFTER this lookup resolves which org+user a given
+-- feed_token belongs to. Normal tenant context (platform_admin not 'on')
+-- remains scoped to its own org; every WRITE below stays org-GUC-only.
+CREATE POLICY "calendar_feed_select"
+  ON "calendar_feed"
+  FOR SELECT
+  USING (
+    org_id = NULLIF(current_setting('app.current_org_id', true), '')::uuid
+    OR current_setting('app.platform_admin', true) = 'on'
+  );
+
+CREATE POLICY "calendar_feed_insert"
+  ON "calendar_feed"
+  FOR INSERT
+  WITH CHECK (
+    org_id = NULLIF(current_setting('app.current_org_id', true), '')::uuid
+  );
+
+CREATE POLICY "calendar_feed_update"
+  ON "calendar_feed"
+  FOR UPDATE
+  USING (
+    org_id = NULLIF(current_setting('app.current_org_id', true), '')::uuid
+  )
+  WITH CHECK (
+    org_id = NULLIF(current_setting('app.current_org_id', true), '')::uuid
+  );
+
+CREATE POLICY "calendar_feed_delete"
+  ON "calendar_feed"
+  FOR DELETE
+  USING (
+    org_id = NULLIF(current_setting('app.current_org_id', true), '')::uuid
+  );
+
+
+-- ── (5) GRANT to aeroops_app ───────────────────────────────────────────────────
+-- Production MUST connect as this non-superuser role so that FORCE RLS
+-- is not bypassed.
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON "calendar_feed" TO aeroops_app;

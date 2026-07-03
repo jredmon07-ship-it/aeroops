@@ -43,6 +43,16 @@ export default auth(function middleware(
     return NextResponse.next();
   }
 
+  // ── Slice P1.4 public calendar feed ────────────────────────────────────────
+  // /api/calendar/[token] — public, unauthenticated .ics GET (a calendar app
+  // cannot do session auth). Not under /o/[slug]/* so it already passes
+  // through the matcher below; documented explicitly, same as /api/public/*
+  // and /api/mobile/*, so a future refactor cannot accidentally close it off.
+  // The opaque per-feed token (resolveFeedByToken, @aeroops/api) IS the auth.
+  if (pathname.startsWith('/api/calendar/')) {
+    return NextResponse.next();
+  }
+
   // Match /o/[slug]/... routes
   const orgRouteMatch = pathname.match(/^\/o\/([^/]+)(\/.*)?$/);
   if (!orgRouteMatch) {
