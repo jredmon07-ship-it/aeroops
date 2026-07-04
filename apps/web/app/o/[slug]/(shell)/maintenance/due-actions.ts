@@ -18,6 +18,8 @@
  */
 'use server';
 
+import { serializeDate } from '@/lib/serialize-date';
+
 import { auth } from '@/auth';
 import {
   createMaintenanceItem,
@@ -74,16 +76,6 @@ function stripPrefix(msg: string): string {
 }
 
 // ─── Date serialization ───────────────────────────────────────────────────────
-
-function serializeDate(d: Date | null | undefined): string | null {
-  if (!d) return null;
-  try {
-    return d instanceof Date ? d.toISOString() : new Date(d as unknown as string).toISOString();
-  } catch {
-    return null;
-  }
-}
-
 export interface SerializedMaintenanceItemView extends Omit<MaintenanceItemView, 'createdAt' | 'updatedAt'> {
   createdAt: string;
   updatedAt: string;

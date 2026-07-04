@@ -26,6 +26,8 @@
  */
 'use server';
 
+import { serializeDate } from '@/lib/serialize-date';
+
 import { auth } from '@/auth';
 import {
   getResourceRequiredTags,
@@ -85,16 +87,6 @@ function stripPrefix(msg: string): string {
 }
 
 // ─── Date serialization ───────────────────────────────────────────────────────
-
-function serializeDate(d: Date | null | undefined): string | null {
-  if (!d) return null;
-  try {
-    return d instanceof Date ? d.toISOString() : new Date(d).toISOString();
-  } catch {
-    return null;
-  }
-}
-
 function serializeRequiredTagView(t: RequiredTagView): SerializedRequiredTagView {
   return {
     id: t.id,

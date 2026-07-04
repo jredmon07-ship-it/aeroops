@@ -25,6 +25,8 @@
  */
 'use server';
 
+import { serializeDate } from '@/lib/serialize-date';
+
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import {
@@ -122,16 +124,6 @@ function isValidationError(err: unknown): err is { message: string; code: string
 }
 
 // ─── Date serialization helpers ────────────────────────────────────────────────
-
-function serializeDate(d: Date | null | undefined): string | null {
-  if (!d) return null;
-  try {
-    return d instanceof Date ? d.toISOString() : new Date(d as unknown as string).toISOString();
-  } catch {
-    return null;
-  }
-}
-
 function serializeRow(r: BookingRequestRow): SerializedBookingRequestRow {
   return {
     id: r.id,

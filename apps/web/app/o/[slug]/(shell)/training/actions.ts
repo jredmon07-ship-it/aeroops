@@ -23,6 +23,8 @@
  */
 'use server';
 
+import { serializeDate } from '@/lib/serialize-date';
+
 import { auth } from '@/auth';
 import {
   listCourses,
@@ -215,16 +217,6 @@ function isValidationError(err: unknown): err is { message: string; code: string
 }
 
 // ─── Date serialization helpers ────────────────────────────────────────────────
-
-function serializeDate(d: Date | null | undefined): string | null {
-  if (!d) return null;
-  try {
-    return d instanceof Date ? d.toISOString() : new Date(d as Date).toISOString();
-  } catch {
-    return null;
-  }
-}
-
 function serializeProgressRatio(r: ProgressRatioResult): SerializedProgressRatioResult {
   return {
     completed: r.completed,
