@@ -159,6 +159,9 @@ export default async function BillingPage({ params }: BillingPageProps) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Billing</h1>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/o/${slug}/billing/reports`}>Accounts receivable &amp; revenue</Link>
+        </Button>
       </div>
       <Suspense fallback={<InvoiceListSkeleton />}>
         <InvoiceListContent slug={slug} />

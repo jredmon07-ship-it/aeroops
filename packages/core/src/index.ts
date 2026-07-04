@@ -266,6 +266,34 @@ export type { InvoiceLine, InvoiceTotals } from './billing/invoice-math.js';
 export { computeBalance } from './billing/ledger-math.js';
 export type { LedgerEntryAmount } from './billing/ledger-math.js';
 
+// ─── Financial / AR reporting slice — pure AR-aging bucketer ─────────────────
+// ageDaysBetween/classifyAgingBucket/bucketAgingItem/sumAgingBuckets/aggregateAging:
+//   buckets an outstanding {balanceCents, asOf, referenceDate} into one of 5 AR-aging
+//   tiers (current/1-30/31-60/61-90/90+). See module-level METRIC DEFINITION in
+//   billing/ar-aging.ts for the exact day-boundary rule. NEVER throws (a reporting
+//   surface must degrade gracefully); integer cents only.
+// PURE: no I/O, no clock read internally (asOf is always caller-injected), no Stripe.
+// Property-tested (hard guardrail): P1..P6 in __tests__/ar-aging.test.ts.
+// [VERIFY-AR-AGING-1]: "age of the oldest unpaid invoice" is a per-account proxy —
+//   this system has no per-invoice payment allocation. See getAccountsReceivable
+//   (packages/api/src/billing/get-accounts-receivable.ts) for the exact reference-date
+//   choice made at the call site.
+export {
+  ageDaysBetween,
+  classifyAgingBucket,
+  bucketAgingItem,
+  sumAgingBuckets,
+  aggregateAging,
+  emptyAgingBuckets,
+} from './billing/ar-aging.js';
+export type {
+  AgingBucketKey,
+  AgingBuckets,
+  AgingItem,
+  AgingItemResult,
+  AggregateAgingResult,
+} from './billing/ar-aging.js';
+
 // ─── Slice PB1.1 — Public booking-request submit schema (ADR-0013) ────────────
 // bookingRequestSchema: zod bounds for the unauthenticated public submit.
 //   name 1–120, email format ≤254 (lowercased/trimmed), phone? ≤40,

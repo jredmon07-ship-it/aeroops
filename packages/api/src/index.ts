@@ -1615,6 +1615,53 @@ export type {
   MemberBillingProfileDefaultPaymentMethod,
 } from './billing/get-member-billing-profile.js';
 
+// ─── Financial / AR reporting slice — READ-ONLY over existing billing tables ──
+// NO new migration, NO schema change. billing:access (owner/manager/accountant)
+// FIRST on every read — NOT reporting:access (this is MONEY data; narrower cap).
+// Integer cents throughout; NO float in the money path. OPERATIONAL reporting —
+// NOT a tax/GAAP/audit determination. See docs/specs/slice-billing-reports.md.
+// getAccountsReceivable: per-member outstanding balance aged into 5 buckets
+//   (current/1-30/31-60/61-90/90+ days) via @aeroops/core's aggregateAging,
+//   plus org totals. A credit/zero balance is excluded, never shown as an AR row.
+// getRevenueReport: finalized-invoice totals + collected-payment totals over a
+//   rolling UTC range, with the R1.1 day/week bucket breakdown (reuses
+//   reporting/internal.ts's resolveReportRange/chooseGranularity/bucketStartUtc/
+//   enumerateBuckets, UNCHANGED).
+// getMemberStatement: STAFF view (billing:access) — one member's invoices +
+//   chronological ledger history with a running balance. Distinct from the
+//   member's own portal self-view (portal:access, untouched here).
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  getAccountsReceivable,
+  getAccountsReceivableWithDb,
+} from './billing/get-accounts-receivable.js';
+export type {
+  AccountsReceivableRow,
+  AccountsReceivableResult,
+} from './billing/get-accounts-receivable.js';
+
+export {
+  getRevenueReport,
+  getRevenueReportWithDb,
+} from './billing/get-revenue-report.js';
+export type {
+  GetRevenueReportInput,
+  RevenueReportBucket,
+  RevenueReportResult,
+} from './billing/get-revenue-report.js';
+
+export {
+  getMemberStatement,
+  getMemberStatementWithDb,
+} from './billing/get-member-statement.js';
+export type {
+  GetMemberStatementInput,
+  GetMemberStatementResult,
+  MemberStatement,
+  MemberStatementLedgerRow,
+} from './billing/get-member-statement.js';
+
 // ════════════════════════════════════════════════════════════════════════════════
 // Slice P1.3 — Email notifications
 //
