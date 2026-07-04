@@ -28,12 +28,14 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
 import { getDb, refreshMobileSession } from '@aeroops/api';
 
-const refreshRequestSchema = z.object({
-  refreshToken: z.string().min(1),
-});
+/** Extract a non-empty refreshToken string from an untrusted JSON body. */
+function readRefreshToken(body: unknown): string | null {
+  if (typeof body !== 'object' || body === null) return null;
+  const token = (body as { refreshToken?: unknown }).refreshToken;
+  return typeof token === 'string' && token.length > 0 ? token : null;
+}
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -44,13 +46,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'invalid_refresh_token' }, { status: 401 });
     }
 
-    const parsed = refreshRequestSchema.safeParse(body);
-    if (!parsed.success) {
+    const refreshToken = readRefreshToken(body);
+    if (refreshToken === null) {
       return NextResponse.json({ error: 'invalid_refresh_token' }, { status: 401 });
     }
 
     const db = await getDb();
-    const issued = await refreshMobileSession(db, parsed.data.refreshToken);
+    const issued = await refreshMobileSession(db, refreshToken);
 
     if (!issued) {
       // Unknown / expired / revoked / reused — all indistinguishable.
