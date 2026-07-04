@@ -37,7 +37,13 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
 };
 
 function humanizeEntityType(entityType: string): string {
-  return ENTITY_TYPE_LABELS[entityType] ?? entityType.replace(/_/g, ' ');
+  // Guard on the VALUE's type, not just nullishness: a prototype key like
+  // "__proto__"/"constructor"/"toString" resolves to a truthy object/function
+  // on a plain-object lookup, which the `??` would let through and then
+  // stringify to "[object Object]" — leaking a raw object into the summary.
+  // Only accept an own string value; otherwise humanize the key itself.
+  const label = ENTITY_TYPE_LABELS[entityType];
+  return typeof label === 'string' ? label : entityType.replace(/_/g, ' ');
 }
 
 // ─── Safe field accessors (whitelist-only) ────────────────────────────────────
