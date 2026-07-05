@@ -75,6 +75,23 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
         </p>
       </div>
 
+      {/* ── Guided setup entry point ───────────────────────────────────────── */}
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle className="text-base">Set up your operation</CardTitle>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-6 space-y-3">
+          <p className="text-sm text-slate-500">
+            New here, or still getting configured? Follow a short checklist to add your aircraft,
+            invite your team, and turn on optional depth as you grow.
+          </p>
+          <Button asChild type="button" size="sm">
+            <Link href={`/o/${slug}/setup`}>Open setup checklist</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* ── Read-only org info card ────────────────────────────────────────── */}
       <Card className="max-w-lg">
         <CardHeader>

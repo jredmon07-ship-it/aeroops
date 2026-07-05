@@ -2012,3 +2012,25 @@ export {
   __resetWeatherProviderForTests,
 } from './weather/provider.js';
 export type { WeatherProvider } from './weather/provider.js';
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice Onboarding — guided setup checklist (derived read-only, NO migration)
+//
+// getOnboardingStatus: inspects what the org has configured (aircraft, people,
+// base-airport coords, billing rates, booking policies, payments) and returns a
+// typed checklist that scales from a 2-plane club to a large academy —
+// essentials (aircraft + people) vs optional depth. Cap: org:manage_settings
+// (owner/manager — setup is an admin task). One RLS-scoped COUNT per step;
+// tenant-isolated; no external calls. Powers the /setup page + dashboard banner.
+// *WithDb form is for test code only (inject a pglite client).
+// ════════════════════════════════════════════════════════════════════════════
+
+export {
+  getOnboardingStatus,
+  getOnboardingStatusWithDb,
+} from './onboarding/get-onboarding-status.js';
+export type {
+  OnboardingStatus,
+  OnboardingStep,
+  OnboardingStepKey,
+} from './onboarding/get-onboarding-status.js';

@@ -35,8 +35,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
-import { hasCapability, getDashboardSummary } from '@aeroops/api';
+import { hasCapability, getDashboardSummary, getOnboardingStatus } from '@aeroops/api';
 import { landingPathFor } from '@/lib/nav';
+import { SetupBanner } from './setup-banner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -904,8 +905,24 @@ export default async function DashboardPage({
   // Spec D2: Dashboard is app:access; metrics section is reporting:access.
   const canViewReporting = hasCapability(session, 'reporting:access');
 
+  // Setup nudge (owner/manager only): show a dismissible banner while the
+  // operation's ESSENTIALS (aircraft + people) are incomplete. Best-effort —
+  // any failure just hides the nudge, it never blocks the dashboard.
+  let showSetupBanner = false;
+  if (hasCapability(session, 'org:manage_settings')) {
+    try {
+      const onboarding = await getOnboardingStatus(session);
+      showSetupBanner = !onboarding.essentialDone;
+    } catch {
+      // getOnboardingStatus failed → simply don't show the nudge.
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* ── Setup nudge — only while essentials are incomplete ────────────── */}
+      {showSetupBanner && <SetupBanner slug={slug} />}
+
       {/* ── A. Heading row — OUTSIDE Suspense (always interactive/instant) ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
