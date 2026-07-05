@@ -37,6 +37,9 @@ import {
   setDuesScheduleActive,
   generateDuesInvoices,
   sendNotification,
+  listInvoiceableDispatch,
+  listRateSchedules,
+  generateInvoiceFromDispatch,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -464,6 +467,117 @@ export async function runDuesForPeriodAction(periodKey: string, slug: string): P
     }
 
     return { ok: true, createdCount: result.created.length, skippedCount: result.skipped.length };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code: unknown }).code === 'VALIDATION' &&
+      err instanceof Error
+    ) {
+      return { error: 'validation', message: err.message };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── Slice GAP2 — Generate invoice from a closed dispatch ticket ─────────────
+// The "the invoice builds itself from the Hobbs reading" flow. All three actions
+// gate INSIDE @aeroops/api (billing:manage for the worklist + generate;
+// billing:access for the rate picker). MONEY = INTEGER CENTS; the DRAFT invoice
+// is produced by the existing generateInvoiceFromDispatch — NO Stripe, NO charge,
+// and the FROZEN dispatch gate/close path are untouched (read-only consumer).
+
+export interface SerializedInvoiceableDispatchRow {
+  dispatchTicketId: string;
+  resourceId: string;
+  tailNumber: string;
+  pilotUserId: string;
+  pilotName: string;
+  flightTimeHours: number | null;
+  closedAt: string | null;
+}
+
+export type ListInvoiceableDispatchActionResult =
+  | { ok: true; rows: SerializedInvoiceableDispatchRow[] }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function listInvoiceableDispatchAction(): Promise<ListInvoiceableDispatchActionResult> {
+  const session = await auth();
+  try {
+    const rows = await listInvoiceableDispatch(session);
+    return {
+      ok: true,
+      rows: rows.map((r) => ({
+        dispatchTicketId: r.dispatchTicketId,
+        resourceId: r.resourceId,
+        tailNumber: r.tailNumber,
+        pilotUserId: r.pilotUserId,
+        pilotName: r.pilotName,
+        flightTimeHours: r.flightTimeHours,
+        closedAt: r.closedAt ? r.closedAt.toISOString() : null,
+      })),
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export interface RatePickerOption {
+  id: string;
+  name: string;
+  rateKind: string;
+  amountCents: number;
+}
+
+export type ListRatePickerActionResult =
+  | { ok: true; rates: RatePickerOption[] }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function listRatePickerAction(): Promise<ListRatePickerActionResult> {
+  const session = await auth();
+  try {
+    const result = await listRateSchedules(session);
+    return {
+      ok: true,
+      rates: result.rates.map((r) => ({
+        id: r.id,
+        name: r.name,
+        rateKind: r.rateKind,
+        amountCents: r.amountCents,
+      })),
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export type GenerateInvoiceFromDispatchActionResult =
+  | { ok: true; invoiceId: string }
+  | { ok: false; reason: 'ticket_not_found' | 'ticket_not_closed' | 'rate_not_found' }
+  | { error: 'validation'; message: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function generateInvoiceFromDispatchAction(
+  input: { dispatchTicketId: string; rateScheduleId: string; memberUserId: string },
+  slug: string,
+): Promise<GenerateInvoiceFromDispatchActionResult> {
+  const session = await auth();
+  try {
+    const result = await generateInvoiceFromDispatch(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    // The ticket is now invoiced — drop it from the "ready to invoice" worklist.
+    revalidatePath(`/o/${slug}/billing`);
+    return { ok: true, invoiceId: result.invoice.id };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

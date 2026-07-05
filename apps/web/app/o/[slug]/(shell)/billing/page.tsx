@@ -21,13 +21,14 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Receipt, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
-import { requireCapability } from '@aeroops/api';
+import { requireCapability, hasCapability } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { listInvoicesAction } from './actions';
+import { listInvoicesAction, listInvoiceableDispatchAction, listRatePickerAction } from './actions';
 import { formatCents } from './_components/format-cents';
+import { ReadyToInvoiceClient } from './_components/ready-to-invoice-client';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -114,6 +115,56 @@ async function InvoiceListContent({ slug }: { slug: string }) {
   );
 }
 
+// ─── Flights ready to invoice (billing:manage) ──────────────────────────────────
+
+async function ReadyToInvoiceContent({ slug }: { slug: string }) {
+  const [worklist, ratePicker] = await Promise.all([
+    listInvoiceableDispatchAction(),
+    listRatePickerAction(),
+  ]);
+
+  if ('error' in worklist || 'error' in ratePicker) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+        <AlertDescription>Could not load flights ready to invoice.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Nothing waiting — keep the section quiet rather than showing an empty table.
+  if (worklist.rows.length === 0) return null;
+
+  return (
+    <section className="space-y-3" aria-labelledby="ready-to-invoice-heading">
+      <div>
+        <h2 id="ready-to-invoice-heading" className="text-lg font-semibold text-slate-900">
+          Flights ready to invoice
+        </h2>
+        <p className="text-sm text-slate-500">
+          Closed flights with no invoice yet. Pick a rate and the draft builds itself from the
+          Hobbs reading.
+        </p>
+      </div>
+      <ReadyToInvoiceClient slug={slug} rows={worklist.rows} rates={ratePicker.rates} />
+    </section>
+  );
+}
+
+function ReadyToInvoiceSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse" aria-busy="true" aria-label="Loading flights ready to invoice">
+      <Skeleton className="h-6 w-56" />
+      <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="h-10 bg-slate-50 border-b border-slate-200" />
+        {[0, 1].map((i) => (
+          <div key={i} className="h-14 border-b border-slate-100 bg-white" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: 'draft' | 'finalized' | 'void' }) {
   if (status === 'finalized') {
     return (
@@ -155,17 +206,28 @@ export default async function BillingPage({ params }: BillingPageProps) {
     throw err;
   }
 
+  // Only roles that can generate invoices (billing:manage) see the worklist.
+  const canManage = hasCapability(session, 'billing:manage');
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Billing</h1>
         <Button asChild variant="outline" size="sm">
           <Link href={`/o/${slug}/billing/reports`}>Accounts receivable &amp; revenue</Link>
         </Button>
       </div>
-      <Suspense fallback={<InvoiceListSkeleton />}>
-        <InvoiceListContent slug={slug} />
-      </Suspense>
+      {canManage && (
+        <Suspense fallback={<ReadyToInvoiceSkeleton />}>
+          <ReadyToInvoiceContent slug={slug} />
+        </Suspense>
+      )}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-slate-900">Invoices</h2>
+        <Suspense fallback={<InvoiceListSkeleton />}>
+          <InvoiceListContent slug={slug} />
+        </Suspense>
+      </div>
     </div>
   );
 }
