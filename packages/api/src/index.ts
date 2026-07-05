@@ -571,12 +571,28 @@ export {
   listLocationsWithDb,
 } from './fleet/list-locations.js';
 
+// Location writes (base-airport management). authz fleet:manage; ONE audit row;
+// coordinates are operator data, NOT an FAA determination. NO migration needed —
+// location already permits org-scoped INSERT/UPDATE (RLS + grants, migration 0000).
+export {
+  createLocation,
+  createLocationWithDb,
+  updateLocation,
+  updateLocationWithDb,
+} from './fleet/location-commands.js';
+export type {
+  CreateLocationInput,
+  UpdateLocationInput,
+} from './fleet/location-commands.js';
+
 // Fleet result/IO types.
 export type {
   AircraftListRow,
   AircraftDetail,
   UpdateAircraftResult,
   LocationOption,
+  CreateLocationResult,
+  UpdateLocationResult,
   UpcomingReservationRow,
 } from './fleet/types.js';
 
@@ -1173,6 +1189,15 @@ export type {
   GenerateInvoiceFromDispatchInput,
   GenerateInvoiceFromDispatchResult,
 } from './billing/generate-invoice.js';
+
+// "Flights ready to invoice" worklist: CLOSED dispatch tickets with no live
+// (non-void) invoice. READ-ONLY; billing:manage. Backs the one-click Generate-
+// invoice surface on the Billing hub. No dispatch/meter write path touched.
+export {
+  listInvoiceableDispatch,
+  listInvoiceableDispatchWithDb,
+} from './billing/list-invoiceable-dispatch.js';
+export type { InvoiceableDispatchRow } from './billing/list-invoiceable-dispatch.js';
 
 export {
   listInvoices,

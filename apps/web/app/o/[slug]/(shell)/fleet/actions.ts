@@ -19,11 +19,14 @@
 import { serializeDate } from '@/lib/serialize-date';
 
 import { auth } from '@/auth';
+import { revalidatePath } from 'next/cache';
 import {
   listAircraft,
   getAircraftDetail,
   updateAircraft,
   listLocations,
+  createLocation,
+  updateLocation,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -31,6 +34,8 @@ import type {
   AircraftListRow,
   AircraftDetail,
   UpdateAircraftInput,
+  CreateLocationInput,
+  UpdateLocationInput,
   LocationOption,
   WorkOrderView,
 } from '@aeroops/api';
@@ -360,6 +365,64 @@ export async function listLocationsAction(): Promise<ListLocationsActionResult> 
   try {
     const locations = await listLocations(session);
     return { ok: true, locations };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: err.message };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── createLocationAction ─────────────────────────────────────────────────────
+// authz fleet:manage (enforced inside @aeroops/api). LocationOption is JSON-safe
+// (all primitives) so no date serialization is needed.
+
+export type CreateLocationActionResult =
+  | { ok: true; location: LocationOption }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function createLocationAction(
+  input: CreateLocationInput,
+  slug: string,
+): Promise<CreateLocationActionResult> {
+  const session = await auth();
+  try {
+    const result = await createLocation(session, input);
+    revalidatePath(`/o/${slug}/fleet/locations`);
+    return { ok: true, location: result.location };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: err.message };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── updateLocationAction ─────────────────────────────────────────────────────
+
+export type UpdateLocationActionResult =
+  | { ok: true; location: LocationOption }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function updateLocationAction(
+  input: UpdateLocationInput,
+  slug: string,
+): Promise<UpdateLocationActionResult> {
+  const session = await auth();
+  try {
+    const result = await updateLocation(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    revalidatePath(`/o/${slug}/fleet/locations`);
+    return { ok: true, location: result.location };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

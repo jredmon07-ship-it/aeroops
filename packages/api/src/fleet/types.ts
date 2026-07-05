@@ -130,11 +130,35 @@ export type UpdateAircraftResult =
 // ─── LocationOption ───────────────────────────────────────────────────────────
 
 /**
- * LocationOption — lightweight location row for the home-base select.
- * Returned by listLocations.
+ * LocationOption — location row for the home-base select AND the Locations
+ * management surface. Returned by listLocations / createLocation / updateLocation.
+ *
+ * latitude / longitude are WGS84 decimal degrees (null when unset). They are
+ * OPERATOR DATA that power the civil-twilight (day/night) scheduling calc — NOT
+ * an FAA determination. Stored paired (both-or-neither).
  */
 export interface LocationOption {
   id: string;
   name: string;
   icao: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
+
+// ─── Location write results ───────────────────────────────────────────────────
+
+/**
+ * CreateLocationResult — createLocation always succeeds or throws
+ * (ValidationError on bad input, auth errors on cap failure). No operational
+ * refusal arm.
+ */
+export type CreateLocationResult = { ok: true; location: LocationOption };
+
+/**
+ * UpdateLocationResult — discriminated union for updateLocation.
+ *   ok:true                     → fields updated; ONE audit row; fresh row returned.
+ *   ok:false reason:'not_found' → no visible location with that id (cross-org/unknown).
+ */
+export type UpdateLocationResult =
+  | { ok: true; location: LocationOption }
+  | { ok: false; reason: 'not_found' };

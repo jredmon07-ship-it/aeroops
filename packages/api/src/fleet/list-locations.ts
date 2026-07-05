@@ -34,17 +34,22 @@ async function _listLocationsImpl(
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     const rows = await tx
       .select({
-        id:   location.id,
-        name: location.name,
-        icao: location.icao,
+        id:        location.id,
+        name:      location.name,
+        icao:      location.icao,
+        latitude:  location.latitude,
+        longitude: location.longitude,
       })
       .from(location)
       .orderBy(asc(location.name));
 
     return rows.map((r) => ({
-      id:   r.id,
-      name: r.name,
-      icao: r.icao ?? null,
+      id:        r.id,
+      name:      r.name,
+      icao:      r.icao ?? null,
+      // numeric(8,5) comes back from the driver as a string — normalize to number|null.
+      latitude:  r.latitude  != null ? Number(r.latitude)  : null,
+      longitude: r.longitude != null ? Number(r.longitude) : null,
     }));
   });
 }

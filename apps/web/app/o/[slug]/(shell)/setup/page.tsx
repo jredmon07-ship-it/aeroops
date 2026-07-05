@@ -76,8 +76,8 @@ const STEP_META: Record<OnboardingStepKey, StepMeta> = {
     title: 'Set your base airport',
     description:
       'Add your home-base location and its coordinates so day/night times are accurate.',
-    cta: 'Go to Fleet',
-    href: (slug) => `/o/${slug}/fleet`,
+    cta: 'Manage locations',
+    href: (slug) => `/o/${slug}/fleet/locations`,
     doneNote: (n) => `${n} base${n === 1 ? '' : 's'} with coordinates`,
   },
   rates: {
