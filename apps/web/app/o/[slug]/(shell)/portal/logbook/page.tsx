@@ -32,7 +32,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { getMyPilotLogAction, exportMyPilotLogCsvAction } from '../actions';
-import type { SerializedPilotLog } from '../actions';
+import type { SerializedPilotLog } from '@/lib/serialize-pilot-log';
 import { DownloadCsvButton } from './_components/download-csv-button';
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────

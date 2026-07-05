@@ -27,6 +27,8 @@
  */
 'use server';
 
+import { serializePilotLog, type SerializedPilotLog } from '@/lib/serialize-pilot-log';
+
 import { auth } from '@/auth';
 import {
   getMyPortalSummary,
@@ -525,44 +527,6 @@ export async function regenerateCalendarFeedAction(
 // ALWAYS session.userId, enforced inside the @aeroops/api command
 // (portal:access + self-scope).
 // ════════════════════════════════════════════════════════════════════════════════
-
-export interface SerializedPilotLogEntry {
-  ticketId: string;
-  date: string; // ISO string
-  tail: string;
-  make: string | null;
-  model: string | null;
-  hobbsOut: number;
-  hobbsIn: number;
-  flightTimeHours: number;
-  runningTotalHours: number;
-}
-
-export interface SerializedPilotLog {
-  entries: SerializedPilotLogEntry[];
-  totalHours: number;
-}
-
-function serializePilotLogEntry(e: PilotLogEntry): SerializedPilotLogEntry {
-  return {
-    ticketId: e.ticketId,
-    date: e.date instanceof Date ? e.date.toISOString() : String(e.date),
-    tail: e.tail,
-    make: e.make,
-    model: e.model,
-    hobbsOut: e.hobbsOut,
-    hobbsIn: e.hobbsIn,
-    flightTimeHours: e.flightTimeHours,
-    runningTotalHours: e.runningTotalHours,
-  };
-}
-
-function serializePilotLog(log: PilotLog): SerializedPilotLog {
-  return {
-    entries: log.entries.map(serializePilotLogEntry),
-    totalHours: log.totalHours,
-  };
-}
 
 export interface PilotLogDateBounds {
   from?: string;

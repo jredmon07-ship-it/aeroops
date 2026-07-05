@@ -107,6 +107,25 @@ function docNumberFor(aeroopsInvoiceId: string): string {
   return `AO-${compact}`;
 }
 
+// ─── Mapping resolution (own-property-safe) ─────────────────────────────────────
+
+/**
+ * resolveLineMapping — accountMap[kind] ?? accountMap['default'], but confined
+ * to OWN properties. A plain-object index like accountMap['__proto__'] resolves
+ * to a truthy prototype value (Object.prototype), which would slip past the
+ * `?? default` fallback AND the unmapped guard, then emit a QBO line with an
+ * undefined ItemRef. hasOwnProperty restricts resolution to real mapping entries.
+ */
+function resolveLineMapping(
+  accountMap: QboAccountMap,
+  kind: QboLineKind,
+): QboAccountMappingEntry | undefined {
+  const own = Object.prototype.hasOwnProperty;
+  const direct = own.call(accountMap, kind) ? accountMap[kind] : undefined;
+  if (direct) return direct;
+  return own.call(accountMap, 'default') ? accountMap['default'] : undefined;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -129,7 +148,7 @@ export function mapInvoiceToQboPayload(input: MapInvoiceInput): MapInvoiceResult
   // partially build a payload that silently drops or lumps a line).
   const unmapped = new Set<QboMappableLineKind>();
   for (const line of input.lines) {
-    const mapping = input.accountMap[line.lineKind] ?? input.accountMap['default'];
+    const mapping = resolveLineMapping(input.accountMap, line.lineKind);
     if (!mapping) {
       unmapped.add(line.lineKind);
     }
@@ -139,7 +158,7 @@ export function mapInvoiceToQboPayload(input: MapInvoiceInput): MapInvoiceResult
   }
 
   const qboLines: QboInvoiceLine[] = input.lines.map((line) => {
-    const mapping = input.accountMap[line.lineKind] ?? input.accountMap['default'];
+    const mapping = resolveLineMapping(input.accountMap, line.lineKind);
     // Unreachable (guarded above), but keep TS honest without a non-null assertion.
     if (!mapping) {
       throw new Error('[qbo] mapInvoiceToQboPayload: internal invariant violated — unmapped line survived the guard');
