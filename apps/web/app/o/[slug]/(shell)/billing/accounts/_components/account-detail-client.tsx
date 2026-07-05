@@ -70,6 +70,8 @@ function entryTypeLabel(entryType: SerializedLedgerEntry['entryType']): string {
       return 'Credit memo';
     case 'adjustment':
       return 'Adjustment';
+    case 'block_purchase':
+      return 'Block time purchase';
     default:
       return entryType;
   }

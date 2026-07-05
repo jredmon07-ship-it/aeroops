@@ -66,7 +66,7 @@ export type GetMemberStatementInput = { memberId: string };
 
 export interface MemberStatementLedgerRow {
   id: string;
-  entryType: 'invoice_finalized' | 'payment' | 'credit_memo' | 'adjustment';
+  entryType: 'invoice_finalized' | 'payment' | 'credit_memo' | 'adjustment' | 'block_purchase';
   direction: 'debit' | 'credit';
   amountCents: number;
   invoiceId: string | null;

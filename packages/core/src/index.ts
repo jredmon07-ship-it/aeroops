@@ -266,6 +266,21 @@ export type { InvoiceLine, InvoiceTotals } from './billing/invoice-math.js';
 export { computeBalance } from './billing/ledger-math.js';
 export type { LedgerEntryAmount } from './billing/ledger-math.js';
 
+// ─── Slice B4 — Pure block-time (prepaid package) summary math ───────────────
+// aggregateBlockPurchases: Σ hours + Σ amountCents across a member's block
+//   purchases. Hours sum via an integer-tenths accumulator (no float drift,
+//   mirrors packages/api/src/logbook/internal.ts's buildPilotLog convention).
+//   totalAmountCents is integer-closed (property-tested).
+// computeEffectiveRateCentsPerHour: price_cents / hours — DISPLAY ONLY,
+//   never summed/stored/fed back into money math.
+// PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
+// Property-tested (hard guardrail): __tests__/block-summary-math.test.ts.
+export {
+  aggregateBlockPurchases,
+  computeEffectiveRateCentsPerHour,
+} from './billing/block-summary-math.js';
+export type { BlockPurchaseAmount, BlockPurchaseTotals } from './billing/block-summary-math.js';
+
 // ─── Financial / AR reporting slice — pure AR-aging bucketer ─────────────────
 // ageDaysBetween/classifyAgingBucket/bucketAgingItem/sumAgingBuckets/aggregateAging:
 //   buckets an outstanding {balanceCents, asOf, referenceDate} into one of 5 AR-aging

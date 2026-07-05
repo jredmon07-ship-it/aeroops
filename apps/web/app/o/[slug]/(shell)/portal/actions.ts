@@ -33,6 +33,7 @@ import { auth } from '@/auth';
 import {
   getMyPortalSummary,
   getMyBilling,
+  getMyBlockSummary,
   createMySetupIntent,
   saveMyPaymentMethod,
   setMyAutopay,
@@ -60,6 +61,7 @@ import type {
   DocumentView,
   PilotLog,
   PilotLogEntry,
+  BlockPurchaseView,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -262,6 +264,64 @@ export async function getMyBillingAction(): Promise<GetMyBillingActionResult> {
         invoices: billing.invoices.map(serializeMyInvoice),
         paymentMethods: billing.paymentMethods,
         autopay: billing.autopay,
+      },
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── getMyBlockSummaryAction (Slice B4 — block-time / prepaid packages) ──────
+//
+// SELF-SCOPED (portal:access): the caller's OWN block-time purchase totals +
+// prepaid balance + purchase history. Mirrors getMyBillingAction exactly —
+// no row-identifying input; subject is always session.userId
+// (getMyBlockSummary, @aeroops/api). READ-ONLY. NO Stripe, NO card/bank data.
+
+export interface SerializedMyBlockPurchase {
+  id: string;
+  hours: number;
+  amountCents: number;
+  note: string | null;
+  purchasedAt: string; // ISO string
+}
+
+function serializeMyBlockPurchase(p: BlockPurchaseView): SerializedMyBlockPurchase {
+  return {
+    id: p.id,
+    hours: p.hours,
+    amountCents: p.amountCents,
+    note: p.note,
+    purchasedAt: p.purchasedAt.toISOString(),
+  };
+}
+
+export interface SerializedMyBlockSummary {
+  totalHoursPurchased: number;
+  totalAmountPurchasedCents: number;
+  prepaidBalanceCents: number;
+  purchases: SerializedMyBlockPurchase[];
+}
+
+export type GetMyBlockSummaryActionResult =
+  | { ok: true; summary: SerializedMyBlockSummary }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+/** getMyBlockSummaryAction — own block-time purchase totals + prepaid balance + own purchase history. */
+export async function getMyBlockSummaryAction(): Promise<GetMyBlockSummaryActionResult> {
+  const session = await auth();
+  try {
+    const summary = await getMyBlockSummary(session);
+    return {
+      ok: true,
+      summary: {
+        totalHoursPurchased: summary.totalHoursPurchased,
+        totalAmountPurchasedCents: summary.totalAmountPurchasedCents,
+        prepaidBalanceCents: summary.prepaidBalanceCents,
+        purchases: summary.purchases.map(serializeMyBlockPurchase),
       },
     };
   } catch (err) {

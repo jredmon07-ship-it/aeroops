@@ -465,6 +465,15 @@ async function PortalContent({ slug }: PortalContentProps) {
         <span aria-hidden="true">→</span>
       </Link>
 
+      {/* ── Block time (Slice B4) ─────────────────────────────────────────── */}
+      <Link
+        href={`/o/${slug}/portal/block-time`}
+        className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-xs hover:border-brand/40 hover:text-brand-ink"
+      >
+        Block time — your prepaid hours and balance
+        <span aria-hidden="true">→</span>
+      </Link>
+
       {/* ── Logbook (Slice P2) ──────────────────────────────────────────── */}
       <Link
         href={`/o/${slug}/portal/logbook`}

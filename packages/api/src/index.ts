@@ -2050,6 +2050,101 @@ export type { WeatherProvider } from './weather/provider.js';
 // *WithDb form is for test code only (inject a pglite client).
 // ════════════════════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════════════════
+// Slice B4 — Block-time / prepaid packages (NO Stripe, NO money-boundary crossing)
+//
+// "Block time" (THE-BIBLE glossary) = a prepaid, discounted hour bundle a
+// member buys up front and draws down as they fly. This slice records
+// OPERATOR BILLING DATA on the EXISTING B2 ledger — exactly like
+// recordManualPayment: a block sale posts ONE 'block_purchase' credit
+// ledger_entry (migration 0034 additively widens ledger_entry.entry_type to
+// allow it), which RAISES the member's derived balance (computeBalance);
+// the EXISTING invoice-finalize debit draws it down automatically. NO
+// Stripe, NO card/bank data, NO money moved by anything in this slice.
+//
+// block_package (MUTABLE master data, byte-identical RLS shape to
+//   product_catalog): create/update/deactivate/list, cap billing:manage for
+//   writes, billing:access for list. Effective discounted rate (price_cents
+//   / hours) is DISPLAY ONLY (computeEffectiveRateCentsPerHour, @aeroops/core)
+//   — never stored.
+// sellBlockToMember (cap billing:manage): ATOMICALLY resolves a package sale
+//   or an ad-hoc hours+amountCents sale → INSERTs ONE APPEND-ONLY
+//   block_purchase row → posts ONE 'block_purchase' ledger credit → ONE
+//   audit row, all in the SAME tx (rollback-on-any-failure).
+// getMemberBlockSummary (staff, billing:access) / getMyBlockSummary (portal
+//   self-view, portal:access): purchase totals (pure, property-tested
+//   aggregateBlockPurchases, @aeroops/core) + prepaidBalanceCents =
+//   max(0, derived ledger balance) + purchase history. Share the SAME reader
+//   (block-time-internal.ts, not barrel-exported) so the two views can never
+//   disagree.
+//
+// MONEY: INTEGER CENTS ONLY throughout (price_cents/amount_cents CHECK > 0).
+// hours is numeric(10,1) — a QUANTITY, NOT money.
+//
+// COMPLIANCE: operator billing records, NOT tax/GAAP/FAA guidance. NO
+// airworthiness/currency determination. [DEFERRED — v1, see
+// docs/specs/slice-b4-block-time.md]: hours-based per-flight discounted-rate
+// drawdown, block expiry/refund, family/shared blocks, selling a block
+// through the Stripe rail (money-boundary, founder-gated).
+// ════════════════════════════════════════════════════════════════════════════
+
+export {
+  createBlockPackage,
+  createBlockPackageWithDb,
+  updateBlockPackage,
+  updateBlockPackageWithDb,
+  deactivateBlockPackage,
+  deactivateBlockPackageWithDb,
+  listBlockPackages,
+  listBlockPackagesWithDb,
+} from './billing/block-package-commands.js';
+export type {
+  BlockPackageView,
+  CreateBlockPackageInput,
+  CreateBlockPackageResult,
+  UpdateBlockPackageInput,
+  UpdateBlockPackageResult,
+  DeactivateBlockPackageInput,
+  DeactivateBlockPackageResult,
+  ListBlockPackagesOptions,
+  ListBlockPackagesResult,
+} from './billing/block-package-commands.js';
+
+export { sellBlockToMember, sellBlockToMemberWithDb } from './billing/sell-block.js';
+export type {
+  BlockPurchaseView,
+  SellBlockToMemberInput,
+  SellBlockToMemberResult,
+} from './billing/sell-block.js';
+
+export {
+  getMemberBlockSummary,
+  getMemberBlockSummaryWithDb,
+} from './billing/get-member-block-summary.js';
+export type {
+  MemberBlockSummary,
+  GetMemberBlockSummaryInput,
+  GetMemberBlockSummaryResult,
+} from './billing/get-member-block-summary.js';
+
+export {
+  getMyBlockSummary,
+  getMyBlockSummaryWithDb,
+} from './portal/get-my-block-summary.js';
+export type { MyBlockSummary } from './portal/get-my-block-summary.js';
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice Onboarding — guided setup checklist (derived read-only, NO migration)
+//
+// getOnboardingStatus: inspects what the org has configured (aircraft, people,
+// base-airport coords, billing rates, booking policies, payments) and returns a
+// typed checklist that scales from a 2-plane club to a large academy —
+// essentials (aircraft + people) vs optional depth. Cap: org:manage_settings
+// (owner/manager — setup is an admin task). One RLS-scoped COUNT per step;
+// tenant-isolated; no external calls. Powers the /setup page + dashboard banner.
+// *WithDb form is for test code only (inject a pglite client).
+// ════════════════════════════════════════════════════════════════════════════
+
 export {
   getOnboardingStatus,
   getOnboardingStatusWithDb,

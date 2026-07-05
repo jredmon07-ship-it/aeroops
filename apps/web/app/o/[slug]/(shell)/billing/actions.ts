@@ -278,7 +278,7 @@ export async function getMemberBalanceAction(memberUserId: string): Promise<GetM
 
 export interface SerializedLedgerEntry {
   id: string;
-  entryType: 'invoice_finalized' | 'payment' | 'credit_memo' | 'adjustment';
+  entryType: 'invoice_finalized' | 'payment' | 'credit_memo' | 'adjustment' | 'block_purchase';
   direction: 'debit' | 'credit';
   amountCents: number;
   invoiceId: string | null;

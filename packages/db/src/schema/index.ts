@@ -563,3 +563,27 @@ export type { LessonSignatureSelect, LessonSignatureInsert } from './lesson-sign
 // (fail-closed theft response).
 export { mobileSession } from './mobile-session.js';
 export type { MobileSessionSelect, MobileSessionInsert } from './mobile-session.js';
+
+// Slice B4: Block-time / prepaid packages — tenant-scoped (migration 0034).
+// "Block time" (THE-BIBLE glossary) = a prepaid, discounted hour bundle a
+// member buys up front and draws down as they fly. Records OPERATOR BILLING
+// DATA on the EXISTING B2 ledger — exactly like recordManualPayment — NOT
+// tax/GAAP/FAA guidance. price_cents/amount_cents are INTEGER CENTS, CHECK >
+// 0 — NEVER a float. hours is numeric(10,1) — a QUANTITY, NOT money, same
+// precision as invoice_line_item.quantity_hours.
+//
+// block_package: operator-defined offering (MUTABLE, standard 4-policy RLS —
+//   byte-identical to product_catalog). Effective discounted rate
+//   (price_cents / hours) is DISPLAY ONLY — never stored.
+// block_purchase: a member's purchase, APPEND-ONLY (SELECT + INSERT RLS
+//   only, mirrors ledger_entry) — SNAPSHOTS hours + amount_cents at sale
+//   time; package_id nullable (ad-hoc sales allowed). Selling a block posts
+//   ONE 'block_purchase' ledger_entry credit (the ledger_entry.entry_type
+//   CHECK is additively widened by this migration to allow it) — raises the
+//   member's derived prepaid balance via the EXISTING computeBalance.
+// [DEFERRED — v1]: hours-based per-flight discounted-rate drawdown, block
+// expiry/refund, family/shared blocks, selling a block through Stripe.
+export { blockPackage } from './block-package.js';
+export type { BlockPackageSelect, BlockPackageInsert } from './block-package.js';
+export { blockPurchase } from './block-purchase.js';
+export type { BlockPurchaseSelect, BlockPurchaseInsert } from './block-purchase.js';
