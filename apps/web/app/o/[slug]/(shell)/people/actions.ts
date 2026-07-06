@@ -27,6 +27,7 @@ import { serializeDate } from '@/lib/serialize-date';
 import { auth } from '@/auth';
 import {
   listMembers,
+  listMembersPage,
   getMemberDetail,
   updateMember,
   setMemberStatus,
@@ -55,6 +56,7 @@ import type {
   AddMemberTagInput,
   RemoveMemberTagInput,
   AddMemberInput,
+  MemberCursor,
   PilotLog,
   PilotLogEntry,
 } from '@aeroops/api';
@@ -216,6 +218,32 @@ export async function listMembersAction(
   try {
     const members = await listMembers(session, opts);
     return { ok: true, members };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── listMembersPageAction (keyset pagination) ───────────────────────────────
+// MemberCursor is JSON-safe (two strings) — no date serialization needed.
+
+export type ListMembersPageActionResult =
+  | { ok: true; members: OrgMemberListRow[]; nextCursor: MemberCursor | null }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function listMembersPageAction(input?: {
+  includeInactive?: boolean;
+  limit?: number;
+  cursor?: MemberCursor;
+}): Promise<ListMembersPageActionResult> {
+  const session = await auth();
+  try {
+    const page = await listMembersPage(session, input ?? {});
+    return { ok: true, members: page.rows, nextCursor: page.nextCursor ?? null };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

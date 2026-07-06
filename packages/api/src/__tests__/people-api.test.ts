@@ -52,7 +52,7 @@ import { createResourceWithDb } from '../scheduling/resource-commands.js';
 import { createReservationWithDb } from '../scheduling/create-reservation.js';
 import { openDispatchWithDb } from '../dispatch/open-dispatch.js';
 
-import { listMembersWithDb } from '../people/list-members.js';
+import { listMembersWithDb, listMembersPageWithDb } from '../people/list-members.js';
 import { getMemberDetailWithDb } from '../people/get-member-detail.js';
 import { updateMemberWithDb } from '../people/update-member.js';
 import { setMemberStatusWithDb } from '../people/set-member-status.js';
@@ -289,6 +289,108 @@ describe('T11 — listMembers authz', () => {
     const sess = makeSession(orgAId, userAId, 'dispatcher');
     const rows = await listMembersWithDb(db, sess);
     expect(Array.isArray(rows)).toBe(true);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// T11b — listMembersPage: keyset pagination (scale-hardening)
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('T11b — listMembersPage keyset pagination', () => {
+  it('paginates the full roster with a working nextCursor; last page has none', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+
+    // Seed a handful of members with deterministic names so ordering is stable.
+    const stamp = `pg-${Date.now()}`;
+    for (let i = 0; i < 6; i++) {
+      await seedOrgAMember(db, orgAId, `zz-${stamp}-${i}@test.com`, 'renter', 'active');
+    }
+
+    // Full unbounded read = the ground truth ordering.
+    const all = await listMembersWithDb(db, sess, { includeInactive: true });
+    const total = all.length;
+    expect(total).toBeGreaterThanOrEqual(7);
+
+    // Walk pages of 3 and accumulate; must exactly reconstruct `all`.
+    const pageSize = 3;
+    const seen: string[] = [];
+    let cursor: import('../people/types.js').MemberCursor | undefined;
+    let pages = 0;
+    for (;;) {
+      const page = await listMembersPageWithDb(db, sess, {
+        includeInactive: true,
+        limit: pageSize,
+        ...(cursor ? { cursor } : {}),
+      });
+      pages++;
+      expect(page.rows.length).toBeLessThanOrEqual(pageSize);
+      for (const r of page.rows) seen.push(r.userId);
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+      if (pages > 50) throw new Error('pagination did not terminate');
+    }
+
+    // No duplicates, no gaps — same set + same order as the unbounded read.
+    expect(seen.length).toBe(total);
+    expect(new Set(seen).size).toBe(total);
+    expect(seen).toEqual(all.map((r) => r.userId));
+  });
+
+  it('first page respects the requested limit and returns a nextCursor when more exist', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const first = await listMembersPageWithDb(db, sess, { includeInactive: true, limit: 2 });
+    expect(first.rows.length).toBe(2);
+    expect(first.nextCursor).toBeDefined();
+  });
+
+  it('caps the page size at MAX (500)', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    // limit far above MAX should not throw and should just return everything.
+    const page = await listMembersPageWithDb(db, sess, { includeInactive: true, limit: 100_000 });
+    const all = await listMembersWithDb(db, sess, { includeInactive: true });
+    expect(page.rows.length).toBe(all.length);
+    expect(page.nextCursor).toBeUndefined();
+  });
+
+  it('active-only default excludes inactive members', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const inactiveId = await seedOrgAMember(db, orgAId, `pg-inactive-${Date.now()}@test.com`, 'renter', 'inactive');
+    const page = await listMembersPageWithDb(db, sess, { limit: 500 });
+    expect(page.rows.every((r) => r.status === 'active')).toBe(true);
+    expect(page.rows.find((r) => r.userId === inactiveId)).toBeUndefined();
+  });
+
+  it('T-ISO — a cursor cannot cross orgs (org-B rows never leak into org-A paging)', async () => {
+    const { db, orgAId, orgBId, userAId, userBId } = sharedEnv;
+    const sessA = makeSession(orgAId, userAId, 'owner');
+
+    // Page all of org A; org B's owner must never appear regardless of cursor.
+    let cursor: import('../people/types.js').MemberCursor | undefined;
+    const seen: string[] = [];
+    for (;;) {
+      const page = await listMembersPageWithDb(db, sessA, {
+        includeInactive: true,
+        limit: 2,
+        ...(cursor ? { cursor } : {}),
+      });
+      for (const r of page.rows) seen.push(r.userId);
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+    }
+    expect(seen).not.toContain(userBId);
+    void orgBId;
+  });
+
+  it('enforces people:access (renter → ForbiddenError; null → Unauthenticated)', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    await expect(
+      listMembersPageWithDb(db, makeSession(orgAId, userAId, 'renter')),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(listMembersPageWithDb(db, null)).rejects.toBeInstanceOf(UnauthenticatedError);
   });
 });
 

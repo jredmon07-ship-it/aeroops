@@ -22,6 +22,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import {
   listAircraft,
+  listAircraftPage,
   getAircraftDetail,
   updateAircraft,
   listLocations,
@@ -32,6 +33,7 @@ import {
 } from '@aeroops/api';
 import type {
   AircraftListRow,
+  AircraftCursor,
   AircraftDetail,
   UpdateAircraftInput,
   CreateLocationInput,
@@ -283,6 +285,34 @@ export async function listAircraftAction(input?: {
   try {
     const aircraft = await listAircraft(session, input ?? {});
     return { ok: true, aircraft };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: err.message };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── listAircraftPageAction (keyset pagination) ───────────────────────────────
+// AircraftCursor is JSON-safe (two strings) — no date serialization needed.
+
+export type ListAircraftPageActionResult =
+  | { ok: true; aircraft: AircraftListRow[]; nextCursor: AircraftCursor | null }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function listAircraftPageAction(input?: {
+  includeInactive?: boolean;
+  limit?: number;
+  cursor?: AircraftCursor;
+}): Promise<ListAircraftPageActionResult> {
+  const session = await auth();
+  try {
+    const page = await listAircraftPage(session, input ?? {});
+    return { ok: true, aircraft: page.rows, nextCursor: page.nextCursor ?? null };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

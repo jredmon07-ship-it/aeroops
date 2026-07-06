@@ -548,8 +548,15 @@ export type {
 export {
   listAircraft,
   listAircraftWithDb,
+  listAircraftPage,
+  listAircraftPageWithDb,
 } from './fleet/list-aircraft.js';
 export type { ListAircraftOptions } from './fleet/list-aircraft.js';
+export type {
+  AircraftCursor,
+  ListAircraftPageOptions,
+  ListAircraftPage,
+} from './fleet/types.js';
 
 export {
   getAircraftDetail,
@@ -606,7 +613,12 @@ export type {
 // [VERIFY-6-C]: upcomingReservations = reservation.created_by, not flight assignment.
 // [VERIFY-6-D]: status is a roster flag, NOT a login gate in this slice.
 
-export { listMembers, listMembersWithDb } from './people/list-members.js';
+export {
+  listMembers,
+  listMembersWithDb,
+  listMembersPage,
+  listMembersPageWithDb,
+} from './people/list-members.js';
 export type { ListMembersOptions } from './people/list-members.js';
 
 export { getMemberDetail, getMemberDetailWithDb } from './people/get-member-detail.js';
@@ -639,6 +651,9 @@ export type {
   AddMemberTagResult,
   RemoveMemberTagResult,
   AddMemberResult,
+  MemberCursor,
+  ListMembersPageOptions,
+  ListMembersPage,
 } from './people/types.js';
 
 // ─── Slice 3c — Dispatch gate (DISPATCH-3c, ADR-0009) ────────────────────────
@@ -2154,3 +2169,47 @@ export type {
   OnboardingStep,
   OnboardingStepKey,
 } from './onboarding/get-onboarding-status.js';
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice STUDY-1 — AeroStudy integration server seam (migration 0035 STAGED,
+// human-gated, NOT applied)
+//
+// Two SELF-SCOPED member surfaces under the existing mobile-token guard
+// (session.userId only — never a caller-supplied subject; cap app:access,
+// held by ALL 8 roles):
+//   getStudyEntitlements: the caller's unrevoked study_grant scopes folded
+//     to { hasAllAccess, unlockedCertCodes, expiresAt: now+7d } (the client
+//     cache TTL — revocation propagates when the on-device cache expires).
+//   upsertStudyProgress: INSERT … ON CONFLICT (org_id, user_id, cert_code)
+//     DO UPDATE of the member's compact readiness summary (readiness
+//     fraction, questions logged, last studied). Student-entered study-app
+//     data — NOT an FAA determination. NO money.
+// Until a human applies migration 0035, both throw
+// StudyTablesNotMigratedError (routes → HTTP 503 'study_tables_not_migrated').
+// parseStudyProgressInput / mapScopesToEntitlements are PURE (unit-tested).
+// *WithDb forms are for test code only (inject a pglite client).
+// ════════════════════════════════════════════════════════════════════════════
+
+export {
+  getStudyEntitlements,
+  getStudyEntitlementsWithDb,
+} from './study/get-study-entitlements.js';
+export {
+  upsertStudyProgress,
+  upsertStudyProgressWithDb,
+} from './study/upsert-study-progress.js';
+export {
+  mapScopesToEntitlements,
+  parseStudyProgressInput,
+  computeEntitlementsExpiresAt,
+  isValidCertCode,
+  StudyTablesNotMigratedError,
+  STUDY_SCOPE_ALL_ACCESS,
+} from './study/internal.js';
+export type { ParseStudyProgressResult } from './study/internal.js';
+export type {
+  StudyEntitlementState,
+  StudyEntitlementsResult,
+  StudyProgressInput,
+  StudyProgressView,
+} from './study/types.js';

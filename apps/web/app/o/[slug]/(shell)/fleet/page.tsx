@@ -24,8 +24,34 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { listAircraftAction } from './actions';
+import type { AircraftCursor } from '@aeroops/api';
+import { listAircraftPageAction } from './actions';
 import { FleetTable } from './_components/fleet-table';
+
+// ─── Cursor codec (base64url JSON — URL-safe; mirrors activity feed) ───────────
+
+function encodeAircraftCursor(cursor: AircraftCursor): string {
+  return Buffer.from(JSON.stringify(cursor)).toString('base64url');
+}
+
+function decodeAircraftCursor(raw: string): AircraftCursor | null {
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as unknown;
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      'tailNumber' in parsed &&
+      'id' in parsed &&
+      typeof (parsed as Record<string, unknown>).tailNumber === 'string' &&
+      typeof (parsed as Record<string, unknown>).id === 'string'
+    ) {
+      return parsed as AircraftCursor;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
@@ -49,10 +75,14 @@ function FleetListSkeleton() {
 
 interface FleetContentProps {
   slug: string;
+  cursor: AircraftCursor | null;
 }
 
-async function FleetContent({ slug }: FleetContentProps) {
-  const result = await listAircraftAction({ includeInactive: true });
+async function FleetContent({ slug, cursor }: FleetContentProps) {
+  const result = await listAircraftPageAction({
+    includeInactive: true,
+    ...(cursor ? { cursor } : {}),
+  });
 
   if ('error' in result) {
     return (
@@ -69,6 +99,10 @@ async function FleetContent({ slug }: FleetContentProps) {
   }
 
   const aircraft = result.aircraft;
+
+  const loadMoreHref = result.nextCursor
+    ? `/o/${slug}/fleet?before=${encodeAircraftCursor(result.nextCursor)}`
+    : null;
 
   if (aircraft.length === 0) {
     return (
@@ -92,17 +126,33 @@ async function FleetContent({ slug }: FleetContentProps) {
     );
   }
 
-  return <FleetTable aircraft={aircraft} slug={slug} />;
+  return (
+    <div className="space-y-4">
+      <FleetTable aircraft={aircraft} slug={slug} />
+      {loadMoreHref && (
+        <div className="flex justify-center">
+          <Button asChild variant="outline" size="sm">
+            <Link href={loadMoreHref} aria-label="Load more aircraft">
+              Load more
+            </Link>
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 interface FleetPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ before?: string }>;
 }
 
-export default async function FleetPage({ params }: FleetPageProps) {
+export default async function FleetPage({ params, searchParams }: FleetPageProps) {
   const { slug } = await params;
+  const sp = await searchParams;
+  const cursor = sp.before ? decodeAircraftCursor(sp.before) : null;
   const session = await auth();
 
   // ── RBAC gate ──────────────────────────────────────────────────────────────
@@ -128,7 +178,7 @@ export default async function FleetPage({ params }: FleetPageProps) {
         </Button>
       </div>
       <Suspense fallback={<FleetListSkeleton />}>
-        <FleetContent slug={slug} />
+        <FleetContent slug={slug} cursor={cursor} />
       </Suspense>
     </div>
   );

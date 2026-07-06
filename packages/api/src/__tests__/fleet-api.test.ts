@@ -63,7 +63,7 @@ import { voidDispatchWithDb } from '../dispatch/void-dispatch.js';
 import { groundAircraftWithDb } from '../maintenance/ground-aircraft.js';
 import { reportSquawkWithDb } from '../maintenance/report-squawk.js';
 
-import { listAircraftWithDb } from '../fleet/list-aircraft.js';
+import { listAircraftWithDb, listAircraftPageWithDb } from '../fleet/list-aircraft.js';
 import { getAircraftDetailWithDb } from '../fleet/get-aircraft-detail.js';
 import { updateAircraftWithDb } from '../fleet/update-aircraft.js';
 import { listLocationsWithDb } from '../fleet/list-locations.js';
@@ -284,6 +284,106 @@ describe('T8 — listAircraft happy path (active-only default)', () => {
     expect(row!.active).toBe(true);
     expect(typeof row!.grounded).toBe('boolean');
     expect(typeof row!.openSquawkCount).toBe('number');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// T8b — listAircraftPage: keyset pagination (scale-hardening)
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('T8b — listAircraftPage keyset pagination', () => {
+  it('paginates the whole fleet with a working nextCursor; last page has none', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+
+    // Seed several aircraft with deterministic tail numbers.
+    const stamp = `PG${Date.now() % 100000}`;
+    for (let i = 0; i < 6; i++) {
+      await seedAircraft(db, orgAId, userAId, `${stamp}${i}`);
+    }
+
+    // Full unbounded read = ground truth ordering.
+    const all = await listAircraftWithDb(db, sess, { includeInactive: true });
+    const total = all.length;
+    expect(total).toBeGreaterThanOrEqual(6);
+
+    const pageSize = 3;
+    const seen: string[] = [];
+    let cursor: import('../fleet/types.js').AircraftCursor | undefined;
+    let pages = 0;
+    for (;;) {
+      const page = await listAircraftPageWithDb(db, sess, {
+        includeInactive: true,
+        limit: pageSize,
+        ...(cursor ? { cursor } : {}),
+      });
+      pages++;
+      expect(page.rows.length).toBeLessThanOrEqual(pageSize);
+      for (const r of page.rows) seen.push(r.id);
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+      if (pages > 100) throw new Error('pagination did not terminate');
+    }
+
+    expect(seen.length).toBe(total);
+    expect(new Set(seen).size).toBe(total);
+    expect(seen).toEqual(all.map((r) => r.id));
+  });
+
+  it('page rows carry the same enrichment (grounded / counts) as the unbounded read', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const page = await listAircraftPageWithDb(db, sess, { includeInactive: true, limit: 500 });
+    for (const r of page.rows) {
+      expect(typeof r.grounded).toBe('boolean');
+      expect(typeof r.openSquawkCount).toBe('number');
+      expect(typeof r.openWorkOrderCount).toBe('number');
+    }
+  });
+
+  it('first page respects the requested limit and returns a nextCursor when more exist', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const first = await listAircraftPageWithDb(db, sess, { includeInactive: true, limit: 2 });
+    expect(first.rows.length).toBe(2);
+    expect(first.nextCursor).toBeDefined();
+  });
+
+  it('caps the page size at MAX (500)', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const page = await listAircraftPageWithDb(db, sess, { includeInactive: true, limit: 100_000 });
+    const all = await listAircraftWithDb(db, sess, { includeInactive: true });
+    expect(page.rows.length).toBe(all.length);
+    expect(page.nextCursor).toBeUndefined();
+  });
+
+  it('T-ISO — a cursor cannot cross orgs (org-B aircraft never leak into org-A paging)', async () => {
+    const { db, orgAId, orgBId, userAId, userBId } = sharedEnv;
+    const sessA = makeSession(orgAId, userAId, 'owner');
+    const idB = await seedAircraft(db, orgBId, userBId, `ISOPG${Date.now() % 100000}`);
+
+    let cursor: import('../fleet/types.js').AircraftCursor | undefined;
+    const seen: string[] = [];
+    for (;;) {
+      const page = await listAircraftPageWithDb(db, sessA, {
+        includeInactive: true,
+        limit: 2,
+        ...(cursor ? { cursor } : {}),
+      });
+      for (const r of page.rows) seen.push(r.id);
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+    }
+    expect(seen).not.toContain(idB);
+  });
+
+  it('enforces fleet:access (renter → ForbiddenError; null → Unauthenticated)', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    await expect(
+      listAircraftPageWithDb(db, makeSession(orgAId, userAId, 'renter')),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(listAircraftPageWithDb(db, null)).rejects.toBeInstanceOf(UnauthenticatedError);
   });
 });
 

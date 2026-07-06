@@ -29,10 +29,36 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { listMembersAction } from './actions';
+import type { MemberCursor } from '@aeroops/api';
+import { listMembersPageAction } from './actions';
 import { MembersTable } from './_components/members-table';
 import { AddMemberDialog } from './_components/add-member-dialog';
 import { ActiveToggle } from './_components/active-toggle';
+
+// ─── Cursor codec (base64url JSON — URL-safe; mirrors activity feed) ───────────
+
+function encodeMemberCursor(cursor: MemberCursor): string {
+  return Buffer.from(JSON.stringify(cursor)).toString('base64url');
+}
+
+function decodeMemberCursor(raw: string): MemberCursor | null {
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as unknown;
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      'sortName' in parsed &&
+      'id' in parsed &&
+      typeof (parsed as Record<string, unknown>).sortName === 'string' &&
+      typeof (parsed as Record<string, unknown>).id === 'string'
+    ) {
+      return parsed as MemberCursor;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -59,10 +85,14 @@ interface PeopleContentProps {
   slug: string;
   includeInactive: boolean;
   canManage: boolean;
+  cursor: MemberCursor | null;
 }
 
-async function PeopleContent({ slug, includeInactive, canManage }: PeopleContentProps) {
-  const result = await listMembersAction({ includeInactive });
+async function PeopleContent({ slug, includeInactive, canManage, cursor }: PeopleContentProps) {
+  const result = await listMembersPageAction({
+    includeInactive,
+    ...(cursor ? { cursor } : {}),
+  });
 
   if ('error' in result) {
     return (
@@ -79,6 +109,12 @@ async function PeopleContent({ slug, includeInactive, canManage }: PeopleContent
   }
 
   const members = result.members;
+
+  // Preserve the includeInactive filter across the "Load more" navigation.
+  const baseParams = includeInactive ? 'includeInactive=1&' : '';
+  const loadMoreHref = result.nextCursor
+    ? `/o/${slug}/people?${baseParams}before=${encodeMemberCursor(result.nextCursor)}`
+    : null;
 
   if (members.length === 0) {
     return (
@@ -107,20 +143,34 @@ async function PeopleContent({ slug, includeInactive, canManage }: PeopleContent
     );
   }
 
-  return <MembersTable members={members} slug={slug} />;
+  return (
+    <div className="space-y-4">
+      <MembersTable members={members} slug={slug} />
+      {loadMoreHref && (
+        <div className="flex justify-center">
+          <Button asChild variant="outline" size="sm">
+            <Link href={loadMoreHref} aria-label="Load more members">
+              Load more
+            </Link>
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 interface PeoplePageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ includeInactive?: string }>;
+  searchParams: Promise<{ includeInactive?: string; before?: string }>;
 }
 
 export default async function PeoplePage({ params, searchParams }: PeoplePageProps) {
   const { slug } = await params;
   const sp = await searchParams;
   const includeInactive = sp.includeInactive === '1';
+  const cursor = sp.before ? decodeMemberCursor(sp.before) : null;
   const session = await auth();
 
   // ── RBAC gate ──────────────────────────────────────────────────────────────
@@ -146,7 +196,12 @@ export default async function PeoplePage({ params, searchParams }: PeoplePagePro
       </div>
 
       <Suspense fallback={<PeopleListSkeleton />}>
-        <PeopleContent slug={slug} includeInactive={includeInactive} canManage={canManage} />
+        <PeopleContent
+          slug={slug}
+          includeInactive={includeInactive}
+          canManage={canManage}
+          cursor={cursor}
+        />
       </Suspense>
     </div>
   );

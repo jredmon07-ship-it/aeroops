@@ -112,6 +112,46 @@ export interface OrgMemberListRow {
   tagCount: number;
 }
 
+// ─── Keyset pagination (listMembersPage) ──────────────────────────────────────
+
+/**
+ * MemberCursor — keyset cursor for stable pagination over the member roster.
+ *
+ * The sort key is (sortName, id) where sortName = COALESCE(full_name, email)
+ * (never null; email is NOT NULL) and id = membership.user_id (uuid PK, unique).
+ * The pair is a strict total order, so keyset paging is deterministic and
+ * gap-free even when full_name is null. Ascending (A→Z).
+ */
+export interface MemberCursor {
+  /** COALESCE(full_name, email) of the last row on the prior page. */
+  sortName: string;
+  /** user_id (uuid) of the last row on the prior page — tie-break. */
+  id: string;
+}
+
+/**
+ * ListMembersPageOptions — options for the paginated member read.
+ * Backward-compat note: this is a SEPARATE surface from listMembers (which
+ * stays unbounded/array-returning for pickers, mobile, reporting).
+ */
+export interface ListMembersPageOptions {
+  /** When true, include inactive members. Default: active-only. */
+  includeInactive?: boolean;
+  /** Rows per page; default 100, capped at 500. */
+  limit?: number;
+  /** Keyset cursor from a prior page's nextCursor. */
+  cursor?: MemberCursor;
+}
+
+/**
+ * ListMembersPage — one page of members plus an optional nextCursor.
+ * nextCursor is present ONLY when a full page was returned (more may exist).
+ */
+export interface ListMembersPage {
+  rows: OrgMemberListRow[];
+  nextCursor?: MemberCursor;
+}
+
 // ─── Result unions ────────────────────────────────────────────────────────────
 
 /** getMemberDetail result */

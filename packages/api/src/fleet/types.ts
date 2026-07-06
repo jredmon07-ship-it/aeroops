@@ -47,6 +47,45 @@ export interface AircraftListRow {
   openWorkOrderCount: number;
 }
 
+// ─── Keyset pagination (listAircraftPage) ─────────────────────────────────────
+
+/**
+ * AircraftCursor — keyset cursor for stable pagination over the fleet list.
+ *
+ * The sort key is (tailNumber, id) where tailNumber = COALESCE(tail_number, '')
+ * (never null) and id = resource.id (uuid PK, unique). The pair is a strict
+ * total order, so keyset paging is deterministic and gap-free. Ascending.
+ */
+export interface AircraftCursor {
+  /** COALESCE(tail_number, '') of the last row on the prior page. */
+  tailNumber: string;
+  /** resource id (uuid) of the last row on the prior page — tie-break. */
+  id: string;
+}
+
+/**
+ * ListAircraftPageOptions — options for the paginated fleet read.
+ * SEPARATE surface from listAircraft (which stays unbounded/array-returning
+ * for pickers, the mobile fleet/squawks routes, and reporting).
+ */
+export interface ListAircraftPageOptions {
+  /** When true, include both active and inactive aircraft. Default: false. */
+  includeInactive?: boolean;
+  /** Rows per page; default 100, capped at 500. */
+  limit?: number;
+  /** Keyset cursor from a prior page's nextCursor. */
+  cursor?: AircraftCursor;
+}
+
+/**
+ * ListAircraftPage — one page of aircraft plus an optional nextCursor.
+ * nextCursor is present ONLY when a full page was returned (more may exist).
+ */
+export interface ListAircraftPage {
+  rows: AircraftListRow[];
+  nextCursor?: AircraftCursor;
+}
+
 // ─── UpcomingReservationRow ───────────────────────────────────────────────────
 
 /**
