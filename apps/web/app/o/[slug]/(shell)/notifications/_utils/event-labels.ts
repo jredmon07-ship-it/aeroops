@@ -38,6 +38,10 @@ const EVENT_LABELS: Record<NotificationEventType, EventLabelInfo> = {
     label: 'Maintenance due',
     description: 'A maintenance item on an aircraft is coming due or overdue.',
   },
+  'org.announcement': {
+    label: 'Organization announcements',
+    description: 'When your operator posts an announcement.',
+  },
 };
 
 /** Pure lookup — falls back to the raw event type string if ever unmapped. */

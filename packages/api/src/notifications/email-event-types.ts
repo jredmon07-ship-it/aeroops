@@ -27,6 +27,7 @@ export const NOTIFICATION_EVENT_TYPES = [
   'payment.failed',
   'dues.generated',
   'maintenance.due',
+  'org.announcement',
 ] as const;
 
 export type NotificationEventType = (typeof NOTIFICATION_EVENT_TYPES)[number];
@@ -88,6 +89,19 @@ export interface MaintenanceDueData {
   items: { title: string; status: string }[];
 }
 
+/**
+ * OrgAnnouncementData — Slice FC-P1's operator-authored member message.
+ * `subject`/`body` are the OPERATOR'S OWN free text, carried VERBATIM (never
+ * transformed/summarized) — the template appends a standard footer naming
+ * the org so the recipient always knows who sent it. `body` is rendered as
+ * PLAIN TEXT ONLY — no HTML interpretation, no injection surface.
+ */
+export interface OrgAnnouncementData {
+  subject: string;
+  body: string;
+  orgName: string;
+}
+
 /** Maps each event type to its typed template-data shape. */
 export interface NotificationTemplateDataMap {
   'reservation.created': ReservationCreatedData;
@@ -97,6 +111,7 @@ export interface NotificationTemplateDataMap {
   'payment.failed': PaymentFailedData;
   'dues.generated': DuesGeneratedData;
   'maintenance.due': MaintenanceDueData;
+  'org.announcement': OrgAnnouncementData;
 }
 
 /** The rendered output of a template — text-first; html is a simple wrapper. */

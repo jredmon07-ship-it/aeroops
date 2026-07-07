@@ -1288,6 +1288,30 @@ export type {
 
 export { makeRealBalanceSeam } from './billing/real-balance-seam.js';
 
+// ─── FC-parity Slice 2 — Credit memo / adjustment (billing corrections) ──────
+// issueCreditMemo: billing:manage, audited. Posts ONE 'credit_memo' CREDIT —
+//   mirrors recordManualPayment exactly (same shape/guarantees), just a
+//   different entry_type. issueAdjustment: billing:manage, audited. Posts ONE
+//   'adjustment' entry in EITHER direction — REQUIRES a nonempty memo (an
+//   unexplained adjustment is a records-integrity smell). Both entry_type
+//   values have been in the ledger_entry_entry_type_check CHECK since
+//   migration 0022 (re-widened in 0034) but NOTHING could post them before
+//   this — NO migration needed for this slice.
+// *WithDb forms are for test code only (inject a pglite client).
+
+export {
+  issueCreditMemo,
+  issueCreditMemoWithDb,
+  issueAdjustment,
+  issueAdjustmentWithDb,
+} from './billing/issue-ledger-adjustment.js';
+export type {
+  IssueCreditMemoInput,
+  IssueCreditMemoResult,
+  IssueAdjustmentInput,
+  IssueAdjustmentResult,
+} from './billing/issue-ledger-adjustment.js';
+
 // ─── Slice QB1 — QuickBooks Online integration (bookkeeping EXPORT only) ───────
 // NOT a payment processor. NEVER moves money. Pushes EXISTING finalized B1
 // invoice records into the operator's own connected QBO company file, with
@@ -1742,6 +1766,7 @@ export type {
   InvoiceFinalizedData,
   PaymentFailedData,
   DuesGeneratedData,
+  OrgAnnouncementData,
 } from './notifications/email-event-types.js';
 
 export {
@@ -1763,6 +1788,29 @@ export type {
   NotificationPrefView,
   SetMyNotificationPrefResult,
 } from './notifications/prefs.js';
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice FC-P1 — Member messaging / announcements (FC-parity "Engage with
+// Messaging by Email"). NEW member_message table (migration 0036 — STAGED,
+// human-gated, NOT applied); event type 'org.announcement' added to
+// NOTIFICATION_EVENT_TYPES above. Fans out via the EXISTING sendNotification
+// dispatcher — one best-effort email per resolved recipient.
+// ════════════════════════════════════════════════════════════════════════════════
+
+export {
+  sendMemberMessage,
+  sendMemberMessageWithDb,
+  previewMemberMessageRecipients,
+  previewMemberMessageRecipientsWithDb,
+  listMemberMessages,
+  listMemberMessagesWithDb,
+} from './notifications/send-member-message.js';
+export type {
+  SendMemberMessageInput,
+  SendMemberMessageResult,
+  PreviewMemberMessageRecipientsResult,
+  MemberMessageView,
+} from './notifications/send-member-message.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // Slice P1.7 — Flight Circle data importer

@@ -23,6 +23,7 @@ import type {
   PaymentFailedData,
   DuesGeneratedData,
   MaintenanceDueData,
+  OrgAnnouncementData,
 } from './email-event-types.js';
 import type { NotificationEventType } from './email-event-types.js';
 
@@ -43,6 +44,23 @@ function formatDateTime(d: Date): string {
 function wrapHtml(paragraphs: string[]): string {
   const body = paragraphs.map((p) => `<p>${p}</p>`).join('\n');
   return `<!doctype html><html><body>${body}</body></html>`;
+}
+
+/**
+ * escapeHtml — minimal HTML-entity escaping for OPERATOR-AUTHORED free text
+ * (Slice FC-P1's announcement body/subject). The other templates above
+ * interpolate short, structured operator fields (a title, a reason) that
+ * predate this escaping need; org.announcement is the first template to
+ * carry an arbitrarily long free-text field, so it is escaped explicitly
+ * here rather than widening every existing template's behavior.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function renderReservationCreated(data: ReservationCreatedData): RenderedEmail {
@@ -162,6 +180,17 @@ function renderMaintenanceDue(data: MaintenanceDueData): RenderedEmail {
   };
 }
 
+function renderOrgAnnouncement(data: OrgAnnouncementData): RenderedEmail {
+  const footer = `— Sent by ${data.orgName} via AeroOps.`;
+  const text = `${data.body}\n\n${footer}`;
+  const escapedBodyHtml = escapeHtml(data.body).replace(/\n/g, '<br>');
+  return {
+    subject: data.subject,
+    text,
+    html: wrapHtml([escapedBodyHtml, escapeHtml(footer)]),
+  };
+}
+
 /**
  * renderNotificationTemplate — dispatch to the per-event pure renderer.
  *
@@ -189,6 +218,8 @@ export function renderNotificationTemplate<E extends NotificationEventType>(
       return renderDuesGenerated(data as DuesGeneratedData);
     case 'maintenance.due':
       return renderMaintenanceDue(data as MaintenanceDueData);
+    case 'org.announcement':
+      return renderOrgAnnouncement(data as OrgAnnouncementData);
     default: {
       const _exhaustive: never = eventType;
       throw new Error(`[notifications] unknown event type: ${String(_exhaustive)}`);

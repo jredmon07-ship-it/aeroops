@@ -607,3 +607,12 @@ export { studyGrant } from './study-grant.js';
 export type { StudyGrantSelect, StudyGrantInsert } from './study-grant.js';
 export { studyProgress } from './study-progress.js';
 export type { StudyProgressSelect, StudyProgressInsert } from './study-progress.js';
+
+// Slice FC-P1: Member messaging / announcements — tenant-scoped (migration
+// 0036 — STAGED, human-gated, NOT applied). member_message is an
+// APPEND-ONLY record of each operator-authored announcement (mirrors
+// notification_log / dues_run: SELECT + INSERT RLS only); per-recipient
+// send attempts are recorded separately in the EXISTING notification_log
+// table (event_type = 'org.announcement').
+export { memberMessage } from './member-message.js';
+export type { MemberMessageSelect, MemberMessageInsert } from './member-message.js';
