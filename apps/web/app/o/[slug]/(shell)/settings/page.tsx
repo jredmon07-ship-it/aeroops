@@ -127,6 +127,23 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
         <QboSettingsCard slug={slug} />
       </div>
 
+      {/* ── Member messaging / announcements (FC-parity) ───────────────────── */}
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle className="text-base">Message your members</CardTitle>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-6 space-y-3">
+          <p className="text-sm text-slate-500">
+            Send an email announcement to everyone active, or to a single role — a runway closure, a policy
+            change, an event. Members who opt out of announcements are skipped automatically.
+          </p>
+          <Button asChild type="button" size="sm">
+            <Link href={`/o/${slug}/settings/messages`}>Compose a message</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* ── Flight Circle data importer (Slice P1.7) ───────────────────────── */}
       <Card className="max-w-2xl">
         <CardHeader>

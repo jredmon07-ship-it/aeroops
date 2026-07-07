@@ -31,6 +31,8 @@ import {
 } from '@/components/ui/dialog';
 import {
   recordManualPaymentAction,
+  issueCreditMemoAction,
+  issueAdjustmentAction,
   listLedgerEntriesAction,
   createDuesScheduleAction,
   setDuesScheduleActiveAction,
@@ -93,6 +95,20 @@ export function AccountDetailClient({
   const [methodNote, setMethodNote] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
+
+  // ── FC-parity: credit memo / adjustment (billing corrections) ──
+  const [creditDialogOpen, setCreditDialogOpen] = React.useState(false);
+  const [creditAmountInput, setCreditAmountInput] = React.useState('');
+  const [creditMemoInput, setCreditMemoInput] = React.useState('');
+  const [creditBusy, setCreditBusy] = React.useState(false);
+  const [creditError, setCreditError] = React.useState<string | null>(null);
+
+  const [adjDialogOpen, setAdjDialogOpen] = React.useState(false);
+  const [adjAmountInput, setAdjAmountInput] = React.useState('');
+  const [adjDirection, setAdjDirection] = React.useState<'debit' | 'credit'>('debit');
+  const [adjMemoInput, setAdjMemoInput] = React.useState('');
+  const [adjBusy, setAdjBusy] = React.useState(false);
+  const [adjError, setAdjError] = React.useState<string | null>(null);
 
   // ── Slice P0-REV: auto-pay status / saved-PM presence / dues (DISPLAY ONLY) ──
   const [billingProfile, setBillingProfile] = React.useState(initialBillingProfile);
@@ -218,6 +234,85 @@ export function AccountDetailClient({
     }
   }
 
+  async function handleIssueCreditMemo(e: React.FormEvent) {
+    e.preventDefault();
+    setCreditError(null);
+    const dollars = Number(creditAmountInput);
+    if (!Number.isFinite(dollars) || dollars <= 0) {
+      setCreditError('Enter an amount greater than $0.00.');
+      return;
+    }
+    setCreditBusy(true);
+    try {
+      const result = await issueCreditMemoAction(
+        memberId, Math.round(dollars * 100), creditMemoInput.trim() || undefined, slug,
+      );
+      if ('error' in result) {
+        if (result.error === 'forbidden' || result.error === 'unauthenticated') {
+          setCreditError('You do not have permission to issue a credit memo.');
+        } else if (result.error === 'validation') {
+          setCreditError(result.message);
+        } else {
+          setCreditError("Couldn't issue the credit memo. Please try again.");
+        }
+        return;
+      }
+      if (!result.ok) {
+        setCreditError('This member could not be found.');
+        return;
+      }
+      setBalanceCents(result.balanceCentsAfter);
+      await refreshEntries();
+      setCreditDialogOpen(false);
+      setCreditAmountInput('');
+      setCreditMemoInput('');
+    } finally {
+      setCreditBusy(false);
+    }
+  }
+
+  async function handleIssueAdjustment(e: React.FormEvent) {
+    e.preventDefault();
+    setAdjError(null);
+    const dollars = Number(adjAmountInput);
+    if (!Number.isFinite(dollars) || dollars <= 0) {
+      setAdjError('Enter an amount greater than $0.00.');
+      return;
+    }
+    if (adjMemoInput.trim().length < 5) {
+      setAdjError('A reason of at least 5 characters is required for an adjustment.');
+      return;
+    }
+    setAdjBusy(true);
+    try {
+      const result = await issueAdjustmentAction(
+        memberId, Math.round(dollars * 100), adjDirection, adjMemoInput.trim(), slug,
+      );
+      if ('error' in result) {
+        if (result.error === 'forbidden' || result.error === 'unauthenticated') {
+          setAdjError('You do not have permission to record an adjustment.');
+        } else if (result.error === 'validation') {
+          setAdjError(result.message);
+        } else {
+          setAdjError("Couldn't record the adjustment. Please try again.");
+        }
+        return;
+      }
+      if (!result.ok) {
+        setAdjError('This member could not be found.');
+        return;
+      }
+      setBalanceCents(result.balanceCentsAfter);
+      await refreshEntries();
+      setAdjDialogOpen(false);
+      setAdjAmountInput('');
+      setAdjDirection('debit');
+      setAdjMemoInput('');
+    } finally {
+      setAdjBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -226,10 +321,18 @@ export function AccountDetailClient({
           <p className="mt-1 text-sm text-slate-500 font-mono">{memberId}</p>
         </div>
         {canManage && (
-          <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
-            <PlusCircle className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            Record payment
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => setCreditDialogOpen(true)}>
+              Issue credit memo
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setAdjDialogOpen(true)}>
+              Record adjustment
+            </Button>
+            <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
+              <PlusCircle className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              Record payment
+            </Button>
+          </div>
         )}
       </div>
 
@@ -441,6 +544,137 @@ export function AccountDetailClient({
               </Button>
               <Button type="submit" disabled={duesBusy} aria-busy={duesBusy}>
                 {duesBusy ? 'Adding…' : 'Add schedule'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Issue credit memo dialog */}
+      <Dialog open={creditDialogOpen} onOpenChange={(o) => { if (!creditBusy) { setCreditDialogOpen(o); setCreditError(null); } }}>
+        <DialogContent aria-describedby="credit-memo-desc">
+          <form onSubmit={(e) => void handleIssueCreditMemo(e)}>
+            <DialogHeader>
+              <DialogTitle>Issue a credit memo</DialogTitle>
+              <DialogDescription id="credit-memo-desc">
+                Posts a credit in this member&apos;s favor — e.g. to acknowledge an overcharge. This raises their
+                account balance and is recorded as a permanent ledger entry. It does NOT move money or refund a card.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              {creditError && (
+                <Alert variant="destructive" role="alert">
+                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                  <AlertDescription>{creditError}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-1">
+                <Label htmlFor="credit-amount">Amount</Label>
+                <Input
+                  id="credit-amount"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={creditAmountInput}
+                  onChange={(e) => setCreditAmountInput(e.target.value)}
+                  disabled={creditBusy}
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="credit-memo">Reason (optional)</Label>
+                <Input
+                  id="credit-memo"
+                  type="text"
+                  placeholder="e.g. Overcharge on invoice #1042"
+                  value={creditMemoInput}
+                  onChange={(e) => setCreditMemoInput(e.target.value)}
+                  disabled={creditBusy}
+                  maxLength={1000}
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setCreditDialogOpen(false)} disabled={creditBusy}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creditBusy} aria-busy={creditBusy}>
+                {creditBusy ? 'Issuing…' : 'Issue credit memo'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Record adjustment dialog */}
+      <Dialog open={adjDialogOpen} onOpenChange={(o) => { if (!adjBusy) { setAdjDialogOpen(o); setAdjError(null); } }}>
+        <DialogContent aria-describedby="adjustment-desc">
+          <form onSubmit={(e) => void handleIssueAdjustment(e)}>
+            <DialogHeader>
+              <DialogTitle>Record a balance adjustment</DialogTitle>
+              <DialogDescription id="adjustment-desc">
+                Manually move this member&apos;s balance up or down as a permanent ledger entry — e.g. a late fee
+                (charge) or a goodwill correction (credit). A reason is required. This does NOT charge a card.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              {adjError && (
+                <Alert variant="destructive" role="alert">
+                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                  <AlertDescription>{adjError}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-1">
+                <Label htmlFor="adj-direction">Direction</Label>
+                <select
+                  id="adj-direction"
+                  className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={adjDirection}
+                  onChange={(e) => setAdjDirection(e.target.value as 'debit' | 'credit')}
+                  disabled={adjBusy}
+                >
+                  <option value="debit">Charge (lowers balance)</option>
+                  <option value="credit">Credit (raises balance)</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="adj-amount">Amount</Label>
+                <Input
+                  id="adj-amount"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={adjAmountInput}
+                  onChange={(e) => setAdjAmountInput(e.target.value)}
+                  disabled={adjBusy}
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="adj-memo">Reason (required)</Label>
+                <Input
+                  id="adj-memo"
+                  type="text"
+                  placeholder="e.g. Late-return fee, fuel surcharge correction"
+                  value={adjMemoInput}
+                  onChange={(e) => setAdjMemoInput(e.target.value)}
+                  disabled={adjBusy}
+                  minLength={5}
+                  maxLength={1000}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setAdjDialogOpen(false)} disabled={adjBusy}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={adjBusy} aria-busy={adjBusy}>
+                {adjBusy ? 'Recording…' : 'Record adjustment'}
               </Button>
             </DialogFooter>
           </form>

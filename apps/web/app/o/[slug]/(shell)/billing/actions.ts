@@ -32,6 +32,8 @@ import {
   getMemberBalance,
   listLedgerEntries,
   recordManualPayment,
+  issueCreditMemo,
+  issueAdjustment,
   getMemberBillingProfile,
   createDuesSchedule,
   setDuesScheduleActive,
@@ -338,6 +340,82 @@ export async function recordManualPaymentAction(
   const session = await auth();
   try {
     const result = await recordManualPayment(session, { memberUserId, amountCents, methodNote });
+    if (!result.ok) return result;
+    revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
+    return { ok: true, balanceCentsAfter: result.balanceCentsAfter };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code: unknown }).code === 'VALIDATION' &&
+      err instanceof Error
+    ) {
+      return { error: 'validation', message: err.message };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── FC-parity — credit memo / adjustment (billing corrections) ─────────────
+// Both require billing:manage (enforced inside @aeroops/api). NO Stripe, NO
+// card/bank data. Money = INTEGER CENTS. A correction is a NEW append-only
+// ledger entry — nothing is ever edited or deleted.
+
+export type IssueCreditMemoActionResult =
+  | { ok: true; balanceCentsAfter: number }
+  | { ok: false; reason: 'member_not_found' }
+  | { error: 'validation'; message: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function issueCreditMemoAction(
+  memberUserId: string,
+  amountCents: number,
+  memo: string | undefined,
+  slug: string,
+): Promise<IssueCreditMemoActionResult> {
+  const session = await auth();
+  try {
+    const result = await issueCreditMemo(session, { memberUserId, amountCents, memo });
+    if (!result.ok) return result;
+    revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
+    return { ok: true, balanceCentsAfter: result.balanceCentsAfter };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code: unknown }).code === 'VALIDATION' &&
+      err instanceof Error
+    ) {
+      return { error: 'validation', message: err.message };
+    }
+    return { error: 'server' };
+  }
+}
+
+export type IssueAdjustmentActionResult =
+  | { ok: true; balanceCentsAfter: number }
+  | { ok: false; reason: 'member_not_found' }
+  | { error: 'validation'; message: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function issueAdjustmentAction(
+  memberUserId: string,
+  amountCents: number,
+  direction: 'debit' | 'credit',
+  memo: string,
+  slug: string,
+): Promise<IssueAdjustmentActionResult> {
+  const session = await auth();
+  try {
+    const result = await issueAdjustment(session, { memberUserId, amountCents, direction, memo });
     if (!result.ok) return result;
     revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
     return { ok: true, balanceCentsAfter: result.balanceCentsAfter };
