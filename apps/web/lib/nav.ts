@@ -160,6 +160,15 @@ export const NAV_ITEMS: readonly NavItem[] = [
     href: '/o/[slug]/activity',
     requiredCapability: 'reporting:access',
   },
+  // FC-parity: Messages — operator-authored member announcements. Gated on
+  // org:manage_settings (owner/manager, same as Org settings). Placed right
+  // before Org settings in the admin cluster; the compose surface still lives
+  // under /settings/messages (Org settings also links to it).
+  {
+    label: 'Messages',
+    href: '/o/[slug]/settings/messages',
+    requiredCapability: 'org:manage_settings',
+  },
   {
     label: 'Org settings',
     href: '/o/[slug]/settings',

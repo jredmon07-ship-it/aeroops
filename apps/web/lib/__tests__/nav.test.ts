@@ -112,8 +112,8 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 //   Org settings     org:manage_settings         → owner, manager
 //   Help             app:access                  → ALL 8 roles (Slice P1.8)
 const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
-  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Billing', 'Reports', 'Activity', 'Org settings', 'Help'],
-  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Billing', 'Reports', 'Activity', 'Org settings', 'Help'],
+  owner:      ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Billing', 'Reports', 'Activity', 'Messages', 'Org settings', 'Help'],
+  manager:    ['Portal', 'Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Billing', 'Reports', 'Activity', 'Messages', 'Org settings', 'Help'],
   dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Reports', 'Activity', 'Help'],
   cfi:        ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity', 'Help'],
   mechanic:   ['Fleet', 'Maintenance', 'Help'],
@@ -152,8 +152,8 @@ describe('2. owner gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('owner');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 16 items (full nav incl. Portal + Dashboard + Booking requests + Billing + Activity + Help + all staff items)', () => {
-    expect(result.length).toBe(16);
+  it('returns exactly 17 items (full nav incl. Portal + Dashboard + Booking requests + Billing + Activity + Messages + Help + all staff items)', () => {
+    expect(result.length).toBe(17);
   });
 
   it('includes Portal (first item for owner)', () => {
@@ -195,8 +195,8 @@ describe('3. manager gets Portal + Dashboard and Org settings', () => {
   const session = makeSession('manager');
   const result = filterNavForSession(session, NAV_ITEMS, 'acme');
 
-  it('returns exactly 16 items (full nav)', () => {
-    expect(result.length).toBe(16);
+  it('returns exactly 17 items (full nav)', () => {
+    expect(result.length).toBe(17);
   });
 
   it('includes Portal', () => {
@@ -458,8 +458,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 16 items (Portal + Dashboard + Booking requests + Billing + Activity + Help + 10 staff items)', () => {
-    expect(NAV_ITEMS.length).toBe(16);
+  it('NAV_ITEMS has exactly 17 items (Portal + Dashboard + Booking requests + Billing + Activity + Messages + Help + 10 staff items)', () => {
+    expect(NAV_ITEMS.length).toBe(17);
   });
 
   it('first item is Portal with portal:access (Slice P1.2 addition)', () => {
@@ -580,6 +580,30 @@ describe('11. NAV_ITEMS registry', () => {
     const settingsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Org settings');
     expect(activityIdx).toBeGreaterThan(reportsIdx);
     expect(activityIdx).toBeLessThan(settingsIdx);
+  });
+
+  it('Messages item is gated by org:manage_settings and placed after Activity, immediately before Org settings (FC-parity)', () => {
+    const messages = NAV_ITEMS.find((i) => i.label === 'Messages');
+    expect(messages?.requiredCapability).toBe('org:manage_settings');
+    expect(messages?.href).toBe('/o/[slug]/settings/messages');
+    const activityIdx = NAV_ITEMS.findIndex((i) => i.label === 'Activity');
+    const messagesIdx = NAV_ITEMS.findIndex((i) => i.label === 'Messages');
+    const settingsIdx = NAV_ITEMS.findIndex((i) => i.label === 'Org settings');
+    expect(messagesIdx).toBeGreaterThan(activityIdx);
+    expect(messagesIdx).toBe(settingsIdx - 1);
+  });
+
+  it('Messages is visible to owner + manager but NOT dispatcher, cfi, accountant, mechanic, renter, student', () => {
+    const checkRole = (role: MembershipRole) => {
+      const s = makeSession(role);
+      return filterNavForSession(s, NAV_ITEMS, 'acme').some((i) => i.label === 'Messages');
+    };
+    expect(checkRole('owner')).toBe(true);
+    expect(checkRole('manager')).toBe(true);
+    expect(checkRole('dispatcher')).toBe(false);
+    expect(checkRole('cfi')).toBe(false);
+    expect(checkRole('accountant')).toBe(false);
+    expect(checkRole('mechanic')).toBe(false);
   });
 
   it('Reports is visible to accountant (reporting:access) but not mechanic, renter, student', () => {
