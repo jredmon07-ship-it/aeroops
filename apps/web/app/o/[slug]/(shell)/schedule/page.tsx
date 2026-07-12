@@ -32,20 +32,32 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateNav } from './_components/date-nav';
 import { ReservationList } from './_components/reservation-list';
-import { listReservationsAction } from './actions';
-import { listResourcesAction } from './actions';
+import { MonthView } from './_components/month-view';
+import {
+  listReservationsAction,
+  listResourcesAction,
+  listOrgMembersAction,
+} from './actions';
 import {
   parseDateParam,
   startOfDay,
   endOfDay,
   toDateInputValue,
 } from './_utils/format-time';
+import { buildMonthGrid, parseMonthParam, formatMonthParam } from '@/lib/month-grid';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface SchedulePageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ date?: string; success?: string }>;
+  searchParams: Promise<{
+    date?: string;
+    success?: string;
+    /** 'month' switches to the month calendar; anything else = List (default). */
+    view?: string;
+    /** "YYYY-MM" month to display when view=month. */
+    month?: string;
+  }>;
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -108,6 +120,68 @@ async function ScheduleContent({
   );
 }
 
+// ─── Month-view inner async component (fetches data under Suspense) ──────────
+
+interface MonthContentProps {
+  slug: string;
+  year: number;
+  month: number;
+  todayIso: string;
+  canManageResources: boolean;
+}
+
+async function MonthContent({
+  slug,
+  year,
+  month,
+  todayIso,
+  canManageResources,
+}: MonthContentProps) {
+  // Padded grid window: local midnight of the first grid cell → end of the
+  // last grid cell (same local-day semantics as the List view's day window).
+  const grid = buildMonthGrid(year, month);
+  const from = startOfDay(parseDateParam(grid.gridStartIso) ?? new Date());
+  const to = endOfDay(parseDateParam(grid.gridEndIso) ?? new Date());
+
+  // Fetch reservations + resources (+ member names when permitted) in parallel.
+  // listReservations excludes cancelled by default — month chips never show them.
+  // Member names are gated on schedule:manage_resources server-side; without
+  // the capability we skip the call entirely (fail-closed: chips omit booked-by).
+  const [reservationsResult, resourcesResult, membersResult] = await Promise.all([
+    listReservationsAction({ from, to }),
+    listResourcesAction({}),
+    canManageResources
+      ? listOrgMembersAction()
+      : Promise.resolve(null),
+  ]);
+
+  const reservations =
+    'ok' in reservationsResult && reservationsResult.ok
+      ? reservationsResult.reservations
+      : [];
+  const resources =
+    'ok' in resourcesResult && resourcesResult.ok ? resourcesResult.resources : [];
+  const memberNames: Array<[string, string]> =
+    membersResult && 'ok' in membersResult && membersResult.ok
+      ? membersResult.members.map((m) => [m.userId, m.displayName])
+      : [];
+
+  const hasError = !('ok' in reservationsResult) || !reservationsResult.ok;
+
+  return (
+    <MonthView
+      slug={slug}
+      year={year}
+      month={month}
+      todayIso={todayIso}
+      reservations={reservations}
+      resources={resources}
+      memberNames={memberNames}
+      error={hasError}
+    />
+  );
+}
+
 // ─── Page component ───────────────────────────────────────────────────────────
 
 export default async function SchedulePage({
@@ -115,7 +189,11 @@ export default async function SchedulePage({
   searchParams,
 }: SchedulePageProps) {
   const { slug } = await params;
-  const { date: dateParam } = await searchParams;
+  const {
+    date: dateParam,
+    view: viewParam,
+    month: monthParam,
+  } = await searchParams;
 
   const session = await auth();
 
@@ -139,9 +217,18 @@ export default async function SchedulePage({
   const canManageResources = hasCapability(session, 'schedule:manage_resources');
   const canAutoSchedule = hasCapability(session, 'schedule:create_reservation');
 
-  // ── Resolve the display date ──────────────────────────────────────────────
+  // ── Resolve the display date + view ──────────────────────────────────────
+  // Default stays List — ?view=month is opt-in (linkable), zero behavior
+  // change for existing users. Malformed ?month= degrades to the display date.
   const date = parseDateParam(dateParam) ?? new Date();
   const dateStr = toDateInputValue(date);
+  const isMonthView = viewParam === 'month';
+  const ym = parseMonthParam(monthParam) ?? {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+  };
+  const monthStr = formatMonthParam(ym.year, ym.month);
+  const todayIso = toDateInputValue(new Date());
 
   return (
     <div className="space-y-4">
@@ -168,25 +255,58 @@ export default async function SchedulePage({
         </div>
       </div>
 
-      {/* ── Toolbar: DateNav + List/Board view toggle ─────────────────────── */}
+      {/* ── Toolbar: DateNav (List only) + List/Month/Board view toggle ──── */}
       <div className="flex flex-wrap items-center gap-3">
-        <DateNav date={date} basePath={`/o/${slug}/schedule`} />
+        {!isMonthView && <DateNav date={date} basePath={`/o/${slug}/schedule`} />}
 
-        {/* List / Board view toggle */}
+        {/* List / Month / Board view toggle */}
         <div
           role="group"
           aria-label="View"
           className="flex rounded-md border border-slate-200 overflow-hidden"
         >
-          <Button
-            variant="default"
-            size="sm"
-            className="rounded-none border-r border-slate-200"
-            aria-current="page"
-            disabled
-          >
-            List
-          </Button>
+          {isMonthView ? (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="rounded-none border-r border-slate-200"
+            >
+              <Link href={`/o/${slug}/schedule?date=${dateStr}`}>List</Link>
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              className="rounded-none border-r border-slate-200"
+              aria-current="page"
+              disabled
+            >
+              List
+            </Button>
+          )}
+          {isMonthView ? (
+            <Button
+              variant="default"
+              size="sm"
+              className="rounded-none border-r border-slate-200"
+              aria-current="page"
+              disabled
+            >
+              Month
+            </Button>
+          ) : (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="rounded-none border-r border-slate-200"
+            >
+              <Link href={`/o/${slug}/schedule?view=month&month=${monthStr}`}>
+                Month
+              </Link>
+            </Button>
+          )}
           <Button
             asChild
             variant="ghost"
@@ -200,15 +320,25 @@ export default async function SchedulePage({
         </div>
       </div>
 
-      {/* ── Reservation list under Suspense ──────────────────────────────── */}
+      {/* ── Content under Suspense: Month grid or Reservation list ────────── */}
       <Suspense fallback={<ScheduleSkeleton />}>
-        <ScheduleContent
-          slug={slug}
-          date={date}
-          dateStr={dateStr}
-          canCreate={canCreate}
-          canManageResources={canManageResources}
-        />
+        {isMonthView ? (
+          <MonthContent
+            slug={slug}
+            year={ym.year}
+            month={ym.month}
+            todayIso={todayIso}
+            canManageResources={canManageResources}
+          />
+        ) : (
+          <ScheduleContent
+            slug={slug}
+            date={date}
+            dateStr={dateStr}
+            canCreate={canCreate}
+            canManageResources={canManageResources}
+          />
+        )}
       </Suspense>
     </div>
   );

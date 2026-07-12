@@ -628,3 +628,15 @@ export type { MemberMessageSelect, MemberMessageInsert } from './member-message.
 // (free-text identity columns — see resource.ts).
 export { logbookAnnotation } from './logbook-annotation.js';
 export type { LogbookAnnotationSelect, LogbookAnnotationInsert } from './logbook-annotation.js';
+
+// Slice FC-P2: Member expiration reminders — tenant-scoped (migration 0039 —
+// STAGED, human-gated, NOT applied). member_expiration is an OPERATOR-ENTERED
+// reminder date (FREE-TEXT label, e.g. 'Medical', 'Flight review') attached
+// to a member; expires_on is a plain calendar date ('YYYY-MM-DD' string end
+// to end — NO timezone math). Surfaced WARN-ONLY (member detail + check-out
+// pre-flight checklist); NEVER blocks dispatch — the FROZEN openDispatch gate
+// is untouched. NO computed medical/currency/legal validity determination.
+// [VERIFY-FC-P2-A]. RLS: SELECT + INSERT + UPDATE only (soft-deactivate; no
+// DELETE policy).
+export { memberExpiration } from './member-expiration.js';
+export type { MemberExpirationSelect, MemberExpirationInsert } from './member-expiration.js';

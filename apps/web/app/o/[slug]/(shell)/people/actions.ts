@@ -36,6 +36,9 @@ import {
   addMember,
   getPilotLog,
   exportPilotLogCsv,
+  addMemberExpiration,
+  deactivateMemberExpiration,
+  listMemberExpirations,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -59,6 +62,9 @@ import type {
   MemberCursor,
   PilotLog,
   PilotLogEntry,
+  MemberExpirationView,
+  MemberExpirationStatus,
+  AddMemberExpirationInput,
 } from '@aeroops/api';
 import type { DispatchTicketView } from '@aeroops/api';
 
@@ -463,6 +469,126 @@ export async function exportPilotLogCsvAction(
     const result = await exportPilotLogCsv(session, { userId, ...input });
     if (!result.ok) return { ok: false, reason: result.reason };
     return { ok: true, filename: result.filename, csv: result.csv };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice FC-P2 — Member expiration reminders (migration 0039)
+//
+// COMPLIANCE HARD LINE [VERIFY-FC-P2-A]: Operator-entered reminder dates.
+// Not a medical/currency/legal determination — verifying actual validity
+// remains the operator's and pilot's responsibility. Warn-only display;
+// expirations NEVER block dispatch (the FROZEN openDispatch gate is untouched).
+//
+// Dates are 'YYYY-MM-DD' strings end to end — NO timezone math, so no
+// serialization step is needed for expiresOn (createdAt is still serialized).
+// ════════════════════════════════════════════════════════════════════════════════
+
+export interface SerializedMemberExpirationView {
+  id: string;
+  memberUserId: string;
+  /** FREE-TEXT operator label (e.g. 'Medical'). No regulatory meaning. */
+  label: string;
+  /** Calendar date 'YYYY-MM-DD'. */
+  expiresOn: string;
+  note: string | null;
+  active: boolean;
+  /** Display arithmetic ONLY — NOT a validity determination. [VERIFY-FC-P2-A] */
+  status: MemberExpirationStatus;
+  createdBy: string;
+  createdAt: string;
+}
+
+function serializeExpiration(e: MemberExpirationView): SerializedMemberExpirationView {
+  return {
+    id: e.id,
+    memberUserId: e.memberUserId,
+    label: e.label,
+    expiresOn: e.expiresOn,
+    note: e.note,
+    active: e.active,
+    status: e.status,
+    createdBy: e.createdBy,
+    createdAt: serializeDate(e.createdAt) ?? '',
+  };
+}
+
+// ─── listMemberExpirationsAction ───────────────────────────────────────────────
+
+export type ListMemberExpirationsActionResult =
+  | { ok: true; expirations: SerializedMemberExpirationView[] }
+  | { ok: false; reason: 'member_not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function listMemberExpirationsAction(input: {
+  memberUserId: string;
+}): Promise<ListMemberExpirationsActionResult> {
+  const session = await auth();
+  try {
+    const result = await listMemberExpirations(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, expirations: result.expirations.map(serializeExpiration) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── addMemberExpirationAction ─────────────────────────────────────────────────
+
+export type AddMemberExpirationActionResult =
+  | { ok: true; expiration: SerializedMemberExpirationView }
+  | { ok: false; reason: 'member_not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function addMemberExpirationAction(
+  input: AddMemberExpirationInput,
+): Promise<AddMemberExpirationActionResult> {
+  const session = await auth();
+  try {
+    const result = await addMemberExpiration(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, expiration: serializeExpiration(result.expiration) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── deactivateMemberExpirationAction ──────────────────────────────────────────
+
+export type DeactivateMemberExpirationActionResult =
+  | { ok: true; expiration: SerializedMemberExpirationView; alreadyInactive: boolean }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function deactivateMemberExpirationAction(input: {
+  expirationId: string;
+}): Promise<DeactivateMemberExpirationActionResult> {
+  const session = await auth();
+  try {
+    const result = await deactivateMemberExpiration(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return {
+      ok: true,
+      expiration: serializeExpiration(result.expiration),
+      alreadyInactive: result.alreadyInactive,
+    };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

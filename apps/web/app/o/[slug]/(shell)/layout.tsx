@@ -25,7 +25,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { getSessionOrg } from '@aeroops/api';
+import { getSessionOrg, getOrgFieldStatus } from '@aeroops/api';
+import type { OrgFieldStatusResult } from '@aeroops/api';
 import { ROLE_LABELS } from '@aeroops/core';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -34,6 +35,7 @@ import { MobileNav } from './mobile-nav';
 import { filterNavForSession, NAV_ITEMS } from '@/lib/nav';
 import { CommandPalette } from './command-palette';
 import { AlertsBell } from './alerts-bell';
+import { FieldStatusBar } from './field-status-bar';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -67,6 +69,16 @@ export default async function OrgShellLayout({
   }
 
   const roleLabel = ROLE_LABELS[session.role] ?? session.role;
+
+  // Ops status bar data — FAIL SOFT: any failure renders the bar with just
+  // the clocks (getOrgFieldStatus never surfaces an error state; this catch
+  // is defense in depth so a weather outage can never break the shell).
+  let fieldStatus: OrgFieldStatusResult | null = null;
+  try {
+    fieldStatus = await getOrgFieldStatus(session);
+  } catch {
+    fieldStatus = null;
+  }
 
   // UI/nav only — gate enforced by requireCapability() in each protected page.
   const navItems = filterNavForSession(session, NAV_ITEMS, slug);
@@ -175,11 +187,15 @@ export default async function OrgShellLayout({
           </div>
         </aside>
 
-        {/* Main content area — centered to a comfortable reading width */}
-        <main className="flex-1 px-4 py-7 sm:px-8" id="main-content">
+        {/* Main content area — centered to a comfortable reading width.
+            pb-16 keeps content clear of the fixed bottom status bar. */}
+        <main className="flex-1 px-4 py-7 pb-16 sm:px-8" id="main-content">
           <div className="mx-auto w-full max-w-screen-xl">{children}</div>
         </main>
       </div>
+
+      {/* ── Ops status bar (fixed bottom, every screen) ───────────────────── */}
+      <FieldStatusBar status={fieldStatus} />
     </div>
   );
 }

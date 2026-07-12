@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getMemberDetailAction } from '../actions';
 import type { SerializedMemberDetail } from '../actions';
 import { MemberDetailClient } from '../_components/member-detail-client';
+import { MemberExpirationsCard } from '../_components/member-expirations-card';
 import { MemberTrainingCard } from '../_components/member-training-card';
 import { MemberLogbookCard } from '../_components/member-logbook-card';
 import { DocumentsCard } from '../../documents-card';
@@ -314,6 +315,11 @@ async function DetailContent({ userId, slug, canManage }: DetailContentProps) {
 
       {/* ── Static cards ────────────────────────────────────────────────────── */}
       <StaticContactCard member={member} />
+
+      {/* ── Expirations card (Slice FC-P2) [VERIFY-FC-P2-A] ─────────────────── */}
+      {/* Operator-entered reminder dates — warn-only, never blocks dispatch. */}
+      <MemberExpirationsCard memberUserId={member.userId} canManage={canManage} />
+
       <StaticUpcomingReservationsCard member={member} />
       <StaticDispatchCard member={member} />
 

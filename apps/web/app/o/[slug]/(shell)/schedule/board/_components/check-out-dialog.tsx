@@ -28,6 +28,18 @@
  * the picker. A free-text userId input remains as a defensive fallback if the
  * list ever fails to load.
  *
+ * PRE-FLIGHT CHECKLIST (Slice FC-P2 — Confirm-Dispatch parity, ADDITIVE):
+ * once a pilot is selected, getDispatchPreflightAction renders READ-ONLY
+ * status rows (grounding / open squawks / pilot expirations / balance when
+ * billing caps allow) BEFORE the Dispatch button. WARN-ONLY — these rows
+ * never block; the actual openDispatch call and its gate handling below are
+ * byte-identical to before this slice. [VERIFY-FC-P2-A]: expirations are
+ * operator-entered reminder dates, NOT a medical/currency/legal determination.
+ *
+ * A local "Pilot briefed" checkbox must be ticked to enable the Dispatch
+ * button — a UI-only affordance, clearly NOT recorded anywhere (no schema,
+ * no write).
+ *
  * BOUNDARY: imports only from '@aeroops/api'. No '@aeroops/db'.
  */
 'use client';
@@ -46,8 +58,74 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { openDispatchAction, listDispatchPilotsAction } from '../../actions';
+import {
+  openDispatchAction,
+  listDispatchPilotsAction,
+  getDispatchPreflightAction,
+} from '../../actions';
+import type { DispatchPreflight } from '../../actions';
 import type { DispatchTicketView, DispatchPilotRow } from '@aeroops/api';
+
+// ─── Pre-flight helpers (Slice FC-P2) ─────────────────────────────────────────
+
+/** Full-UUID guard for the pre-flight fetch (pilot ids are always UUIDs). */
+const PILOT_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// ─── Pre-flight status chips (Slice FC-P2) ────────────────────────────────────
+
+type PreflightTone = 'ok' | 'warn' | 'bad' | 'muted';
+
+const PREFLIGHT_CHIP_CLASSES: Record<PreflightTone, string> = {
+  ok:    'border-green-200 bg-green-50 text-green-800',
+  warn:  'border-amber-200 bg-amber-50 text-amber-800',
+  bad:   'border-red-200 bg-red-50 text-red-800',
+  muted: 'border-slate-200 bg-slate-50 text-slate-500',
+};
+
+function PreflightChip({ tone, children }: { tone: PreflightTone; children: React.ReactNode }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${PREFLIGHT_CHIP_CLASSES[tone]}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function PreflightRow({
+  label,
+  chip,
+  detail,
+}: {
+  label: string;
+  chip: React.ReactNode;
+  detail?: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-slate-600">{label}</span>
+        {chip}
+      </div>
+      {detail}
+    </div>
+  );
+}
+
+function formatDateOnly(iso: string): string {
+  // 'YYYY-MM-DD' rendered without Date-object timezone drift.
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return iso;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${monthNames[Number(m) - 1] ?? m} ${Number(d)}, ${y}`;
+}
+
+function formatCents(cents: number): string {
+  const sign = cents < 0 ? '-' : '';
+  const abs = Math.abs(cents);
+  return `${sign}$${(abs / 100).toFixed(2)}`;
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -98,6 +176,15 @@ export function CheckOutDialog({
    */
   const [membersUnavailable, setMembersUnavailable] = React.useState(false);
 
+  // ── Pre-flight checklist state (Slice FC-P2 — read-only, warn-only) ────────
+  const [preflight, setPreflight] = React.useState<DispatchPreflight | null>(null);
+  const [preflightLoading, setPreflightLoading] = React.useState(false);
+  /**
+   * Local, NON-PERSISTED confirmation checkbox — a UI-only affordance gating
+   * the Dispatch button. Never sent to the server, never recorded.
+   */
+  const [briefed, setBriefed] = React.useState(false);
+
   // ── Load members when the dialog opens ─────────────────────────────────────
   React.useEffect(() => {
     if (!open) return;
@@ -113,6 +200,9 @@ export function CheckOutDialog({
     setDialogError(null);
     setMembers(null);
     setMembersUnavailable(false);
+    setPreflight(null);
+    setPreflightLoading(false);
+    setBriefed(false);
 
     let cancelled = false;
     setMembersLoading(true);
@@ -140,6 +230,44 @@ export function CheckOutDialog({
       cancelled = true;
     };
   }, [open]);
+
+  // ── Load the pre-flight checklist when a pilot is selected ─────────────────
+  // Read-only, warn-only status snapshot (grounding / squawks / expirations /
+  // balance). Failures degrade to hidden rows — never block the form.
+  // Only fires for a full UUID (select values always are; the free-text
+  // fallback fires once the pasted/typed id is complete — not per keystroke).
+  React.useEffect(() => {
+    if (!open) return;
+    const pilot = pilotUserId.trim();
+    if (!pilot || !PILOT_UUID_RE.test(pilot)) {
+      setPreflight(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPreflightLoading(true);
+
+    getDispatchPreflightAction({ resourceId, pilotUserId: pilot })
+      .then((result) => {
+        if (cancelled) return;
+        setPreflightLoading(false);
+        if ('ok' in result && result.ok) {
+          setPreflight(result.preflight);
+        } else {
+          setPreflight(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreflightLoading(false);
+          setPreflight(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, resourceId, pilotUserId]);
 
   // ── Validation ─────────────────────────────────────────────────────────────
   function validate(): boolean {
@@ -414,6 +542,149 @@ export function CheckOutDialog({
             />
           </div>
 
+          {/* ── Pre-flight checklist (Slice FC-P2 — read-only, warn-only) ── */}
+          {/* Never blocks: the FROZEN openDispatch gate still runs on submit. */}
+          <div className="rounded-md border border-slate-200 bg-slate-50/60 p-3 space-y-2.5">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Confirm dispatch — pre-flight check
+            </h3>
+
+            {!PILOT_UUID_RE.test(pilotUserId.trim()) && (
+              <p className="text-xs text-slate-400 italic">
+                Select a pilot to run the pre-flight check.
+              </p>
+            )}
+
+            {PILOT_UUID_RE.test(pilotUserId.trim()) && preflightLoading && (
+              <div
+                className="h-16 w-full rounded-md bg-slate-100 animate-pulse"
+                aria-busy="true"
+                aria-label="Loading pre-flight check"
+              />
+            )}
+
+            {PILOT_UUID_RE.test(pilotUserId.trim()) && !preflightLoading && preflight === null && (
+              <p className="text-xs text-slate-400 italic">
+                Pre-flight status unavailable. You can still dispatch — the
+                dispatch gate runs on submit.
+              </p>
+            )}
+
+            {PILOT_UUID_RE.test(pilotUserId.trim()) && !preflightLoading && preflight !== null && (
+              <div className="space-y-2.5">
+                {/* Aircraft grounding — reuses the existing grounding read. */}
+                {preflight.grounding !== null && (
+                  <PreflightRow
+                    label="Aircraft grounding"
+                    chip={
+                      preflight.grounding.grounded ? (
+                        <PreflightChip tone="bad">Grounded</PreflightChip>
+                      ) : (
+                        <PreflightChip tone="ok">Not grounded</PreflightChip>
+                      )
+                    }
+                    detail={
+                      preflight.grounding.grounded && preflight.grounding.reason ? (
+                        <p className="text-xs text-red-700">{preflight.grounding.reason}</p>
+                      ) : undefined
+                    }
+                  />
+                )}
+
+                {/* Open squawks — advisory count. */}
+                {preflight.openSquawkCount !== null && (
+                  <PreflightRow
+                    label="Open squawks"
+                    chip={
+                      preflight.openSquawkCount > 0 ? (
+                        <PreflightChip tone="warn">
+                          {preflight.openSquawkCount} open
+                        </PreflightChip>
+                      ) : (
+                        <PreflightChip tone="ok">None</PreflightChip>
+                      )
+                    }
+                  />
+                )}
+
+                {/* Pilot expirations — operator-entered reminder dates. */}
+                {preflight.expirations !== null && (
+                  <PreflightRow
+                    label="Pilot expirations"
+                    chip={
+                      preflight.expirations.expiredCount > 0 ? (
+                        <PreflightChip tone="bad">Expired</PreflightChip>
+                      ) : preflight.expirations.dueSoonCount > 0 ? (
+                        <PreflightChip tone="warn">Due soon</PreflightChip>
+                      ) : (
+                        <PreflightChip tone="ok">None due</PreflightChip>
+                      )
+                    }
+                    detail={
+                      <>
+                        {preflight.expirations.items
+                          .filter((e) => e.status !== 'ok')
+                          .map((e) => (
+                            <p
+                              key={e.id}
+                              className={`text-xs ${
+                                e.status === 'expired' ? 'text-red-700' : 'text-amber-700'
+                              }`}
+                            >
+                              {e.label} — {e.status === 'expired' ? 'expired' : 'due'}{' '}
+                              {formatDateOnly(e.expiresOn)}
+                            </p>
+                          ))}
+                        {/* [VERIFY-FC-P2-A] — verbatim disclaimer. */}
+                        <p className="text-[10px] leading-4 text-slate-400">
+                          Operator-entered reminder dates. Not a medical/currency/legal
+                          determination — verifying actual validity remains the
+                          operator&apos;s and pilot&apos;s responsibility.
+                        </p>
+                      </>
+                    }
+                  />
+                )}
+
+                {/* Pilot balance — hidden entirely without billing:access. */}
+                {preflight.balance !== null && (
+                  <PreflightRow
+                    label="Account balance"
+                    chip={
+                      preflight.balance.balanceCents < preflight.balance.minimumBalanceCents ? (
+                        <PreflightChip tone="warn">
+                          {formatCents(preflight.balance.balanceCents)} — below minimum
+                        </PreflightChip>
+                      ) : (
+                        <PreflightChip tone="muted">
+                          {formatCents(preflight.balance.balanceCents)}
+                        </PreflightChip>
+                      )
+                    }
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Local confirmation — UI-only affordance, clearly NOT recorded. */}
+            <label className="flex items-start gap-2 pt-1 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={briefed}
+                onChange={(e) => setBriefed(e.target.checked)}
+                disabled={isSubmitting}
+                className="mt-0.5 h-4 w-4 accent-brand"
+                aria-describedby="co-briefed-hint"
+              />
+              <span>
+                Pilot briefed: W&amp;B, NOTAMs, weather verified{' '}
+                <span id="co-briefed-hint" className="text-xs text-slate-400">
+                  (confirmation to enable Dispatch — not recorded)
+                </span>
+              </span>
+            </label>
+          </div>
+
           {/* ── Dialog-level error ────────────────────────────────────────── */}
           {dialogError && (
             <Alert variant="destructive" role="alert" aria-live="assertive">
@@ -434,7 +705,9 @@ export function CheckOutDialog({
                 Keep as-is
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting || membersLoading}>
+            {/* Disabled until "Pilot briefed" is ticked (UI-only affordance —
+                the server-side dispatch gate is unchanged). */}
+            <Button type="submit" disabled={isSubmitting || membersLoading || !briefed}>
               {isSubmitting ? 'Checking out…' : 'Check out'}
             </Button>
           </DialogFooter>

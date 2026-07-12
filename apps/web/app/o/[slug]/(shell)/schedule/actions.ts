@@ -41,6 +41,10 @@ import {
   voidDispatch,
   getDispatchForReservation,
   listDispatchPilots,
+  getGroundingStatus,
+  getOpenSquawkCounts,
+  listMemberExpirations,
+  getMemberBalance,
   previewAvailability,
   sendNotification,
   getMetarForAircraft,
@@ -72,6 +76,7 @@ import type {
   CloseDispatchResult,
   VoidDispatchResult,
   DispatchTicketView,
+  MemberExpirationStatus,
   ParsedMetar,
 } from '@aeroops/api';
 
@@ -606,6 +611,131 @@ export async function openDispatchAction(input: {
     }
     return { error: 'server' };
   }
+}
+
+// ─── getDispatchPreflightAction ───────────────────────────────────────────────
+
+/**
+ * DispatchPreflightExpirationRow — one operator-entered expiration reminder
+ * for the selected pilot, with its display status. [VERIFY-FC-P2-A]: status
+ * is date arithmetic on an operator-entered reminder — NOT a medical/
+ * currency/legal validity determination.
+ */
+export interface DispatchPreflightExpirationRow {
+  id: string;
+  label: string;
+  /** Calendar date 'YYYY-MM-DD'. */
+  expiresOn: string;
+  status: MemberExpirationStatus;
+}
+
+/**
+ * DispatchPreflight — read-only status snapshot rendered as a checklist in
+ * the check-out ("Confirm dispatch") dialog BEFORE the user hits Dispatch.
+ *
+ * Every facet is null when its read was unavailable (missing capability or a
+ * transient failure) — the dialog hides that row gracefully. WARN-ONLY:
+ * nothing here blocks the dispatch; the FROZEN openDispatch gate (grounded →
+ * ineligible → balance) still runs unchanged when the user submits.
+ */
+export interface DispatchPreflight {
+  /** Aircraft grounding status (operator-set grounding record). */
+  grounding: { grounded: boolean; reason: string | null } | null;
+  /**
+   * Pilot expiration reminders. [VERIFY-FC-P2-A]: operator-entered reminder
+   * dates only — not a medical/currency/legal determination.
+   */
+  expirations: {
+    items: DispatchPreflightExpirationRow[];
+    expiredCount: number;
+    dueSoonCount: number;
+  } | null;
+  /** Pilot balance — null when the caller lacks billing:access (row hidden). */
+  balance: { balanceCents: number; minimumBalanceCents: number } | null;
+  /** Open squawk count on the aircraft. */
+  openSquawkCount: number | null;
+}
+
+export type GetDispatchPreflightActionResult =
+  | { ok: true; preflight: DispatchPreflight }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+/**
+ * getDispatchPreflightAction — assemble the pre-flight checklist for the
+ * check-out dialog in ONE round trip. READ-ONLY composition of EXISTING
+ * scoped reads (grounding, squawk counts, member expirations, balance) —
+ * no new query surface, no writes, no gate changes.
+ *
+ * Facet-level failures (e.g. a dispatcher without billing:access hitting
+ * getMemberBalance's Forbidden) degrade that facet to null instead of
+ * failing the whole action — the dialog hides the row.
+ */
+export async function getDispatchPreflightAction(input: {
+  resourceId: string;
+  pilotUserId: string;
+}): Promise<GetDispatchPreflightActionResult> {
+  const session = await auth();
+  if (!session) return { error: 'unauthenticated' };
+
+  const preflight: DispatchPreflight = {
+    grounding: null,
+    expirations: null,
+    balance: null,
+    openSquawkCount: null,
+  };
+
+  // Grounding (maintenance:access) — reuses the existing grounding read.
+  try {
+    const statusMap = await getGroundingStatus(session, { resourceIds: [input.resourceId] });
+    const s = statusMap.get(input.resourceId);
+    if (s) preflight.grounding = { grounded: s.grounded, reason: s.reason };
+  } catch {
+    // Missing cap / transient failure → row hidden.
+  }
+
+  // Open squawk count (maintenance:access).
+  try {
+    const counts = await getOpenSquawkCounts(session, { resourceIds: [input.resourceId] });
+    preflight.openSquawkCount = counts.get(input.resourceId) ?? 0;
+  } catch {
+    // Row hidden.
+  }
+
+  // Pilot expirations (people:access). [VERIFY-FC-P2-A]: warn-only reminders.
+  try {
+    const r = await listMemberExpirations(session, { memberUserId: input.pilotUserId });
+    if (r.ok) {
+      const items = r.expirations.map((e) => ({
+        id: e.id,
+        label: e.label,
+        expiresOn: e.expiresOn,
+        status: e.status,
+      }));
+      preflight.expirations = {
+        items,
+        expiredCount: items.filter((e) => e.status === 'expired').length,
+        dueSoonCount: items.filter((e) => e.status === 'due_soon').length,
+      };
+    }
+  } catch {
+    // Row hidden.
+  }
+
+  // Pilot balance (billing:access) — hidden gracefully on Forbidden.
+  try {
+    const r = await getMemberBalance(session, { memberUserId: input.pilotUserId });
+    if (r.ok) {
+      preflight.balance = {
+        balanceCents: r.balanceCents,
+        minimumBalanceCents: r.minimumBalanceCents,
+      };
+    }
+  } catch {
+    // Row hidden (e.g. dispatcher/cfi lack billing:access).
+  }
+
+  return { ok: true, preflight };
 }
 
 // ─── closeDispatchAction ──────────────────────────────────────────────────────

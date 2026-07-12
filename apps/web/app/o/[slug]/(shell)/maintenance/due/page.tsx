@@ -34,9 +34,10 @@ import { MaintenanceDueList, MaintenanceDueListSkeleton } from './_components/ma
 interface DueContentProps {
   slug: string;
   canManage: boolean;
+  canSeedCommon: boolean;
 }
 
-async function DueContent({ slug, canManage }: DueContentProps) {
+async function DueContent({ slug, canManage, canSeedCommon }: DueContentProps) {
   const [dueResult, resourcesResult] = await Promise.all([
     listMaintenanceDueAction({}),
     listResourcesAction({}),
@@ -62,7 +63,14 @@ async function DueContent({ slug, canManage }: DueContentProps) {
     : []
   ).filter((r) => r.kind === 'aircraft' && r.active);
 
-  return <MaintenanceDueList initialItems={items} aircraft={aircraft} canManage={canManage} />;
+  return (
+    <MaintenanceDueList
+      initialItems={items}
+      aircraft={aircraft}
+      canManage={canManage}
+      canSeedCommon={canSeedCommon}
+    />
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -89,10 +97,13 @@ export default async function MaintenanceDuePage({ params }: DuePageProps) {
   }
 
   const canManage = hasCapability(session, 'maintenance:work_order');
+  // One-click common-reminder seeding is owner/manager only —
+  // org:manage_settings is the owner/manager-only marker capability.
+  const canSeedCommon = hasCapability(session, 'org:manage_settings');
 
   return (
     <Suspense fallback={<MaintenanceDueListSkeleton />}>
-      <DueContent slug={slug} canManage={canManage} />
+      <DueContent slug={slug} canManage={canManage} canSeedCommon={canSeedCommon} />
     </Suspense>
   );
 }

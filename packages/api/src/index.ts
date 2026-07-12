@@ -656,6 +656,47 @@ export type {
   ListMembersPage,
 } from './people/types.js';
 
+// ─── Slice FC-P2 — Member expiration reminders (migration 0039) ──────────────
+// Operator-entered FREE-TEXT reminder dates on a member (e.g. 'Medical',
+// 'Flight review', 'Rental agreement'), surfaced WARN-ONLY on member detail
+// and in the check-out dialog's pre-flight checklist. Expirations NEVER block
+// dispatch — the FROZEN openDispatch gate is untouched.
+// addMemberExpiration / deactivateMemberExpiration: people:manage (audited
+// 'people.expiration_added' / 'people.expiration_deactivated').
+// listMemberExpirations / listExpiringSoonForOrg: people:access (read-only).
+// [VERIFY-FC-P2-A]: Operator-entered reminder dates. Not a medical/currency/
+// legal determination — verifying actual validity remains the operator's and
+// pilot's responsibility. Dates are 'YYYY-MM-DD' strings end to end.
+
+export {
+  addMemberExpiration,
+  addMemberExpirationWithDb,
+  deactivateMemberExpiration,
+  deactivateMemberExpirationWithDb,
+  listMemberExpirations,
+  listMemberExpirationsWithDb,
+  listExpiringSoonForOrg,
+  listExpiringSoonForOrgWithDb,
+  classifyExpiration,
+  addDaysDateOnly,
+  isValidDateOnly,
+  todayDateOnlyUTC,
+  EXPIRATION_DUE_SOON_DAYS,
+} from './people/member-expirations.js';
+export type {
+  MemberExpirationView,
+  MemberExpirationOrgRow,
+  MemberExpirationStatus,
+  AddMemberExpirationInput,
+  DeactivateMemberExpirationInput,
+  ListMemberExpirationsInput,
+  ListExpiringSoonForOrgInput,
+  AddMemberExpirationResult,
+  DeactivateMemberExpirationResult,
+  ListMemberExpirationsResult,
+  ListExpiringSoonForOrgResult,
+} from './people/member-expirations.js';
+
 // ─── Slice 3c — Dispatch gate (DISPATCH-3c, ADR-0009) ────────────────────────
 // Per-aircraft free-text required tags + per-org dispatch gate config.
 // getResourceRequiredTags / addResourceRequiredTag / removeResourceRequiredTag:
@@ -2165,6 +2206,27 @@ export {
   __resetWeatherProviderForTests,
 } from './weather/provider.js';
 export type { WeatherProvider } from './weather/provider.js';
+
+// getOrgFieldStatus: read-only field status for the org's PRIMARY/home-base
+// airport (ops status bar — cap: app:access, every role). Primary location =
+// home base of the most active aircraft (RLS-scoped, stable tiebreak). Returns
+// station + raw METAR + standard flight category + temp/wind + today's
+// sunrise/sunset (pure computeSolarEvents at the base coords). SHORT in-process
+// per-station METAR cache; FAIL SOFT — any provider/DB hiccup degrades to
+// null fields or { available: false }, never an error to the shell.
+// COMPLIANCE: advisory display ONLY — not a weather briefing, never a go/no-go
+// or dispatch determination; must NEVER be wired into a gate/block write path.
+export {
+  getOrgFieldStatus,
+  getOrgFieldStatusWithDb,
+  parseWindDirDegFromRaw,
+  parseTempCFromRaw,
+  __resetOrgFieldStatusCacheForTests,
+} from './weather/get-org-field-status.js';
+export type {
+  OrgFieldStatusData,
+  OrgFieldStatusResult,
+} from './weather/get-org-field-status.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // Slice Onboarding — guided setup checklist (derived read-only, NO migration)

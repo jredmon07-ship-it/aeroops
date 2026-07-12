@@ -29,8 +29,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { MaintenanceItemDialog } from './maintenance-item-dialog';
 import { MarkServicedDialog } from './mark-serviced-dialog';
-import { deactivateMaintenanceItemAction, notifyMaintenanceDueAction } from '../../due-actions';
+import {
+  deactivateMaintenanceItemAction,
+  notifyMaintenanceDueAction,
+  seedCommonRemindersAction,
+} from '../../due-actions';
 import type { SerializedMaintenanceDueView, SerializedMaintenanceItemView } from '../../due-actions';
+import { computeMaintenanceProgress } from '@/lib/maintenance-progress';
 import type { ResourceRow } from '@aeroops/api';
 import type { MaintenanceDueStatus } from '@aeroops/core';
 
@@ -40,6 +45,8 @@ interface MaintenanceDueListProps {
   initialItems: SerializedMaintenanceDueView[];
   aircraft: ResourceRow[];
   canManage: boolean;
+  /** Owner/manager only — shows the one-click "Add common reminders" seed. */
+  canSeedCommon?: boolean;
   /** When set, this list is scoped to one aircraft (fleet-detail facet reuse). */
   fixedResourceId?: string;
 }
@@ -90,18 +97,66 @@ function formatRemaining(item: SerializedMaintenanceDueView): string | null {
   return null;
 }
 
+// ─── FC-style progress bar (pct remaining vs the item's interval) ─────────────
+//
+// Display-only visual aid on top of the authoritative remaining hours/days —
+// pure math in lib/maintenance-progress.ts (unit-tested). EXPIRED = full red
+// bar with label; <=20% remaining amber; else green; unknown = no bar.
+
+function itemProgress(item: SerializedMaintenanceDueView) {
+  return computeMaintenanceProgress({
+    trackBy: item.trackBy,
+    title: item.title,
+    remaining: item.trackBy === 'hours' ? item.remainingHours : item.remainingDays,
+  });
+}
+
+function RemainingBar({ item }: { item: SerializedMaintenanceDueView }) {
+  const p = itemProgress(item);
+  if (p.tone === 'unknown') {
+    return <span className="text-xs text-slate-400">—</span>;
+  }
+  const fillCls =
+    p.tone === 'expired' ? 'bg-red-500' : p.tone === 'warn' ? 'bg-amber-400' : 'bg-green-500';
+  const remainingText = formatRemaining(item) ?? '';
+  return (
+    <div className="w-32 space-y-0.5">
+      <div
+        role="img"
+        aria-label={
+          p.tone === 'expired' ? `Expired — ${remainingText}` : `${p.pctRemaining}% of interval remaining — ${remainingText}`
+        }
+        className="relative h-2.5 w-full overflow-hidden rounded-sm bg-slate-100 border border-slate-200"
+      >
+        <div className={`h-full ${fillCls}`} style={{ width: `${p.fillPct}%` }} />
+        {p.tone === 'expired' && (
+          <span className="absolute inset-0 grid place-items-center text-[8px] font-bold leading-none tracking-widest text-white">
+            EXPIRED
+          </span>
+        )}
+      </div>
+      <p className="text-[10px] text-slate-500 nums">{remainingText}</p>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function MaintenanceDueList({
   initialItems,
   aircraft,
   canManage,
+  canSeedCommon = false,
   fixedResourceId,
 }: MaintenanceDueListProps) {
   const [items, setItems] = React.useState<SerializedMaintenanceDueView[]>(initialItems);
 
   const [filterResourceId, setFilterResourceId] = React.useState(fixedResourceId ?? '');
   const [filterStatus, setFilterStatus] = React.useState<'' | MaintenanceDueStatus>('');
+  const [sortBy, setSortBy] = React.useState<'status' | 'remaining'>('status');
+
+  const [seedState, setSeedState] = React.useState<'idle' | 'seeding' | 'error'>('idle');
+  const [seedError, setSeedError] = React.useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<SerializedMaintenanceDueView | null>(null);
@@ -114,12 +169,22 @@ export function MaintenanceDueList({
   const [notifyMessage, setNotifyMessage] = React.useState<string | null>(null);
 
   const filtered = React.useMemo(() => {
-    return items.filter((i) => {
+    const list = items.filter((i) => {
       if (filterResourceId && i.resourceId !== filterResourceId) return false;
       if (filterStatus && i.status !== filterStatus) return false;
       return true;
     });
-  }, [items, filterResourceId, filterStatus]);
+    if (sortBy === 'remaining') {
+      // Most urgent first: normalized remaining fraction ascending (expired
+      // sorts by how far past due; unknown last). Stable tiebreak: title.
+      return [...list].sort((a, b) => {
+        const d = itemProgress(a).sortKey - itemProgress(b).sortKey;
+        if (d !== 0) return d;
+        return a.title.localeCompare(b.title);
+      });
+    }
+    return list; // server order: overdue → due_soon → unknown → ok
+  }, [items, filterResourceId, filterStatus, sortBy]);
 
   function aircraftName(resourceId: string): string {
     const r = aircraft.find((a) => a.id === resourceId);
@@ -200,6 +265,36 @@ export function MaintenanceDueList({
   const overdueCount = items.filter((i) => i.status === 'overdue').length;
   const dueSoonCount = items.filter((i) => i.status === 'due_soon').length;
 
+  // "Add common reminders" — owner/manager, one specific aircraft in context,
+  // and that aircraft has ZERO tracked items.
+  const seedTargetId = fixedResourceId ?? filterResourceId;
+  const seedTargetHasNoItems =
+    !!seedTargetId && !items.some((i) => i.resourceId === seedTargetId);
+  const showSeedButton = canManage && canSeedCommon && seedTargetHasNoItems;
+
+  async function handleSeedCommon() {
+    if (!seedTargetId) return;
+    setSeedState('seeding');
+    setSeedError(null);
+    try {
+      const result = await seedCommonRemindersAction({ resourceId: seedTargetId });
+      if ('error' in result) {
+        setSeedState('error');
+        setSeedError(
+          result.error === 'validation' && result.message
+            ? result.message
+            : 'Could not add the common reminders. Please try again.',
+        );
+        return;
+      }
+      setItems((prev) => [...result.items, ...prev.filter((i) => i.resourceId !== seedTargetId)]);
+      setSeedState('idle');
+    } catch {
+      setSeedState('error');
+      setSeedError('Could not add the common reminders. Please try again.');
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* ── Header ────────────────────────────────────────────────────────── */}
@@ -275,6 +370,43 @@ export function MaintenanceDueList({
               <option value="unknown">No meter recorded yet</option>
             </select>
           </div>
+          <div className="space-y-1">
+            <label htmlFor="mi-sort" className="text-xs text-slate-500 font-medium">
+              Sort
+            </label>
+            <select
+              id="mi-sort"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'status' | 'remaining')}
+              className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
+            >
+              <option value="status">Status</option>
+              <option value="remaining">Remaining</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* ── One-click common reminders (owner/manager, aircraft with zero items) ── */}
+      {showSeedButton && (
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 space-y-1.5">
+          <p className="text-sm text-slate-600">
+            <span className="font-medium text-slate-800">{aircraftName(seedTargetId)}</span> has no
+            maintenance reminders yet.
+          </p>
+          <Button variant="outline" size="sm" onClick={handleSeedCommon} disabled={seedState === 'seeding'}>
+            {seedState === 'seeding' ? 'Adding…' : 'Add common reminders'}
+          </Button>
+          <p className="text-[11px] text-slate-400">
+            Adds 50 Hour Oil Change, 100 Hour Inspection, Annual Inspection, ELT Battery,
+            Transponder Check and Pitot/Static Check as plain operator reminder items — each can be
+            edited or deactivated individually.
+          </p>
+          {seedError && (
+            <p role="alert" className="text-xs text-destructive">
+              {seedError}
+            </p>
+          )}
         </div>
       )}
 
@@ -313,6 +445,9 @@ export function MaintenanceDueList({
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
                   Due
                 </th>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Remaining
+                </th>
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide sr-only">
                   Actions
                 </th>
@@ -338,8 +473,10 @@ export function MaintenanceDueList({
                       {item.trackBy === 'hours'
                         ? `${item.dueValueHours ?? '—'} ${item.meterBasis ?? ''} hrs`
                         : item.dueDate ?? '—'}
-                      {formatRemaining(item) ? ` (${formatRemaining(item)})` : ''}
                     </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    <RemainingBar item={item} />
                   </td>
                   <td className="px-3 py-3">
                     {canManage && (
