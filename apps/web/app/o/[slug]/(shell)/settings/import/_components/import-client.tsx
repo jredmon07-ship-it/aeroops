@@ -22,7 +22,7 @@
 import * as React from 'react';
 import { Upload, AlertCircle, CheckCircle2, FileWarning, History } from 'lucide-react';
 import { parseCsv, guessColumnMapping, MEMBER_FIELDS, AIRCRAFT_FIELDS } from '@aeroops/core';
-import type { ColumnMapping, ImportKind } from '@aeroops/core';
+import type { ColumnMapping, ImportKind, ImportSource } from '@aeroops/core';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -53,6 +53,22 @@ const FIELD_LABELS: Record<string, string> = {
 
 const MAX_FILE_BYTES = 5_000_000; // mirrors previewImport's server-side cap
 
+const SOURCE_OPTIONS: ReadonlyArray<{ value: ImportSource; label: string }> = [
+  { value: 'flight_circle', label: 'Flight Circle' },
+  { value: 'myfbo', label: 'myFBO' },
+  { value: 'other', label: 'Other CSV' },
+];
+
+/** Short, source-specific hint shown under the selector. Purely guidance. */
+const SOURCE_HINT: Record<ImportSource, string> = {
+  flight_circle:
+    'Upload the CSV from Flight Circle’s Reports → Downloads screen (their “Users Export” for members, or an aircraft list).',
+  myfbo:
+    'myFBO retires in August 2026. Export a Members/Students or Aircraft report to CSV from myFBO, then upload it here — we’ll match up the columns for you and let you review everything before anything is created.',
+  other:
+    'Any tool’s CSV works. As long as it has a header row, you can map its columns to ours in the next step.',
+};
+
 interface ImportClientProps {
   slug: string;
   canMembers: boolean;
@@ -64,6 +80,7 @@ type Step = 'upload' | 'mapping' | 'preview' | 'done';
 export function ImportClient({ slug: _slug, canMembers, canAircraft }: ImportClientProps) {
   const initialKind: ImportKind = canMembers ? 'members' : 'aircraft';
   const [kind, setKind] = React.useState<ImportKind>(initialKind);
+  const [source, setSource] = React.useState<ImportSource>('flight_circle');
   const [step, setStep] = React.useState<Step>('upload');
   const [filename, setFilename] = React.useState('');
   const [csvText, setCsvText] = React.useState('');
@@ -114,7 +131,7 @@ export function ImportClient({ slug: _slug, canMembers, canAircraft }: ImportCli
     setBusy(true);
     setError(null);
     try {
-      const result = await previewImportAction({ kind, filename, csvText, mapping });
+      const result = await previewImportAction({ kind, source, filename, csvText, mapping });
       if ('error' in result) {
         setError(mapActionError(result));
         return;
@@ -161,8 +178,36 @@ export function ImportClient({ slug: _slug, canMembers, canAircraft }: ImportCli
     ...(canAircraft ? (['aircraft'] as const) : []),
   ];
 
+  function handleSourceChange(next: ImportSource) {
+    if (next === source) return;
+    setSource(next);
+    resetToUpload(kind); // a different provider = a fresh migration attempt
+  }
+
   return (
     <div className="space-y-6">
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-slate-700" id="import-source-label">
+          Where are you migrating from?
+        </p>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="import-source-label">
+          {SOURCE_OPTIONS.map((opt) => (
+            <Button
+              key={opt.value}
+              type="button"
+              variant={source === opt.value ? 'default' : 'outline'}
+              size="sm"
+              role="radio"
+              aria-checked={source === opt.value}
+              onClick={() => handleSourceChange(opt.value)}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500">{SOURCE_HINT[source]}</p>
+      </div>
+
       {availableKinds.length > 1 && (
         <div className="flex gap-2" role="tablist" aria-label="Import kind">
           {availableKinds.map((k) => (

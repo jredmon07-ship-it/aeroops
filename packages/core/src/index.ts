@@ -350,7 +350,7 @@ export {
   MEMBER_FIELDS,
   AIRCRAFT_FIELDS,
 } from './import/column-mapping.js';
-export type { ImportKind, ColumnMapping } from './import/column-mapping.js';
+export type { ImportKind, ImportSource, ColumnMapping } from './import/column-mapping.js';
 
 export { normalizeMemberRow, normalizeAircraftRow } from './import/normalize.js';
 export type {

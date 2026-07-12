@@ -24,6 +24,7 @@ import { auth } from '@/auth';
 import {
   getUtilizationTrend,
   getHoursByTail,
+  getAircraftReport,
   getReservationsVsFlightsTrend,
   getTrainingThroughput,
   getMaintenanceTrend,
@@ -34,6 +35,7 @@ import {
 } from '@aeroops/api';
 import type {
   AircraftUtilizationRow,
+  AircraftReportRow,
   InstructorUtilizationRow,
   UtilizationTrendResult,
   ReservationsVsFlightsTrendResult,
@@ -298,6 +300,8 @@ function serializeCancellationsReport(r: CancellationsReportResult): SerializedC
 export interface AllReportsResult {
   utilizationTrend: SerializedUtilizationTrend;
   hoursByTail: AircraftUtilizationRow[];
+  /** FC-parity Aircraft report — per-tail flights/hours/oil/fuel. Plain numbers. */
+  aircraftReport: AircraftReportRow[];
   reservationsVsFlights: SerializedReservationsVsFlightsTrend;
   trainingThroughput: SerializedTrainingThroughput;
   maintenanceTrend: SerializedMaintenanceTrend;
@@ -324,6 +328,7 @@ export async function getAllReportsAction(input?: {
     const [
       utilizationTrend,
       hoursByTail,
+      aircraftReport,
       reservationsVsFlights,
       trainingThroughput,
       maintenanceTrend,
@@ -335,6 +340,7 @@ export async function getAllReportsAction(input?: {
       await Promise.all([
         getUtilizationTrend(session, { range }),
         getHoursByTail(session, { range }),
+        getAircraftReport(session, { range }),
         getReservationsVsFlightsTrend(session, { range }),
         getTrainingThroughput(session, { range }),
         getMaintenanceTrend(session, { range }),
@@ -349,6 +355,7 @@ export async function getAllReportsAction(input?: {
       data: {
         utilizationTrend: serializeUtilizationTrend(utilizationTrend),
         hoursByTail,
+        aircraftReport,
         reservationsVsFlights: serializeReservationsVsFlightsTrend(reservationsVsFlights),
         trainingThroughput: serializeTrainingThroughput(trainingThroughput),
         maintenanceTrend: serializeMaintenanceTrend(maintenanceTrend),

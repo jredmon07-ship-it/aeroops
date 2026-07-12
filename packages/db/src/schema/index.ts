@@ -278,6 +278,16 @@ export type {
   DispatchTicketCorrectionInsert,
 } from './dispatch-ticket-correction.js';
 
+// Line-ops service log — APPEND-ONLY oil/fuel uplift recorded at check-in
+// (Slice line-ops / migration 0044). SELECT + INSERT RLS only (mirrors
+// dispatch_ticket_correction). Latest row per ticket = effective. OPERATOR
+// line-ops data; NO money column; NOT a maintenance/Part-43 determination.
+export { dispatchServiceLog } from './dispatch-service-log.js';
+export type {
+  DispatchServiceLogSelect,
+  DispatchServiceLogInsert,
+} from './dispatch-service-log.js';
+
 // Billing records — tenant-scoped (Slice B1 / migration 0019)
 // Operator billing RECORDS only. Money = INTEGER CENTS. NO Stripe/card data.
 // NO payment processing. Migrations staged + human-gated, NOT applied.

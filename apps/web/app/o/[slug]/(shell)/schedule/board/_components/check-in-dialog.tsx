@@ -40,7 +40,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { deriveFlightTime } from '@aeroops/core';
-import { closeDispatchAction } from '../../actions';
+import { closeDispatchAction, recordDispatchServiceAction } from '../../actions';
 import { reportSquawkAction } from '../../../maintenance/actions';
 import type { DispatchTicketView } from '@aeroops/api';
 import { toast } from '@/lib/toast-store';
@@ -78,6 +78,17 @@ export function CheckInDialog({
   // ── Submission state ───────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
+  // ── Oil & fuel follow-up step (line-ops service log; migration 0044) ────────
+  // Shown AFTER a successful check-in. The FROZEN closeDispatch call is already
+  // done at this point; this is a SEPARATE best-effort call with its own toast.
+  const [phase, setPhase] = React.useState<'checkin' | 'service'>('checkin');
+  const [closedTicket, setClosedTicket] = React.useState<DispatchTicketView | null>(null);
+  const [oilQuarts, setOilQuarts] = React.useState('');
+  const [fuelGallons, setFuelGallons] = React.useState('');
+  const [serviceNote, setServiceNote] = React.useState('');
+  const [serviceError, setServiceError] = React.useState<string | null>(null);
+  const [isSavingService, setIsSavingService] = React.useState(false);
+
   // ── Squawk-on-return state (Slice 3b.3) ───────────────────────────────────
   const [squawkOpen, setSquawkOpen] = React.useState(false);
   const [squawkTitle, setSquawkTitle] = React.useState('');
@@ -101,6 +112,13 @@ export function CheckInDialog({
       setSquawkSeverity('low');
       setSquawkTitleError(null);
       setSquawkMessage(null);
+      setPhase('checkin');
+      setClosedTicket(null);
+      setOilQuarts('');
+      setFuelGallons('');
+      setServiceNote('');
+      setServiceError(null);
+      setIsSavingService(false);
     }
   }, [open]);
 
@@ -201,18 +219,18 @@ export function CheckInDialog({
       }
 
       // ok:true — check-in succeeded
-      const closedTicket = result.ticket;
+      const closed = result.ticket;
 
       // Squawk-on-return (3b.3): fire reportSquawkAction after close succeeds.
       // Independent — a squawk failure does NOT un-close the ticket.
       if (squawkOpen && squawkTitle.trim()) {
         try {
           const squawkResult = await reportSquawkAction({
-            resourceId: closedTicket.resourceId,
+            resourceId: closed.resourceId,
             title: squawkTitle.trim(),
             description: squawkDescription.trim() || undefined,
             severity: squawkSeverity,
-            dispatchTicketId: closedTicket.id,
+            dispatchTicketId: closed.id,
           });
           if ('ok' in squawkResult && squawkResult.ok) {
             setSquawkMessage('Squawk reported.');
@@ -225,8 +243,11 @@ export function CheckInDialog({
       }
 
       toast.success('Aircraft checked in — dispatch ticket closed.');
-      onSuccess(closedTicket);
-      onOpenChange(false);
+      // Advance to the OPTIONAL oil & fuel follow-up step. The board isn't
+      // notified (onSuccess) and the dialog isn't closed until the operator
+      // saves or skips the service step — so the dialog stays mounted.
+      setClosedTicket(closed);
+      setPhase('service');
     } catch {
       setDialogError('Something went wrong. Please try again.');
     } finally {
@@ -234,13 +255,75 @@ export function CheckInDialog({
     }
   }
 
+  // ── Finalize: notify the board + close the dialog ──────────────────────────
+  function finalize(ticket: DispatchTicketView) {
+    onSuccess(ticket);
+    onOpenChange(false);
+  }
+
+  // ── Save the optional oil & fuel service log (best-effort follow-up) ───────
+  async function handleSaveService() {
+    if (!closedTicket) return;
+    setServiceError(null);
+
+    const oil = oilQuarts.trim() === '' ? undefined : parseFloat(oilQuarts);
+    const fuel = fuelGallons.trim() === '' ? undefined : parseFloat(fuelGallons);
+    const note = serviceNote.trim() === '' ? undefined : serviceNote.trim();
+
+    if (oil !== undefined && (isNaN(oil) || oil < 0 || oil > 99)) {
+      setServiceError('Oil added must be between 0 and 99 quarts.');
+      return;
+    }
+    if (fuel !== undefined && (isNaN(fuel) || fuel < 0 || fuel > 999)) {
+      setServiceError('Fuel added must be between 0 and 999 gallons.');
+      return;
+    }
+    if (oil === undefined && fuel === undefined && note === undefined) {
+      // Nothing to record — treat Save as Skip.
+      finalize(closedTicket);
+      return;
+    }
+
+    setIsSavingService(true);
+    try {
+      const result = await recordDispatchServiceAction({
+        dispatchTicketId: closedTicket.id,
+        oilAddedQuarts: oil,
+        fuelAddedGallons: fuel,
+        note,
+      });
+      if ('error' in result) {
+        if (result.error === 'validation') {
+          setServiceError(result.message);
+          setIsSavingService(false);
+          return;
+        }
+        // Best-effort: don't block finishing check-in on a service-log failure.
+        toast.error('Check-in saved; oil & fuel could not be recorded.');
+      } else if (result.ok) {
+        toast.success('Oil & fuel recorded.');
+      } else {
+        toast.error('Check-in saved; oil & fuel could not be recorded.');
+      }
+    } catch {
+      toast.error('Check-in saved; oil & fuel could not be recorded.');
+    } finally {
+      setIsSavingService(false);
+    }
+    finalize(closedTicket);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Check in aircraft</DialogTitle>
+          <DialogTitle>
+            {phase === 'service' ? 'Oil & fuel (optional)' : 'Check in aircraft'}
+          </DialogTitle>
         </DialogHeader>
 
+        {phase === 'checkin' && (
+        <>
         {/* Reference OUT readings */}
         <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-600 space-y-0.5">
           <p>
@@ -464,6 +547,101 @@ export function CheckInDialog({
             </Button>
           </DialogFooter>
         </form>
+        </>
+        )}
+
+        {/* ── Oil & fuel follow-up step (optional; line-ops service log) ───── */}
+        {phase === 'service' && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Aircraft checked in. Record oil &amp; fuel added at the line
+              (optional) — or skip.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ci-oil-quarts">Oil added (qt)</Label>
+                <Input
+                  id="ci-oil-quarts"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.1"
+                  min={0}
+                  max={99}
+                  placeholder="e.g. 1.0"
+                  value={oilQuarts}
+                  onChange={(e) => {
+                    setOilQuarts(e.target.value);
+                    if (serviceError) setServiceError(null);
+                  }}
+                  disabled={isSavingService}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ci-fuel-gallons">Fuel added (gal)</Label>
+                <Input
+                  id="ci-fuel-gallons"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.1"
+                  min={0}
+                  max={999}
+                  placeholder="e.g. 24.5"
+                  value={fuelGallons}
+                  onChange={(e) => {
+                    setFuelGallons(e.target.value);
+                    if (serviceError) setServiceError(null);
+                  }}
+                  disabled={isSavingService}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="ci-service-note">Note (optional)</Label>
+              <textarea
+                id="ci-service-note"
+                rows={2}
+                maxLength={500}
+                placeholder="e.g. Topped off both tanks; added 1 qt oil."
+                value={serviceNote}
+                onChange={(e) => setServiceNote(e.target.value)}
+                disabled={isSavingService}
+                className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+              />
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Operator line-ops record (fuel/oil uplift). Not a maintenance or
+              airworthiness record.
+            </p>
+
+            {serviceError && (
+              <Alert variant="destructive" role="alert" aria-live="assertive">
+                <XCircle className="h-4 w-4" aria-hidden="true" />
+                <AlertDescription>{serviceError}</AlertDescription>
+              </Alert>
+            )}
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => closedTicket && finalize(closedTicket)}
+                disabled={isSavingService}
+              >
+                Skip
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveService}
+                isLoading={isSavingService}
+              >
+                Save
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

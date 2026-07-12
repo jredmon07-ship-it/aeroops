@@ -152,9 +152,59 @@ describe('guessColumnMapping', () => {
     expect(mapping['serialNumber']).toBe('Serial Number');
   });
 
-  it('maps N-Number / Registration variants', () => {
+  it('maps N-Number / Registration / Reg / Aircraft ID variants', () => {
     expect(guessColumnMapping(['N-Number', 'Make'], 'aircraft')['tailNumber']).toBe('N-Number');
     expect(guessColumnMapping(['Registration', 'Make'], 'aircraft')['tailNumber']).toBe('Registration');
+    expect(guessColumnMapping(['Reg', 'Make'], 'aircraft')['tailNumber']).toBe('Reg');
+    expect(guessColumnMapping(['Aircraft ID', 'Make'], 'aircraft')['tailNumber']).toBe('Aircraft ID');
+  });
+
+  it('maps myFBO-ish member header wording (Member Name / E-mail / Cell Phone)', () => {
+    const mapping = guessColumnMapping(['Member Name', 'E-mail', 'Cell Phone', 'Member Type'], 'members');
+    expect(mapping['email']).toBe('E-mail');
+    expect(mapping['fullName']).toBe('Member Name');
+    expect(mapping['phone']).toBe('Cell Phone');
+  });
+
+  it('maps terse header wording (Name / Mail / Tel)', () => {
+    const mapping = guessColumnMapping(['Name', 'Mail', 'Tel'], 'members');
+    expect(mapping['email']).toBe('Mail');
+    expect(mapping['fullName']).toBe('Name');
+    expect(mapping['phone']).toBe('Tel');
+  });
+
+  it('does NOT mis-map "Mailing Address" to email when a real Email column exists', () => {
+    const mapping = guessColumnMapping(['Full Name', 'Mailing Address', 'Email'], 'members');
+    expect(mapping['email']).toBe('Email');
+  });
+
+  it('maps myFBO-ish aircraft header wording (Aircraft Type / Manufacturer / Serial #)', () => {
+    const mapping = guessColumnMapping(
+      ['Aircraft ID', 'Manufacturer', 'Aircraft Type', 'Year', 'Serial #'],
+      'aircraft',
+    );
+    expect(mapping['tailNumber']).toBe('Aircraft ID');
+    expect(mapping['make']).toBe('Manufacturer');
+    expect(mapping['model']).toBe('Aircraft Type');
+    expect(mapping['year']).toBe('Year');
+    expect(mapping['serialNumber']).toBe('Serial #');
+  });
+
+  it('ambiguous header matching two fields is claimed by exactly one (priority order)', () => {
+    // "Name Email" matches BOTH the email pattern and the name pattern; email
+    // is the higher-priority field, so it wins and the header is used once.
+    const mapping = guessColumnMapping(['Name Email'], 'members');
+    expect(mapping['email']).toBe('Name Email');
+    expect(mapping['fullName']).toBeNull();
+  });
+
+  it('leaves every aircraft field null when nothing matches', () => {
+    const mapping = guessColumnMapping(['Color', 'Notes', 'Owner'], 'aircraft');
+    expect(mapping['tailNumber']).toBeNull();
+    expect(mapping['make']).toBeNull();
+    expect(mapping['model']).toBeNull();
+    expect(mapping['year']).toBeNull();
+    expect(mapping['serialNumber']).toBeNull();
   });
 
   it('leaves unmatched fields null', () => {

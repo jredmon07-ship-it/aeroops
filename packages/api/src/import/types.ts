@@ -12,10 +12,10 @@
  * SCOPE: members + aircraft roster import ONLY. NO ledger/financial-history
  * import in this slice — see docs/specs/slice-p1-fc-import.md.
  */
-import type { ImportKind, ColumnMapping } from '@aeroops/core';
+import type { ImportKind, ImportSource, ColumnMapping } from '@aeroops/core';
 
 // Re-export for barrel convenience.
-export type { ImportKind, ColumnMapping };
+export type { ImportKind, ImportSource, ColumnMapping };
 
 export type ImportBatchStatus = 'pending' | 'previewed' | 'committed' | 'failed';
 export type ImportRowStatus = 'pending' | 'imported' | 'skipped' | 'error';
@@ -60,6 +60,12 @@ export interface ImportRowView {
 
 export interface PreviewImportInput {
   kind: ImportKind;
+  /**
+   * Which tool the CSV came from — purely a migration-source label for
+   * import-history attribution + guidance copy. Omit to default to
+   * 'flight_circle'. Does NOT change how the file is parsed/mapped/committed.
+   */
+  source?: ImportSource;
   filename: string;
   csvText: string;
   /** Operator-confirmed mapping. Omit to use guessColumnMapping's best guess. */

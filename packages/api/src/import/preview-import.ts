@@ -66,6 +66,10 @@ const mappingValueSchema = z.string().nullable();
 
 const previewImportInputSchema = z.object({
   kind: z.enum(['members', 'aircraft']),
+  // Migration-source label only — the parse/map/write path is source-agnostic.
+  // Defaults to 'flight_circle' so existing callers (and the DB column default)
+  // are byte-identical.
+  source: z.enum(['flight_circle', 'myfbo', 'other']).default('flight_circle'),
   filename: z.string().min(1).max(255),
   csvText: z.string().min(1).max(MAX_CSV_LEN),
   mapping: z.record(z.string(), mappingValueSchema).optional(),
@@ -159,7 +163,7 @@ async function _previewImportImpl(
       .insert(importBatch)
       .values({
         orgId: sess.orgId,
-        source: 'flight_circle',
+        source: input.source,
         kind: input.kind,
         status: 'previewed',
         filename: input.filename,

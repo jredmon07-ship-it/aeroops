@@ -41,12 +41,12 @@ export default async function DataImportPage({ params }: ImportPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Import from Flight Circle"
+        title="Import your roster & fleet"
         subtitle={
           <>
-            Upload a CSV export from your previous provider&apos;s Reports → Downloads screen (their &ldquo;Users
-            Export&rdquo; for members, or an aircraft list). Review the detected columns and a preview before
-            anything is created — nothing is added to your roster or fleet until you confirm.
+            Moving from Flight Circle, myFBO, or another tool? Pick your source, upload a CSV export of your
+            members or aircraft, and we&apos;ll match the columns for you. Review the detected columns and a
+            preview before anything is created — nothing is added to your roster or fleet until you confirm.
           </>
         }
       />

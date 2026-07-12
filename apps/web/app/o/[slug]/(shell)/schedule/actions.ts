@@ -38,6 +38,7 @@ import {
   rescheduleReservation,
   openDispatch,
   closeDispatch,
+  recordDispatchService,
   voidDispatch,
   getDispatchForReservation,
   listDispatchPilots,
@@ -72,6 +73,7 @@ import type {
   RescheduleResult,
   OpenDispatchResult,
   CloseDispatchResult,
+  RecordDispatchServiceResult,
   VoidDispatchResult,
   DispatchTicketView,
   MemberExpirationStatus,
@@ -754,6 +756,43 @@ export async function closeDispatchAction(input: {
   const session = await auth();
   try {
     return await closeDispatch(session, input);
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
+    return { error: 'server' };
+  }
+}
+
+// ─── recordDispatchServiceAction ──────────────────────────────────────────────
+
+export type RecordDispatchServiceActionResult =
+  | RecordDispatchServiceResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+/**
+ * recordDispatchServiceAction — append an OPTIONAL line-ops service event
+ * (oil/fuel uplift + note) to a CLOSED dispatch ticket.
+ *
+ * This is a SEPARATE best-effort follow-up to check-in — the FROZEN closeDispatch
+ * call is unchanged; the check-in dialog calls this after close succeeds and
+ * surfaces its own toast. A failure here NEVER un-closes the ticket.
+ *
+ * Capability gate enforced server-side by recordDispatchService (dispatch:create).
+ */
+export async function recordDispatchServiceAction(input: {
+  dispatchTicketId: string;
+  oilAddedQuarts?: number;
+  fuelAddedGallons?: number;
+  note?: string;
+}): Promise<RecordDispatchServiceActionResult> {
+  const session = await auth();
+  try {
+    return await recordDispatchService(session, input);
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

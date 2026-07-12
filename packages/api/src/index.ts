@@ -322,6 +322,24 @@ export type { CloseDispatchInput } from './dispatch/close-dispatch.js';
 export { voidDispatch, voidDispatchWithDb } from './dispatch/void-dispatch.js';
 export type { VoidDispatchInput } from './dispatch/void-dispatch.js';
 
+// Line-ops service log (migration 0044) — OPTIONAL oil/fuel uplift + note
+// recorded as a best-effort follow-up AFTER check-in. authz dispatch:create
+// (same cap as close); ticket must be CLOSED; append-only INSERT + one audit
+// row 'dispatch.service_recorded'; the FROZEN close path is UNTOUCHED. The read
+// helper returns the latest (effective) service per ticket (dispatch:access).
+// OPERATOR line-ops data; NO money; NOT a maintenance/Part-43 determination.
+export {
+  recordDispatchService,
+  recordDispatchServiceWithDb,
+  getDispatchServiceForTickets,
+  getDispatchServiceForTicketsWithDb,
+} from './dispatch/record-dispatch-service.js';
+export type {
+  RecordDispatchServiceInput,
+  RecordDispatchServiceResult,
+  DispatchServiceView,
+} from './dispatch/record-dispatch-service.js';
+
 export {
   getDispatchForReservation,
   getDispatchForReservationWithDb,
@@ -777,6 +795,20 @@ export type {
   GetAircraftUtilizationInput,
   AircraftUtilizationRow,
 } from './reporting/get-aircraft-utilization.js';
+
+// getAircraftReport: FC-parity per-tail Aircraft report over the widened range —
+// flights + Hobbs-derived hours + total oil (quarts) + total fuel (gallons),
+// oil/fuel summed from the latest (effective) dispatch_service_log per ticket.
+// reporting:access; RLS-scoped; read-only. [VERIFY-A] hours operational; oil/fuel
+// are operator line-ops figures, NOT billing/airworthiness/maintenance records.
+export {
+  getAircraftReport,
+  getAircraftReportWithDb,
+} from './reporting/get-aircraft-report.js';
+export type {
+  GetAircraftReportInput,
+  AircraftReportRow,
+} from './reporting/get-aircraft-report.js';
 
 // getInstructorUtilization: per-CFI utilization over the range — dispatch hours
 // as pilot + 'recorded' lessons given + distinct students taught. ONE query,
@@ -2025,6 +2057,7 @@ export type { GetImportBatchInput } from './import/get-import-batch.js';
 
 export type {
   ImportKind,
+  ImportSource,
   ColumnMapping,
   ImportBatchStatus,
   ImportRowStatus,

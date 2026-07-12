@@ -24,6 +24,7 @@ import {
 } from '@aeroops/api';
 import type {
   ImportKind,
+  ImportSource,
   ColumnMapping,
   ImportBatchView,
   ImportRowView,
@@ -92,6 +93,7 @@ export type PreviewImportActionResult =
 
 export async function previewImportAction(input: {
   kind: ImportKind;
+  source?: ImportSource;
   filename: string;
   csvText: string;
   mapping?: ColumnMapping;

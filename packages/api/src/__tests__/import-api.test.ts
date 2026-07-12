@@ -65,8 +65,8 @@ import { ForbiddenError } from '../auth/require-capability.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { AppSession } from '../auth/types.js';
 
-// All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0042');
+// All up migrations through 0043 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0043');
 
 // ── Shared test environment ───────────────────────────────────────────────────
 
@@ -118,6 +118,14 @@ const AIRCRAFT_CSV =
 
 const SALES_TRANSACTIONS_CSV =
   'Date,Transaction Type,Amount,Balance\n' + '2026-01-01,Charge,150.00,150.00\n';
+
+// myFBO-shaped export: different header wording than Flight Circle. The
+// operator-confirmed column-mapping step (auto-guessed here) is what bridges
+// the difference — the parse/normalize/write path is identical per source.
+const MYFBO_MEMBERS_CSV =
+  'Member Name,E-mail,Cell Phone,Member Type\n' +
+  'Dana Diaz,dana-myfbo@example.test,555-0100,Student\n' +
+  'Evan Ent,evan-myfbo@example.test,555-0101,Renter\n';
 
 async function seedExistingMember(orgId: string, email: string): Promise<void> {
   await withOrgContext(env.db, orgId, (tx) =>
@@ -266,6 +274,90 @@ describe('previewImport — out-of-scope ledger detection', () => {
     expect(result.batch.outOfScope).toBe(true);
     expect(result.batch.errorDetail).toMatch(/out_of_scope/);
     expect(result.rows.every((r) => r.status === 'error')).toBe(true);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// 7b. Source label — myFBO / other / default flight_circle
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('previewImport — migration source label', () => {
+  it('persists source=myfbo and auto-guesses myFBO-shaped member headers', async () => {
+    const session = makeSession(env.orgAId, env.userAId, 'owner');
+    const result = await previewImportWithDb(env.db, session, {
+      kind: 'members',
+      source: 'myfbo',
+      filename: 'myfbo-members.csv',
+      csvText: MYFBO_MEMBERS_CSV,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.batch.source).toBe('myfbo');
+    // guessColumnMapping bridged the different header wording.
+    expect(result.mapping['email']).toBe('E-mail');
+    expect(result.mapping['fullName']).toBe('Member Name');
+    expect(result.mapping['phone']).toBe('Cell Phone');
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows.every((r) => r.status === 'pending')).toBe(true);
+
+    // The source label is persisted on the row, and it satisfies migration
+    // 0043's widened import_batch_source_check.
+    const batchRows = await withOrgContext(env.db, env.orgAId, (tx) =>
+      tx.select().from(importBatch).where(eq(importBatch.id, result.batch.id)),
+    );
+    expect(batchRows[0]!.source).toBe('myfbo');
+  });
+
+  it('defaults source to flight_circle when omitted', async () => {
+    const session = makeSession(env.orgAId, env.userAId, 'owner');
+    const result = await previewImportWithDb(env.db, session, {
+      kind: 'members',
+      filename: 'default-source.csv',
+      csvText: 'Full Name,Email Address\nSam Source,sam-source@example.test\n',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.batch.source).toBe('flight_circle');
+  });
+
+  it('rejects an unknown source value with a ValidationError', async () => {
+    const session = makeSession(env.orgAId, env.userAId, 'owner');
+    await expect(
+      previewImportWithDb(env.db, session, {
+        kind: 'members',
+        source: 'bogus_source',
+        filename: 'bad-source.csv',
+        csvText: MEMBERS_CSV,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('commits a myFBO-sourced batch through the SAME write path (real app_users)', async () => {
+    const session = makeSession(env.orgAId, env.userAId, 'owner');
+    const preview = await previewImportWithDb(env.db, session, {
+      kind: 'members',
+      source: 'myfbo',
+      filename: 'myfbo-commit.csv',
+      csvText:
+        'Member Name,E-mail,Cell Phone\n' +
+        'Faye Fox,faye-myfbo@example.test,555-0200\n',
+    });
+    expect(preview.ok).toBe(true);
+    if (!preview.ok) return;
+
+    const commit = await commitImportWithDb(env.db, session, { batchId: preview.batch.id });
+    expect(commit.ok).toBe(true);
+    if (!commit.ok) return;
+    expect(commit.batch.source).toBe('myfbo');
+    expect(commit.batch.importedCount).toBe(1);
+
+    const users = await withOrgContext(env.db, env.orgAId, (tx) =>
+      tx.select().from(appUser).where(eq(appUser.email, 'faye-myfbo@example.test')),
+    );
+    expect(users).toHaveLength(1);
+    expect(users[0]!.fullName).toBe('Faye Fox');
+    expect(users[0]!.phone).toBe('555-0200');
   });
 });
 

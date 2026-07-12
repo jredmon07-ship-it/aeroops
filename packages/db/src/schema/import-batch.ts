@@ -23,7 +23,7 @@
  *     Targets app_user_id_org_id_unique (migration 0000).
  *
  * ── CHECKs ────────────────────────────────────────────────────────────────────
- * import_batch_source_check:  source IN ('flight_circle')
+ * import_batch_source_check:  source IN ('flight_circle','myfbo','other')  [widened in 0043]
  * import_batch_kind_check:    kind IN ('members','aircraft')
  * import_batch_status_check:  status IN ('pending','previewed','committed','failed')
  * import_batch_counts_nonneg_check: row_count/imported_count/skipped_count >= 0
@@ -56,7 +56,8 @@ export const importBatch = pgTable(
       .notNull()
       .references(() => org.id, { onDelete: 'cascade' }),
 
-    // import_batch_source_check: only 'flight_circle' in this slice.
+    // import_batch_source_check: 'flight_circle' | 'myfbo' | 'other' (0043).
+    // Purely a migration-source label; the write path is identical per source.
     source: text('source').notNull().default('flight_circle'),
 
     // import_batch_kind_check: 'members' | 'aircraft'.

@@ -314,6 +314,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
   const {
     utilizationTrend,
     hoursByTail,
+    aircraftReport,
     reservationsVsFlights,
     trainingThroughput,
     maintenanceTrend,
@@ -371,6 +372,16 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
   const hoursByTailCsv: string[][] = [
     ['Tail #', 'Flights', 'Hours'],
     ...hoursByTail.map((r) => [r.tailNumber, String(r.flightCount), r.flightHours.toFixed(1)]),
+  ];
+  const aircraftReportCsv: string[][] = [
+    ['Tail #', 'Flights', 'Hours', 'Oil Added (qt)', 'Fuel Added (gal)'],
+    ...aircraftReport.map((r) => [
+      r.tailNumber,
+      String(r.flightCount),
+      r.flightHours.toFixed(1),
+      r.oilAddedQuarts.toFixed(1),
+      r.fuelAddedGallons.toFixed(1),
+    ]),
   ];
   const reservationsCsv: string[][] = [
     ['Period', 'Reservations created', 'Flights closed'],
@@ -697,6 +708,98 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
         </div>
         <p className="mt-1.5 text-[0.6875rem] text-slate-400">
           * {HOURS_FOOTNOTE}
+        </p>
+      </section>
+
+      {/* ── C2. Aircraft report (FC-parity: flights/hours/oil/fuel) ───────── */}
+      <section aria-label={`Aircraft report — last ${rangeLbl}`}>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            Aircraft report — last {rangeLbl}
+          </p>
+          <ExportCsvButton
+            rows={aircraftReportCsv}
+            filename={csvFilename('aircraft-report')}
+            disabled={aircraftReport.length === 0}
+          />
+        </div>
+        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+          <table className="w-full text-sm" aria-label={`Aircraft report last ${rangeLbl}`}>
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Tail #
+                </th>
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Flights
+                </th>
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Hours *
+                </th>
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Oil added
+                </th>
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Fuel added
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {aircraftReport.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">
+                    No active aircraft.{' '}
+                    <Link
+                      href={`/o/${slug}/schedule/resources`}
+                      className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                    >
+                      Add aircraft in Resources admin.
+                    </Link>
+                  </td>
+                </tr>
+              ) : (
+                aircraftReport.map((row) => (
+                  <tr
+                    key={row.resourceId}
+                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/o/${slug}/fleet/${row.resourceId}`}
+                        className="nums font-bold text-slate-900 hover:text-brand underline-offset-2 hover:underline"
+                        aria-label={`View details for ${row.tailNumber}`}
+                      >
+                        {row.tailNumber}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                        {row.flightCount}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                        {row.flightHours.toFixed(1)}h
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={['nums tabular-nums', row.oilAddedQuarts === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                        {row.oilAddedQuarts.toFixed(1)} qt
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={['nums tabular-nums', row.fuelAddedGallons === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                        {row.fuelAddedGallons.toFixed(1)} gal
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+          * {HOURS_FOOTNOTE} Oil &amp; fuel are operator line-ops uplift figures recorded at check-in — not a maintenance or airworthiness record.
         </p>
       </section>
 

@@ -3,13 +3,24 @@
  *
  * PURE header→field heuristic. previewImport pre-fills the operator's
  * column-mapping step with this guess; the operator confirms/remaps before
- * anything is normalized/staged for real. Never assumes Flight Circle's
- * exact column headers are stable — every provider's export wording differs
- * (e.g. "E-mail" vs "Email Address" vs "Primary Email"), so this is a best-
- * effort heuristic, never authoritative.
+ * anything is normalized/staged for real. Never assumes any provider's exact
+ * column headers are stable — Flight Circle, myFBO, and every other tool word
+ * their exports differently (e.g. "E-mail" vs "Email Address" vs "Primary
+ * Email"; "Tail #" vs "N-Number" vs "Registration"), so this is a best-effort
+ * heuristic, never authoritative. The operator ALWAYS reviews the mapping
+ * before any row is staged, so a slightly greedy guess is safe — it only
+ * saves clicks, it never decides anything.
  */
 
 export type ImportKind = 'members' | 'aircraft';
+
+/**
+ * ImportSource — which tool the operator is migrating FROM. Purely a label
+ * for guidance copy + import-history attribution; it does NOT change the
+ * parse/normalize/write path (the column-mapping step handles per-tool header
+ * differences generically). 'other' covers any CSV from a tool we don't name.
+ */
+export type ImportSource = 'flight_circle' | 'myfbo' | 'other';
 
 /** field name -> CSV header name it was matched to, or null if unmapped. */
 export type ColumnMapping = Record<string, string | null>;
@@ -18,16 +29,21 @@ export type ColumnMapping = Record<string, string | null>;
 export const MEMBER_FIELDS = ['email', 'fullName', 'phone'] as const;
 export const AIRCRAFT_FIELDS = ['tailNumber', 'make', 'model', 'year', 'serialNumber'] as const;
 
+// Patterns are intentionally broad enough to catch Flight Circle AND myFBO
+// (and generic-CSV) header wording. Word boundaries keep them from over-
+// reaching: `\bmail\b` matches "Mail"/"E-mail"/"Email" but NOT "Mailing
+// Address"; `aircraft\s*type` matches an aircraft's model column but NOT a
+// ledger's "Transaction Type".
 const MEMBER_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = [
-  ['email', /e-?mail/i],
-  ['fullName', /\bname\b/i],
-  ['phone', /phone|cell|mobile/i],
+  ['email', /e-?mail|\bmail\b/i],
+  ['fullName', /name/i],
+  ['phone', /phone|cell|mobile|\btel\b/i],
 ];
 
 const AIRCRAFT_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = [
-  ['tailNumber', /tail|n-?number|registration/i],
+  ['tailNumber', /tail|n-?number|registration|\breg\b|aircraft\s*id/i],
   ['make', /\bmake\b|manufacturer/i],
-  ['model', /\bmodel\b/i],
+  ['model', /\bmodel\b|aircraft\s*type/i],
   ['year', /\byear\b/i],
   ['serialNumber', /serial/i],
 ];
