@@ -21,7 +21,7 @@
  *
  *   Composite FK (sent_by, org_id) → app_user(id, org_id) ON DELETE RESTRICT
  *     [member_message_sent_by_org_fk] — attribution on who sent the
- *     announcement is preserved (mirrors study_grant_granted_by_org_fk).
+ *     announcement is preserved (standard created-by composite-FK pattern).
  *
  * ── UNIQUEs ───────────────────────────────────────────────────────────────────
  * member_message_id_org_id_unique UNIQUE (id, org_id) — composite candidate

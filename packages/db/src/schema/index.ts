@@ -588,26 +588,6 @@ export type { BlockPackageSelect, BlockPackageInsert } from './block-package.js'
 export { blockPurchase } from './block-purchase.js';
 export type { BlockPurchaseSelect, BlockPurchaseInsert } from './block-purchase.js';
 
-// Slice STUDY-1: AeroStudy integration server seam — tenant-scoped
-// (migration 0035 — STAGED, human-gated, NOT applied; the consuming API
-// handlers fail with a clean STUDY_TABLES_NOT_MIGRATED → HTTP 503 until a
-// human applies it).
-//
-// study_grant: "this school grants this member this AeroStudy access."
-//   scope ∈ { 'all_access', cert code like 'PAR' }. Read by the member over
-//   the existing mobile-token guard (self-scoped). Revocation is a soft
-//   revoked_at flip; a PARTIAL unique index (org_id, user_id, scope) WHERE
-//   revoked_at IS NULL (hand-written in the migration) allows re-grant
-//   after revoke while forbidding duplicate ACTIVE grants.
-// study_progress: compact per-(org, user, cert) readiness read model
-//   upserted by the mobile app for the signed-in member (self-scoped);
-//   UNIQUE (org_id, user_id, cert_code) is the upsert conflict target.
-//   Student-entered study-app data — NOT an FAA determination. NO money.
-export { studyGrant } from './study-grant.js';
-export type { StudyGrantSelect, StudyGrantInsert } from './study-grant.js';
-export { studyProgress } from './study-progress.js';
-export type { StudyProgressSelect, StudyProgressInsert } from './study-progress.js';
-
 // Slice FC-P1: Member messaging / announcements — tenant-scoped (migration
 // 0036 — STAGED, human-gated, NOT applied). member_message is an
 // APPEND-ONLY record of each operator-authored announcement (mirrors
