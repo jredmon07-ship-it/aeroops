@@ -602,6 +602,79 @@ section{padding:96px 0}
         </div>
       </div>
 
+      <!-- ── Savings calculator ── -->
+      <div id="savings-calc" style="margin:56px auto 8px;max-width:860px;border:1px solid rgba(12,19,34,.14);border-radius:10px;padding:32px 34px;background:#fff">
+        <p class="eyebrow">What you'd save</p>
+        <h3 style="margin:.25em 0 .35em;font-size:1.45rem">Run your own numbers.</h3>
+        <p style="margin:0 0 26px;font-size:.95rem;opacity:.8">Drag the sliders. Comparison uses each vendor's published pricing — sources and assumptions below.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px 40px">
+          <label style="display:block;font-size:.85rem;font-weight:600">
+            Aircraft in your fleet: <span id="sc-tails-out" style="font-variant-numeric:tabular-nums">3</span>
+            <input id="sc-tails" type="range" min="1" max="20" value="3" style="width:100%;margin-top:8px;accent-color:#0C1322">
+          </label>
+          <label style="display:block;font-size:.85rem;font-weight:600">
+            Collected per month: $<span id="sc-vol-out" style="font-variant-numeric:tabular-nums">8,000</span>
+            <input id="sc-vol" type="range" min="2000" max="150000" step="1000" value="8000" style="width:100%;margin-top:8px;accent-color:#0C1322">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px;text-align:center">
+          <div style="border:1px solid rgba(12,19,34,.12);border-radius:8px;padding:18px 10px">
+            <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.65">AeroOps</div>
+            <div id="sc-aero" style="font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px">$—</div>
+            <div style="font-size:.72rem;opacity:.6">per year, all-in</div>
+          </div>
+          <div style="border:1px solid rgba(12,19,34,.12);border-radius:8px;padding:18px 10px">
+            <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.65">Flight Circle</div>
+            <div id="sc-fc" style="font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px">$—</div>
+            <div style="font-size:.72rem;opacity:.6">per year, all-in</div>
+          </div>
+          <div style="border:1px solid rgba(12,19,34,.12);border-radius:8px;padding:18px 10px">
+            <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.65">Flight Schedule Pro</div>
+            <div id="sc-fsp" style="font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px">$—</div>
+            <div style="font-size:.72rem;opacity:.6">per year, all-in (est.)</div>
+          </div>
+        </div>
+        <p id="sc-verdict" style="margin:26px 0 4px;text-align:center;font-size:1.05rem;font-weight:600"></p>
+        <p style="margin:14px 0 0;font-size:.72rem;line-height:1.6;opacity:.6">
+          Assumptions: average payment $350, collected by bank transfer where supported. AeroOps: $0 software; bank
+          transfers a flat $5 per payment, capped (this page's published pricing). Flight Circle: $10 per aircraft/mo
+          plus $14.95/mo processing and a 2.5% blended card rate — the midpoint of their published &ldquo;1.09%&ndash;2.9%&rdquo;
+          range (flightcircle.com pricing docs; they do not publish a bank-transfer rate). Flight Schedule Pro:
+          pricing is quote-only — estimated $60&ndash;$250/mo software by fleet size, plus their published 1% ACH
+          (subscriber agreement). Your actual quotes may differ; that is rather the point.
+        </p>
+      </div>
+      <script>
+        (function () {
+          // ── Pricing constants (single place to retune) ─────────────────
+          var AVG_PAYMENT = 350;
+          var AERO_ACH_FLAT = 5;            // published: flat $5 per bank payment, capped
+          var FC_PER_TAIL = 10, FC_MONTHLY = 14.95, FC_RATE = 0.025;
+          var FSP_ACH_RATE = 0.01;          // published, capped $100/txn (cap not hit at $350)
+          function fspSoftware(tails) { return tails <= 4 ? 60 : tails <= 9 ? 150 : 250; }
+          var $ = function (id) { return document.getElementById(id); };
+          function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+          function recalc() {
+            var tails = +$('sc-tails').value, vol = +$('sc-vol').value;
+            $('sc-tails-out').textContent = tails;
+            $('sc-vol-out').textContent = vol.toLocaleString('en-US');
+            var payments = Math.max(1, Math.round(vol / AVG_PAYMENT));
+            var aero = 12 * (payments * AERO_ACH_FLAT);
+            var fc = 12 * (tails * FC_PER_TAIL + FC_MONTHLY + vol * FC_RATE);
+            var fsp = 12 * (fspSoftware(tails) + vol * FSP_ACH_RATE);
+            $('sc-aero').textContent = fmt(aero);
+            $('sc-fc').textContent = fmt(fc);
+            $('sc-fsp').textContent = fmt(fsp);
+            var best = Math.min(fc, fsp), save = best - aero;
+            $('sc-verdict').textContent = save > 0
+              ? 'You keep ' + fmt(save) + ' a year with AeroOps.'
+              : 'At this volume it is nearly a wash on fees — but the software is still free.';
+          }
+          ['sc-tails', 'sc-vol'].forEach(function (id) { $(id).addEventListener('input', recalc); });
+          recalc();
+        })();
+      </script>
+
       <div class="pricing-detail">
         <p>
           Card processors take a percentage of every rental and lesson you collect: a $3,000
