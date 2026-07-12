@@ -573,8 +573,9 @@ section{padding:96px 0}
         <p>
           Scheduling, dispatch, maintenance, training records, billing, a public booking page,
           and a member portal. No subscription, no per-aircraft fee, no per-seat fee. If you
-          choose to collect payments through AeroOps, bank transfers cost a flat $5, capped.
-          That is the entire price list.
+          choose to collect payments through AeroOps, bank transfers cost 1%, capped at $15 —
+          a $5,000 block purchase costs $15 to collect, never $50 or $125. That is the entire
+          price list.
         </p>
       </div>
 
@@ -587,7 +588,7 @@ section{padding:96px 0}
             <li>Scheduling, dispatch, maintenance, training, and billing in one system</li>
             <li>Up to 5 aircraft, with unlimited instructors, students, and staff</li>
             <li>Public booking page and member portal included</li>
-            <li>Bank payments cost a flat, capped fee only when you collect one</li>
+            <li>Bank payments cost 1%, capped at $15, only when you collect one</li>
           </ul>
         </div>
         <div class="tier tier--pro">
@@ -637,9 +638,10 @@ section{padding:96px 0}
           </div>
         </div>
         <p id="sc-verdict" style="margin:26px 0 4px;text-align:center;font-size:1.05rem;font-weight:600"></p>
+        <p id="sc-stmt" style="margin:6px 0 4px;text-align:center;font-size:.85rem;opacity:.75"></p>
         <p style="margin:14px 0 0;font-size:.72rem;line-height:1.6;opacity:.6">
           Assumptions: average payment $350, collected by bank transfer where supported. AeroOps: $0 software; bank
-          transfers a flat $5 per payment, capped (this page's published pricing). Flight Circle: $10 per aircraft/mo
+          transfers 1% capped at $15 per payment (this page's published pricing). Flight Circle: $10 per aircraft/mo
           plus $14.95/mo processing and a 2.5% blended card rate — the midpoint of their published &ldquo;1.09%&ndash;2.9%&rdquo;
           range (flightcircle.com pricing docs; they do not publish a bank-transfer rate). Flight Schedule Pro:
           pricing is quote-only — estimated $60&ndash;$250/mo software by fleet size, plus their published 1% ACH
@@ -650,7 +652,7 @@ section{padding:96px 0}
         (function () {
           // ── Pricing constants (single place to retune) ─────────────────
           var AVG_PAYMENT = 350;
-          var AERO_ACH_FLAT = 5;            // published: flat $5 per bank payment, capped
+          var AERO_ACH_RATE = 0.01, AERO_ACH_CAP = 15;  // published: 1%, capped at $15 per payment
           var FC_PER_TAIL = 10, FC_MONTHLY = 14.95, FC_RATE = 0.025;
           var FSP_ACH_RATE = 0.01;          // published, capped $100/txn (cap not hit at $350)
           function fspSoftware(tails) { return tails <= 4 ? 60 : tails <= 9 ? 150 : 250; }
@@ -661,16 +663,24 @@ section{padding:96px 0}
             $('sc-tails-out').textContent = tails;
             $('sc-vol-out').textContent = vol.toLocaleString('en-US');
             var payments = Math.max(1, Math.round(vol / AVG_PAYMENT));
-            var aero = 12 * (payments * AERO_ACH_FLAT);
+            var feePerPayment = Math.min(AVG_PAYMENT * AERO_ACH_RATE, AERO_ACH_CAP);
+            var aero = 12 * (payments * feePerPayment);
             var fc = 12 * (tails * FC_PER_TAIL + FC_MONTHLY + vol * FC_RATE);
             var fsp = 12 * (fspSoftware(tails) + vol * FSP_ACH_RATE);
             $('sc-aero').textContent = fmt(aero);
             $('sc-fc').textContent = fmt(fc);
             $('sc-fsp').textContent = fmt(fsp);
             var best = Math.min(fc, fsp), save = best - aero;
-            $('sc-verdict').textContent = save > 0
-              ? 'You keep ' + fmt(save) + ' a year with AeroOps.'
-              : 'At this volume it is nearly a wash on fees — but the software is still free.';
+            $('sc-verdict').textContent = 'You keep ' + fmt(save) + ' a year with AeroOps.';
+            // Statement billing: one capped ACH per busy member per month — the
+            // effective rate FALLS as members fly more (per-payment cap at work).
+            var stmtNote = $('sc-stmt');
+            if (stmtNote) {
+              var stmtSize = 2000, stmts = Math.max(1, Math.round(vol / stmtSize));
+              var aeroStmt = 12 * stmts * Math.min(stmtSize * AERO_ACH_RATE, AERO_ACH_CAP);
+              stmtNote.textContent = 'Bill monthly statements instead and it falls to ' + fmt(aeroStmt) +
+                ' a year — one capped payment per member (' + fmt(best - aeroStmt) + ' kept).';
+            }
           }
           ['sc-tails', 'sc-vol'].forEach(function (id) { $(id).addEventListener('input', recalc); });
           recalc();
@@ -681,9 +691,10 @@ section{padding:96px 0}
         <p>
           Card processors take a percentage of every rental and lesson you collect: a $3,000
           block-time purchase costs about $87 in card fees. Route the same payment through
-          AeroOps by ACH and it costs $5, flat, capped, regardless of the amount. Cards are
-          still welcome for the occasional payment; the money that matters rides that rail
-          instead.
+          AeroOps by ACH and it costs $15 — the cap — no matter how large the payment gets.
+          Bill monthly statements and the cap works even harder: one capped payment per member,
+          so your effective rate falls as your members fly more. Cards are still welcome for
+          the occasional payment; the money that matters rides that rail instead.
         </p>
         <p>
           The loop is built so every lesson collects itself: a flight is scheduled, dispatched,

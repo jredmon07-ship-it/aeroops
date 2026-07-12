@@ -83,6 +83,12 @@ export default async function LoginPage({ params }: LoginPageProps) {
   }
 
   // ── Active org — render the login form ──────────────────────────────────
+  // The hosted demo org (slug 'alpha', seeded by db:seed:demo) shows its
+  // shared credentials right on the sign-in card so a prospect landing here
+  // from the marketing site can get in without hunting. Real operators'
+  // login pages never render this block.
+  const isDemoOrg = slug === 'alpha';
+
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-sm" role="main">
@@ -96,6 +102,20 @@ export default async function LoginPage({ params }: LoginPageProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {isDemoOrg && (
+              <div className="mb-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm">
+                <p className="font-medium text-sky-900">Live demo — sign in with:</p>
+                <p className="mt-1 text-sky-800">
+                  Email: <strong className="font-mono font-semibold">owner@alpha.aero</strong>
+                  <br />
+                  Password: <strong className="font-mono font-semibold">demo1234</strong>
+                </p>
+                <p className="mt-1.5 text-xs text-sky-700">
+                  Shared demo with fictional sample data — please don&apos;t enter real
+                  personal information.
+                </p>
+              </div>
+            )}
             <LoginForm slug={slug} />
           </CardContent>
         </Card>
