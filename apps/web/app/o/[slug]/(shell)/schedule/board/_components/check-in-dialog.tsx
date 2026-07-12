@@ -261,6 +261,20 @@ export function CheckInDialog({
     onOpenChange(false);
   }
 
+  // ── Dialog dismissal guard ─────────────────────────────────────────────────
+  // Once check-in succeeds we advance to the OPTIONAL service phase — but the
+  // ticket is already closed server-side. If the operator dismisses the dialog
+  // here (Esc / backdrop / X) instead of Skip/Save, still notify the board via
+  // finalize(); otherwise it keeps showing the aircraft OUT and offers a second
+  // check-in that fails with "already closed" until a manual refresh.
+  function handleOpenChange(next: boolean) {
+    if (!next && phase === 'service' && closedTicket) {
+      finalize(closedTicket);
+      return;
+    }
+    onOpenChange(next);
+  }
+
   // ── Save the optional oil & fuel service log (best-effort follow-up) ───────
   async function handleSaveService() {
     if (!closedTicket) return;
@@ -314,7 +328,7 @@ export function CheckInDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>

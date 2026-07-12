@@ -232,6 +232,15 @@ export function CheckOutDialog({
     };
   }, [open]);
 
+  // ── Reset the "briefed" confirmation whenever the pilot changes ────────────
+  // "Pilot briefed" attests to THIS pilot's W&B/NOTAMs/weather. Switching the
+  // pilot dropdown (dialog stays open) must clear it so a stale confirmation
+  // from pilot A can't leave Dispatch enabled for pilot B. (The open-effect
+  // above resets it on first open — pilotUserId is '' there → this also fires.)
+  React.useEffect(() => {
+    setBriefed(false);
+  }, [pilotUserId]);
+
   // ── Load the pre-flight checklist when a pilot is selected ─────────────────
   // Read-only, warn-only status snapshot (grounding / squawks / expirations /
   // balance). Failures degrade to hidden rows — never block the form.

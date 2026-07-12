@@ -146,6 +146,18 @@ describe('getSquawksReport — happy', () => {
     expect(r.rows.length).toBe(1);
     expect(r.rows[0]!.status).toBe('open');
   });
+
+  it('header counts stay ORG-WIDE under a status filter (not tallied over the filtered rows)', async () => {
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+    // Org A has 1 open + 1 resolved squawk. Filtering to `open` narrows the
+    // rows to 1, but the summary counts must still report the full org tally —
+    // a resolvedCount of 0 here would falsely claim no resolved squawks exist.
+    const r = await getSquawksReportWithDb(env.db, sess, { status: 'open' });
+    expect(r.rows.length).toBe(1);
+    expect(r.openCount).toBe(1);
+    expect(r.deferredCount).toBe(0);
+    expect(r.resolvedCount).toBe(1);
+  });
 });
 
 describe('getSquawksReport — T-ISO', () => {

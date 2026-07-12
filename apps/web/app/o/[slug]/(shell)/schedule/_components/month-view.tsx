@@ -30,7 +30,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   buildMonthGrid,
-  addMonths,
+  addMonthsClamped,
   formatMonthParam,
   monthLabel,
   groupByStartDay,
@@ -175,6 +175,23 @@ export function MonthView({
   const label = monthLabel(year, month);
   const flatCells = React.useMemo(() => grid.weeks.flat(), [grid]);
 
+  // `todayIso` is computed server-side (UTC on Vercel), but the chips and their
+  // times render in the VIEWER's local tz (groupByStartDay + formatTime). A
+  // server-UTC "today" therefore rings the wrong cell for users west of UTC in
+  // the evening. Recompute today in the viewer's local tz AFTER mount so the
+  // ring matches the local basis everything else uses. Server + first client
+  // render still use the passed value → no hydration mismatch.
+  const [localTodayIso, setLocalTodayIso] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const d = new Date();
+    setLocalTodayIso(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate(),
+      ).padStart(2, '0')}`,
+    );
+  }, []);
+  const effectiveTodayIso = localTodayIso ?? todayIso;
+
   // ── Roving tabindex for grid keyboard navigation ──────────────────────────
   const initialFocusIso = flatCells.some((c) => c.iso === todayIso && c.inMonth)
     ? todayIso
@@ -243,8 +260,11 @@ export function MonthView({
     [moveFocus, router, boardPath, focusIso],
   );
 
-  const prev = addMonths(year, month, -1);
-  const next = addMonths(year, month, 1);
+  // Clamped so a boundary month (1970-01 / 9999-12) whose true neighbor is
+  // unrepresentable doesn't throw a RangeError during render (parseMonthParam
+  // accepts those months).
+  const prev = addMonthsClamped(year, month, -1);
+  const next = addMonthsClamped(year, month, 1);
   const todayMonthParam = todayIso.slice(0, 7); // "YYYY-MM"
 
   const dayLabelFor = React.useCallback((iso: string) => {
@@ -378,7 +398,7 @@ export function MonthView({
               className={`grid grid-cols-7 ${wi > 0 ? 'border-t border-slate-200' : ''}`}
             >
               {week.map((cell, ci) => {
-                const isToday = cell.iso === todayIso;
+                const isToday = cell.iso === effectiveTodayIso;
                 const count = byDay.get(cell.iso)?.length ?? 0;
                 return (
                   <div
@@ -435,7 +455,7 @@ export function MonthView({
                 </h3>
                 <div className="space-y-2">
                   {daysWithReservations.map((cell) => {
-                    const isToday = cell.iso === todayIso;
+                    const isToday = cell.iso === effectiveTodayIso;
                     return (
                       <div
                         key={cell.iso}

@@ -122,18 +122,36 @@ async function _impl(
       tailNumber: string | null;
     }>(result);
 
-    let openCount = 0;
-    let deferredCount = 0;
-    let resolvedCount = 0;
-    const reportRows: SquawkReportRow[] = rows.map((row) => {
-      const view = toSquawkView(row);
-      if (view.status === 'open') openCount++;
-      else if (view.status === 'deferred') deferredCount++;
-      else if (view.status === 'resolved') resolvedCount++;
-      return { ...view, tailNumber: row.tailNumber ?? '—' };
-    });
+    const reportRows: SquawkReportRow[] = rows.map((row) => ({
+      ...toSquawkView(row),
+      tailNumber: row.tailNumber ?? '—',
+    }));
 
-    return { rows: reportRows, openCount, deferredCount, resolvedCount };
+    // Header counts are ORG-WIDE and independent of the `status` filter — the
+    // summary must report how many open/deferred/resolved squawks exist, not
+    // how many the current filter shows (tallying the filtered `rows` would
+    // falsely report 0 for the excluded statuses). Mirrors the
+    // count-before-filter contract in get-maintenance-reminders-report. RLS
+    // scopes squawk to this org.
+    const countResult = await tx.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'open')     AS "openCount",
+        COUNT(*) FILTER (WHERE status = 'deferred') AS "deferredCount",
+        COUNT(*) FILTER (WHERE status = 'resolved') AS "resolvedCount"
+      FROM squawk
+    `);
+    const countRow = extractRows<{
+      openCount: number | string;
+      deferredCount: number | string;
+      resolvedCount: number | string;
+    }>(countResult)[0];
+
+    return {
+      rows: reportRows,
+      openCount: Number(countRow?.openCount ?? 0),
+      deferredCount: Number(countRow?.deferredCount ?? 0),
+      resolvedCount: Number(countRow?.resolvedCount ?? 0),
+    };
   });
 }
 

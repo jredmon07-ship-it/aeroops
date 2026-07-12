@@ -137,7 +137,11 @@ export interface MemberExpirationOrgRow extends MemberExpirationView {
   memberDisplayName: string;
 }
 
-function toView(row: MemberExpirationSelect, today: string): MemberExpirationView {
+function toView(
+  row: MemberExpirationSelect,
+  today: string,
+  dueSoonDays: number = EXPIRATION_DUE_SOON_DAYS,
+): MemberExpirationView {
   return {
     id: row.id,
     memberUserId: row.memberUserId,
@@ -145,7 +149,7 @@ function toView(row: MemberExpirationSelect, today: string): MemberExpirationVie
     expiresOn: row.expiresOn,
     note: row.note,
     active: row.active,
-    status: classifyExpiration(row.expiresOn, today),
+    status: classifyExpiration(row.expiresOn, today, dueSoonDays),
     createdBy: row.createdBy,
     createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt as unknown as string),
   };
@@ -502,7 +506,10 @@ async function _listExpiringSoonForOrgImpl(
     const expired: MemberExpirationOrgRow[] = [];
     const expiring: MemberExpirationOrgRow[] = [];
     for (const r of rows) {
-      const view = toView(r.expiration, today);
+      // Status shares the caller's `daysAhead` horizon so a row bucketed into
+      // `expiring` never carries a stale 'ok' status (which would render an
+      // "OK" badge under an "expiring soon" heading when daysAhead > 30).
+      const view = toView(r.expiration, today, daysAhead);
       const orgRow: MemberExpirationOrgRow = {
         ...view,
         memberDisplayName: r.fullName ?? r.email,

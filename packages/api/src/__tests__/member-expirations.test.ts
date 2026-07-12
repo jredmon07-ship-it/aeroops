@@ -437,6 +437,28 @@ describe('listExpiringSoonForOrg', () => {
     expect(r.expiring.every((e) => e.status === 'due_soon')).toBe(true);
   });
 
+  it('status shares the daysAhead horizon (a row 45d out with daysAhead=90 is due_soon, not ok)', async () => {
+    const member = await seedMember(env.db, env.orgBId, 'WinHorizon');
+    const sessB = makeSession(env.orgBId, env.userBId, 'owner');
+    // 45 days past TODAY (2026-07-15) → 2026-08-29. Outside the default 30-day
+    // due-soon window but inside a 90-day horizon.
+    await addMemberExpirationWithDb(env.db, sessB, {
+      memberUserId: member,
+      label: 'H 45d out',
+      expiresOn: '2026-08-29',
+    });
+
+    const r = await listExpiringSoonForOrgWithDb(env.db, sessB, {
+      daysAhead: 90,
+      today: TODAY,
+    });
+    expect(r.ok).toBe(true);
+    const row = r.expiring.find((e) => e.label === 'H 45d out');
+    expect(row).toBeDefined();
+    // Bucketed into `expiring`, so its status must NOT be a stale 'ok'.
+    expect(row!.status).toBe('due_soon');
+  });
+
   it('defaults daysAhead to 30', async () => {
     const member = await seedMember(env.db, env.orgBId, 'Win30');
     const sessB = makeSession(env.orgBId, env.userBId, 'owner');

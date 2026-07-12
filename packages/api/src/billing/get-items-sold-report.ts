@@ -41,6 +41,8 @@
  *   exists). A dispatch-derived flight line never matches a product name in
  *   practice; if an operator names a product identically to a flight-line
  *   description, that is an operator data choice, not a cross-tenant leak.
+ *   Two catalog rows sharing a name collapse to ONE report line (name is the
+ *   only sale link; their sales can't be told apart) — see the query comment.
  *
  * AUTHZ: requireCapability('billing:access') FIRST — this is MONEY data
  *   (owner/manager/accountant), mirrors get-revenue-report.
@@ -128,14 +130,29 @@ async function _impl(
     // outer query would leak such lines through the null-preserving side.
     // A product with zero sales in the window still appears (0 / $0.00).
     // RLS scopes every table to this org — no org_id predicate needed.
+    //
+    // product_catalog has NO UNIQUE(name) constraint (only UNIQUE(id, org_id)),
+    // so an org CAN hold two active rows sharing a name. The only durable
+    // sale→product link is that name snapshot, so both rows would otherwise
+    // join the single per-description aggregate and each report the FULL qty +
+    // gross — double-counting every total. Collapse to ONE representative row
+    // per name (DISTINCT ON, lowest id wins) BEFORE the join so each name's
+    // sales are attributed exactly once.
     const queryResult = await tx.execute(sql`
       SELECT
-        pc.id                             AS "productId",
-        pc.name                           AS "productName",
-        pc.sku                            AS "sku",
+        p."productId",
+        p."productName",
+        p."sku",
         COALESCE(s."qty", 0)::numeric     AS "qtySoldRaw",
         COALESCE(s."gross", 0)::bigint    AS "grossCents"
-      FROM product_catalog pc
+      FROM (
+        SELECT DISTINCT ON (pc.name)
+          pc.id   AS "productId",
+          pc.name AS "productName",
+          pc.sku  AS "sku"
+        FROM product_catalog pc
+        ORDER BY pc.name ASC, pc.id ASC
+      ) p
       LEFT JOIN (
         SELECT
           li.description                          AS description,
@@ -147,8 +164,8 @@ async function _impl(
           AND inv.issued_at >= ${from.toISOString()}::timestamptz
           AND inv.issued_at <  ${to.toISOString()}::timestamptz
         GROUP BY li.description
-      ) s ON s.description = pc.name
-      ORDER BY "grossCents" DESC, pc.name ASC
+      ) s ON s.description = p."productName"
+      ORDER BY "grossCents" DESC, p."productName" ASC
     `);
 
     const rawRows = extractRows<{

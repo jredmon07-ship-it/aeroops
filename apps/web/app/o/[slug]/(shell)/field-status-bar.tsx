@@ -84,8 +84,12 @@ export function FieldStatusBar({ status }: FieldStatusBarProps) {
 
   const data = status && status.available ? status : null;
 
-  const sunrise = localHm(data?.sunriseUtc ?? null);
-  const sunset = localHm(data?.sunsetUtc ?? null);
+  // localHm() formats with the browser's timezone, so it MUST NOT run during
+  // SSR / first client render (server TZ=UTC would mismatch the client and
+  // trip a hydration error). Gate it on the same post-mount `now` flag the
+  // clocks + day/night icon use — placeholders (nothing) until mounted.
+  const sunrise = now ? localHm(data?.sunriseUtc ?? null) : null;
+  const sunset = now ? localHm(data?.sunsetUtc ?? null) : null;
 
   // Day/night indicator — pure display: between sunrise and sunset = day.
   let isDay: boolean | null = null;

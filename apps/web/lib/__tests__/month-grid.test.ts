@@ -16,6 +16,7 @@ import {
   parseMonthParam,
   formatMonthParam,
   addMonths,
+  addMonthsClamped,
   monthLabel,
   localDayKey,
   groupByStartDay,
@@ -130,6 +131,31 @@ describe('addMonths', () => {
     expect(addMonths(2026, 7, 18)).toEqual({ year: 2028, month: 1 });
     expect(addMonths(2026, 7, -19)).toEqual({ year: 2024, month: 12 });
     expect(addMonths(2026, 7, 0)).toEqual({ year: 2026, month: 7 });
+  });
+});
+
+describe('addMonthsClamped', () => {
+  it('matches addMonths away from the representable boundary', () => {
+    expect(addMonthsClamped(2026, 12, 1)).toEqual({ year: 2027, month: 1 });
+    expect(addMonthsClamped(2026, 1, -1)).toEqual({ year: 2025, month: 12 });
+    expect(addMonthsClamped(2026, 7, 0)).toEqual({ year: 2026, month: 7 });
+  });
+
+  it('clamps instead of throwing at the calendar boundary (parseMonthParam accepts these)', () => {
+    // 1970-01 → prev (1969-12) is unrepresentable → clamp to 1970-01.
+    expect(addMonthsClamped(1970, 1, -1)).toEqual({ year: 1970, month: 1 });
+    // 9999-12 → next (10000-01) is unrepresentable → clamp to 9999-12.
+    expect(addMonthsClamped(9999, 12, 1)).toEqual({ year: 9999, month: 12 });
+    // A representable neighbor at the near edge still moves.
+    expect(addMonthsClamped(1970, 1, 1)).toEqual({ year: 1970, month: 2 });
+    expect(addMonthsClamped(9999, 12, -1)).toEqual({ year: 9999, month: 11 });
+  });
+
+  it('never throws for the boundary months parseMonthParam admits', () => {
+    for (const { year, month } of [parseMonthParam('1970-01')!, parseMonthParam('9999-12')!]) {
+      expect(() => addMonthsClamped(year, month, -1)).not.toThrow();
+      expect(() => addMonthsClamped(year, month, 1)).not.toThrow();
+    }
   });
 });
 

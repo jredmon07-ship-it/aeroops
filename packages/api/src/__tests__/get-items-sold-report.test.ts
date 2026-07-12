@@ -284,3 +284,30 @@ describe('validation', () => {
     ).rejects.toThrow(ValidationError);
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DUPLICATE NAMES — product_catalog has no UNIQUE(name); collapse to one line
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('duplicate-named catalog rows', () => {
+  it('two active products sharing a name collapse to ONE line; the sale is not double-counted', async () => {
+    // Runs against org B (appended last so earlier org-B assertions are unaffected).
+    const buyer = await seedMember(env.db, env.orgBId, 'DupBuyer', 'renter');
+    // Two DISTINCT catalog rows with the SAME name — allowed (no UNIQUE(name)).
+    const dupA = await createProduct(env.db, env.orgBId, env.userBId, 'Oil Quart', 800);
+    const dupB = await createProduct(env.db, env.orgBId, env.userBId, 'Oil Quart', 800);
+    expect(dupA).not.toBe(dupB);
+    // One finalized sale of 2 units.
+    await sell(env.db, env.orgBId, env.userBId, buyer, [{ catalogItemId: dupA, quantity: 2 }], true);
+
+    const sess = makeSession(env.orgBId, env.userBId, 'owner');
+    const r = await getItemsSoldReportWithDb(env.db, sess, { range: '30d' });
+
+    const oilRows = r.rows.filter((row) => row.productName === 'Oil Quart');
+    // Collapsed to exactly ONE report line — the bug produced two, each showing
+    // the full combined qty + gross (and inflating the totals ~2×).
+    expect(oilRows).toHaveLength(1);
+    // Sale counted ONCE: 2 units × $8.00 = $16.00 (never doubled to 4 / $32.00).
+    expect(oilRows[0]).toMatchObject({ qtySold: 2, grossCents: 1_600 });
+  });
+});

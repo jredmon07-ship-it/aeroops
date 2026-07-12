@@ -167,6 +167,30 @@ export function addMonths(year: number, month: number, delta: number): YearMonth
   return { year: newYear, month: newMonth };
 }
 
+/** Representable month indices (year*12 + month-1) for the [1970-01, 9999-12] range. */
+const MIN_MONTH_INDEX = 1970 * 12; // 1970-01
+const MAX_MONTH_INDEX = 9999 * 12 + 11; // 9999-12
+
+/**
+ * addMonthsClamped — like addMonths, but NEVER throws at the representable
+ * calendar boundary: a month whose neighbor would fall outside [1970-01,
+ * 9999-12] clamps to the nearest representable month instead. The month view
+ * computes both neighbors (prev/next) unconditionally at render, so a boundary
+ * month like 1970-01 (whose 1969-12 predecessor is unrepresentable) or 9999-12
+ * (whose 10000-01 successor is) would otherwise crash the render with a
+ * RangeError. Clamping keeps the view renderable — the nav button simply
+ * doesn't move past the boundary.
+ */
+export function addMonthsClamped(year: number, month: number, delta: number): YearMonth {
+  assertYearMonth(year, month);
+  if (!Number.isInteger(delta)) {
+    throw new RangeError(`month-grid: delta must be an integer: ${delta}`);
+  }
+  const total = year * 12 + (month - 1) + delta;
+  const clamped = Math.min(MAX_MONTH_INDEX, Math.max(MIN_MONTH_INDEX, total));
+  return { year: Math.floor(clamped / 12), month: (clamped % 12) + 1 };
+}
+
 /**
  * monthLabel — human heading, e.g. "July 2026". Formats the 1st of the month
  * at UTC so the label can never shift into a neighboring month.
