@@ -39,6 +39,8 @@ import {
   setEnrollmentStatus,
   recordLesson,
   voidLessonRecord,
+  setLessonStageCheck,
+  setCourseStageCheckEnforcement,
   signLessonRecord,
   voidLessonSignature,
   getLessonSignatures,
@@ -66,6 +68,8 @@ import type {
   SetEnrollmentStatusInput,
   RecordLessonInput,
   VoidLessonRecordInput,
+  SetLessonStageCheckInput,
+  SetCourseStageCheckEnforcementInput,
   SignLessonRecordInput,
   VoidLessonSignatureInput,
   GetLessonSignaturesInput,
@@ -82,6 +86,8 @@ export interface SerializedLessonProgressRow {
   position: number;
   /** true when a 'recorded' lesson_record exists for this lesson. [VERIFY-T1-B] */
   completed: boolean;
+  /** Operator flag (Slice P2-SC1). NOT a Part-61/141 stage check of record. */
+  isStageCheck: boolean;
 }
 
 export interface SerializedLessonRecordView {
@@ -93,6 +99,11 @@ export interface SerializedLessonRecordView {
   /** FREE-TEXT operator/instructor label. NOT a computed ACS/Part-61/141 verdict. [VERIFY-T1-A] */
   gradeLabel: string | null;
   notes: string | null;
+  /**
+   * Instructor-stated pass/fail for a stage-check record (Slice P2-SC1).
+   * NULL on non-stage-check records. NOT a computed ACS/Part-61/141 verdict.
+   */
+  stageCheckPassed: boolean | null;
   status: string;
   recordedBy: string;
   voidedBy: string | null;
@@ -106,6 +117,12 @@ export interface SerializedCourseDetail {
   title: string;
   description: string | null;
   status: string;
+  /**
+   * Operator opt-in (Slice P2-SC1): blocks recording lessons past an
+   * unpassed stage check. Enforces the OPERATOR's course structure — NOT a
+   * Part-61/141 determination.
+   */
+  enforceStageChecks: boolean;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -116,6 +133,8 @@ export interface SerializedCourseDetail {
     /** FREE-TEXT operator grouping, NOT a Part-141 stage. [VERIFY-T1-G] */
     stageLabel: string | null;
     position: number;
+    /** Operator flag (Slice P2-SC1). NOT a Part-61/141 stage check of record. */
+    isStageCheck: boolean;
     createdBy: string;
     createdAt: string;
   }>;
@@ -233,6 +252,7 @@ function serializeLessonProgressRow(r: LessonProgressRow): SerializedLessonProgr
     stageLabel: r.stageLabel,
     position: r.position,
     completed: r.completed,
+    isStageCheck: r.isStageCheck,
   };
 }
 
@@ -245,6 +265,7 @@ function serializeLessonRecord(r: LessonRecordView): SerializedLessonRecordView 
     completedAt: serializeDate(r.completedAt) ?? '',
     gradeLabel: r.gradeLabel,
     notes: r.notes,
+    stageCheckPassed: r.stageCheckPassed,
     status: r.status,
     recordedBy: r.recordedBy,
     voidedBy: r.voidedBy,
@@ -260,6 +281,7 @@ function serializeCourseDetail(c: CourseDetail): SerializedCourseDetail {
     title: c.title,
     description: c.description,
     status: c.status,
+    enforceStageChecks: c.enforceStageChecks,
     createdBy: c.createdBy,
     createdAt: serializeDate(c.createdAt) ?? '',
     updatedAt: serializeDate(c.updatedAt) ?? '',
@@ -269,6 +291,7 @@ function serializeCourseDetail(c: CourseDetail): SerializedCourseDetail {
       description: l.description,
       stageLabel: l.stageLabel,
       position: l.position,
+      isStageCheck: l.isStageCheck,
       createdBy: l.createdBy,
       createdAt: serializeDate(l.createdAt) ?? '',
     })),
@@ -577,6 +600,8 @@ export type RecordLessonActionResult =
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'lesson_not_in_course' }
   | { ok: false; reason: 'enrollment_not_active' }
+  /** Slice P2-SC1: an earlier stage check is unpassed. OPERATOR gate — NOT a Part-61/141 determination. */
+  | { ok: false; reason: 'stage_check_required'; blockingLessonId: string }
   | AuthErrorResult
   | ValidationErrorResult
   | ServerErrorResult;
@@ -587,7 +612,12 @@ export async function recordLessonAction(
   const session = await auth();
   try {
     const result = await recordLesson(session, input);
-    if (!result.ok) return { ok: false, reason: result.reason };
+    if (!result.ok) {
+      if (result.reason === 'stage_check_required') {
+        return { ok: false, reason: result.reason, blockingLessonId: result.blockingLessonId };
+      }
+      return { ok: false, reason: result.reason };
+    }
     return { ok: true, enrollment: serializeEnrollmentDetail(result.enrollment) };
   } catch (err) {
     const authErr = mapAuthError(err);
@@ -615,6 +645,59 @@ export async function voidLessonRecordAction(
     const result = await voidLessonRecord(session, input);
     if (!result.ok) return { ok: false, reason: result.reason };
     return { ok: true, enrollment: serializeEnrollmentDetail(result.enrollment) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── Slice P2-SC1: setLessonStageCheckAction / setCourseStageCheckEnforcementAction ──
+//
+// COMPLIANCE HARD LINE: the stage-check gate enforces the OPERATOR's
+// configured course structure ONLY — NOT a Part-61/141 stage check of
+// record or any FAA determination. Both toggles require training:manage
+// and are audited inside the API functions.
+
+export type SetLessonStageCheckActionResult =
+  | { ok: true; course: SerializedCourseDetail }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function setLessonStageCheckAction(
+  input: SetLessonStageCheckInput,
+): Promise<SetLessonStageCheckActionResult> {
+  const session = await auth();
+  try {
+    const result = await setLessonStageCheck(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, course: serializeCourseDetail(result.course) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+export type SetCourseStageCheckEnforcementActionResult =
+  | { ok: true; course: SerializedCourseDetail }
+  | { ok: false; reason: 'not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function setCourseStageCheckEnforcementAction(
+  input: SetCourseStageCheckEnforcementInput,
+): Promise<SetCourseStageCheckEnforcementActionResult> {
+  const session = await auth();
+  try {
+    const result = await setCourseStageCheckEnforcement(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true, course: serializeCourseDetail(result.course) };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

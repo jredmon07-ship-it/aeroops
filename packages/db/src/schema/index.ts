@@ -616,3 +616,15 @@ export type { StudyProgressSelect, StudyProgressInsert } from './study-progress.
 // table (event_type = 'org.announcement').
 export { memberMessage } from './member-message.js';
 export type { MemberMessageSelect, MemberMessageInsert } from './member-message.js';
+
+// Slice P2-LOG2: Pilot-logbook flight-condition annotations — tenant-scoped
+// (migration 0037 — STAGED, human-gated, NOT applied). logbook_annotation is
+// an APPEND-ONLY per-ticket annotation (night/instrument/cross-country hours
+// + remarks) on a CLOSED dispatch ticket; the effective annotation is the
+// LATEST row per ticket (mirrors dispatch_ticket_correction's latest-wins
+// pattern; SELECT + INSERT RLS only). PILOT/OPERATOR-ENTERED DATA — not an
+// FAA logbook of record; no computed §61.51/§61.57 currency determination.
+// Migration 0037 also adds resource.category / resource.aircraft_class
+// (free-text identity columns — see resource.ts).
+export { logbookAnnotation } from './logbook-annotation.js';
+export type { LogbookAnnotationSelect, LogbookAnnotationInsert } from './logbook-annotation.js';

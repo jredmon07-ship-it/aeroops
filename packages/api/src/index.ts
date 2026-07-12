@@ -840,6 +840,36 @@ export type { RecordLessonInput } from './training/record-lesson.js';
 export { voidLessonRecord, voidLessonRecordWithDb } from './training/void-lesson-record.js';
 export type { VoidLessonRecordInput } from './training/void-lesson-record.js';
 
+// ─── Slice P2-SC1 — Stage-check enforcement (migration 0038, ADDITIVE) ────────
+// OPERATOR-SET gate: when course.enforce_stage_checks (opt-in, default OFF =
+// existing behavior byte-identical), recordLesson refuses
+// { ok:false, reason:'stage_check_required', blockingLessonId } for a lesson
+// positioned AFTER a stage-check lesson with no non-voided
+// stage_check_passed=true record. Recording the stage check itself is always
+// allowed. COMPLIANCE HARD LINE: enforces the OPERATOR's configured course
+// structure ONLY — NOT a Part-61/141 stage check of record, NOT an FAA
+// milestone/graduation/curriculum determination; stage_check_passed is an
+// instructor-STATED outcome, never computed. Both toggles require
+// training:manage and write ONE audit row each. Pure gate is property-tested.
+export {
+  setLessonStageCheck,
+  setLessonStageCheckWithDb,
+} from './training/set-lesson-stage-check.js';
+export type { SetLessonStageCheckInput } from './training/set-lesson-stage-check.js';
+
+export {
+  setCourseStageCheckEnforcement,
+  setCourseStageCheckEnforcementWithDb,
+} from './training/set-course-stage-check-enforcement.js';
+export type { SetCourseStageCheckEnforcementInput } from './training/set-course-stage-check-enforcement.js';
+
+export { evaluateStageCheckGate } from './training/stage-check-gate.js';
+export type {
+  StageCheckGateLesson,
+  StageCheckGateRecord,
+  StageCheckGateResult,
+} from './training/stage-check-gate.js';
+
 // ─── Slice P2-ESIGN — E-signature on lesson records (APPEND-ONLY, migration 0032) ──
 // COMPLIANCE HARD LINE [VERIFY-P2-A]: a lesson_signature is an operator/instructor
 // ATTESTATION artifact — NOT an FAA-recognized digital/electronic signature, NOT a
@@ -886,6 +916,8 @@ export type {
   SetEnrollmentStatusResult,
   RecordLessonResult,
   VoidLessonRecordResult,
+  SetLessonStageCheckResult,
+  SetCourseStageCheckEnforcementResult,
   SignLessonRecordResult,
   VoidLessonSignatureResult,
   GetLessonSignaturesResult,
@@ -2011,6 +2043,39 @@ export type {
 } from './logbook/export-pilot-log-csv.js';
 
 export type { PilotLogEntry, PilotLog, PilotLogCsvResult } from './logbook/types.js';
+
+// ════════════════════════════════════════════════════════════════════════════
+// Slice P2-LOG2 — Pilot-logbook depth: flight-condition annotations +
+// aircraft category/class (migration 0037 — STAGED, human-gated, NOT applied)
+//
+// annotateFlight — APPEND one logbook_annotation row (night / instrument /
+// cross-country hours + remarks) to a CLOSED dispatch ticket. The effective
+// annotation is the LATEST row per ticket (dispatch_ticket_correction's
+// latest-wins pattern); rows are immutable (SELECT + INSERT RLS only). The
+// FROZEN dispatch close path is untouched. The logbook reads + CSV exports
+// LEFT JOIN the latest annotation + resource.category / aircraft_class.
+//
+// COMPLIANCE HARD LINE: pilot/operator-entered data — NOT an FAA logbook of
+// record, NOT a certified §61.51 entry; NO computed §61.51/§61.57 currency
+// determination. category/aircraft_class are FREE TEXT identity fields.
+//
+// SECURITY INVARIANTS:
+//   - Staff path: requireCapability('people:access') — annotate any in-org
+//     pilot's CLOSED ticket (mirrors the staff logbook reads).
+//   - Self path: requireCapability('portal:access') AND the ticket's
+//     pilot_user_id must be session.userId (else not_found — anti-enumeration).
+//   - pilot_user_id is snapshotted from the ticket — NEVER caller-supplied.
+//   - org_id from session only; RLS backstop; ONE audit row
+//     'logbook.flight_annotated'. NO money.
+// *WithDb form is for test code only (inject a pglite client).
+// ════════════════════════════════════════════════════════════════════════════
+
+export { annotateFlight, annotateFlightWithDb } from './logbook/annotate-flight.js';
+export type {
+  AnnotateFlightInput,
+  AnnotateFlightResult,
+  LogbookAnnotationView,
+} from './logbook/annotate-flight.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // Slice P2 — POS / Counter Sales (product catalog + non-dispatch sale)

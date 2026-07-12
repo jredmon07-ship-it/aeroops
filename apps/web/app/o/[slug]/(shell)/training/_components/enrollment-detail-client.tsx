@@ -131,11 +131,17 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
   const [gradeLabel, setGradeLabel] = React.useState('');
   const [notes, setNotes] = React.useState('');
   const [completedAt, setCompletedAt] = React.useState('');
+  // Slice P2-SC1: instructor-stated stage-check outcome ('' | 'pass' | 'fail').
+  // Only shown/sent when the selected lesson is a stage check. NOT a computed verdict.
+  const [stageCheckOutcome, setStageCheckOutcome] = React.useState('');
   const [members, setMembers] = React.useState<MemberOption[]>([]);
   const [loadingMembers, setLoadingMembers] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<RecordLessonFieldErrors>({});
   const [dialogError, setDialogError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const selectedLesson = lessonProgress.find((lp) => lp.lessonId === lessonId);
+  const selectedIsStageCheck = selectedLesson?.isStageCheck === true;
 
   function resetForm() {
     setLessonId('');
@@ -143,6 +149,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
     setGradeLabel('');
     setNotes('');
     setCompletedAt('');
+    setStageCheckOutcome('');
     setFieldErrors({});
     setDialogError(null);
   }
@@ -192,6 +199,11 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
         gradeLabel: gradeLabel.trim() || undefined,
         notes: notes.trim() || undefined,
         completedAt: completedAt || undefined,
+        // Slice P2-SC1: only sent for stage-check lessons; instructor-stated.
+        stageCheckPassed:
+          selectedIsStageCheck && stageCheckOutcome !== ''
+            ? stageCheckOutcome === 'pass'
+            : undefined,
       });
 
       if ('error' in result) {
@@ -210,6 +222,19 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
       if (!result.ok) {
         if (result.reason === 'lesson_not_in_course') {
           setFieldErrors((p) => ({ ...p, lessonId: 'This lesson does not belong to the enrollment\'s course.' }));
+          return;
+        }
+        if (result.reason === 'stage_check_required') {
+          // Slice P2-SC1: operator-set gate — NOT a Part-61/141 determination.
+          const blocking = lessonProgress.find((lp) => lp.lessonId === result.blockingLessonId);
+          const blockingTitle = blocking
+            ? `${blocking.position + 1}. ${blocking.title}`
+            : 'an earlier stage check';
+          setDialogError(
+            `This course enforces stage checks: pass the stage check "${blockingTitle}" before ` +
+            'recording this lesson. (This enforces your course structure — it is not a ' +
+            'Part-61/141 determination.)',
+          );
           return;
         }
         if (result.reason === 'enrollment_not_active') {
@@ -275,7 +300,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 <option value="">Select a lesson…</option>
                 {lessonProgress.map((lp) => (
                   <option key={lp.lessonId} value={lp.lessonId}>
-                    {lp.position + 1}. {lp.title}{lp.stageLabel ? ` (${lp.stageLabel})` : ''}
+                    {lp.position + 1}. {lp.title}{lp.stageLabel ? ` (${lp.stageLabel})` : ''}{lp.isStageCheck ? ' — stage check' : ''}
                   </option>
                 ))}
               </select>
@@ -285,6 +310,45 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 </p>
               )}
             </div>
+
+            {/* Stage-check outcome (Slice P2-SC1) — only for stage-check lessons.
+                Instructor-STATED pass/fail; NOT a computed ACS/Part-61/141 verdict. */}
+            {selectedIsStageCheck && (
+              <fieldset className="space-y-1.5">
+                <legend className="text-sm font-medium text-slate-900">
+                  Stage-check outcome
+                </legend>
+                <div className="flex gap-3">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                    <input
+                      type="radio"
+                      name="rl-stage-check-outcome"
+                      value="pass"
+                      checked={stageCheckOutcome === 'pass'}
+                      onChange={() => setStageCheckOutcome('pass')}
+                      disabled={isSubmitting}
+                    />
+                    Pass
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                    <input
+                      type="radio"
+                      name="rl-stage-check-outcome"
+                      value="fail"
+                      checked={stageCheckOutcome === 'fail'}
+                      onChange={() => setStageCheckOutcome('fail')}
+                      disabled={isSubmitting}
+                    />
+                    Fail
+                  </label>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Instructor-stated outcome for your course structure — not a computed
+                  ACS/Part-61/141 verdict. Only a Pass unlocks later lessons when
+                  enforcement is on.
+                </p>
+              </fieldset>
+            )}
 
             {/* Instructor picker (required) */}
             {/* [VERIFY-T1-C]: NOT an e-signature; [VERIFY-T1-E]: ANY member */}
@@ -1437,15 +1501,30 @@ export function EnrollmentDetailClient({
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {isVoided ? (
-                          <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-red-700">
-                            Voided
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-700">
-                            Recorded
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1">
+                          {isVoided ? (
+                            <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-red-700">
+                              Voided
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-700">
+                              Recorded
+                            </span>
+                          )}
+                          {/* Slice P2-SC1: instructor-stated stage-check outcome — NOT a computed verdict */}
+                          {record.stageCheckPassed !== null && (
+                            <span
+                              className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${
+                                record.stageCheckPassed
+                                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                  : 'border-red-200 bg-red-50 text-red-700'
+                              }`}
+                              title="Instructor-stated stage-check outcome — not a computed ACS/Part-61/141 verdict"
+                            >
+                              {record.stageCheckPassed ? 'Stage check: pass' : 'Stage check: fail'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <SignaturePanel lessonRecordId={record.id} canManage={canManage} />

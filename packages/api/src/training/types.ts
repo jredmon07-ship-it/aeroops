@@ -54,6 +54,12 @@ export interface LessonProgressRow {
   position: number;
   /** true when a 'recorded' (non-voided) lesson_record exists for this lesson. [VERIFY-T1-B] */
   completed: boolean;
+  /**
+   * Operator flag (Slice P2-SC1): this lesson is a milestone-evaluation
+   * ("stage check") lesson inside the course. NOT a Part-61/141 stage check
+   * of record — no regulatory meaning is computed from this flag.
+   */
+  isStageCheck: boolean;
 }
 
 // ─── LessonRecordView ─────────────────────────────────────────────────────────
@@ -85,6 +91,12 @@ export interface LessonRecordView {
   gradeLabel: string | null;
   /** Optional free-text instructor notes. Write-once. */
   notes: string | null;
+  /**
+   * Instructor-entered pass/fail outcome for a STAGE-CHECK lesson record
+   * (Slice P2-SC1). NULL on non-stage-check records. Write-once. NOT a
+   * computed ACS/Part-61/141 verdict — the instructor states the outcome.
+   */
+  stageCheckPassed: boolean | null;
   /** 'recorded' | 'voided'. Voided records remain visible in the log (audit history). */
   status: string;
   /** userId who entered the record. Write-once attribution. */
@@ -133,6 +145,13 @@ export interface CourseDetail {
   description: string | null;
   /** 'active' | 'archived'. Operator lifecycle flag only. */
   status: string;
+  /**
+   * Operator opt-in (Slice P2-SC1): when true, recording a lesson positioned
+   * AFTER an unpassed stage-check lesson is refused (stage_check_required).
+   * Enforces the OPERATOR's course structure ONLY — NOT a Part-61/141
+   * determination.
+   */
+  enforceStageChecks: boolean;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -147,6 +166,8 @@ export interface CourseDetail {
     /** FREE-TEXT operator grouping, NOT a Part-141 stage. [VERIFY-T1-G] */
     stageLabel: string | null;
     position: number;
+    /** Operator flag (Slice P2-SC1). NOT a Part-61/141 stage check of record. */
+    isStageCheck: boolean;
     createdBy: string;
     createdAt: Date;
   }>;
@@ -359,12 +380,30 @@ export type SetEnrollmentStatusResult =
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'invalid_transition' };
 
-/** recordLesson result */
+/**
+ * recordLesson result.
+ *
+ * stage_check_required (Slice P2-SC1): the course has enforce_stage_checks
+ * = true and an EARLIER stage-check lesson (blockingLessonId) has no
+ * non-voided record with stage_check_passed = true. OPERATOR-SET gate only
+ * — NOT a Part-61/141 determination.
+ */
 export type RecordLessonResult =
   | { ok: true; enrollment: EnrollmentDetail }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'lesson_not_in_course' }
-  | { ok: false; reason: 'enrollment_not_active' };
+  | { ok: false; reason: 'enrollment_not_active' }
+  | { ok: false; reason: 'stage_check_required'; blockingLessonId: string };
+
+/** setLessonStageCheck result (Slice P2-SC1) */
+export type SetLessonStageCheckResult =
+  | { ok: true; course: CourseDetail }
+  | { ok: false; reason: 'not_found' };
+
+/** setCourseStageCheckEnforcement result (Slice P2-SC1) */
+export type SetCourseStageCheckEnforcementResult =
+  | { ok: true; course: CourseDetail }
+  | { ok: false; reason: 'not_found' };
 
 /** voidLessonRecord result */
 export type VoidLessonRecordResult =

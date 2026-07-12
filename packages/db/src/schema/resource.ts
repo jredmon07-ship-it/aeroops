@@ -73,6 +73,13 @@ export const resource = pgTable(
     hasHobbs: boolean('has_hobbs').notNull().default(true),
     hasTach: boolean('has_tach').notNull().default(true),
     // ── End Slice 5 columns ───────────────────────────────────────────────
+    // ── Slice P2-LOG2 aircraft identity columns (migration 0037) ──────────
+    // FREE TEXT, operator-entered (e.g. 'Airplane' / 'ASEL'). NOT an enum,
+    // NOT a certification/type-rating determination — display data for the
+    // pilot logbook and fleet identity surfaces. Nullable/additive.
+    category: text('category'),
+    aircraftClass: text('aircraft_class'),
+    // ── End Slice P2-LOG2 columns ─────────────────────────────────────────
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

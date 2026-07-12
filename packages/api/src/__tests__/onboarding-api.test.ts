@@ -71,6 +71,9 @@ const MIGRATION_SQL = [
   '0021_qbo_integration',
   '0022_billing_ledger',
   '0023_stripe_foundation',
+  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
+  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
+  '0037_logbook_annotation',
 ].map((name) => readFileSync(resolve(__dirname, `../../../db/migrations/${name}.sql`), 'utf-8'));
 
 // ── Session helper ─────────────────────────────────────────────────────────────

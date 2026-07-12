@@ -34,6 +34,7 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { getMyPilotLogAction, exportMyPilotLogCsvAction } from '../actions';
 import type { SerializedPilotLog } from '@/lib/serialize-pilot-log';
 import { DownloadCsvButton } from './_components/download-csv-button';
+import { AnnotateFlightDialog } from './_components/annotate-flight-dialog';
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -73,7 +74,9 @@ function LogbookDisclaimer() {
       records. It is not your official pilot logbook and is not a certified record
       under 14 CFR 61.51. AeroOps makes no determination of flight experience,
       currency, or recency under 14 CFR 61.51 or 61.57 — verifying and maintaining
-      your logbook of record remains your responsibility.
+      your logbook of record remains your responsibility. Night, instrument,
+      cross-country, remarks, and aircraft category/class are operator/pilot-entered
+      data — not an FAA logbook of record; AeroOps does not compute currency.
     </p>
   );
 }
@@ -97,9 +100,17 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
             <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Date</th>
             <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Tail</th>
             <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Make / Model</th>
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Category / Class</th>
             <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Hobbs Out → In</th>
             <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Flight Time</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Night</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Instrument</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">XC</th>
             <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Running Total</th>
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Remarks</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -110,6 +121,11 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
               <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">
                 {e.make || e.model ? [e.make, e.model].filter(Boolean).join(' ') : <span className="text-slate-400">—</span>}
               </td>
+              <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">
+                {e.category || e.aircraftClass
+                  ? [e.category, e.aircraftClass].filter(Boolean).join(' / ')
+                  : <span className="text-slate-400">—</span>}
+              </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
                 <span className="nums text-xs text-slate-700">
                   {e.hobbsOut.toFixed(1)} → {e.hobbsIn.toFixed(1)}
@@ -119,17 +135,48 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
                 <span className="nums text-xs text-slate-700">{e.flightTimeHours.toFixed(1)} h</span>
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
+                <span className="nums text-xs text-slate-700">
+                  {e.nightHours != null ? `${e.nightHours.toFixed(1)} h` : '—'}
+                </span>
+              </td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">
+                <span className="nums text-xs text-slate-700">
+                  {e.instrumentHours != null ? `${e.instrumentHours.toFixed(1)} h` : '—'}
+                </span>
+              </td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">
+                <span className="nums text-xs text-slate-700">
+                  {e.crossCountryHours != null ? `${e.crossCountryHours.toFixed(1)} h` : '—'}
+                </span>
+              </td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">
                 <span className="nums text-xs font-semibold text-slate-900">{e.runningTotalHours.toFixed(1)} h</span>
+              </td>
+              <td className="px-3 py-2 text-xs text-slate-600 max-w-[16rem]">
+                {e.remarks
+                  ? <span className="line-clamp-2" title={e.remarks}>{e.remarks}</span>
+                  : <span className="text-slate-400">—</span>}
+              </td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">
+                <AnnotateFlightDialog
+                  ticketId={e.ticketId}
+                  tail={e.tail}
+                  nightHours={e.nightHours}
+                  instrumentHours={e.instrumentHours}
+                  crossCountryHours={e.crossCountryHours}
+                  remarks={e.remarks}
+                />
               </td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr className="border-t border-slate-200 bg-slate-50">
-            <td colSpan={5} className="px-3 py-2 text-right text-xs font-semibold text-slate-600">Total</td>
+            <td colSpan={9} className="px-3 py-2 text-right text-xs font-semibold text-slate-600">Total</td>
             <td className="px-3 py-2 text-right">
               <span className="nums text-sm font-bold text-slate-900">{log.totalHours.toFixed(1)} h</span>
             </td>
+            <td colSpan={2} />
           </tr>
         </tfoot>
       </table>

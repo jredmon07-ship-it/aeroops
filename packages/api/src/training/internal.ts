@@ -53,13 +53,14 @@ export async function assembleCourseDetail(
   // ── 1. Course identity (RLS-scoped) ─────────────────────────────────────────
   const courseResult = await tx.execute(sql`
     SELECT
-      id          AS "courseId",
+      id                   AS "courseId",
       title,
       description,
       status,
-      created_by  AS "createdBy",
-      created_at  AS "createdAt",
-      updated_at  AS "updatedAt"
+      enforce_stage_checks AS "enforceStageChecks",
+      created_by           AS "createdBy",
+      created_at           AS "createdAt",
+      updated_at           AS "updatedAt"
     FROM course
     WHERE id = ${courseId}::uuid
     LIMIT 1
@@ -70,6 +71,7 @@ export async function assembleCourseDetail(
     title: string;
     description: string | null;
     status: string;
+    enforceStageChecks: boolean | string;
     createdBy: string;
     createdAt: Date | string;
     updatedAt: Date | string;
@@ -82,13 +84,14 @@ export async function assembleCourseDetail(
   // [VERIFY-T1-G]: stage_label is FREE-TEXT grouping, NOT a Part-141 stage.
   const lessonsResult = await tx.execute(sql`
     SELECT
-      id          AS "lessonId",
+      id             AS "lessonId",
       title,
       description,
-      stage_label AS "stageLabel",
+      stage_label    AS "stageLabel",
       position,
-      created_by  AS "createdBy",
-      created_at  AS "createdAt"
+      is_stage_check AS "isStageCheck",
+      created_by     AS "createdBy",
+      created_at     AS "createdAt"
     FROM course_lesson
     WHERE course_id = ${courseId}::uuid
     ORDER BY position ASC
@@ -100,6 +103,7 @@ export async function assembleCourseDetail(
     description: string | null;
     stageLabel: string | null;
     position: number;
+    isStageCheck: boolean | string;
     createdBy: string;
     createdAt: Date | string;
   }>(lessonsResult);
@@ -109,6 +113,11 @@ export async function assembleCourseDetail(
     title:       courseRow.title,
     description: courseRow.description ?? null,
     status:      courseRow.status,
+    // Operator opt-in (Slice P2-SC1) — NOT a Part-61/141 determination.
+    enforceStageChecks:
+      courseRow.enforceStageChecks === true ||
+      courseRow.enforceStageChecks === 't' ||
+      courseRow.enforceStageChecks === 'true',
     createdBy:   courseRow.createdBy,
     createdAt:   courseRow.createdAt instanceof Date ? courseRow.createdAt : new Date(courseRow.createdAt),
     updatedAt:   courseRow.updatedAt instanceof Date ? courseRow.updatedAt : new Date(courseRow.updatedAt),
@@ -118,6 +127,8 @@ export async function assembleCourseDetail(
       description: l.description ?? null,
       stageLabel:  l.stageLabel ?? null,
       position:    typeof l.position === 'string' ? parseInt(l.position, 10) : l.position,
+      // Operator flag (Slice P2-SC1) — NOT a Part-61/141 stage check of record.
+      isStageCheck: l.isStageCheck === true || l.isStageCheck === 't' || l.isStageCheck === 'true',
       createdBy:   l.createdBy,
       createdAt:   l.createdAt instanceof Date ? l.createdAt : new Date(l.createdAt),
     })),
@@ -191,10 +202,11 @@ export async function assembleEnrollmentDetail(
   // [VERIFY-T1-B]: per-lesson completed = content flag, NOT a regulatory determination.
   const lessonsResult = await tx.execute(sql`
     SELECT
-      cl.id          AS "lessonId",
+      cl.id             AS "lessonId",
       cl.title,
-      cl.stage_label AS "stageLabel",
+      cl.stage_label    AS "stageLabel",
       cl.position,
+      cl.is_stage_check AS "isStageCheck",
       EXISTS (
         SELECT 1 FROM lesson_record lr
         WHERE lr.lesson_id = cl.id
@@ -211,6 +223,7 @@ export async function assembleEnrollmentDetail(
     title: string;
     stageLabel: string | null;
     position: number | string;
+    isStageCheck: boolean | string;
     completed: boolean | string;
   }>(lessonsResult);
 
@@ -220,6 +233,8 @@ export async function assembleEnrollmentDetail(
     stageLabel: l.stageLabel ?? null,
     position:   typeof l.position === 'string' ? parseInt(l.position, 10) : l.position,
     completed:  l.completed === true || l.completed === 't' || l.completed === 'true',
+    // Operator flag (Slice P2-SC1) — NOT a Part-61/141 stage check of record.
+    isStageCheck: l.isStageCheck === true || l.isStageCheck === 't' || l.isStageCheck === 'true',
   }));
 
   // ── Q3: Lesson records for this enrollment (incl. voided, newest-first) ─────
@@ -234,6 +249,7 @@ export async function assembleEnrollmentDetail(
       lr.completed_at       AS "completedAt",
       lr.grade_label        AS "gradeLabel",
       lr.notes,
+      lr.stage_check_passed AS "stageCheckPassed",
       lr.status,
       lr.recorded_by        AS "recordedBy",
       lr.voided_by          AS "voidedBy",
@@ -254,6 +270,7 @@ export async function assembleEnrollmentDetail(
     completedAt: Date | string;
     gradeLabel: string | null;
     notes: string | null;
+    stageCheckPassed: boolean | string | null;
     status: string;
     recordedBy: string;
     voidedBy: string | null;
@@ -270,6 +287,10 @@ export async function assembleEnrollmentDetail(
     completedAt:      r.completedAt instanceof Date ? r.completedAt : new Date(r.completedAt),
     gradeLabel:       r.gradeLabel ?? null,
     notes:            r.notes ?? null,
+    // Instructor-entered outcome (Slice P2-SC1) — NOT a computed verdict.
+    stageCheckPassed: r.stageCheckPassed == null
+      ? null
+      : r.stageCheckPassed === true || r.stageCheckPassed === 't' || r.stageCheckPassed === 'true',
     status:           r.status,
     recordedBy:       r.recordedBy,
     voidedBy:         r.voidedBy ?? null,

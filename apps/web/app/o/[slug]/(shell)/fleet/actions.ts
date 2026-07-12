@@ -139,6 +139,10 @@ export interface SerializedAircraftDetail {
   model: string | null;
   year: number | null;
   serialNumber: string | null;
+  /** FREE TEXT operator-entered category (e.g. 'Airplane') — not a certification determination. */
+  category: string | null;
+  /** FREE TEXT operator-entered class (e.g. 'ASEL') — not a certification determination. */
+  aircraftClass: string | null;
   active: boolean;
   hasHobbs: boolean;
   hasTach: boolean;
@@ -194,6 +198,8 @@ function serializeAircraftDetail(detail: AircraftDetail): SerializedAircraftDeta
     model: detail.model,
     year: detail.year,
     serialNumber: detail.serialNumber,
+    category: detail.category,
+    aircraftClass: detail.aircraftClass,
     active: detail.active,
     hasHobbs: detail.hasHobbs,
     hasTach: detail.hasTach,

@@ -4,6 +4,11 @@
  * Renders the course header, ordered lesson list, Add lesson dialog,
  * and Remove lesson confirmation (with has_records inline error).
  *
+ * Slice P2-SC1 additions: per-lesson "Stage check" toggle, course-level
+ * "Enforce stage checks" toggle. COMPLIANCE HARD LINE: both flags configure
+ * the OPERATOR's course structure ONLY — NOT a Part-61/141 stage check of
+ * record or any FAA determination.
+ *
  * [VERIFY-T1-G]: stage_label is FREE-TEXT operator grouping, NOT a Part-141 stage.
  */
 'use client';
@@ -11,7 +16,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, PlusCircle, Trash2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { BookOpen, PlusCircle, Trash2, XCircle, Loader2, AlertTriangle, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +30,12 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import type { SerializedCourseDetail } from '../actions';
-import { addCourseLessonAction, removeCourseLessonAction } from '../actions';
+import {
+  addCourseLessonAction,
+  removeCourseLessonAction,
+  setLessonStageCheckAction,
+  setCourseStageCheckEnforcementAction,
+} from '../actions';
 import { courseStatusLabel } from './training-utils';
 
 // ─── Course status chip ────────────────────────────────────────────────────────
@@ -62,6 +72,21 @@ function StageLabelChip({ label }: { label: string }) {
   );
 }
 
+// ─── Stage check chip (Slice P2-SC1) ───────────────────────────────────────────
+// Operator flag — NOT a Part-61/141 stage check of record.
+
+function StageCheckChip() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800"
+      title="Operator-designated stage check — not a Part-61/141 stage check of record"
+    >
+      <Flag className="h-3 w-3" aria-hidden="true" />
+      Stage check
+    </span>
+  );
+}
+
 // ─── Add Lesson Dialog ─────────────────────────────────────────────────────────
 
 interface AddLessonDialogProps {
@@ -78,6 +103,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [stageLabel, setStageLabel] = React.useState('');
+  const [isStageCheck, setIsStageCheck] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<AddLessonFieldErrors>({});
   const [dialogError, setDialogError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -86,6 +112,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
     setTitle('');
     setDescription('');
     setStageLabel('');
+    setIsStageCheck(false);
     setFieldErrors({});
     setDialogError(null);
   }
@@ -115,6 +142,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
         title: title.trim(),
         description: description.trim() || undefined,
         stageLabel: stageLabel.trim() || undefined,
+        isStageCheck: isStageCheck || undefined,
       });
 
       if ('error' in result) {
@@ -215,6 +243,27 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
               <p className="text-xs text-slate-400">
                 Free-text operator grouping label — not a regulatory stage.
               </p>
+            </div>
+
+            {/* Stage check (optional) — operator flag, Slice P2-SC1 */}
+            <div className="flex items-start gap-2.5">
+              <input
+                id="al-stage-check"
+                type="checkbox"
+                checked={isStageCheck}
+                onChange={(e) => setIsStageCheck(e.target.checked)}
+                disabled={isSubmitting}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+              />
+              <div className="space-y-0.5">
+                <Label htmlFor="al-stage-check" className="cursor-pointer">
+                  Stage check
+                </Label>
+                <p className="text-xs text-slate-400">
+                  Marks this lesson a milestone evaluation in your course structure — not a
+                  Part-61/141 stage check of record.
+                </p>
+              </div>
             </div>
 
             {/* Description (optional) */}
@@ -377,6 +426,159 @@ function RemoveLessonConfirm({
   );
 }
 
+// ─── Lesson stage-check toggle (Slice P2-SC1) ──────────────────────────────────
+// Operator flag ONLY — NOT a Part-61/141 stage check of record.
+
+interface LessonStageCheckToggleProps {
+  lessonId: string;
+  lessonTitle: string;
+  isStageCheck: boolean;
+  onSuccess: (course: SerializedCourseDetail) => void;
+  onError: (message: string) => void;
+}
+
+function LessonStageCheckToggle({
+  lessonId,
+  lessonTitle,
+  isStageCheck,
+  onSuccess,
+  onError,
+}: LessonStageCheckToggleProps) {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  async function handleToggle() {
+    setIsSubmitting(true);
+    try {
+      const result = await setLessonStageCheckAction({
+        lessonId,
+        isStageCheck: !isStageCheck,
+      });
+
+      if ('error' in result) {
+        onError(
+          result.error === 'forbidden' || result.error === 'unauthenticated'
+            ? 'You do not have permission to change stage-check settings.'
+            : 'Something went wrong. Please try again.',
+        );
+        return;
+      }
+      if (!result.ok) {
+        onError(result.reason === 'not_found' ? 'Lesson not found.' : 'Something went wrong. Please try again.');
+        return;
+      }
+      onSuccess(result.course);
+    } catch {
+      onError('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleToggle}
+      disabled={isSubmitting}
+      className="text-slate-400 hover:text-amber-700 hover:bg-amber-50 text-xs"
+      aria-label={
+        isStageCheck
+          ? `Unmark stage check: ${lessonTitle}`
+          : `Mark as stage check: ${lessonTitle}`
+      }
+      title="Operator flag — not a Part-61/141 stage check of record"
+    >
+      {isSubmitting ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+      ) : isStageCheck ? (
+        'Unmark stage check'
+      ) : (
+        'Mark stage check'
+      )}
+    </Button>
+  );
+}
+
+// ─── Enforce-stage-checks toggle (Slice P2-SC1) ────────────────────────────────
+// Operator opt-in — enforces YOUR course structure, not a Part-61/141 rule.
+
+interface EnforceStageChecksToggleProps {
+  courseId: string;
+  enforceStageChecks: boolean;
+  onSuccess: (course: SerializedCourseDetail) => void;
+}
+
+function EnforceStageChecksToggle({
+  courseId,
+  enforceStageChecks,
+  onSuccess,
+}: EnforceStageChecksToggleProps) {
+  const [error, setError] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  async function handleToggle(next: boolean) {
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const result = await setCourseStageCheckEnforcementAction({
+        courseId,
+        enforceStageChecks: next,
+      });
+
+      if ('error' in result) {
+        setError(
+          result.error === 'forbidden' || result.error === 'unauthenticated'
+            ? 'You do not have permission to change course settings.'
+            : 'Something went wrong. Please try again.',
+        );
+        return;
+      }
+      if (!result.ok) {
+        setError(result.reason === 'not_found' ? 'Course not found.' : 'Something went wrong. Please try again.');
+        return;
+      }
+      onSuccess(result.course);
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-0.5">
+          <h2 className="text-sm font-semibold text-slate-700">Enforce stage checks</h2>
+          <p className="text-xs text-slate-500">
+            Blocks recording lessons past an unpassed stage check. This enforces YOUR course
+            structure — it is not a Part-61/141 determination.
+          </p>
+        </div>
+        <label
+          className="relative inline-flex items-center cursor-pointer shrink-0"
+          aria-label={`Stage-check enforcement ${enforceStageChecks ? 'enabled' : 'disabled'}`}
+        >
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={enforceStageChecks}
+            onChange={(e) => handleToggle(e.target.checked)}
+            disabled={isSubmitting}
+          />
+          <div className="w-9 h-5 rounded-full bg-slate-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+        </label>
+      </div>
+      {error && (
+        <Alert variant="destructive" role="alert" aria-live="assertive">
+          <XCircle className="h-4 w-4" aria-hidden="true" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
+
 // ─── Main client component ─────────────────────────────────────────────────────
 
 interface CourseDetailClientProps {
@@ -387,6 +589,7 @@ interface CourseDetailClientProps {
 
 export function CourseDetailClient({ course: initialCourse, slug, canManage }: CourseDetailClientProps) {
   const [course, setCourse] = React.useState(initialCourse);
+  const [lessonToggleError, setLessonToggleError] = React.useState<string | null>(null);
 
   return (
     <div className="space-y-6">
@@ -406,8 +609,24 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
         )}
       </div>
 
+      {/* ── Course settings: stage-check enforcement (Slice P2-SC1) ─────── */}
+      {/* Operator opt-in — enforces YOUR course structure, not Part-61/141. */}
+      {canManage && (
+        <EnforceStageChecksToggle
+          courseId={course.courseId}
+          enforceStageChecks={course.enforceStageChecks}
+          onSuccess={setCourse}
+        />
+      )}
+
       {/* ── Lessons list ────────────────────────────────────────────────── */}
       <div className="space-y-2">
+        {lessonToggleError && (
+          <Alert variant="destructive" role="alert" aria-live="assertive">
+            <XCircle className="h-4 w-4" aria-hidden="true" />
+            <AlertDescription>{lessonToggleError}</AlertDescription>
+          </Alert>
+        )}
         <h2 className="text-sm font-semibold text-slate-700">
           Lessons
           <span className="ml-1.5 nums text-slate-400 font-normal">
@@ -450,7 +669,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
                     Lesson
                   </th>
                   {canManage && (
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide w-16">
+                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide w-52">
                       <span className="sr-only">Actions</span>
                     </th>
                   )}
@@ -471,6 +690,8 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
                           <span className="font-medium text-slate-900">{lesson.title}</span>
                           {/* [VERIFY-T1-G]: stage_label = FREE-TEXT grouping only */}
                           {lesson.stageLabel && <StageLabelChip label={lesson.stageLabel} />}
+                          {/* Slice P2-SC1: operator flag — NOT a Part-61/141 stage check */}
+                          {lesson.isStageCheck && <StageCheckChip />}
                         </div>
                         {lesson.description && (
                           <p className="text-xs text-slate-400 line-clamp-2">{lesson.description}</p>
@@ -479,11 +700,24 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
                     </td>
                     {canManage && (
                       <td className="px-4 py-3 text-right">
-                        <RemoveLessonConfirm
-                          lessonId={lesson.lessonId}
-                          lessonTitle={lesson.title}
-                          onSuccess={setCourse}
-                        />
+                        <div className="inline-flex items-center gap-1">
+                          {/* Slice P2-SC1: operator stage-check toggle */}
+                          <LessonStageCheckToggle
+                            lessonId={lesson.lessonId}
+                            lessonTitle={lesson.title}
+                            isStageCheck={lesson.isStageCheck}
+                            onSuccess={(c) => {
+                              setLessonToggleError(null);
+                              setCourse(c);
+                            }}
+                            onError={setLessonToggleError}
+                          />
+                          <RemoveLessonConfirm
+                            lessonId={lesson.lessonId}
+                            lessonTitle={lesson.title}
+                            onSuccess={setCourse}
+                          />
+                        </div>
                       </td>
                     )}
                   </tr>

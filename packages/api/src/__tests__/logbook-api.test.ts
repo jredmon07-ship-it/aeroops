@@ -2,8 +2,9 @@
  * logbook-api.test.ts — API integration tests for Slice P2: Pilot Logbook
  * (derived, read-only + CSV export).
  *
- * Applies migrations 0000–0030 (no new migration — logbook needs NONE; it is
- * a pure projection of dispatch_ticket + resource).
+ * Applies migrations 0000–0037 (Slice P2-LOG2 added logbook_annotation +
+ * resource.category/aircraft_class — 0037 — which readPilotLog now joins;
+ * the annotation command itself is covered in logbook-annotation.test.ts).
  *
  * COVERAGE (per slice-p2-logbook.md §6):
  *   Happy path getMyPilotLog: closed tickets DESC by closed_at, entry shape.
@@ -107,6 +108,16 @@ const MIGRATION_SQL = [
   migrationSql('0028_calendar_feed.sql'),
   migrationSql('0029_maintenance_due.sql'),
   migrationSql('0030_documents.sql'),
+  migrationSql('0031_pos_sales.sql'),
+  migrationSql('0032_lesson_signature.sql'),
+  migrationSql('0033_mobile_session.sql'),
+  migrationSql('0034_block_time.sql'),
+  migrationSql('0035_study_grant.sql'),
+  migrationSql('0036_member_message.sql'),
+  // Slice P2-LOG2: readPilotLog now LEFT JOINs logbook_annotation +
+  // resource.category/aircraft_class — 0037 is required for these reads.
+  migrationSql('0037_logbook_annotation.sql'),
+  migrationSql('0038_stage_check_enforcement.sql'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────
@@ -654,7 +665,9 @@ describe('CSV EXPORT', () => {
     const parsed = parseCsv(result.csv);
     expect(parsed.headers).toEqual([
       'Date', 'Tail', 'Make', 'Model', 'Hobbs Out', 'Hobbs In',
-      'Flight Time (hrs)', 'Running Total (hrs)', 'Ticket ID',
+      'Flight Time (hrs)', 'Running Total (hrs)',
+      'Night', 'Instrument', 'XC', 'CategoryClass', 'Remarks',
+      'Ticket ID',
     ]);
     expect(parsed.rows).toHaveLength(log.entries.length);
     for (let i = 0; i < log.entries.length; i++) {

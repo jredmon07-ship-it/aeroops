@@ -22,12 +22,23 @@ export interface PilotLogEntry {
   tail: string;
   make: string | null;
   model: string | null;
+  /** resource.category — FREE TEXT operator-entered (e.g. 'Airplane'); NOT a certification determination. */
+  category: string | null;
+  /** resource.aircraft_class — FREE TEXT operator-entered (e.g. 'ASEL'); NOT a certification determination. */
+  aircraftClass: string | null;
   hobbsOut: number;
   hobbsIn: number;
   /** deriveFlightTime(hobbsOut, hobbsIn) — display-only, never persisted here. */
   flightTimeHours: number;
   /** Cumulative hours oldest→this entry, tenths-accurate (no float drift). */
   runningTotalHours: number;
+  // ── Slice P2-LOG2 — effective (latest) annotation for this ticket ─────────
+  // PILOT/OPERATOR-ENTERED data (logbook_annotation, latest row per ticket) —
+  // NOT a certified §61.51 entry; no §61.57 currency determination.
+  nightHours: number | null;
+  instrumentHours: number | null;
+  crossCountryHours: number | null;
+  remarks: string | null;
 }
 
 export interface PilotLog {

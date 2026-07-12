@@ -121,6 +121,10 @@ export interface AircraftDetail {
   model: string | null;
   year: number | null;
   serialNumber: string | null;
+  /** FREE TEXT operator-entered category (e.g. 'Airplane') — NOT a certification determination. */
+  category: string | null;
+  /** FREE TEXT operator-entered class (e.g. 'ASEL') — NOT a certification determination. */
+  aircraftClass: string | null;
   active: boolean;
   hasHobbs: boolean;
   hasTach: boolean;

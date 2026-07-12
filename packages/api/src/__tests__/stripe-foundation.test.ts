@@ -108,6 +108,10 @@ const MIGRATION_SQL = [
   migrationSql('0023_stripe_foundation.sql'),
   migrationSql('0024_payment_methods_autopay.sql'),
   migrationSql('0025_recurring_dues.sql'),
+  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
+  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
+  migrationSql('0037_logbook_annotation.sql'),
+  migrationSql('0038_stage_check_enforcement.sql'),
 ];
 
 // ── Fake StripeClient — NO real HTTP call, ever ────────────────────────────────

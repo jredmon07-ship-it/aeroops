@@ -46,6 +46,7 @@ import {
   getMyDocumentDownloadUrl,
   getMyPilotLog,
   exportMyPilotLogCsv,
+  annotateFlight,
   ForbiddenError,
   UnauthenticatedError,
 } from '@aeroops/api';
@@ -627,6 +628,53 @@ export async function exportMyPilotLogCsvAction(
   try {
     const result = await exportMyPilotLogCsv(session, input);
     return { ok: true, filename: result.filename, csv: result.csv };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice P2-LOG2 — Annotate a flight (night / instrument / cross-country +
+// remarks) on a CLOSED dispatch ticket.
+//
+// COMPLIANCE HARD LINE: pilot/operator-entered data — NOT an FAA logbook of
+// record, NOT a certified §61.51 entry; no §61.57 currency determination.
+//
+// SCOPING (enforced inside annotateFlight, @aeroops/api): a portal caller
+// (portal:access) can ONLY annotate their OWN closed flights (the ticket's
+// pilot_user_id must be session.userId — else not_found); staff
+// (people:access — the same cap that gates the staff logbook reads) may
+// annotate any in-org pilot's closed flight. This one action therefore also
+// backs the People member-logbook card (same precedent as
+// createCalendarFeedAction backing the Fleet-detail feed card).
+// ════════════════════════════════════════════════════════════════════════════════
+
+export interface AnnotateFlightActionInput {
+  dispatchTicketId: string;
+  nightHours?: number | null;
+  instrumentHours?: number | null;
+  crossCountryHours?: number | null;
+  remarks?: string | null;
+}
+
+export type AnnotateFlightActionResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_found' | 'not_closed' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function annotateFlightAction(
+  input: AnnotateFlightActionInput,
+): Promise<AnnotateFlightActionResult> {
+  const session = await auth();
+  try {
+    const result = await annotateFlight(session, input);
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

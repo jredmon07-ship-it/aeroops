@@ -66,6 +66,10 @@ const MIGRATION_SQL = [
   '0021_qbo_integration.sql',
   // 0022 adds dispatch_config.minimum_balance_cents (read by openDispatch).
   '0022_billing_ledger.sql',
+  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
+  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
+  '0037_logbook_annotation.sql',
+  '0038_stage_check_enforcement.sql',
 ].map((f) => readFileSync(resolve(__dirname, `../../../db/migrations/${f}`), 'utf-8'));
 
 function makeSession(

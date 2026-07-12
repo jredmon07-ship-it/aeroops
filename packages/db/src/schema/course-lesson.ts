@@ -65,6 +65,7 @@ import {
   timestamp,
   text,
   integer,
+  boolean,
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
@@ -102,6 +103,13 @@ export const courseLesson = pgTable(
     // course_lesson_position_nonneg_check enforces position >= 0.
     // UNIQUE(course_id, position) backstops race conditions in addCourseLesson.
     position: integer('position').notNull(),
+
+    // is_stage_check (migration 0038, Slice P2-SC1): operator flag — this
+    // lesson is a milestone-evaluation ("stage check") lesson inside the
+    // course. Consumed by the OPERATOR-SET stage-check gate when the course
+    // opts in (course.enforce_stage_checks). NOT a Part-61/141 stage check
+    // of record; no regulatory meaning is computed from this flag.
+    isStageCheck: boolean('is_stage_check').notNull().default(false),
 
     // created_by carries no .references() — composite FK
     // (created_by, org_id) → app_user(id, org_id) ON DELETE RESTRICT

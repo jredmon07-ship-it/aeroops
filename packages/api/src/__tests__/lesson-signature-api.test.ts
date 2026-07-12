@@ -139,6 +139,9 @@ const MIGRATION_FILES = [
   '0030_documents.sql',
   '0031_pos_sales.sql',
   '0032_lesson_signature.sql',
+  // 0038 is ADDITIVE on the 0012 training tables (Slice P2-SC1) — required
+  // because the Drizzle schema now names the new columns on INSERT.
+  '0038_stage_check_enforcement.sql',
 ];
 
 const MIGRATION_SQL = MIGRATION_FILES.map((f) =>

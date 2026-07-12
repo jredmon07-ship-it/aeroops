@@ -40,6 +40,12 @@ const inputSchema = z.object({
   description: z.string().optional(),
   /** FREE-TEXT operator grouping label. NOT a Part-141 stage. [VERIFY-T1-G] */
   stageLabel:  z.string().optional(),
+  /**
+   * Operator flag (Slice P2-SC1): mark this lesson a milestone-evaluation
+   * ("stage check") lesson. NOT a Part-61/141 stage check of record.
+   * Defaults false.
+   */
+  isStageCheck: z.boolean().optional(),
 });
 
 export interface AddCourseLessonInput {
@@ -48,6 +54,8 @@ export interface AddCourseLessonInput {
   description?: string;
   /** FREE-TEXT operator grouping, NOT a Part-141 stage. [VERIFY-T1-G] */
   stageLabel?: string;
+  /** Operator flag (Slice P2-SC1). NOT a Part-61/141 stage check of record. */
+  isStageCheck?: boolean;
 }
 
 // ─── Shared implementation ────────────────────────────────────────────────────
@@ -75,6 +83,7 @@ async function _addCourseLessonImpl(
     title,
     description: parsed.data.description?.trim() ?? null,
     stageLabel:  parsed.data.stageLabel?.trim() ?? null,
+    isStageCheck: parsed.data.isStageCheck ?? false,
   };
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
@@ -107,6 +116,8 @@ async function _addCourseLessonImpl(
         description: input.description ?? undefined,
         stageLabel:  input.stageLabel ?? undefined,
         position,
+        // Operator flag (Slice P2-SC1) — NOT a Part-61/141 stage check of record.
+        isStageCheck: input.isStageCheck,
         createdBy:   sess.userId,
       })
       .returning({ id: courseLesson.id });
@@ -121,7 +132,7 @@ async function _addCourseLessonImpl(
       action:      'training.lesson_added',
       entityType:  'course_lesson',
       entityId:    lessonId,
-      metadata:    { courseId: input.courseId, title: input.title, position },
+      metadata:    { courseId: input.courseId, title: input.title, position, isStageCheck: input.isStageCheck },
     });
 
     // 7. Return fresh course detail.

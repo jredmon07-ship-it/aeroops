@@ -50,12 +50,24 @@ interface PilotLogRawRow {
   tail: string;
   make: string | null;
   model: string | null;
+  category: string | null;
+  aircraftClass: string | null;
   hobbsOut: string | number;
   hobbsIn: string | number;
+  nightHours: string | number | null;
+  instrumentHours: string | number | null;
+  crossCountryHours: string | number | null;
+  remarks: string | null;
 }
 
 function parseNumericCol(v: string | number): number {
   return typeof v === 'string' ? parseFloat(v) : v;
+}
+
+function parseNullableNumericCol(v: string | number | null): number | null {
+  if (v == null) return null;
+  const n = typeof v === 'string' ? parseFloat(v) : v;
+  return Number.isFinite(n) ? n : null;
 }
 
 /**
@@ -75,13 +87,29 @@ export async function readPilotLog(
     ? sql`AND dt.closed_at < ${bounds.to}::timestamptz`
     : sql``;
 
+  // Effective annotation = LATEST logbook_annotation row per ticket (LEFT
+  // JOIN LATERAL … ORDER BY created_at DESC LIMIT 1 — the same latest-wins
+  // pattern as dispatch_ticket_correction, migration 0018). Un-annotated
+  // tickets get all-null annotation fields.
   const result = await tx.execute(sql`
     SELECT dt.id AS "ticketId", dt.closed_at AS "date",
            COALESCE(res.tail_number, res.id::text) AS tail,
            res.make, res.model,
-           dt.hobbs_out AS "hobbsOut", dt.hobbs_in AS "hobbsIn"
+           res.category, res.aircraft_class AS "aircraftClass",
+           dt.hobbs_out AS "hobbsOut", dt.hobbs_in AS "hobbsIn",
+           ann.night_hours          AS "nightHours",
+           ann.instrument_hours     AS "instrumentHours",
+           ann.cross_country_hours  AS "crossCountryHours",
+           ann.remarks
     FROM dispatch_ticket dt
     JOIN resource res ON res.id = dt.resource_id
+    LEFT JOIN LATERAL (
+      SELECT la.night_hours, la.instrument_hours, la.cross_country_hours, la.remarks
+      FROM logbook_annotation la
+      WHERE la.dispatch_ticket_id = dt.id
+      ORDER BY la.created_at DESC, la.id DESC
+      LIMIT 1
+    ) ann ON TRUE
     WHERE dt.pilot_user_id = ${userId}::uuid
       AND dt.status = 'closed'
       ${fromClause}
@@ -100,10 +128,16 @@ export async function readPilotLog(
       tail: r.tail,
       make: r.make,
       model: r.model,
+      category: r.category,
+      aircraftClass: r.aircraftClass,
       hobbsOut,
       hobbsIn,
       flightTimeHours: deriveFlightTime(hobbsOut, hobbsIn),
       runningTotalHours: 0, // filled in by buildPilotLog
+      nightHours: parseNullableNumericCol(r.nightHours),
+      instrumentHours: parseNullableNumericCol(r.instrumentHours),
+      crossCountryHours: parseNullableNumericCol(r.crossCountryHours),
+      remarks: r.remarks,
     };
   });
 }
@@ -151,8 +185,18 @@ const CSV_HEADER = [
   'Hobbs In',
   'Flight Time (hrs)',
   'Running Total (hrs)',
+  'Night',
+  'Instrument',
+  'XC',
+  'CategoryClass',
+  'Remarks',
   'Ticket ID',
 ];
+
+/** Format a nullable tenths value for CSV — empty string when unset. */
+function csvTenths(v: number | null): string {
+  return v == null ? '' : v.toFixed(1);
+}
 
 /** pilotLogToCsvRows — pure CSV projection: header row + one row per entry. */
 export function pilotLogToCsvRows(log: PilotLog): string[][] {
@@ -167,6 +211,11 @@ export function pilotLogToCsvRows(log: PilotLog): string[][] {
       e.hobbsIn.toFixed(1),
       e.flightTimeHours.toFixed(1),
       e.runningTotalHours.toFixed(1),
+      csvTenths(e.nightHours),
+      csvTenths(e.instrumentHours),
+      csvTenths(e.crossCountryHours),
+      neutralizeCsvFormula([e.category, e.aircraftClass].filter(Boolean).join(' / ')),
+      neutralizeCsvFormula(e.remarks ?? ''),
       e.ticketId,
     ]);
   }

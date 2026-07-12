@@ -41,6 +41,24 @@ export type { RecordLessonInput } from './record-lesson.js';
 export { voidLessonRecord, voidLessonRecordWithDb } from './void-lesson-record.js';
 export type { VoidLessonRecordInput } from './void-lesson-record.js';
 
+// Slice P2-SC1 — stage-check enforcement (operator-set gate; NOT a Part-61/141
+// determination). Pure gate + the two training:manage config toggles.
+export { evaluateStageCheckGate } from './stage-check-gate.js';
+export type {
+  StageCheckGateLesson,
+  StageCheckGateRecord,
+  StageCheckGateResult,
+} from './stage-check-gate.js';
+
+export { setLessonStageCheck, setLessonStageCheckWithDb } from './set-lesson-stage-check.js';
+export type { SetLessonStageCheckInput } from './set-lesson-stage-check.js';
+
+export {
+  setCourseStageCheckEnforcement,
+  setCourseStageCheckEnforcementWithDb,
+} from './set-course-stage-check-enforcement.js';
+export type { SetCourseStageCheckEnforcementInput } from './set-course-stage-check-enforcement.js';
+
 // Slice P2-ESIGN
 export { signLessonRecord, signLessonRecordWithDb } from './sign-lesson-record.js';
 export type { SignLessonRecordInput } from './sign-lesson-record.js';
@@ -73,6 +91,8 @@ export type {
   SetEnrollmentStatusResult,
   RecordLessonResult,
   VoidLessonRecordResult,
+  SetLessonStageCheckResult,
+  SetCourseStageCheckEnforcementResult,
   SignLessonRecordResult,
   VoidLessonSignatureResult,
   GetLessonSignaturesResult,

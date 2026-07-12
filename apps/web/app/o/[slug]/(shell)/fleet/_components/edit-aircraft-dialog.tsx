@@ -70,6 +70,8 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
   const [model, setModel] = React.useState(aircraft.model ?? '');
   const [year, setYear] = React.useState<string>(aircraft.year ? String(aircraft.year) : '');
   const [serialNumber, setSerialNumber] = React.useState(aircraft.serialNumber ?? '');
+  const [category, setCategory] = React.useState(aircraft.category ?? '');
+  const [aircraftClass, setAircraftClass] = React.useState(aircraft.aircraftClass ?? '');
   const [homeBaseLocationId, setHomeBaseLocationId] = React.useState<string>(
     aircraft.homeBase?.id ?? '',
   );
@@ -98,6 +100,8 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
     setModel(aircraft.model ?? '');
     setYear(aircraft.year ? String(aircraft.year) : '');
     setSerialNumber(aircraft.serialNumber ?? '');
+    setCategory(aircraft.category ?? '');
+    setAircraftClass(aircraft.aircraftClass ?? '');
     setHomeBaseLocationId(aircraft.homeBase?.id ?? '');
     setHasHobbs(aircraft.hasHobbs);
     setHasTach(aircraft.hasTach);
@@ -167,6 +171,8 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
         model: model.trim() || null,
         year: yearNum,
         serialNumber: serialNumber.trim() || null,
+        category: category.trim() || null,
+        aircraftClass: aircraftClass.trim() || null,
         homeBaseLocationId: homeBaseLocationId || null,
         hasHobbs,
         hasTach,
@@ -356,6 +362,36 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                 disabled={isSubmitting}
                 className="font-mono text-sm"
               />
+            </div>
+
+            {/* Category / Class (Slice P2-LOG2) — free text, operator-entered */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ea-category">Category</Label>
+                <Input
+                  id="ea-category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="e.g. Airplane"
+                  maxLength={100}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ea-class">Class</Label>
+                <Input
+                  id="ea-class"
+                  value={aircraftClass}
+                  onChange={(e) => setAircraftClass(e.target.value)}
+                  placeholder="e.g. ASEL"
+                  maxLength={100}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <p className="col-span-2 text-xs text-slate-400">
+                Free-text identity labels shown on logbook rows — operator-entered,
+                not a certification determination.
+              </p>
             </div>
 
             {/* Home base */}

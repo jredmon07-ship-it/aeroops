@@ -298,6 +298,8 @@ export async function assembleAircraftDetail(
       r.model,
       r.year,
       r.serial_number         AS "serialNumber",
+      r.category,
+      r.aircraft_class        AS "aircraftClass",
       r.active,
       r.has_hobbs             AS "hasHobbs",
       r.has_tach              AS "hasTach",
@@ -320,6 +322,8 @@ export async function assembleAircraftDetail(
     model: string | null;
     year: number | null;
     serialNumber: string | null;
+    category: string | null;
+    aircraftClass: string | null;
     active: boolean;
     hasHobbs: boolean;
     hasTach: boolean;
@@ -471,6 +475,8 @@ export async function assembleAircraftDetail(
     model: identityRow.model,
     year: identityRow.year,
     serialNumber: identityRow.serialNumber,
+    category: identityRow.category,
+    aircraftClass: identityRow.aircraftClass,
     active: identityRow.active,
     hasHobbs: identityRow.hasHobbs,
     hasTach: identityRow.hasTach,

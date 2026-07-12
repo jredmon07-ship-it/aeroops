@@ -82,6 +82,9 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../migrations/0020_demo_reset_state.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0021_qbo_integration.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0022_billing_ledger.sql'), 'utf-8'),
+  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
+  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
+  readFileSync(resolve(__dirname, '../../migrations/0037_logbook_annotation.sql'), 'utf-8'),
 ];
 
 const DOWN_0009 = readFileSync(

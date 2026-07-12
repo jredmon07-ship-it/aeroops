@@ -107,6 +107,10 @@ const MIGRATION_SQL = [
   migrationSql('0032_lesson_signature.sql'),
   migrationSql('0033_mobile_session.sql'),
   migrationSql('0034_block_time.sql'),
+  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
+  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
+  migrationSql('0037_logbook_annotation.sql'),
+  migrationSql('0038_stage_check_enforcement.sql'),
 ];
 
 // ── Shared test environment ───────────────────────────────────────────────────

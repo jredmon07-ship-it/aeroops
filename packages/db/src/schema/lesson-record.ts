@@ -90,6 +90,7 @@ import {
   uuid,
   timestamp,
   text,
+  boolean,
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
@@ -134,6 +135,14 @@ export const lessonRecord = pgTable(
 
     // Free-text instructor/operator notes. Nullable. Write-once.
     notes: text('notes'),
+
+    // stage_check_passed (migration 0038, Slice P2-SC1): instructor-entered
+    // pass/fail outcome for a STAGE-CHECK lesson record. NULL on records for
+    // non-stage-check lessons (API-enforced). WRITE-ONCE — set at INSERT
+    // only; corrections go through the void-tombstone + re-record flow.
+    // NOT a computed ACS/Part-61/141 verdict — the instructor states the
+    // outcome; the software attaches no regulatory meaning.
+    stageCheckPassed: boolean('stage_check_passed'),
 
     // Lesson record lifecycle status. Default 'recorded'.
     // Only valid transition: recorded → voided (API-enforced; void_shape_check).

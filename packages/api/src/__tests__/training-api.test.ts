@@ -130,6 +130,10 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../../db/migrations/0020_demo_reset_state.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0021_qbo_integration.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../../db/migrations/0022_billing_ledger.sql'), 'utf-8'),
+  // 0038 is ADDITIVE on the 0012 training tables (is_stage_check /
+  // enforce_stage_checks / stage_check_passed) — required because the Drizzle
+  // schema now names those columns on INSERT (Slice P2-SC1).
+  readFileSync(resolve(__dirname, '../../../db/migrations/0038_stage_check_enforcement.sql'), 'utf-8'),
 ];
 
 // ── Shared test env ──────────────────────────────────────────────────────────

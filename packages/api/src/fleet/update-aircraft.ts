@@ -2,7 +2,9 @@
  * update-aircraft.ts — Aircraft identity edit (Slice 5.2).
  *
  * updateAircraft — edits aircraft identity fields (make/model/year/serialNumber/
- * homeBaseLocationId/hasHobbs/hasTach/displayName). NEVER touches tailNumber,
+ * category/aircraftClass/homeBaseLocationId/hasHobbs/hasTach/displayName).
+ * category/aircraftClass are FREE TEXT operator-entered identity (Slice
+ * P2-LOG2) — NOT a certification determination. NEVER touches tailNumber,
  * kind, active, meters, or dispatch/squawk/grounding records.
  *
  * GUARANTEES:
@@ -47,6 +49,10 @@ const updateAircraftInputSchema = z.object({
   model:               z.string().nullable().optional(),
   year:                z.number().int().min(1900).max(2200).nullable().optional(),
   serialNumber:        z.string().nullable().optional(),
+  // FREE TEXT operator-entered identity (e.g. 'Airplane' / 'ASEL') — NOT a
+  // certification/type-rating determination (Slice P2-LOG2, migration 0037).
+  category:            z.string().max(100).nullable().optional(),
+  aircraftClass:       z.string().max(100).nullable().optional(),
   homeBaseLocationId:  z.string().regex(UUID_RE).nullable().optional(),
   hasHobbs:            z.boolean().optional(),
   hasTach:             z.boolean().optional(),
@@ -87,6 +93,8 @@ async function _updateAircraftImpl(
         model: resource.model,
         year: resource.year,
         serialNumber: resource.serialNumber,
+        category: resource.category,
+        aircraftClass: resource.aircraftClass,
         homeBaseLocationId: resource.homeBaseLocationId,
         hasHobbs: resource.hasHobbs,
         hasTach: resource.hasTach,
@@ -121,6 +129,8 @@ async function _updateAircraftImpl(
     if (input.model !== undefined)              updates['model']              = input.model;
     if (input.year !== undefined)               updates['year']               = input.year;
     if (input.serialNumber !== undefined)       updates['serialNumber']       = input.serialNumber;
+    if (input.category !== undefined)           updates['category']           = input.category;
+    if (input.aircraftClass !== undefined)      updates['aircraftClass']      = input.aircraftClass;
     if (input.homeBaseLocationId !== undefined) updates['homeBaseLocationId'] = input.homeBaseLocationId;
     if (input.hasHobbs !== undefined)           updates['hasHobbs']           = input.hasHobbs;
     if (input.hasTach !== undefined)            updates['hasTach']            = input.hasTach;
@@ -145,6 +155,8 @@ async function _updateAircraftImpl(
           model:              current.model,
           year:               current.year,
           serialNumber:       current.serialNumber,
+          category:           current.category,
+          aircraftClass:      current.aircraftClass,
           homeBaseLocationId: current.homeBaseLocationId,
           hasHobbs:           current.hasHobbs,
           hasTach:            current.hasTach,
@@ -155,6 +167,8 @@ async function _updateAircraftImpl(
           model:              input.model              !== undefined ? input.model       : current.model,
           year:               input.year               !== undefined ? input.year        : current.year,
           serialNumber:       input.serialNumber       !== undefined ? input.serialNumber : current.serialNumber,
+          category:           input.category           !== undefined ? input.category       : current.category,
+          aircraftClass:      input.aircraftClass      !== undefined ? input.aircraftClass  : current.aircraftClass,
           homeBaseLocationId: input.homeBaseLocationId !== undefined ? input.homeBaseLocationId : current.homeBaseLocationId,
           hasHobbs:           input.hasHobbs           ?? current.hasHobbs,
           hasTach:            input.hasTach            ?? current.hasTach,

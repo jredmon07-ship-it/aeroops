@@ -49,6 +49,7 @@ import {
   uuid,
   timestamp,
   text,
+  boolean,
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
@@ -77,6 +78,14 @@ export const course = pgTable(
     // (course_status_check). Default 'active'.
     // 'archived' hides the course from new enrollments; does NOT delete records.
     status: text('status').notNull().default('active'),
+
+    // enforce_stage_checks (migration 0038, Slice P2-SC1): operator opt-in.
+    // When true, recording a lesson positioned AFTER an unpassed stage-check
+    // lesson is refused (stage_check_required) at the API layer. Default
+    // false = INERT — existing behavior byte-identical until the operator
+    // opts in. Enforces the OPERATOR's course structure ONLY — never a
+    // Part-61/141 determination.
+    enforceStageChecks: boolean('enforce_stage_checks').notNull().default(false),
 
     // created_by carries no .references() — composite FK
     // (created_by, org_id) → app_user(id, org_id) ON DELETE RESTRICT

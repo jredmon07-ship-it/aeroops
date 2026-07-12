@@ -14,10 +14,20 @@ export interface SerializedPilotLogEntry {
   tail: string;
   make: string | null;
   model: string | null;
+  /** FREE TEXT operator-entered (e.g. 'Airplane') — not a certification determination. */
+  category: string | null;
+  /** FREE TEXT operator-entered (e.g. 'ASEL') — not a certification determination. */
+  aircraftClass: string | null;
   hobbsOut: number;
   hobbsIn: number;
   flightTimeHours: number;
   runningTotalHours: number;
+  // Effective (latest) annotation — pilot/operator-entered; not a certified
+  // §61.51 entry; no §61.57 currency determination (Slice P2-LOG2).
+  nightHours: number | null;
+  instrumentHours: number | null;
+  crossCountryHours: number | null;
+  remarks: string | null;
 }
 
 export interface SerializedPilotLog {
@@ -32,10 +42,16 @@ export function serializePilotLogEntry(e: PilotLogEntry): SerializedPilotLogEntr
     tail: e.tail,
     make: e.make,
     model: e.model,
+    category: e.category,
+    aircraftClass: e.aircraftClass,
     hobbsOut: e.hobbsOut,
     hobbsIn: e.hobbsIn,
     flightTimeHours: e.flightTimeHours,
     runningTotalHours: e.runningTotalHours,
+    nightHours: e.nightHours,
+    instrumentHours: e.instrumentHours,
+    crossCountryHours: e.crossCountryHours,
+    remarks: e.remarks,
   };
 }
 
