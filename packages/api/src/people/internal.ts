@@ -18,7 +18,12 @@ import { sql } from 'drizzle-orm';
 import type { AnyDb } from '@aeroops/db';
 import type { MembershipRole } from '@aeroops/core';
 import { toDispatchTicketView } from '../dispatch/internal.js';
-import type { MemberDetail, MemberTagView, UpcomingMemberReservationRow } from './types.js';
+import type {
+  MemberDetail,
+  MemberTagView,
+  MemberTagColor,
+  UpcomingMemberReservationRow,
+} from './types.js';
 import type { DispatchTicketView } from '../dispatch/types.js';
 import { extractRows } from '../db-rows.js';
 
@@ -87,6 +92,7 @@ export async function assembleMemberDetail(
     SELECT
       id,
       tag,
+      color,
       created_by  AS "createdBy",
       created_at  AS "createdAt"
     FROM member_tag
@@ -97,6 +103,7 @@ export async function assembleMemberDetail(
   const tagRows = extractRows<{
     id: string;
     tag: string;
+    color: string | null;
     createdBy: string;
     createdAt: Date | string;
   }>(tagsResult);
@@ -104,6 +111,7 @@ export async function assembleMemberDetail(
   const tags: MemberTagView[] = tagRows.map((r) => ({
     id: r.id,
     tag: r.tag,
+    color: (r.color as MemberTagColor | null) ?? null,
     createdBy: r.createdBy,
     createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt),
   }));

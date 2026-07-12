@@ -58,7 +58,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0038');
+const MIGRATION_SQL = loadMigrationSql('0042');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

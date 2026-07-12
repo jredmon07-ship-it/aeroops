@@ -45,7 +45,7 @@ import { ValidationError } from '../scheduling/internal.js';
 import type { AppSession } from '../auth/types.js';
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0038');
+const MIGRATION_SQL = loadMigrationSql('0042');
 
 // ── Fixed candidate date: Wednesday 2026-06-17 (ISO weekday 3), all-UTC windows ──
 const WED = 3;

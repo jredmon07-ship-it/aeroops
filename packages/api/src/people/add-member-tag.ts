@@ -32,7 +32,8 @@ import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { isUniqueViolation } from '../dispatch/internal.js';
-import type { AddMemberTagResult } from './types.js';
+import type { AddMemberTagResult, MemberTagColor } from './types.js';
+import { MEMBER_TAG_COLORS } from './types.js';
 import { assembleMemberDetail } from './internal.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,11 +41,16 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const inputSchema = z.object({
   userId: z.string().regex(UUID_RE, { message: 'userId must be a UUID' }),
   tag:    z.string(),
+  // OPTIONAL palette-key color (migration 0041). Absent → null → renders slate.
+  // Constrained to the fixed palette KEY set; the DB CHECK is the backstop.
+  color:  z.enum(MEMBER_TAG_COLORS).optional(),
 });
 
 export interface AddMemberTagInput {
   userId: string;
   tag: string;
+  /** Optional palette-key color. Omit for no color (renders slate). */
+  color?: MemberTagColor;
 }
 
 // ─── Shared implementation ────────────────────────────────────────────────────
@@ -67,7 +73,11 @@ async function _addMemberTagImpl(
   if (rawTag.length === 0) {
     throw new ValidationError('[people] addMemberTag: tag must not be empty after trimming');
   }
-  const input = { userId: parsed.data.userId, tag: rawTag };
+  const input = {
+    userId: parsed.data.userId,
+    tag: rawTag,
+    color: parsed.data.color ?? null,
+  };
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
     // 3. Pre-check member is visible in org (RLS + membership check).
@@ -85,6 +95,7 @@ async function _addMemberTagImpl(
         orgId:     sess.orgId,
         userId:    input.userId,
         tag:       input.tag,
+        color:     input.color,
         createdBy: sess.userId,
       });
     } catch (err) {
@@ -101,7 +112,7 @@ async function _addMemberTagImpl(
       action:      'member.tag_added',
       entityType:  'app_user',
       entityId:    input.userId,
-      metadata:    { tag: input.tag },
+      metadata:    { tag: input.tag, color: input.color },
     });
 
     // 6. Return fresh detail.

@@ -79,6 +79,8 @@ const MIGRATION_SQL = [
   // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
   // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
   readFileSync(resolve(__dirname, '../../migrations/0037_logbook_annotation.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0041_member_tag_color.sql'), 'utf-8'),
+  readFileSync(resolve(__dirname, '../../migrations/0042_cancellation_reason.sql'), 'utf-8'),
 ];
 
 // ── Test environment ──────────────────────────────────────────────────────────

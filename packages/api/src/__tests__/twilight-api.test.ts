@@ -39,7 +39,7 @@ import { UnauthenticatedError } from '../auth/session.js';
 import type { AppSession } from '../auth/types.js';
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0038');
+const MIGRATION_SQL = loadMigrationSql('0042');
 
 // ── Test coordinate + date (mid-latitude, LA-ish, fixed date) ──────────────────
 const LAT = 33.9425;

@@ -33,7 +33,7 @@
 import * as React from 'react';
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, GraduationCap, Wrench, ClipboardList, CalendarX2 } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability } from '@aeroops/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -48,6 +48,11 @@ import {
 } from './_components/report-utils';
 import type { ReportRangeKey } from './_components/report-utils';
 import { PageHeader } from '@/components/ui/page-header';
+import { SectionHeader } from '@/components/ui/section-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { ExportCsvButton } from '@/components/ui/export-csv-button';
+import { csvDate, csvFilename } from '@/lib/csv-format';
 
 // ─── Hours footnote (verbatim per spec) ──────────────────────────────────────
 
@@ -56,6 +61,13 @@ const HOURS_FOOTNOTE =
 
 const OPERATOR_COUNT_CAPTION =
   'Operator counts — not a Part-141, airworthiness, or regulatory determination.';
+
+// Lead-time-before-start bucket labels (cancellations report).
+const LEAD_TIME_LABELS: Record<'lt24h' | 'd1_7' | 'gt7d', string> = {
+  lt24h: '<24h',
+  d1_7: '1–7d',
+  gt7d: '>7d',
+};
 
 // ─── Permission-denied panel (reuses dashboard design) ───────────────────────
 
@@ -299,7 +311,21 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
   }
 
   const { data } = result as { ok: true; data: AllReportsResult };
-  const { utilizationTrend, hoursByTail, reservationsVsFlights, trainingThroughput, maintenanceTrend } = data;
+  const {
+    utilizationTrend,
+    hoursByTail,
+    reservationsVsFlights,
+    trainingThroughput,
+    maintenanceTrend,
+    instructorUtilization,
+    squawks,
+    maintenanceReminders,
+    cancellations,
+  } = data;
+
+  const hasInstructorActivity = instructorUtilization.some(
+    (r) => r.flightHours > 0 || r.flightCount > 0 || r.lessonsGiven > 0 || r.distinctStudents > 0,
+  );
 
   const rangeLbl = reportRangeLabelFull(range);
   const gran = utilizationTrend.granularity;
@@ -333,14 +359,110 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
     maintenanceTrend.workOrdersOpenedInRange > 0 ||
     maintenanceTrend.workOrdersCompletedInRange > 0;
 
+  // ── CSV grids (header row + data rows) for each section's Export button ──────
+  const utilizationCsv: string[][] = [
+    ['Period', 'Flights', 'Hours'],
+    ...utilizationTrend.buckets.map((b) => [
+      csvDate(b.bucketStart),
+      String(b.flightCount),
+      b.flightHours.toFixed(1),
+    ]),
+  ];
+  const hoursByTailCsv: string[][] = [
+    ['Tail #', 'Flights', 'Hours'],
+    ...hoursByTail.map((r) => [r.tailNumber, String(r.flightCount), r.flightHours.toFixed(1)]),
+  ];
+  const reservationsCsv: string[][] = [
+    ['Period', 'Reservations created', 'Flights closed'],
+    ...reservationsVsFlights.buckets.map((b) => [
+      csvDate(b.bucketStart),
+      String(b.reservationsCreated),
+      String(b.flightsClosed),
+    ]),
+  ];
+  const trainingCsv: string[][] = [
+    ['Metric', 'Value'],
+    ['Enrollments created', String(trainingThroughput.enrollmentsCreatedInRange)],
+    ['Enrollments completed', String(trainingThroughput.enrollmentsCompletedInRange)],
+    ['Lessons recorded', String(trainingThroughput.lessonsRecordedInRange)],
+    ['Active enrollments now', String(trainingThroughput.activeEnrollmentCount)],
+  ];
+  const maintenanceTrendCsv: string[][] = [
+    ['Metric', 'Value'],
+    ['Squawks opened', String(maintenanceTrend.squawksOpenedInRange)],
+    ['Squawks resolved', String(maintenanceTrend.squawksResolvedInRange)],
+    ['Work orders opened', String(maintenanceTrend.workOrdersOpenedInRange)],
+    ['Work orders completed', String(maintenanceTrend.workOrdersCompletedInRange)],
+    ['Open squawks now', String(maintenanceTrend.openSquawkCount)],
+    ['Grounded aircraft now', String(maintenanceTrend.groundedAircraftCount)],
+  ];
+  const instructorCsv: string[][] = [
+    ['Instructor', 'Flights', 'Hours', 'Lessons', 'Students'],
+    ...instructorUtilization.map((r) => [
+      r.instructorName,
+      String(r.flightCount),
+      r.flightHours.toFixed(1),
+      String(r.lessonsGiven),
+      String(r.distinctStudents),
+    ]),
+  ];
+  const squawksCsv: string[][] = [
+    ['Tail #', 'Title', 'Severity', 'Status', 'Reported', 'Description'],
+    ...squawks.rows.map((r) => [
+      r.tailNumber,
+      r.title,
+      r.severity,
+      r.status,
+      csvDate(r.reportedAt),
+      r.description ?? '',
+    ]),
+  ];
+  const cancellationsCsv: string[][] = [
+    ['Cancelled', 'Resource', 'Cancelled by', 'Reason', 'Reservation start', 'Lead time'],
+    ...cancellations.rows.map((r) => [
+      csvDate(r.cancelledAt),
+      r.resourceLabel,
+      r.cancelledByName,
+      r.reason ?? '—',
+      csvDate(r.startAt),
+      LEAD_TIME_LABELS[r.leadTimeBucket],
+    ]),
+  ];
+  const remindersCsv: string[][] = [
+    ['Tail #', 'Item', 'Status', 'Due', 'Remaining', 'Current Hobbs', 'Current Tach'],
+    ...maintenanceReminders.rows.map((r) => [
+      r.tailNumber,
+      r.title,
+      r.status,
+      r.dueDate ?? (r.dueValueHours != null ? `${r.dueValueHours.toFixed(1)}h` : ''),
+      r.remainingHours != null
+        ? `${r.remainingHours.toFixed(1)}h`
+        : r.remainingDays != null
+          ? `${r.remainingDays}d`
+          : '',
+      r.currentHobbs != null ? r.currentHobbs.toFixed(1) : '',
+      r.currentTach != null ? r.currentTach.toFixed(1) : '',
+    ]),
+  ];
+
+  const dueStatusVariant = (s: string) =>
+    s === 'overdue' ? 'danger' : s === 'due_soon' ? 'warning' : s === 'unknown' ? 'neutral' : 'success';
+  const squawkStatusVariant = (s: string) =>
+    s === 'open' ? 'warning' : s === 'deferred' ? 'info' : 'neutral';
+  const severityVariant = (s: string) =>
+    s === 'grounding' ? 'danger' : s === 'high' ? 'danger' : s === 'medium' ? 'warning' : 'neutral';
+
   return (
     <div className="space-y-8">
 
       {/* ── B. Fleet utilization over time ───────────────────────────────── */}
       <section aria-label={`Fleet utilization over time — last ${rangeLbl}`}>
-        <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
-          Fleet utilization over time — last {rangeLbl}
-        </p>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            Fleet utilization over time — last {rangeLbl}
+          </p>
+          <ExportCsvButton rows={utilizationCsv} filename={csvFilename('utilization-trend')} />
+        </div>
         <div className="rounded-md border border-slate-200 bg-white shadow-xs">
           {/* Stat strip */}
           <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
@@ -463,9 +585,12 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
 
       {/* ── C. Hours by tail ──────────────────────────────────────────────── */}
       <section aria-label={`Hours by tail — last ${rangeLbl}`}>
-        <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
-          Hours by tail — last {rangeLbl}
-        </p>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            Hours by tail — last {rangeLbl}
+          </p>
+          <ExportCsvButton rows={hoursByTailCsv} filename={csvFilename('hours-by-tail')} disabled={hoursByTail.length === 0} />
+        </div>
         <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
           <table
             className="w-full text-sm"
@@ -577,9 +702,12 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
 
       {/* ── D. Reservations & flights trend ──────────────────────────────── */}
       <section aria-label={`Reservations and flights trend — last ${rangeLbl}`}>
-        <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
-          Reservations &amp; flights trend — last {rangeLbl}
-        </p>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            Reservations &amp; flights trend — last {rangeLbl}
+          </p>
+          <ExportCsvButton rows={reservationsCsv} filename={csvFilename('reservations-vs-flights')} />
+        </div>
         <div className="rounded-md border border-slate-200 bg-white shadow-xs">
           {/* Totals strip */}
           <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
@@ -682,9 +810,12 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
 
         {/* E. Training throughput */}
         <section aria-label={`Training throughput — last ${rangeLbl}`}>
-          <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
-            Training throughput — last {rangeLbl}
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+              Training throughput — last {rangeLbl}
+            </p>
+            <ExportCsvButton rows={trainingCsv} filename={csvFilename('training-throughput')} />
+          </div>
           <div className="rounded-md border border-slate-200 bg-white shadow-xs px-4 py-3">
             <StatRow
               label="Enrollments created"
@@ -716,9 +847,12 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
 
         {/* F. Maintenance trend */}
         <section aria-label={`Maintenance trend — last ${rangeLbl}`}>
-          <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
-            Maintenance trend — last {rangeLbl}
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+              Maintenance trend — last {rangeLbl}
+            </p>
+            <ExportCsvButton rows={maintenanceTrendCsv} filename={csvFilename('maintenance-trend')} />
+          </div>
           <div className="rounded-md border border-slate-200 bg-white shadow-xs px-4 py-3">
             <StatRow
               label="Squawks opened"
@@ -758,6 +892,295 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
           </p>
         </section>
       </div>
+
+      {/* ── G. Instructor utilization ─────────────────────────────────────── */}
+      <section aria-label={`Instructor utilization — last ${rangeLbl}`}>
+        <div className="mb-1.5 flex items-end justify-between gap-3">
+          <SectionHeader eyebrow={`Instructor utilization — last ${rangeLbl}`} className="mb-0" />
+          <ExportCsvButton rows={instructorCsv} filename={csvFilename('instructor-utilization')} disabled={instructorUtilization.length === 0} />
+        </div>
+        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+          {instructorUtilization.length === 0 ? (
+            <EmptyState
+              icon={GraduationCap}
+              title="No instructors yet."
+              body={
+                <>
+                  Members with the CFI role appear here with their flight and
+                  lesson activity.
+                </>
+              }
+              className="py-10"
+            />
+          ) : (
+            <table
+              className="w-full text-sm"
+              aria-label={`Instructor utilization last ${rangeLbl}`}
+            >
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Instructor
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Flights
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Hours *
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Lessons
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Students
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {instructorUtilization.map((row) => (
+                  <tr
+                    key={row.instructorUserId}
+                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/o/${slug}/people/${row.instructorUserId}`}
+                        className="font-medium text-slate-900 hover:text-brand underline-offset-2 hover:underline"
+                      >
+                        {row.instructorName}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                        {row.flightCount}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                        {row.flightHours.toFixed(1)}h
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={['nums tabular-nums', row.lessonsGiven === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                        {row.lessonsGiven}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={['nums tabular-nums', row.distinctStudents === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                        {row.distinctStudents}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {instructorUtilization.length > 0 && !hasInstructorActivity && !isEmptyOrg && (
+          <p className="mt-1.5 text-xs text-slate-400">
+            No instructor activity in the selected period. Try a wider range.
+          </p>
+        )}
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+          * {HOURS_FOOTNOTE} {OPERATOR_COUNT_CAPTION}
+        </p>
+      </section>
+
+      {/* ── H. Squawks (org-wide) ─────────────────────────────────────────── */}
+      <section aria-label="Squawks — org-wide">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            <Wrench className="h-3 w-3" aria-hidden="true" />
+            Squawks — {squawks.openCount} open · {squawks.deferredCount} deferred · {squawks.resolvedCount} resolved
+          </p>
+          <ExportCsvButton rows={squawksCsv} filename={csvFilename('squawks')} disabled={squawks.rows.length === 0} />
+        </div>
+        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+          {squawks.rows.length === 0 ? (
+            <EmptyState
+              icon={Wrench}
+              title="No squawks recorded."
+              body="Reported discrepancies across the fleet appear here."
+              className="py-10"
+            />
+          ) : (
+            <table className="w-full text-sm" aria-label="Squawks org-wide">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Tail #</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Squawk</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Severity</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Status</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Reported</th>
+                </tr>
+              </thead>
+              <tbody>
+                {squawks.rows.map((r) => (
+                  <tr key={r.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-3 nums font-bold text-slate-900">{r.tailNumber}</td>
+                    <td className="px-4 py-3 text-slate-700">{r.title}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge variant={severityVariant(r.severity)}>{r.severity}</StatusBadge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge variant={squawkStatusVariant(r.status)}>{r.status}</StatusBadge>
+                    </td>
+                    <td className="px-4 py-3 nums text-slate-500 text-xs">
+                      {new Date(r.reportedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400">{OPERATOR_COUNT_CAPTION}</p>
+      </section>
+
+      {/* ── I. Maintenance reminders (org-wide) ───────────────────────────── */}
+      <section aria-label="Maintenance reminders — org-wide">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            <ClipboardList className="h-3 w-3" aria-hidden="true" />
+            Maintenance reminders — {maintenanceReminders.overdueCount} overdue · {maintenanceReminders.dueSoonCount} due soon
+          </p>
+          <ExportCsvButton rows={remindersCsv} filename={csvFilename('maintenance-reminders')} disabled={maintenanceReminders.rows.length === 0} />
+        </div>
+        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+          {maintenanceReminders.rows.length === 0 ? (
+            <EmptyState
+              icon={ClipboardList}
+              title="No maintenance items tracked."
+              body="Operator-defined inspection and service reminders across the fleet appear here."
+              className="py-10"
+            />
+          ) : (
+            <table className="w-full text-sm" aria-label="Maintenance reminders org-wide">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Tail #</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Item</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Status</th>
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Due</th>
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Remaining</th>
+                </tr>
+              </thead>
+              <tbody>
+                {maintenanceReminders.rows.map((r) => (
+                  <tr key={r.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-3 nums font-bold text-slate-900">{r.tailNumber}</td>
+                    <td className="px-4 py-3 text-slate-700">{r.title}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge variant={dueStatusVariant(r.status)}>{r.status.replace('_', ' ')}</StatusBadge>
+                    </td>
+                    <td className="px-4 py-3 text-right nums text-slate-600 text-xs">
+                      {r.dueDate ?? (r.dueValueHours != null ? `${r.dueValueHours.toFixed(1)}h` : <span className="text-slate-300">—</span>)}
+                    </td>
+                    <td className="px-4 py-3 text-right nums text-slate-600 text-xs">
+                      {r.remainingHours != null
+                        ? `${r.remainingHours.toFixed(1)}h`
+                        : r.remainingDays != null
+                          ? `${r.remainingDays}d`
+                          : <span className="text-slate-300">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+          Arithmetic on operator-entered thresholds vs last-recorded meters — {OPERATOR_COUNT_CAPTION}
+        </p>
+      </section>
+
+      {/* ── J. Cancellations ──────────────────────────────────────────────── */}
+      <section aria-label={`Cancellations — last ${rangeLbl}`}>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            <CalendarX2 className="h-3 w-3" aria-hidden="true" />
+            Cancellations — last {rangeLbl}
+          </p>
+          <ExportCsvButton
+            rows={cancellationsCsv}
+            filename={csvFilename('cancellations')}
+            disabled={cancellations.rows.length === 0}
+          />
+        </div>
+        {/* Lead-time totals strip */}
+        <div className="rounded-md border border-slate-200 bg-white shadow-xs">
+          <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
+            <div className="px-5 py-3">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+                Total
+              </p>
+              <StatNum value={cancellations.totalCount} />
+            </div>
+            <div className="px-5 py-3">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+                &lt;24h notice
+              </p>
+              <StatNum value={cancellations.lt24hCount} danger />
+            </div>
+            <div className="px-5 py-3">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+                1–7d notice
+              </p>
+              <StatNum value={cancellations.d1_7Count} />
+            </div>
+            <div className="px-5 py-3">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+                &gt;7d notice
+              </p>
+              <StatNum value={cancellations.gt7dCount} />
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            {cancellations.rows.length === 0 ? (
+              <EmptyState
+                icon={CalendarX2}
+                title="No cancellations in the selected period."
+                body="Cancelled reservations across the org appear here with who cancelled and why."
+                className="py-10"
+              />
+            ) : (
+              <table className="w-full text-sm" aria-label={`Cancellations last ${rangeLbl}`}>
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Cancelled</th>
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Resource</th>
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Cancelled by</th>
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Reason</th>
+                    <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Lead time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cancellations.rows.map((r) => (
+                    <tr key={r.reservationId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 nums text-slate-500 text-xs whitespace-nowrap">
+                        {new Date(r.cancelledAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="px-4 py-3 nums font-medium text-slate-900">{r.resourceLabel}</td>
+                      <td className="px-4 py-3 text-slate-700">{r.cancelledByName}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {r.reason ?? <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <StatusBadge variant={r.leadTimeBucket === 'lt24h' ? 'danger' : r.leadTimeBucket === 'd1_7' ? 'warning' : 'neutral'}>
+                          {LEAD_TIME_LABELS[r.leadTimeBucket]}
+                        </StatusBadge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+          Lead time = notice before the scheduled start (start − cancelled). {OPERATOR_COUNT_CAPTION}
+        </p>
+      </section>
     </div>
   );
 }

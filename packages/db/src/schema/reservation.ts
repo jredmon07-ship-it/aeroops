@@ -64,6 +64,12 @@ export const reservation = pgTable(
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     // cancelled_by carries no .references() — composite FK hand-written in migration.
     cancelledBy: uuid('cancelled_by'),
+    // OPTIONAL free-text reason captured at cancel time (migration 0042).
+    // Nullable — a reservation never cancelled (or cancelled without a stated
+    // reason) keeps this NULL. Written ONLY on the cancel path; the FROZEN
+    // create/reschedule/dispatch paths never touch it. Bounded <= 500 chars by
+    // reservation_cancellation_reason_check (hand-written in migration 0042).
+    cancellationReason: text('cancellation_reason'),
     // series_id carries no .references() — composite FK (series_id, org_id) →
     // reservation_series(id, org_id) ON DELETE SET NULL is hand-written in
     // migration 0004 (Slice 2b, ADR-0006). NULL = one-off reservation.

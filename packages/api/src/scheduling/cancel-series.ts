@@ -29,10 +29,18 @@ import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
+import { normalizeCancellationReason } from './cancel-reservation.js';
 import type { CancelSeriesResult } from './types.js';
 
 export interface CancelSeriesInput {
   seriesId: string;
+  /**
+   * OPTIONAL free-text reason (migration 0042). Trimmed; empty → null.
+   * Applied to EVERY future occurrence cancelled by this call + included in
+   * each occurrence's cancel audit metadata. When absent, behavior is
+   * byte-identical to before.
+   */
+  reason?: string;
 }
 
 interface CancelSeriesOptions {
@@ -50,6 +58,9 @@ async function _cancelSeriesImpl(
 ): Promise<CancelSeriesResult> {
   // 1. AUTHZ FIRST.
   requireCapability(session, 'schedule:create_reservation');
+
+  // Validate the optional reason up front (throws on over-length).
+  const reason = normalizeCancellationReason(input.reason);
 
   const nowMs = opts?.now ?? Date.now();
   const nowIso = new Date(nowMs).toISOString();
@@ -94,13 +105,17 @@ async function _cancelSeriesImpl(
     // 5. Cancel future occurrences: flip reservation.status + reservation_resource.status.
     //    One audit row per occurrence.
     if (futureIds.length > 0) {
-      // Cancel reservation rows.
+      // Cancel reservation rows. cancellation_reason is set only when a reason
+      // was supplied — otherwise the SET is byte-identical to before (column
+      // stays NULL).
+      const reasonAssignment =
+        reason !== null ? sql`, cancellation_reason = ${reason}` : sql``;
       await tx.execute(sql`
         UPDATE reservation
         SET status = 'cancelled',
             cancelled_at = ${nowIso}::timestamptz,
             cancelled_by = ${sess.userId}::uuid,
-            updated_at = ${nowIso}::timestamptz
+            updated_at = ${nowIso}::timestamptz${reasonAssignment}
         WHERE id = ANY(ARRAY[${sql.join(futureIds.map((id) => sql`${id}::uuid`), sql`, `)}])
           AND series_id = ${input.seriesId}::uuid
       `);
@@ -123,6 +138,7 @@ async function _cancelSeriesImpl(
           metadata: {
             source: 'cancelSeries',
             seriesId: input.seriesId,
+            ...(reason !== null ? { reason } : {}),
           },
         });
       }
@@ -148,6 +164,7 @@ async function _cancelSeriesImpl(
       entityId: input.seriesId,
       metadata: {
         cancelledCount,
+        ...(reason !== null ? { reason } : {}),
       },
     });
 

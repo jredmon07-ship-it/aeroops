@@ -194,6 +194,24 @@ export function AccountDetailClient({
 
   const belowMinimum = minimumBalanceCents > 0 && balanceCents < minimumBalanceCents;
 
+  // Running balance AFTER each ledger entry, aligned to `entries` (newest-first).
+  // The newest row's resulting balance IS the current derived balance
+  // (balanceCents). Each older row = the newer row's balance with the newer
+  // entry's signed movement reversed (credit raises, debit lowers). Both
+  // balanceCents and entries refresh together after every mutation, so this
+  // stays consistent; on a cursor-paginated older page the walk simply
+  // continues from the balance carried above it.
+  const runningBalances = React.useMemo(() => {
+    const result: number[] = [];
+    let bal = balanceCents;
+    for (const e of entries) {
+      result.push(bal);
+      const signed = e.direction === 'credit' ? e.amountCents : -e.amountCents;
+      bal -= signed;
+    }
+    return result;
+  }, [balanceCents, entries]);
+
   async function refreshEntries() {
     const result = await listLedgerEntriesAction(memberId);
     if ('ok' in result && result.ok) setEntries(result.entries);
@@ -380,13 +398,18 @@ export function AccountDetailClient({
                   <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
                     Amount
                   </th>
+                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+                    Balance
+                  </th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
                     Date
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry) => (
+                {entries.map((entry, i) => {
+                  const runningBalance = runningBalances[i] ?? 0;
+                  return (
                   <tr key={entry.id} className="border-b border-slate-100 last:border-0">
                     <td className="px-3 py-2 text-slate-700">{entryTypeLabel(entry.entryType)}</td>
                     <td className="px-3 py-2 text-slate-500 hidden sm:table-cell">
@@ -396,11 +419,15 @@ export function AccountDetailClient({
                       {entry.direction === 'debit' ? '-' : '+'}
                       {formatCents(entry.amountCents)}
                     </td>
+                    <td className={`px-3 py-2 text-right nums font-medium ${runningBalance < 0 ? 'text-danger' : 'text-slate-700'}`}>
+                      {formatCents(runningBalance)}
+                    </td>
                     <td className="px-3 py-2 text-xs text-slate-500 hidden sm:table-cell nums">
                       {new Date(entry.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

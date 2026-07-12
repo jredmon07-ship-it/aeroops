@@ -13,7 +13,8 @@ import * as React from 'react';
 import Link from 'next/link';
 import { ROLE_LABELS } from '@aeroops/core';
 import type { MembershipRole } from '@aeroops/core';
-import type { OrgMemberListRow } from '@aeroops/api';
+import type { OrgMemberListRow, MemberTagChipView } from '@aeroops/api';
+import { tagChipClasses } from '@/lib/member-tag-color';
 
 // ─── Role badge ────────────────────────────────────────────────────────────────
 
@@ -47,18 +48,21 @@ function StatusChip({ status }: { status: string }) {
 
 const MAX_VISIBLE_TAGS = 3;
 
-function TagChips({ tags, tagCount }: { tags: string[]; tagCount: number }) {
+function TagChips({ tagChips, tagCount }: { tagChips: MemberTagChipView[]; tagCount: number }) {
   if (tagCount === 0) return null;
-  const visible = tags.slice(0, MAX_VISIBLE_TAGS);
+  const visible = tagChips.slice(0, MAX_VISIBLE_TAGS);
   const overflow = tagCount - visible.length;
   return (
     <div className="flex flex-wrap gap-1">
-      {visible.map((tag) => (
+      {visible.map((chip) => (
         <span
-          key={tag}
-          className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[0.6875rem] font-medium text-slate-600"
+          key={chip.tag}
+          className={[
+            'inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-medium',
+            tagChipClasses(chip.color),
+          ].join(' ')}
         >
-          {tag}
+          {chip.tag}
         </span>
       ))}
       {overflow > 0 && (
@@ -129,7 +133,7 @@ export function MembersTable({ members, slug }: MembersTableProps) {
                 <StatusChip status={member.status} />
               </td>
               <td className="px-4 py-3 hidden lg:table-cell">
-                <TagChips tags={member.tags} tagCount={member.tagCount} />
+                <TagChips tagChips={member.tagChips} tagCount={member.tagCount} />
               </td>
               <td className="px-4 py-3 text-slate-600 hidden xl:table-cell">
                 {member.phone ?? <span className="text-slate-300">—</span>}

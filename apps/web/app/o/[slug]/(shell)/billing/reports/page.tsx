@@ -24,7 +24,7 @@ import * as React from 'react';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { AlertCircle, Wallet, TrendingUp } from 'lucide-react';
+import { AlertCircle, Wallet, TrendingUp, ShoppingBag, Banknote, Scale, Receipt } from 'lucide-react';
 import { auth } from '@/auth';
 import { requireCapability } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
@@ -34,9 +34,18 @@ import { Button } from '@/components/ui/button';
 import {
   getAccountsReceivableAction,
   getRevenueReportAction,
+  getItemsSoldReportAction,
+  getPaymentsReportAction,
+  getAdjustmentsReportAction,
+  getTaxesOwedReportAction,
 } from './actions';
 import { formatCents } from '../_components/format-cents';
 import { PageHeader } from '@/components/ui/page-header';
+import { SectionHeader } from '@/components/ui/section-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { ExportCsvButton } from '@/components/ui/export-csv-button';
+import { centsToAmount, csvDate, csvFilename } from '@/lib/csv-format';
 
 // ─── Range selector (revenue only; AR is a point-in-time snapshot) ───────────
 
@@ -134,8 +143,25 @@ async function AccountsReceivableSection({ slug }: { slug: string }) {
     );
   }
 
+  const csvRows: string[][] = [
+    ['Member', 'Owed', 'Current', '1-30', '31-60', '61-90', '90+'],
+    ...data.rows.map((r) => [
+      r.memberName,
+      centsToAmount(r.balanceCents),
+      centsToAmount(r.aging.current),
+      centsToAmount(r.aging.d30),
+      centsToAmount(r.aging.d60),
+      centsToAmount(r.aging.d90),
+      centsToAmount(r.aging.d90plus),
+    ]),
+  ];
+
   return (
-    <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <ExportCsvButton rows={csvRows} filename={csvFilename('accounts-receivable')} />
+      </div>
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
       <table className="w-full text-sm" aria-label="Accounts receivable, by member">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">
@@ -204,6 +230,7 @@ async function AccountsReceivableSection({ slug }: { slug: string }) {
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
   );
 }
@@ -225,8 +252,21 @@ async function RevenueSection({ range }: { slug: string; range: RangeKey }) {
   const { data } = result;
   const hasActivity = data.totalFinalizedCents > 0 || data.totalCollectedCents > 0;
 
+  const csvRows: string[][] = [
+    ['Period', 'Finalized', 'Collected'],
+    ...data.buckets.map((b) => [
+      csvDate(b.bucketStart),
+      centsToAmount(b.finalizedCents),
+      centsToAmount(b.collectedCents),
+    ]),
+  ];
+
   return (
-    <div className="rounded-md border border-slate-200 bg-white shadow-xs">
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <ExportCsvButton rows={csvRows} filename={csvFilename('revenue')} disabled={!hasActivity} />
+      </div>
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs">
       <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
         <div className="px-5 py-4">
           <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Finalized (billed)</p>
@@ -278,6 +318,349 @@ async function RevenueSection({ range }: { slug: string; range: RangeKey }) {
           </table>
         </div>
       )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Items sold section (POS) ──────────────────────────────────────────────────
+
+async function ItemsSoldSection({ range }: { slug: string; range: RangeKey }) {
+  const result = await getItemsSoldReportAction(range);
+
+  if ('error' in result) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+        <AlertDescription>Could not load the items-sold report. Please try again.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const { data } = result;
+  const hasSales = data.totalQtySold > 0 || data.totalGrossCents > 0;
+
+  const csvRows: string[][] = [
+    ['Product', 'SKU', 'Qty sold', 'Gross', 'Tax'],
+    ...data.rows.map((row) => [
+      row.productName,
+      row.sku ?? '',
+      String(row.qtySold),
+      centsToAmount(row.grossCents),
+      centsToAmount(row.taxCents),
+    ]),
+  ];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <ExportCsvButton rows={csvRows} filename={csvFilename('items-sold')} disabled={data.rows.length === 0} />
+      </div>
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+      {data.rows.length === 0 ? (
+        <EmptyState
+          icon={ShoppingBag}
+          title="No products in the catalog yet."
+          body="Counter-sale products appear here with units sold and gross revenue."
+          className="py-10"
+        />
+      ) : (
+        <table className="w-full text-sm" aria-label={`Items sold — last ${range}`}>
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                Product
+              </th>
+              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                Qty sold
+              </th>
+              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                Gross
+              </th>
+              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                Tax
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.rows.map((row) => (
+              <tr key={row.productId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                <td className="px-4 py-3">
+                  <span className="font-medium text-slate-900">{row.productName}</span>
+                  {row.sku && <span className="ml-2 text-xs text-slate-400 nums">{row.sku}</span>}
+                </td>
+                <td className={['px-4 py-3 text-right nums', row.qtySold === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                  {row.qtySold}
+                </td>
+                <td className={['px-4 py-3 text-right nums font-medium', row.grossCents === 0 ? 'text-slate-300' : 'text-slate-900'].join(' ')}>
+                  {formatCents(row.grossCents)}
+                </td>
+                <td className="px-4 py-3 text-right nums text-slate-300">
+                  {formatCents(row.taxCents)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-slate-50 border-t border-slate-200 font-semibold">
+              <td className="px-4 py-2.5 text-slate-700">Total</td>
+              <td className="px-4 py-2.5 text-right nums">{data.totalQtySold}</td>
+              <td className="px-4 py-2.5 text-right nums">{formatCents(data.totalGrossCents)}</td>
+              <td className="px-4 py-2.5 text-right nums text-slate-400">{formatCents(data.totalTaxCents)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      )}
+      {data.rows.length > 0 && !hasSales && (
+        <p className="px-4 py-3 text-xs text-slate-400">No counter-sale activity in this period. Try a wider range.</p>
+      )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Payments section ───────────────────────────────────────────────────────────
+
+async function PaymentsSection({ range }: { slug: string; range: RangeKey }) {
+  const result = await getPaymentsReportAction(range);
+
+  if ('error' in result) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+        <AlertDescription>Could not load the payments report. Please try again.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const { data } = result;
+
+  const csvRows: string[][] = [
+    ['Date', 'Member', 'Amount', 'Reference'],
+    ...data.rows.map((r) => [
+      csvDate(r.createdAt),
+      r.memberName,
+      centsToAmount(r.amountCents),
+      r.paymentId ?? r.memo ?? '',
+    ]),
+  ];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <ExportCsvButton rows={csvRows} filename={csvFilename('payments')} disabled={data.rows.length === 0} />
+      </div>
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+        {data.rows.length === 0 ? (
+          <EmptyState
+            icon={Banknote}
+            title="No payments in this period."
+            body="Recorded payments appear here with the member, amount, and reference."
+            className="py-10"
+          />
+        ) : (
+          <table className="w-full text-sm" aria-label={`Payments — last ${range}`}>
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Date</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Member</th>
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Amount</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((r) => (
+                <tr key={r.entryId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 nums text-slate-500 text-xs">
+                    {new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </td>
+                  <td className="px-4 py-3 text-slate-900">{r.memberName}</td>
+                  <td className="px-4 py-3 text-right nums font-medium text-success">{formatCents(r.amountCents)}</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">
+                    {r.paymentId ?? r.memo ?? <span className="text-slate-300">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-50 border-t border-slate-200 font-semibold">
+                <td className="px-4 py-2.5 text-slate-700" colSpan={2}>Total — {data.paymentCount} payment{data.paymentCount === 1 ? '' : 's'}</td>
+                <td className="px-4 py-2.5 text-right nums">{formatCents(data.totalPaymentCents)}</td>
+                <td className="px-4 py-2.5" />
+              </tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Adjustments section ────────────────────────────────────────────────────────
+
+async function AdjustmentsSection({ range }: { slug: string; range: RangeKey }) {
+  const result = await getAdjustmentsReportAction(range);
+
+  if ('error' in result) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+        <AlertDescription>Could not load the adjustments report. Please try again.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const { data } = result;
+
+  const typeLabel = (t: 'credit_memo' | 'adjustment') => (t === 'credit_memo' ? 'Credit memo' : 'Adjustment');
+
+  const csvRows: string[][] = [
+    ['Date', 'Member', 'Type', 'Direction', 'Amount', 'Memo', 'Posted by'],
+    ...data.rows.map((r) => [
+      csvDate(r.createdAt),
+      r.memberName,
+      typeLabel(r.entryType),
+      r.direction,
+      centsToAmount(r.amountCents),
+      r.memo ?? '',
+      r.createdByName ?? 'System',
+    ]),
+  ];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <ExportCsvButton rows={csvRows} filename={csvFilename('adjustments')} disabled={data.rows.length === 0} />
+      </div>
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+        {data.rows.length === 0 ? (
+          <EmptyState
+            icon={Scale}
+            title="No corrections in this period."
+            body="Credit memos and manual adjustments appear here with the reason and who posted them."
+            className="py-10"
+          />
+        ) : (
+          <table className="w-full text-sm" aria-label={`Adjustments — last ${range}`}>
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Date</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Member</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Type</th>
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Amount</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Memo</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Posted by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((r) => (
+                <tr key={r.entryId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 nums text-slate-500 text-xs">
+                    {new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </td>
+                  <td className="px-4 py-3 text-slate-900">{r.memberName}</td>
+                  <td className="px-4 py-3">
+                    <StatusBadge variant={r.entryType === 'credit_memo' ? 'info' : 'neutral'}>
+                      {typeLabel(r.entryType)}
+                    </StatusBadge>
+                  </td>
+                  <td className={['px-4 py-3 text-right nums font-medium', r.direction === 'credit' ? 'text-success' : 'text-danger'].join(' ')}>
+                    {r.direction === 'credit' ? '+' : '−'}{formatCents(r.amountCents)}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 text-xs max-w-xs truncate" title={r.memo ?? undefined}>
+                    {r.memo ?? <span className="text-slate-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">{r.createdByName ?? 'System'}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-50 border-t border-slate-200 font-semibold">
+                <td className="px-4 py-2.5 text-slate-700" colSpan={3}>Totals — {data.count} correction{data.count === 1 ? '' : 's'}</td>
+                <td className="px-4 py-2.5 text-right nums">
+                  <span className="text-success">+{formatCents(data.totalCreditCents)}</span>
+                  {' / '}
+                  <span className="text-danger">−{formatCents(data.totalDebitCents)}</span>
+                </td>
+                <td className="px-4 py-2.5" colSpan={2} />
+              </tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Taxes-owed section (POS) ───────────────────────────────────────────────────
+
+async function TaxesOwedSection({ range }: { slug: string; range: RangeKey }) {
+  const result = await getTaxesOwedReportAction(range);
+
+  if ('error' in result) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+        <AlertDescription>Could not load the taxes report. Please try again.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const { data } = result;
+  const hasBase = data.totalTaxableGrossCents > 0;
+
+  const csvRows: string[][] = [
+    ['Period', 'Taxable POS base', 'Tax collected'],
+    ...data.buckets.map((b) => [
+      csvDate(b.bucketStart),
+      centsToAmount(b.taxableGrossCents),
+      centsToAmount(b.taxCents),
+    ]),
+  ];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <ExportCsvButton rows={csvRows} filename={csvFilename('taxes-owed')} disabled={!hasBase} />
+      </div>
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs">
+        <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+          <div className="px-5 py-4">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Taxable POS base</p>
+            <p className={['nums mt-1 text-2xl font-bold leading-none', !hasBase ? 'text-slate-300' : 'text-slate-900'].join(' ')}>
+              {formatCents(data.totalTaxableGrossCents)}
+            </p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Tax collected</p>
+            <p className="nums mt-1 text-2xl font-bold leading-none text-slate-300">{formatCents(data.totalTaxCents)}</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" aria-label={`Taxes — last ${range}`}>
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Period</th>
+                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Taxable base</th>
+                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Tax</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.buckets.map((b) => (
+                <tr key={b.bucketStart} className="border-b border-slate-100 last:border-0">
+                  <td className="px-4 py-2 nums text-slate-500 text-xs">
+                    {new Date(b.bucketStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </td>
+                  <td className={['px-4 py-2 text-right nums', b.taxableGrossCents === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                    {formatCents(b.taxableGrossCents)}
+                  </td>
+                  <td className="px-4 py-2 text-right nums text-slate-300">{formatCents(b.taxCents)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
@@ -340,6 +723,71 @@ export default async function BillingReportsPage({ params, searchParams }: Repor
             <RangeSelector slug={slug} current={range} />
           </div>
           <RevenueSection slug={slug} range={range} />
+        </section>
+      </Suspense>
+
+      <Suspense fallback={<ReportsSkeleton />}>
+        <section aria-label={`Items sold — last ${range}`}>
+          <SectionHeader
+            eyebrow={
+              <span className="inline-flex items-center gap-1.5">
+                <ShoppingBag className="h-3 w-3" aria-hidden="true" />
+                Items sold (POS) — last {range}
+              </span>
+            }
+          />
+          <ItemsSoldSection slug={slug} range={range} />
+          <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+            Units sold and gross revenue from finalized counter sales. Tax is not
+            yet modeled in point-of-sale — sales-tax collection is a deferred item.
+          </p>
+        </section>
+      </Suspense>
+
+      <Suspense fallback={<ReportsSkeleton />}>
+        <section aria-label={`Payments — last ${range}`}>
+          <SectionHeader
+            eyebrow={
+              <span className="inline-flex items-center gap-1.5">
+                <Banknote className="h-3 w-3" aria-hidden="true" />
+                Payments — last {range}
+              </span>
+            }
+          />
+          <PaymentsSection slug={slug} range={range} />
+        </section>
+      </Suspense>
+
+      <Suspense fallback={<ReportsSkeleton />}>
+        <section aria-label={`Adjustments &amp; credit memos — last ${range}`}>
+          <SectionHeader
+            eyebrow={
+              <span className="inline-flex items-center gap-1.5">
+                <Scale className="h-3 w-3" aria-hidden="true" />
+                Adjustments &amp; credit memos — last {range}
+              </span>
+            }
+          />
+          <AdjustmentsSection slug={slug} range={range} />
+        </section>
+      </Suspense>
+
+      <Suspense fallback={<ReportsSkeleton />}>
+        <section aria-label={`Taxes owed — last ${range}`}>
+          <SectionHeader
+            eyebrow={
+              <span className="inline-flex items-center gap-1.5">
+                <Receipt className="h-3 w-3" aria-hidden="true" />
+                Taxes owed (POS) — last {range}
+              </span>
+            }
+          />
+          <TaxesOwedSection slug={slug} range={range} />
+          <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+            Scoped to point-of-sale activity. Sales tax is not yet modeled in the
+            schema, so tax collected is reported as $0.00 over the taxable POS
+            base — sales-tax collection and remittance is a deferred item.
+          </p>
         </section>
       </Suspense>
     </div>

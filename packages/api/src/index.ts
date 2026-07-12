@@ -644,6 +644,8 @@ export type {
   OrgMemberListRow,
   MemberDetail,
   MemberTagView,
+  MemberTagChipView,
+  MemberTagColor,
   UpcomingMemberReservationRow,
   GetMemberDetailResult,
   UpdateMemberResult,
@@ -655,6 +657,10 @@ export type {
   ListMembersPageOptions,
   ListMembersPage,
 } from './people/types.js';
+// MEMBER_TAG_COLORS: the fixed palette KEY set a member tag may be colored with
+// (migration 0041). Opaque presentation keys — the web maps a key to a literal
+// class; [VERIFY-6-A] color is a display hint, no regulatory meaning.
+export { MEMBER_TAG_COLORS } from './people/types.js';
 
 // ─── Slice FC-P2 — Member expiration reminders (migration 0039) ──────────────
 // Operator-entered FREE-TEXT reminder dates on a member (e.g. 'Medical',
@@ -771,6 +777,64 @@ export type {
   GetAircraftUtilizationInput,
   AircraftUtilizationRow,
 } from './reporting/get-aircraft-utilization.js';
+
+// getInstructorUtilization: per-CFI utilization over the range — dispatch hours
+// as pilot + 'recorded' lessons given + distinct students taught. ONE query,
+// membership(role='cfi') anchored with two LEFT-JOIN subqueries; zero-activity
+// CFIs appear (0/0/0). reporting:access; RLS-scoped. Operational/data counts —
+// [VERIFY-A] NOT billable or a Part-141/61 determination.
+export {
+  getInstructorUtilization,
+  getInstructorUtilizationWithDb,
+} from './reporting/get-instructor-utilization.js';
+export type {
+  GetInstructorUtilizationInput,
+  InstructorUtilizationRow,
+} from './reporting/get-instructor-utilization.js';
+
+// getSquawksReport: org-wide squawk list for the reports page, optional status
+// filter, tail-number enriched. reporting:access (broader than list-squawks'
+// maintenance:access); RLS-scoped; read-only. [VERIFY-M1-A] operator data.
+export {
+  getSquawksReport,
+  getSquawksReportWithDb,
+} from './reporting/get-squawks-report.js';
+export type {
+  GetSquawksReportInput,
+  SquawkReportRow,
+  SquawksReportResult,
+} from './reporting/get-squawks-report.js';
+
+// getMaintenanceRemindersReport: org-wide maintenance-due list for the reports
+// page, optional computed-status filter, tail-number enriched. Reuses
+// loadMaintenanceDueViews under reporting:access; RLS-scoped; read-only.
+// [VERIFY-M1-A] arithmetic on operator thresholds, NOT an airworthiness call.
+export {
+  getMaintenanceRemindersReport,
+  getMaintenanceRemindersReportWithDb,
+} from './reporting/get-maintenance-reminders-report.js';
+export type {
+  GetMaintenanceRemindersReportInput,
+  MaintenanceReminderReportRow,
+  MaintenanceRemindersReportResult,
+} from './reporting/get-maintenance-reminders-report.js';
+
+// getCancellationsReport: org-wide list of CANCELLED reservations over a range,
+// enriched with resource/tail, who cancelled, the (optional) stated reason
+// (migration 0042), and a lead-time-before-start bucket (<24h / 1-7d / >7d) +
+// totals. reporting:access; RLS-scoped; read-only. Operator activity data —
+// NOT a billing or regulatory determination.
+export {
+  getCancellationsReport,
+  getCancellationsReportWithDb,
+  leadTimeBucketFor,
+} from './reporting/get-cancellations-report.js';
+export type {
+  GetCancellationsReportInput,
+  CancellationReportRow,
+  CancellationsReportResult,
+  CancellationLeadTimeBucket,
+} from './reporting/get-cancellations-report.js';
 
 // ─── R1.1 — Operational Reports backend (read-only aggregates, no migration) ──
 // 5 new report reads: utilization trend, hours by tail, reservations vs flights,
@@ -1795,6 +1859,59 @@ export type {
   MemberStatement,
   MemberStatementLedgerRow,
 } from './billing/get-member-statement.js';
+
+// getItemsSoldReport: per-product POS sell-through over a rolling UTC range —
+// qty sold + gross cents on FINALIZED counter-sale lines (name-snapshot link to
+// product_catalog, no FK). taxCents is a documented 0 (0031 models no tax yet,
+// [VERIFY-P2-A]). billing:access; integer cents; RLS-scoped; read-only.
+export {
+  getItemsSoldReport,
+  getItemsSoldReportWithDb,
+} from './billing/get-items-sold-report.js';
+export type {
+  GetItemsSoldReportInput,
+  ItemsSoldRow,
+  ItemsSoldReportResult,
+} from './billing/get-items-sold-report.js';
+
+// getPaymentsReport: every 'payment' ledger_entry over a rolling UTC range —
+// date, member, amount, reference (paymentId/memo) + period totals.
+// billing:access; integer cents; RLS-scoped; read-only.
+export {
+  getPaymentsReport,
+  getPaymentsReportWithDb,
+} from './billing/get-payments-report.js';
+export type {
+  GetPaymentsReportInput,
+  PaymentReportRow,
+  PaymentsReportResult,
+} from './billing/get-payments-report.js';
+
+// getAdjustmentsReport: every 'credit_memo' + 'adjustment' ledger_entry over a
+// rolling UTC range — type, direction, amount, memo, who + totals by direction.
+// billing:access; integer cents; RLS-scoped; read-only.
+export {
+  getAdjustmentsReport,
+  getAdjustmentsReportWithDb,
+} from './billing/get-adjustments-report.js';
+export type {
+  GetAdjustmentsReportInput,
+  AdjustmentReportRow,
+  AdjustmentsReportResult,
+} from './billing/get-adjustments-report.js';
+
+// getTaxesOwedReport: sales-tax collected over POS activity, bucketed by period.
+// The schema models NO tax (0031, [VERIFY-P2-A]) — taxCents is a documented 0
+// over the finalized POS taxable base. billing:access; integer cents; read-only.
+export {
+  getTaxesOwedReport,
+  getTaxesOwedReportWithDb,
+} from './billing/get-taxes-owed-report.js';
+export type {
+  GetTaxesOwedReportInput,
+  TaxesOwedReportBucket,
+  TaxesOwedReportResult,
+} from './billing/get-taxes-owed-report.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // Slice P1.3 — Email notifications

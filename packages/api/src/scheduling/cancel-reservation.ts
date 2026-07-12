@@ -25,11 +25,39 @@ import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
+import { ValidationError } from './internal.js';
 import type { CancelResult } from './types.js';
+
+/** Max length of a cancellation reason (mirrors reservation_cancellation_reason_check). */
+const MAX_CANCELLATION_REASON = 500;
 
 /** Input to cancelReservation. */
 export interface CancelReservationInput {
   reservationId: string;
+  /**
+   * OPTIONAL free-text reason (migration 0042). Trimmed; empty → null.
+   * Persisted on the reservation + included in the cancel audit metadata.
+   * When absent, behavior is byte-identical to before (reason stays NULL,
+   * audit metadata stays {}).
+   */
+  reason?: string;
+}
+
+/**
+ * normalizeReason — trim + bound-check an optional cancellation reason.
+ * undefined/empty-after-trim → null. Over 500 chars → ValidationError.
+ * Shared by cancelReservation + cancelSeries.
+ */
+export function normalizeCancellationReason(reason: string | undefined): string | null {
+  if (reason === undefined) return null;
+  const trimmed = reason.trim();
+  if (trimmed.length === 0) return null;
+  if (trimmed.length > MAX_CANCELLATION_REASON) {
+    throw new ValidationError(
+      `[scheduling] cancellation reason must be at most ${MAX_CANCELLATION_REASON} characters`,
+    );
+  }
+  return trimmed;
 }
 
 // ─── Shared implementation ────────────────────────────────────────────────────
@@ -40,6 +68,9 @@ async function _cancelReservationImpl(
   input: CancelReservationInput,
 ): Promise<CancelResult> {
   requireCapability(session, 'schedule:create_reservation');
+
+  // Validate the optional reason up front (throws on over-length).
+  const reason = normalizeCancellationReason(input.reason);
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
     // Load the reservation (RLS scopes to org — a cross-org/unknown id is
@@ -60,13 +91,15 @@ async function _cancelReservationImpl(
       return { ok: true };
     }
 
-    // Flip the parent reservation.
+    // Flip the parent reservation. cancellationReason is null when the caller
+    // supplied no reason → the column stays NULL (byte-identical to before).
     await tx
       .update(reservation)
       .set({
         status: 'cancelled',
         cancelledAt: sql`now()`,
         cancelledBy: sess.userId,
+        cancellationReason: reason,
         updatedAt: sql`now()`,
       })
       .where(eq(reservation.id, input.reservationId));
@@ -78,14 +111,15 @@ async function _cancelReservationImpl(
       .set({ status: 'cancelled' })
       .where(eq(reservationResource.reservationId, input.reservationId));
 
-    // Audit row — cancellation is a recorded mutation.
+    // Audit row — cancellation is a recorded mutation. When no reason was
+    // supplied, metadata stays {} (byte-identical to before).
     await tx.insert(auditLog).values({
       orgId: sess.orgId,
       actorUserId: sess.userId,
       action: 'reservation.cancelled',
       entityType: 'reservation',
       entityId: input.reservationId,
-      metadata: {},
+      metadata: reason !== null ? { reason } : {},
     });
 
     return { ok: true };

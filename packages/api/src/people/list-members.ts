@@ -26,6 +26,8 @@ import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import type {
   OrgMemberListRow,
+  MemberTagChipView,
+  MemberTagColor,
   MemberCursor,
   ListMembersPageOptions,
   ListMembersPage,
@@ -42,6 +44,12 @@ export interface ListMembersOptions {
 const DEFAULT_MEMBER_PAGE_LIMIT = 100;
 const MAX_MEMBER_PAGE_LIMIT     = 500;
 
+/** One element of the jsonb tagChips aggregate (raw shape from the DB). */
+interface RawTagChip {
+  tag: string;
+  color: string | null;
+}
+
 /** Raw SQL row shape shared by the unbounded and paginated member reads. */
 interface MemberSqlRow {
   userId: string;
@@ -51,6 +59,8 @@ interface MemberSqlRow {
   status: string;
   role: string;
   tags: string[];
+  /** jsonb_agg of { tag, color } — parallel to `tags`, ordered by tag. */
+  tagChips: RawTagChip[];
   /** COALESCE(full_name, email) — the keyset sort column (paginated read only). */
   sortName?: string;
 }
@@ -58,6 +68,11 @@ interface MemberSqlRow {
 /** Map a raw SQL row to the public OrgMemberListRow. */
 function toMemberListRow(r: MemberSqlRow): OrgMemberListRow {
   const tags = Array.isArray(r.tags) ? r.tags : [];
+  const rawChips = Array.isArray(r.tagChips) ? r.tagChips : [];
+  const tagChips: MemberTagChipView[] = rawChips.map((c) => ({
+    tag: c.tag,
+    color: (c.color as MemberTagColor | null) ?? null,
+  }));
   return {
     userId: r.userId,
     displayName: r.fullName ?? r.email,
@@ -66,6 +81,7 @@ function toMemberListRow(r: MemberSqlRow): OrgMemberListRow {
     status: r.status,
     role: r.role as MembershipRole,
     tags,
+    tagChips,
     tagCount: tags.length,
   };
 }
@@ -97,7 +113,12 @@ async function _listMembersImpl(
         COALESCE(
           array_agg(mt.tag ORDER BY mt.tag) FILTER (WHERE mt.tag IS NOT NULL),
           '{}'::text[]
-        )                  AS tags
+        )                  AS tags,
+        COALESCE(
+          jsonb_agg(jsonb_build_object('tag', mt.tag, 'color', mt.color) ORDER BY mt.tag)
+            FILTER (WHERE mt.tag IS NOT NULL),
+          '[]'::jsonb
+        )                  AS "tagChips"
       FROM membership m
       JOIN app_user u ON u.id = m.user_id
       LEFT JOIN member_tag mt ON mt.user_id = m.user_id
@@ -159,7 +180,12 @@ async function _listMembersPageImpl(
         COALESCE(
           array_agg(mt.tag ORDER BY mt.tag) FILTER (WHERE mt.tag IS NOT NULL),
           '{}'::text[]
-        )                               AS tags
+        )                               AS tags,
+        COALESCE(
+          jsonb_agg(jsonb_build_object('tag', mt.tag, 'color', mt.color) ORDER BY mt.tag)
+            FILTER (WHERE mt.tag IS NOT NULL),
+          '[]'::jsonb
+        )                               AS "tagChips"
       FROM membership m
       JOIN app_user u ON u.id = m.user_id
       LEFT JOIN member_tag mt ON mt.user_id = m.user_id

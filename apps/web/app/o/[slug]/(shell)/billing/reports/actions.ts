@@ -22,11 +22,19 @@ import {
   getAccountsReceivable,
   getRevenueReport,
   getMemberStatement,
+  getItemsSoldReport,
+  getPaymentsReport,
+  getAdjustmentsReport,
+  getTaxesOwedReport,
 } from '@aeroops/api';
 import type {
   AccountsReceivableRow,
   RevenueReportBucket,
+  ItemsSoldRow,
   InvoiceStatus,
+  PaymentReportRow,
+  AdjustmentReportRow,
+  TaxesOwedReportBucket,
 } from '@aeroops/api';
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
@@ -142,6 +150,260 @@ export async function getRevenueReportAction(
         buckets: result.buckets.map(serializeRevenueBucket),
         totalFinalizedCents: result.totalFinalizedCents,
         totalCollectedCents: result.totalCollectedCents,
+      },
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── getItemsSoldReportAction ────────────────────────────────────────────────
+
+export interface SerializedItemsSoldRow {
+  productId: string;
+  productName: string;
+  sku: string | null;
+  qtySold: number;
+  grossCents: number;
+  taxCents: number;
+}
+
+export interface SerializedItemsSoldReport {
+  range: { key: string; from: string; to: string };
+  rows: SerializedItemsSoldRow[];
+  totalQtySold: number;
+  totalGrossCents: number;
+  totalTaxCents: number;
+}
+
+function serializeItemsSoldRow(r: ItemsSoldRow): SerializedItemsSoldRow {
+  return {
+    productId: r.productId,
+    productName: r.productName,
+    sku: r.sku,
+    qtySold: r.qtySold,
+    grossCents: r.grossCents,
+    taxCents: r.taxCents,
+  };
+}
+
+export type GetItemsSoldReportActionResult =
+  | { ok: true; data: SerializedItemsSoldReport }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getItemsSoldReportAction(
+  range?: string,
+): Promise<GetItemsSoldReportActionResult> {
+  const session = await auth();
+  try {
+    const result = await getItemsSoldReport(session, { range });
+    return {
+      ok: true,
+      data: {
+        range: {
+          key: result.range.key,
+          from: result.range.from.toISOString(),
+          to: result.range.to.toISOString(),
+        },
+        rows: result.rows.map(serializeItemsSoldRow),
+        totalQtySold: result.totalQtySold,
+        totalGrossCents: result.totalGrossCents,
+        totalTaxCents: result.totalTaxCents,
+      },
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── getPaymentsReportAction ─────────────────────────────────────────────────
+
+export interface SerializedPaymentReportRow {
+  entryId: string;
+  createdAt: string;
+  memberUserId: string;
+  memberName: string;
+  amountCents: number;
+  paymentId: string | null;
+  memo: string | null;
+}
+
+export interface SerializedPaymentsReport {
+  range: { key: string; from: string; to: string };
+  rows: SerializedPaymentReportRow[];
+  totalPaymentCents: number;
+  paymentCount: number;
+}
+
+function serializePaymentRow(r: PaymentReportRow): SerializedPaymentReportRow {
+  return {
+    entryId: r.entryId,
+    createdAt: r.createdAt.toISOString(),
+    memberUserId: r.memberUserId,
+    memberName: r.memberName,
+    amountCents: r.amountCents,
+    paymentId: r.paymentId,
+    memo: r.memo,
+  };
+}
+
+export type GetPaymentsReportActionResult =
+  | { ok: true; data: SerializedPaymentsReport }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getPaymentsReportAction(range?: string): Promise<GetPaymentsReportActionResult> {
+  const session = await auth();
+  try {
+    const result = await getPaymentsReport(session, { range });
+    return {
+      ok: true,
+      data: {
+        range: {
+          key: result.range.key,
+          from: result.range.from.toISOString(),
+          to: result.range.to.toISOString(),
+        },
+        rows: result.rows.map(serializePaymentRow),
+        totalPaymentCents: result.totalPaymentCents,
+        paymentCount: result.paymentCount,
+      },
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── getAdjustmentsReportAction ──────────────────────────────────────────────
+
+export interface SerializedAdjustmentReportRow {
+  entryId: string;
+  createdAt: string;
+  memberUserId: string;
+  memberName: string;
+  entryType: 'credit_memo' | 'adjustment';
+  direction: 'debit' | 'credit';
+  amountCents: number;
+  memo: string | null;
+  createdByName: string | null;
+}
+
+export interface SerializedAdjustmentsReport {
+  range: { key: string; from: string; to: string };
+  rows: SerializedAdjustmentReportRow[];
+  totalCreditCents: number;
+  totalDebitCents: number;
+  count: number;
+}
+
+function serializeAdjustmentRow(r: AdjustmentReportRow): SerializedAdjustmentReportRow {
+  return {
+    entryId: r.entryId,
+    createdAt: r.createdAt.toISOString(),
+    memberUserId: r.memberUserId,
+    memberName: r.memberName,
+    entryType: r.entryType,
+    direction: r.direction,
+    amountCents: r.amountCents,
+    memo: r.memo,
+    createdByName: r.createdByName,
+  };
+}
+
+export type GetAdjustmentsReportActionResult =
+  | { ok: true; data: SerializedAdjustmentsReport }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getAdjustmentsReportAction(
+  range?: string,
+): Promise<GetAdjustmentsReportActionResult> {
+  const session = await auth();
+  try {
+    const result = await getAdjustmentsReport(session, { range });
+    return {
+      ok: true,
+      data: {
+        range: {
+          key: result.range.key,
+          from: result.range.from.toISOString(),
+          to: result.range.to.toISOString(),
+        },
+        rows: result.rows.map(serializeAdjustmentRow),
+        totalCreditCents: result.totalCreditCents,
+        totalDebitCents: result.totalDebitCents,
+        count: result.count,
+      },
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── getTaxesOwedReportAction ────────────────────────────────────────────────
+
+export interface SerializedTaxesOwedReportBucket {
+  bucketStart: string;
+  taxableGrossCents: number;
+  taxCents: number;
+}
+
+export interface SerializedTaxesOwedReport {
+  range: { key: string; from: string; to: string };
+  granularity: string;
+  buckets: SerializedTaxesOwedReportBucket[];
+  totalTaxableGrossCents: number;
+  totalTaxCents: number;
+}
+
+function serializeTaxesBucket(b: TaxesOwedReportBucket): SerializedTaxesOwedReportBucket {
+  return {
+    bucketStart: b.bucketStart.toISOString(),
+    taxableGrossCents: b.taxableGrossCents,
+    taxCents: b.taxCents,
+  };
+}
+
+export type GetTaxesOwedReportActionResult =
+  | { ok: true; data: SerializedTaxesOwedReport }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getTaxesOwedReportAction(
+  range?: string,
+): Promise<GetTaxesOwedReportActionResult> {
+  const session = await auth();
+  try {
+    const result = await getTaxesOwedReport(session, { range });
+    return {
+      ok: true,
+      data: {
+        range: {
+          key: result.range.key,
+          from: result.range.from.toISOString(),
+          to: result.range.to.toISOString(),
+        },
+        granularity: result.granularity,
+        buckets: result.buckets.map(serializeTaxesBucket),
+        totalTaxableGrossCents: result.totalTaxableGrossCents,
+        totalTaxCents: result.totalTaxCents,
       },
     };
   } catch (err) {

@@ -16,6 +16,13 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { addMemberTagAction, removeMemberTagAction } from '../actions';
 import type { SerializedMemberDetail, SerializedMemberTagView } from '../actions';
+import type { MemberTagColor } from '@aeroops/api';
+import {
+  MEMBER_TAG_COLOR_KEYS,
+  MEMBER_TAG_COLOR_LABELS,
+  tagChipClasses,
+  tagDotClasses,
+} from '@/lib/member-tag-color';
 
 interface TagEditorProps {
   member: SerializedMemberDetail;
@@ -26,6 +33,7 @@ interface TagEditorProps {
 export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
   const [tags, setTags] = React.useState<SerializedMemberTagView[]>(member.tags);
   const [newTag, setNewTag] = React.useState('');
+  const [newColor, setNewColor] = React.useState<MemberTagColor>('slate');
   const [addError, setAddError] = React.useState<string | null>(null);
   const [isAdding, setIsAdding] = React.useState(false);
   const [removingIds, setRemovingIds] = React.useState<Set<string>>(new Set());
@@ -46,7 +54,11 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
     setAddError(null);
     setIsAdding(true);
     try {
-      const result = await addMemberTagAction({ userId: member.userId, tag: trimmed });
+      const result = await addMemberTagAction({
+        userId: member.userId,
+        tag: trimmed,
+        color: newColor,
+      });
       if ('error' in result) {
         if (result.error === 'validation') {
           setAddError(result.message);
@@ -136,7 +148,10 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
             <span
               key={t.id}
               role="listitem"
-              className="inline-flex items-center gap-1 rounded-sm border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
+              className={[
+                'inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-xs font-medium',
+                tagChipClasses(t.color),
+              ].join(' ')}
             >
               {t.tag}
               {canManage && (
@@ -166,33 +181,61 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
 
       {/* Add tag form (manage only) */}
       {canManage && (
-        <form onSubmit={handleAdd} className="flex gap-2" noValidate>
-          <div className="flex-1 space-y-1">
-            <Input
-              value={newTag}
-              onChange={(e) => {
-                setNewTag(e.target.value);
-                setAddError(null);
-              }}
-              placeholder="Add tag…"
-              disabled={isAdding}
-              maxLength={100}
-              aria-label="New tag"
-              aria-invalid={addError ? 'true' : undefined}
-              aria-describedby={addError ? 'tag-add-err' : undefined}
-              className={addError ? 'border-red-500' : ''}
-            />
-            {addError && (
-              <p id="tag-add-err" role="alert" className="text-xs text-red-600">
-                {addError}
-              </p>
-            )}
+        <form onSubmit={handleAdd} className="space-y-2" noValidate>
+          <div className="flex gap-2">
+            <div className="flex-1 space-y-1">
+              <Input
+                value={newTag}
+                onChange={(e) => {
+                  setNewTag(e.target.value);
+                  setAddError(null);
+                }}
+                placeholder="Add tag…"
+                disabled={isAdding}
+                maxLength={100}
+                aria-label="New tag"
+                aria-invalid={addError ? 'true' : undefined}
+                aria-describedby={addError ? 'tag-add-err' : undefined}
+                className={addError ? 'border-red-500' : ''}
+              />
+              {addError && (
+                <p id="tag-add-err" role="alert" className="text-xs text-red-600">
+                  {addError}
+                </p>
+              )}
+            </div>
+            <Button type="submit" size="sm" variant="outline" disabled={isAdding} isLoading={isAdding}>
+              <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
+              Add
+            </Button>
           </div>
-          <Button type="submit" size="sm" variant="outline" disabled={isAdding} isLoading={isAdding}>
-                            <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
-                Add
-              
-          </Button>
+          {/* Color picker dots */}
+          <fieldset className="flex items-center gap-1.5">
+            <legend className="sr-only">Tag color</legend>
+            <span className="text-xs text-slate-400 mr-0.5">Color:</span>
+            {MEMBER_TAG_COLOR_KEYS.map((color) => {
+              const selected = newColor === color;
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setNewColor(color)}
+                  disabled={isAdding}
+                  aria-pressed={selected}
+                  aria-label={MEMBER_TAG_COLOR_LABELS[color]}
+                  title={MEMBER_TAG_COLOR_LABELS[color]}
+                  className={[
+                    'h-4 w-4 rounded-full ring-offset-1 transition',
+                    tagDotClasses(color),
+                    selected
+                      ? 'ring-2 ring-brand ring-offset-white'
+                      : 'ring-1 ring-slate-200 hover:ring-slate-400',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50',
+                  ].join(' ')}
+                />
+              );
+            })}
+          </fieldset>
         </form>
       )}
     </div>

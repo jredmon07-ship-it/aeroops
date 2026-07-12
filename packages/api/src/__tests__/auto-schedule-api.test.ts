@@ -48,7 +48,7 @@ import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0038');
+const MIGRATION_SQL = loadMigrationSql('0042');
 
 // A deterministic clock + planning window (08:00..20:00 UTC on a fixed day).
 const NOW = Date.UTC(2026, 5, 19, 6, 0, 0); // before the window

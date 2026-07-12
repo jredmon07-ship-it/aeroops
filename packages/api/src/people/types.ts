@@ -22,6 +22,31 @@
 import type { MembershipRole } from '@aeroops/core';
 import type { DispatchTicketView } from '../dispatch/types.js';
 
+// ─── Tag color palette (migration 0041) ───────────────────────────────────────
+
+/**
+ * MEMBER_TAG_COLORS — the fixed palette KEY set a member tag may be colored
+ * with. These are opaque presentation keys (NOT CSS/hex values): the web layer
+ * maps a key to a literal Tailwind class, so there is no dynamic class
+ * construction. Kept in lockstep with member_tag_color_check (migration 0041).
+ *
+ * [VERIFY-6-A]: a tag's color is a DISPLAY hint only — no regulatory or
+ * eligibility meaning is attached to a tag or its color.
+ */
+export const MEMBER_TAG_COLORS = [
+  'slate',
+  'red',
+  'amber',
+  'green',
+  'sky',
+  'violet',
+  'rose',
+  'teal',
+] as const;
+
+/** One of the eight palette keys (see MEMBER_TAG_COLORS). */
+export type MemberTagColor = (typeof MEMBER_TAG_COLORS)[number];
+
 // ─── MemberTagView ────────────────────────────────────────────────────────────
 
 /**
@@ -31,8 +56,25 @@ import type { DispatchTicketView } from '../dispatch/types.js';
 export interface MemberTagView {
   id: string;
   tag: string;
+  /**
+   * OPTIONAL palette-key color hint (migration 0041). null = no color (the UI
+   * renders the neutral 'slate' default). A DISPLAY hint only. [VERIFY-6-A]
+   */
+  color: MemberTagColor | null;
   createdBy: string;
   createdAt: Date;
+}
+
+// ─── MemberTagChipView ────────────────────────────────────────────────────────
+
+/**
+ * MemberTagChipView — a lightweight tag chip (label + color) for the roster
+ * list, where the full MemberTagView (id/createdBy/createdAt) is unneeded.
+ */
+export interface MemberTagChipView {
+  tag: string;
+  /** null = no color → UI renders the neutral 'slate' default. [VERIFY-6-A] */
+  color: MemberTagColor | null;
 }
 
 // ─── UpcomingMemberReservationRow ─────────────────────────────────────────────
@@ -109,6 +151,12 @@ export interface OrgMemberListRow {
   phone: string | null;
   /** Free-text operator labels only. [VERIFY-6-A] */
   tags: string[];
+  /**
+   * Same tags as `tags`, each paired with its optional palette-key color
+   * (migration 0041), for colored chips on the roster. Ordered identically to
+   * `tags`. A DISPLAY hint only. [VERIFY-6-A]
+   */
+  tagChips: MemberTagChipView[];
   tagCount: number;
 }
 

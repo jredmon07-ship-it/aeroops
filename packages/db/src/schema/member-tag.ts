@@ -78,6 +78,14 @@ export const memberTag = pgTable(
     // member_tag_tag_nonempty_check ensures btrim(tag) has at least one char.
     tag: text('tag').notNull(),
 
+    // OPTIONAL palette-key color hint (migration 0041). Nullable → the UI
+    // renders the neutral 'slate' default. Constrained to a fixed palette KEY
+    // set by member_tag_color_check (hand-written in migration 0041). This is a
+    // DISPLAY hint ONLY — [VERIFY-6-A] the tag (and its color) carry no
+    // regulatory/eligibility meaning. The UI maps a key to a literal class (no
+    // dynamic class construction).
+    color: text('color'),
+
     // created_by carries no .references() — composite FK
     // (created_by, org_id) → app_user(id, org_id) ON DELETE RESTRICT
     // is hand-written in migration 0008. Preserves attribution.

@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { cancelSeriesAction } from '../../../actions';
 
 interface CancelSeriesDialogProps {
@@ -44,6 +45,7 @@ export function CancelSeriesDialog({
   onError,
 }: CancelSeriesDialogProps) {
   const [pending, setPending] = React.useState(false);
+  const [reason, setReason] = React.useState('');
 
   // Capability gate: hide trigger entirely if user cannot cancel
   if (!canCancel) return null;
@@ -51,7 +53,11 @@ export function CancelSeriesDialog({
   const handleCancel = async () => {
     setPending(true);
     try {
-      const result = await cancelSeriesAction({ seriesId });
+      const trimmed = reason.trim();
+      const result = await cancelSeriesAction({
+        seriesId,
+        ...(trimmed ? { reason: trimmed } : {}),
+      });
 
       if ('error' in result) {
         if (result.error === 'forbidden') {
@@ -101,6 +107,20 @@ export function CancelSeriesDialog({
             records are preserved. This action is recorded.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="space-y-1.5">
+          <label htmlFor="cancel-series-reason" className="text-sm font-medium text-slate-700">
+            Reason <span className="font-normal text-slate-400">(optional)</span>
+          </label>
+          <Textarea
+            id="cancel-series-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. instructor unavailable, seasonal break…"
+            rows={2}
+            maxLength={500}
+            disabled={pending}
+          />
+        </div>
         <AlertDialogFooter>
           <AlertDialogCancel autoFocus disabled={pending}>
             Keep series

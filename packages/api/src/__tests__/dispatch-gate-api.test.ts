@@ -66,7 +66,7 @@ import type { AppSession } from '../auth/types.js';
 import type { BalanceSeam, BalanceCheckRequest, BalanceCheckResult } from '@aeroops/core';
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0038');
+const MIGRATION_SQL = loadMigrationSql('0042');
 
 // ── Shared test env ──────────────────────────────────────────────────────────
 

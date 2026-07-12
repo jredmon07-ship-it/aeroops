@@ -39,6 +39,7 @@ import {
   addMemberExpiration,
   deactivateMemberExpiration,
   listMemberExpirations,
+  getMemberBalance,
 } from '@aeroops/api';
 import type {
   OrgMemberListRow,
@@ -63,6 +64,7 @@ import type {
   MemberExpirationView,
   MemberExpirationStatus,
   AddMemberExpirationInput,
+  MemberTagColor,
 } from '@aeroops/api';
 import type { DispatchTicketView } from '@aeroops/api';
 
@@ -71,6 +73,8 @@ import type { DispatchTicketView } from '@aeroops/api';
 export interface SerializedMemberTagView {
   id: string;
   tag: string;
+  /** Optional palette-key color (migration 0041); null → renders slate. */
+  color: MemberTagColor | null;
   createdBy: string;
   createdAt: string;
 }
@@ -134,6 +138,7 @@ function serializeTag(t: MemberTagView): SerializedMemberTagView {
   return {
     id: t.id,
     tag: t.tag,
+    color: t.color,
     createdBy: t.createdBy,
     createdAt: serializeDate(t.createdAt) ?? '',
   };
@@ -570,5 +575,33 @@ export async function deactivateMemberExpirationAction(input: {
     if (authErr) return authErr;
     if (isValidationError(err)) return { error: 'validation', message: err.message };
     return { error: 'server' };
+  }
+}
+
+// ─── getMemberBalanceSummaryAction (billing:access, fail-closed) ──────────────
+// Sourced from the EXISTING getMemberBalance read so the People detail page can
+// surface a member's account balance WITHOUT importing the billing module.
+// billing:access is enforced INSIDE getMemberBalance; a viewer who lacks it (or
+// any other error) gets null → the caller hides the balance card entirely,
+// mirroring how the dispatch preflight balance row degrades to hidden. This is
+// display-only: NO Stripe, NO card/bank data, integer cents.
+
+export type MemberBalanceSummary = { balanceCents: number; minimumBalanceCents: number };
+
+export async function getMemberBalanceSummaryAction(
+  memberUserId: string,
+): Promise<MemberBalanceSummary | null> {
+  const session = await auth();
+  try {
+    const result = await getMemberBalance(session, { memberUserId });
+    if (!result.ok) return null;
+    return {
+      balanceCents: result.balanceCents,
+      minimumBalanceCents: result.minimumBalanceCents,
+    };
+  } catch {
+    // Forbidden (no billing:access), unauthenticated, or any read failure →
+    // hide the card. Never surfaces an error to a people:access-only viewer.
+    return null;
   }
 }

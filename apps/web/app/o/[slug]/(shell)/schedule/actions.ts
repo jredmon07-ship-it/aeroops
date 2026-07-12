@@ -161,10 +161,13 @@ export async function createReservationAction(input: {
 export type CancelReservationActionResult =
   | CancelResult
   | AuthErrorResult
+  | ValidationErrorResult
   | ServerErrorResult;
 
 export async function cancelReservationAction(input: {
   reservationId: string;
+  /** Optional free-text cancellation reason (migration 0042). */
+  reason?: string;
 }): Promise<CancelReservationActionResult> {
   const session = await auth();
   try {
@@ -172,6 +175,9 @@ export async function cancelReservationAction(input: {
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
     return { error: 'server' };
   }
 }
@@ -513,10 +519,13 @@ export async function previewSeriesAction(
 export type CancelSeriesActionResult =
   | CancelSeriesResult
   | AuthErrorResult
+  | ValidationErrorResult
   | ServerErrorResult;
 
 export async function cancelSeriesAction(input: {
   seriesId: string;
+  /** Optional free-text cancellation reason (migration 0042). */
+  reason?: string;
 }): Promise<CancelSeriesActionResult> {
   const session = await auth();
   try {
@@ -524,6 +533,9 @@ export async function cancelSeriesAction(input: {
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: stripPrefix(err.message) };
+    }
     return { error: 'server' };
   }
 }
