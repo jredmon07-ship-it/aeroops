@@ -63,11 +63,11 @@ export function SeriesRuleSummary({ series }: SeriesRuleSummaryProps) {
 
   return (
     <div
-      className="rounded-md border border-border bg-white p-4 space-y-3"
+      className="rounded-md border border-border bg-white dark:bg-slate-900 p-4 space-y-3"
       aria-label="Series rule summary"
     >
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-slate-900">Recurrence Rule</h2>
+        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Recurrence Rule</h2>
         <Badge
           variant={status === 'active' ? 'default' : 'secondary'}
           aria-label={`Series status: ${status}`}
@@ -78,8 +78,8 @@ export function SeriesRuleSummary({ series }: SeriesRuleSummaryProps) {
 
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <div>
-          <dt className="text-slate-500 font-medium">Days</dt>
-          <dd className="text-slate-900">
+          <dt className="text-slate-500 dark:text-slate-400 font-medium">Days</dt>
+          <dd className="text-slate-900 dark:text-slate-100">
             {weekdays.length > 0
               ? weekdays.map(weekdayName).join(', ')
               : 'None'}
@@ -87,35 +87,35 @@ export function SeriesRuleSummary({ series }: SeriesRuleSummaryProps) {
         </div>
 
         <div>
-          <dt className="text-slate-500 font-medium">Interval</dt>
-          <dd className="text-slate-900">{formatInterval(intervalWeeks)}</dd>
+          <dt className="text-slate-500 dark:text-slate-400 font-medium">Interval</dt>
+          <dd className="text-slate-900 dark:text-slate-100">{formatInterval(intervalWeeks)}</dd>
         </div>
 
         <div>
-          <dt className="text-slate-500 font-medium">Start time</dt>
-          <dd className="text-slate-900 font-mono">{localStartTime || '—'}</dd>
+          <dt className="text-slate-500 dark:text-slate-400 font-medium">Start time</dt>
+          <dd className="text-slate-900 dark:text-slate-100 font-mono">{localStartTime || '—'}</dd>
         </div>
 
         <div>
-          <dt className="text-slate-500 font-medium">Duration</dt>
-          <dd className="text-slate-900">{durationLabel}</dd>
+          <dt className="text-slate-500 dark:text-slate-400 font-medium">Duration</dt>
+          <dd className="text-slate-900 dark:text-slate-100">{durationLabel}</dd>
         </div>
 
         <div>
-          <dt className="text-slate-500 font-medium">End rule</dt>
-          <dd className="text-slate-900">{formatEndRule(series)}</dd>
+          <dt className="text-slate-500 dark:text-slate-400 font-medium">End rule</dt>
+          <dd className="text-slate-900 dark:text-slate-100">{formatEndRule(series)}</dd>
         </div>
 
         <div>
-          <dt className="text-slate-500 font-medium">Timezone</dt>
-          <dd className="text-slate-900 truncate">{ianaTz || '—'}</dd>
+          <dt className="text-slate-500 dark:text-slate-400 font-medium">Timezone</dt>
+          <dd className="text-slate-900 dark:text-slate-100 truncate">{ianaTz || '—'}</dd>
         </div>
       </dl>
 
       {series.notes && (
         <div className="pt-1 border-t border-border text-sm">
-          <span className="text-slate-500 font-medium">Notes: </span>
-          <span className="text-slate-700">{series.notes}</span>
+          <span className="text-slate-500 dark:text-slate-400 font-medium">Notes: </span>
+          <span className="text-slate-700 dark:text-slate-300">{series.notes}</span>
         </div>
       )}
     </div>

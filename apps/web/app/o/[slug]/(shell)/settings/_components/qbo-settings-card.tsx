@@ -98,10 +98,10 @@ export function QboSettingsCard({ slug }: QboSettingsCardProps) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-5 py-4 space-y-4" aria-label="QuickBooks Online integration">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 space-y-4" aria-label="QuickBooks Online integration">
       <div className="flex items-center gap-2">
-        <RefreshCw className="h-4 w-4 text-slate-400 shrink-0" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-slate-800">QuickBooks Online</h2>
+        <RefreshCw className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">QuickBooks Online</h2>
       </div>
 
       {state.phase === 'loading' && (
@@ -121,7 +121,7 @@ export function QboSettingsCard({ slug }: QboSettingsCardProps) {
       {state.phase === 'populated' && (
         <div className="space-y-4">
           {!state.status.providerConfigured && (
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-md px-3 py-2">
               QuickBooks is not configured on this deployment. Set QBO_CLIENT_ID / QBO_CLIENT_SECRET /
               QBO_REDIRECT_URI to enable connecting.
             </p>
@@ -135,12 +135,12 @@ export function QboSettingsCard({ slug }: QboSettingsCardProps) {
           )}
 
           {/* Connection status */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 dark:border-slate-800 px-3 py-2">
             <div className="text-sm">
-              <span className="font-medium text-slate-700">Status: </span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">Status: </span>
               <StatusChip status={state.status.connection?.status ?? 'disconnected'} />
               {state.status.connection?.realmId && (
-                <span className="ml-2 text-xs text-slate-500">Company file: {state.status.connection.realmId}</span>
+                <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">Company file: {state.status.connection.realmId}</span>
               )}
             </div>
             <div className="flex gap-2">
@@ -194,7 +194,7 @@ export function QboSettingsCard({ slug }: QboSettingsCardProps) {
 function StatusChip({ status }: { status: 'connected' | 'disconnected' | 'error' }) {
   if (status === 'connected') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         Connected
       </span>
     );
@@ -207,7 +207,7 @@ function StatusChip({ status }: { status: 'connected' | 'disconnected' | 'error'
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
       Not connected
     </span>
   );
@@ -280,10 +280,10 @@ function AccountMappingEditor({ slug, mapping, onChanged }: AccountMappingEditor
 
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Line-item → QuickBooks account mapping
       </h3>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Each AeroOps charge kind exports to its own QuickBooks Item/account — never lumped into one line.
         Unmapped kinds refuse to export (set a &ldquo;Default&rdquo; row as a catch-all).
       </p>
@@ -295,17 +295,17 @@ function AccountMappingEditor({ slug, mapping, onChanged }: AccountMappingEditor
         </Alert>
       )}
 
-      <div className="rounded-md border border-slate-200 overflow-x-auto">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
         <table className="w-full text-sm" aria-label="QuickBooks account mapping">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Kind
               </th>
-              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 QuickBooks item
               </th>
-              <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Actions
               </th>
             </tr>
@@ -315,8 +315,8 @@ function AccountMappingEditor({ slug, mapping, onChanged }: AccountMappingEditor
               const existing = byKind.get(kind);
               const isEditing = editingKind === kind;
               return (
-                <tr key={kind} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2 align-top text-slate-700">{LINE_KIND_LABELS[kind]}</td>
+                <tr key={kind} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <td className="px-3 py-2 align-top text-slate-700 dark:text-slate-300">{LINE_KIND_LABELS[kind]}</td>
                   <td className="px-3 py-2 align-top">
                     {isEditing ? (
                       <div className="flex flex-col gap-1 max-w-xs">
@@ -344,11 +344,11 @@ function AccountMappingEditor({ slug, mapping, onChanged }: AccountMappingEditor
                         />
                       </div>
                     ) : existing ? (
-                      <span className="text-slate-700">
-                        {existing.qboItemName} <span className="text-slate-400">({existing.qboItemId})</span>
+                      <span className="text-slate-700 dark:text-slate-300">
+                        {existing.qboItemName} <span className="text-slate-400 dark:text-slate-500">({existing.qboItemId})</span>
                       </span>
                     ) : (
-                      <span className="text-slate-400 italic">Not mapped</span>
+                      <span className="text-slate-400 dark:text-slate-500 italic">Not mapped</span>
                     )}
                   </td>
                   <td className="px-3 py-2 align-top text-right">
@@ -416,35 +416,35 @@ function AccountMappingEditor({ slug, mapping, onChanged }: AccountMappingEditor
 function ExportLogTable({ exports }: { exports: SerializedQboStatus['recentExports'] }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recent export activity</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Recent export activity</h3>
       {exports.length === 0 ? (
         <EmptyState icon={RefreshCw} title="No exports yet." className="py-6" />
       ) : (
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="QuickBooks export log">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Type
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Status
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
                   Detail
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   When
                 </th>
               </tr>
             </thead>
             <tbody>
               {exports.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2 capitalize text-slate-700">{row.entityType}</td>
+                <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <td className="px-3 py-2 capitalize text-slate-700 dark:text-slate-300">{row.entityType}</td>
                   <td className="px-3 py-2">
                     {row.status === 'exported' && (
-                      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+                      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
                         Exported
                       </span>
                     )}
@@ -454,15 +454,15 @@ function ExportLogTable({ exports }: { exports: SerializedQboStatus['recentExpor
                       </span>
                     )}
                     {row.status === 'pending' && (
-                      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+                      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
                         Pending
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-500 hidden sm:table-cell max-w-xs truncate">
+                  <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 hidden sm:table-cell max-w-xs truncate">
                     {row.status === 'exported' ? row.qboId : row.errorDetail}
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-500 nums">
+                  <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 nums">
                     {new Date(row.createdAt).toLocaleString()}
                   </td>
                 </tr>

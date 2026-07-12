@@ -199,7 +199,7 @@ export function AnnotateFlightDialog({
         className={error ? 'border-red-500' : ''}
       />
       {error && (
-        <p id={`${id}-err`} role="alert" className="text-xs text-red-600">
+        <p id={`${id}-err`} role="alert" className="text-xs text-red-600 dark:text-red-400">
           {error}
         </p>
       )}
@@ -269,13 +269,13 @@ export function AnnotateFlightDialog({
                 className={fieldErrors.remarks ? 'border-red-500' : ''}
               />
               {fieldErrors.remarks && (
-                <p id="af-remarks-err" role="alert" className="text-xs text-red-600">
+                <p id="af-remarks-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.remarks}
                 </p>
               )}
             </div>
 
-            <p className="text-[0.6875rem] text-slate-400">
+            <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
               Saving adds a new annotation (the latest one is shown) — earlier
               annotations are kept for the record, never edited. Pilot/operator-entered
               data — not an FAA logbook of record; AeroOps does not compute currency.

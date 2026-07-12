@@ -28,6 +28,7 @@ import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { findBillingAccountTx, loadLedgerEntryAmountsTx } from '../billing/ledger-internal.js';
+import { loadFeePassingEnabled } from '../billing/fee-passing-internal.js';
 import { toInvoiceView } from '../billing/list-invoices.js';
 import type { InvoiceView } from '../billing/list-invoices.js';
 import type { SavedPaymentMethodView } from './save-payment-method.js';
@@ -38,6 +39,13 @@ export interface MyBillingView {
   invoices: InvoiceView[];
   paymentMethods: SavedPaymentMethodView[];
   autopay: AutopaySettingView;
+  /**
+   * Whether the operator passes the ACH processing fee (1%, max $15) through to
+   * the member at checkout. When true, the portal shows a fee line and quotes
+   * the grossed total. false when fee-passing is off OR migration 0045 is not
+   * yet applied (loadFeePassingEnabled degrades to false gracefully).
+   */
+  feePassingEnabled: boolean;
 }
 
 async function _getMyBillingImpl(
@@ -50,6 +58,7 @@ async function _getMyBillingImpl(
     const accountId = await findBillingAccountTx(tx, sess.orgId, sess.userId);
     const entries = accountId ? await loadLedgerEntryAmountsTx(tx, accountId) : [];
     const balanceCents = computeBalance(entries);
+    const feePassingEnabled = await loadFeePassingEnabled(tx, sess.orgId);
 
     const invoiceRows = await tx
       .select()
@@ -89,6 +98,7 @@ async function _getMyBillingImpl(
         enabled: autopayRow?.enabled ?? false,
         defaultPaymentMethodId: autopayRow?.defaultPaymentMethodId ?? null,
       },
+      feePassingEnabled,
     };
   });
 }

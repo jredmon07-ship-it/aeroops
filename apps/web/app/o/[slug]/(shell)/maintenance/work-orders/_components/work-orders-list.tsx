@@ -94,14 +94,14 @@ export function WorkOrdersList({
       {/* ── Filters ───────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-3">
         <div className="space-y-1">
-          <label htmlFor="wo-filter-aircraft" className="text-xs text-slate-500 font-medium">
+          <label htmlFor="wo-filter-aircraft" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             Aircraft
           </label>
           <select
             id="wo-filter-aircraft"
             value={filterResourceId}
             onChange={(e) => setFilterResourceId(e.target.value)}
-            className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
+            className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             <option value="">All aircraft</option>
             {aircraft.map((a) => (
@@ -113,14 +113,14 @@ export function WorkOrdersList({
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="wo-filter-status" className="text-xs text-slate-500 font-medium">
+          <label htmlFor="wo-filter-status" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             Status
           </label>
           <select
             id="wo-filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
+            className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -152,37 +152,37 @@ export function WorkOrdersList({
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Work orders">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide"
+                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide"
                 >
                   Aircraft
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide"
+                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide"
                 >
                   Title
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide"
+                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide"
                 >
                   Status
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell"
+                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell"
                 >
                   Linked squawk
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell"
+                  className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell"
                 >
                   Opened
                 </th>
@@ -192,22 +192,22 @@ export function WorkOrdersList({
               {filtered.map((wo) => (
                 <tr
                   key={wo.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <td className="px-3 py-3">
-                    <span className="font-mono text-xs nums text-slate-700">
+                    <span className="font-mono text-xs nums text-slate-700 dark:text-slate-300">
                       {aircraftName(wo.resourceId)}
                     </span>
                   </td>
                   <td className="px-3 py-3 max-w-xs">
                     <Link
                       href={`/o/${slug}/maintenance/work-orders/${wo.id}`}
-                      className="font-medium text-slate-900 hover:text-brand hover:underline underline-offset-2 truncate block"
+                      className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand hover:underline underline-offset-2 truncate block"
                     >
                       {wo.title}
                     </Link>
                     {wo.description && (
-                      <p className="text-xs text-slate-500 truncate">{wo.description}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{wo.description}</p>
                     )}
                   </td>
                   <td className="px-3 py-3">
@@ -216,17 +216,17 @@ export function WorkOrdersList({
                   <td className="px-3 py-3 hidden sm:table-cell">
                     {wo.squawkId ? (
                       <span
-                        className="inline-flex items-center gap-1 text-xs text-amber-700"
+                        className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300"
                         title="Has linked squawk"
                       >
                         <AlertTriangle className="h-3 w-3" aria-hidden="true" />
                         Linked
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400">—</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-xs text-slate-500 nums hidden sm:table-cell">
+                  <td className="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 nums hidden sm:table-cell">
                     {formatDate(wo.openedAt)}
                   </td>
                 </tr>
@@ -253,16 +253,16 @@ export function WorkOrdersListSkeleton() {
   return (
     <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading work orders">
       <div className="flex items-center justify-between gap-4">
-        <div className="h-8 bg-slate-200 rounded w-40" />
-        <div className="h-10 bg-slate-200 rounded w-44" />
+        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-40" />
+        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-44" />
       </div>
       <div className="flex gap-3">
-        <div className="h-9 bg-slate-200 rounded w-40" />
-        <div className="h-9 bg-slate-200 rounded w-32" />
+        <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-40" />
+        <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-32" />
       </div>
-      <div className="rounded-md border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-14 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-14 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>

@@ -46,16 +46,16 @@ function BookingInboxSkeleton() {
         <Skeleton className="h-8 w-48" />
       </div>
       {/* Status tabs */}
-      <div className="flex gap-1 rounded-md border border-slate-200 bg-slate-50 p-1">
+      <div className="flex gap-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-1">
         {[0, 1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-8 w-24 rounded-sm" />
         ))}
       </div>
       {/* Rows */}
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <div className="h-10 bg-slate-50 border-b border-slate-200" />
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-16 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-16 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>
@@ -67,15 +67,15 @@ function BookingInboxSkeleton() {
 function PermissionDeniedPanel() {
   return (
     <div
-      className="rounded-md border border-slate-200 bg-slate-50 px-6 py-10 text-center space-y-2"
+      className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-10 text-center space-y-2"
       role="status"
       aria-label="Permission denied"
     >
       <Inbox className="h-10 w-10 text-slate-300 mx-auto" aria-hidden="true" />
-      <p className="text-sm font-medium text-slate-700">
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
         Booking requests aren&apos;t available for your role.
       </p>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Contact your administrator if you need access.
       </p>
     </div>

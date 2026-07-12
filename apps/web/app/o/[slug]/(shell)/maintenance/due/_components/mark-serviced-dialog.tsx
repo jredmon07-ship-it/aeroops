@@ -150,7 +150,7 @@ export function MarkServicedDialog({ open, onOpenChange, item, onSuccess }: Mark
             />
           </div>
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             This records that you addressed the item and sets the next due threshold — it is
             operator data entry, not a return-to-service or airworthiness sign-off.
           </p>

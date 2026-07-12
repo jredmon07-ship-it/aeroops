@@ -96,18 +96,18 @@ function CommitProposalRow({
   const boardDate = boardDateFromIso(proposal.startAt);
 
   return (
-    <tr className="border-b border-slate-100 last:border-0">
+    <tr className="border-b border-slate-100 dark:border-slate-800 last:border-0">
       <td className="py-2 pr-3 align-top">
         {isCreated ? (
-          <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" aria-label="Created" />
+          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" aria-label="Created" />
         ) : (
-          <XCircle className="h-4 w-4 text-slate-400 mt-0.5" aria-label="Skipped" />
+          <XCircle className="h-4 w-4 text-slate-400 dark:text-slate-500 mt-0.5" aria-label="Skipped" />
         )}
       </td>
-      <td className="py-2 pr-3 text-sm text-slate-600 align-top whitespace-nowrap nums">
+      <td className="py-2 pr-3 text-sm text-slate-600 dark:text-slate-300 align-top whitespace-nowrap nums">
         {formatTimeRange(proposal.startAt, proposal.endAt)}
       </td>
-      <td className="py-2 pr-3 text-sm text-slate-700 align-top">
+      <td className="py-2 pr-3 text-sm text-slate-700 dark:text-slate-300 align-top">
         {resourceNames(proposal.resourceIds, resources)}
       </td>
       <td className="py-2 text-sm align-top">
@@ -115,7 +115,7 @@ function CommitProposalRow({
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className="text-green-700 border-green-200 bg-green-50"
+              className="text-green-700 dark:text-green-300 border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40"
             >
               Created
             </Badge>
@@ -129,7 +129,7 @@ function CommitProposalRow({
             )}
           </div>
         ) : (
-          <Badge variant="outline" className="text-slate-500 border-slate-200">
+          <Badge variant="outline" className="text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800">
             {skipReasonLabel(proposal.reason)}
           </Badge>
         )}
@@ -155,27 +155,27 @@ export function CommitPanel({ result, resources, slug, onReset }: CommitPanelPro
       <div
         role="status"
         aria-live="assertive"
-        className="rounded border border-slate-200 bg-white p-5 space-y-4"
+        className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4"
       >
         <div className="flex items-start gap-3">
           {hasCreated ? (
             <CheckCircle2
-              className="h-6 w-6 text-green-600 mt-0.5 shrink-0"
+              className="h-6 w-6 text-green-600 dark:text-green-400 mt-0.5 shrink-0"
               aria-hidden="true"
             />
           ) : (
             <AlertTriangle
-              className="h-6 w-6 text-amber-500 mt-0.5 shrink-0"
+              className="h-6 w-6 text-amber-500 dark:text-amber-400 mt-0.5 shrink-0"
               aria-hidden="true"
             />
           )}
           <div>
-            <h2 className="text-base font-semibold text-slate-900">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               {hasCreated
                 ? `${result.createdCount} session${result.createdCount !== 1 ? 's' : ''} scheduled`
                 : 'No sessions were scheduled'}
             </h2>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               {hasCreated && hasSkipped
                 ? `${result.skippedCount} additional proposal${result.skippedCount !== 1 ? 's' : ''} were skipped due to conflicts or policy violations — the rest committed successfully.`
                 : hasCreated
@@ -188,29 +188,29 @@ export function CommitPanel({ result, resources, slug, onReset }: CommitPanelPro
         </div>
 
         {/* Summary counts */}
-        <div className="flex flex-wrap gap-6 pt-2 border-t border-slate-100">
+        <div className="flex flex-wrap gap-6 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="text-center">
-            <div className="nums text-2xl font-bold text-green-700">
+            <div className="nums text-2xl font-bold text-green-700 dark:text-green-300">
               {result.createdCount}
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">Created</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Created</div>
           </div>
           {hasSkipped && (
             <div className="text-center">
-              <div className="nums text-2xl font-bold text-slate-500">
+              <div className="nums text-2xl font-bold text-slate-500 dark:text-slate-400">
                 {result.skippedCount}
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                Skipped <span className="text-slate-400">(non-fatal)</span>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Skipped <span className="text-slate-400 dark:text-slate-500">(non-fatal)</span>
               </div>
             </div>
           )}
           {hasUnschedulable && (
             <div className="text-center">
-              <div className="nums text-2xl font-bold text-slate-400">
+              <div className="nums text-2xl font-bold text-slate-400 dark:text-slate-500">
                 {result.unschedulable.length}
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">Unschedulable</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Unschedulable</div>
             </div>
           )}
         </div>
@@ -219,8 +219,8 @@ export function CommitPanel({ result, resources, slug, onReset }: CommitPanelPro
       {/* Staff hand-off note */}
       {hasCreated && (
         <Alert className="border-brand/30 bg-brand/5">
-          <AlertDescription className="text-sm text-slate-700">
-            <strong className="text-slate-900">Staff can now adjust on the board.</strong>{' '}
+          <AlertDescription className="text-sm text-slate-700 dark:text-slate-300">
+            <strong className="text-slate-900 dark:text-slate-100">Staff can now adjust on the board.</strong>{' '}
             Use the dispatch board to drag-and-drop reservations to fine-tune timing,
             or open individual reservations to edit details.
           </AlertDescription>
@@ -230,17 +230,17 @@ export function CommitPanel({ result, resources, slug, onReset }: CommitPanelPro
       {/* Proposals table */}
       {result.proposals.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-slate-700 mb-2">
+          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             Proposals ({result.proposals.length})
           </h3>
-          <div className="rounded border border-slate-200 bg-white overflow-x-auto">
+          <div className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto">
             <table className="w-full text-left" data-tabular>
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50">
-                  <th className="py-2 pl-3 pr-2 text-xs font-medium text-slate-500 w-8" aria-label="Status" />
-                  <th className="py-2 pr-3 text-xs font-medium text-slate-500">Window</th>
-                  <th className="py-2 pr-3 text-xs font-medium text-slate-500">Resources</th>
-                  <th className="py-2 pr-3 text-xs font-medium text-slate-500">Result</th>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
+                  <th className="py-2 pl-3 pr-2 text-xs font-medium text-slate-500 dark:text-slate-400 w-8" aria-label="Status" />
+                  <th className="py-2 pr-3 text-xs font-medium text-slate-500 dark:text-slate-400">Window</th>
+                  <th className="py-2 pr-3 text-xs font-medium text-slate-500 dark:text-slate-400">Resources</th>
+                  <th className="py-2 pr-3 text-xs font-medium text-slate-500 dark:text-slate-400">Result</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,14 +273,14 @@ export function CommitPanel({ result, resources, slug, onReset }: CommitPanelPro
 
       {/* Unschedulable demands */}
       {hasUnschedulable && (
-        <div className="rounded border border-amber-200 bg-amber-50 p-4 space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+        <div className="rounded border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             {result.unschedulable.length} demand{result.unschedulable.length !== 1 ? 's' : ''} could not be placed
           </div>
           <ul className="space-y-1" role="list">
             {result.unschedulable.map((u) => (
-              <li key={u.demandId} className="text-xs text-amber-800">
+              <li key={u.demandId} className="text-xs text-amber-800 dark:text-amber-200">
                 <span className="font-mono nums">{u.demandId}</span>
                 {' — '}
                 {u.reason === 'no_feasible_window'

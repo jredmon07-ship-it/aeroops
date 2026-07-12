@@ -94,7 +94,7 @@ export default async function LoginPage({ params }: LoginPageProps) {
       <div className="w-full max-w-sm" role="main">
         <Card>
           <CardHeader className="text-center">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
               Sign in to {org.name}
             </h1>
             <CardDescription>
@@ -103,14 +103,14 @@ export default async function LoginPage({ params }: LoginPageProps) {
           </CardHeader>
           <CardContent>
             {isDemoOrg && (
-              <div className="mb-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm">
-                <p className="font-medium text-sky-900">Live demo — sign in with:</p>
-                <p className="mt-1 text-sky-800">
+              <div className="mb-4 rounded-md border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-950/40 px-3 py-2.5 text-sm">
+                <p className="font-medium text-sky-900 dark:text-sky-200">Live demo — sign in with:</p>
+                <p className="mt-1 text-sky-800 dark:text-sky-200">
                   Email: <strong className="font-mono font-semibold">owner@alpha.aero</strong>
                   <br />
                   Password: <strong className="font-mono font-semibold">demo1234</strong>
                 </p>
-                <p className="mt-1.5 text-xs text-sky-700">
+                <p className="mt-1.5 text-xs text-sky-700 dark:text-sky-300">
                   Shared demo with fictional sample data — please don&apos;t enter real
                   personal information.
                 </p>

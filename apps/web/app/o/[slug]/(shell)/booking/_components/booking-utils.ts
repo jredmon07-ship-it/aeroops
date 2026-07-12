@@ -59,21 +59,21 @@ export function statusBadgeConfig(status: BookingRequestStatus | string): Status
     },
     contacted: {
       label: 'Contacted',
-      cls: 'border-amber-200 bg-amber-50 text-amber-800',
+      cls: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
     },
     converted: {
       label: 'Converted',
-      cls: 'border-green-200 bg-green-50 text-green-800',
+      cls: 'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200',
     },
     declined: {
       label: 'Declined',
-      cls: 'border-slate-200 bg-slate-50 text-slate-500',
+      cls: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
     },
   };
   return (
     configs[status] ?? {
       label: status,
-      cls: 'border-slate-200 bg-slate-50 text-slate-500',
+      cls: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
     }
   );
 }

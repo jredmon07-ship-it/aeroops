@@ -69,11 +69,11 @@ export function ReservationCard({
   return (
     <article
       aria-label={ariaLabel}
-      className="rounded-md border border-slate-200 bg-white p-4 shadow-sm space-y-2"
+      className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-2"
     >
       {/* Time + Status badge + optional Repeats badge */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <span className="font-medium text-slate-900">{timeRange}</span>
+        <span className="font-medium text-slate-900 dark:text-slate-100">{timeRange}</span>
         <div className="flex items-center gap-1.5 flex-wrap">
           {/* Repeats badge — shown only when seriesId is available */}
           {seriesId && slug && (
@@ -82,7 +82,7 @@ export function ReservationCard({
               aria-label="View series occurrences"
               tabIndex={0}
             >
-              <Badge variant="outline" className="cursor-pointer hover:bg-slate-50">
+              <Badge variant="outline" className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800">
                 Repeats
               </Badge>
             </Link>
@@ -99,13 +99,13 @@ export function ReservationCard({
           const row = resourceMap.get(id);
           if (!row) {
             return (
-              <span key={id} className="text-sm text-slate-400 italic">
+              <span key={id} className="text-sm text-slate-400 dark:text-slate-500 italic">
                 Unknown resource
               </span>
             );
           }
           return (
-            <span key={id} className="text-sm text-slate-700">
+            <span key={id} className="text-sm text-slate-700 dark:text-slate-300">
               {row.kind === 'aircraft' && row.tailNumber ? (
                 <>
                   <span className="font-mono text-sm">{row.tailNumber}</span>{' '}
@@ -121,7 +121,7 @@ export function ReservationCard({
 
       {/* Notes */}
       {reservation.notes && (
-        <p className="text-sm text-slate-500">{reservation.notes}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{reservation.notes}</p>
       )}
 
       {/* Error feedback */}

@@ -31,6 +31,36 @@
   --color-info: 201 96% 32%;
 }
 
+/**
+ * Dark theme token overrides (applied when <html class="dark"> — set by
+ * next-themes). Deep navy-slate surfaces consistent with the brand-ink rail.
+ *
+ * Contrast notes (all pairs AA on the dark card, slate-900):
+ *   - brand stays 45% so solid `bg-brand` fills keep white-text AA (≈5:1).
+ *   - accent tokens (danger/success/warning/info) are BRIGHTENED so their
+ *     `text-*` chip usage reads AA on dark; the one solid `bg-danger` fill
+ *     (destructive Button) carries its own dark override to stay white-safe.
+ */
+.dark {
+  --color-brand: 212 92% 45%;
+  --color-brand-ink: 222 47% 14%;
+
+  /* Page/panel surface — slate-900 (page bg itself is slate-950 via utilities) */
+  --color-surface: 222 47% 11%;
+  /* Primary text — slate-100 */
+  --color-text: 210 40% 96%;
+  /* Border / divider — slate-700/800 family */
+  --color-border: 216 33% 22%;
+  /* Danger — brightened red so text-danger chips read AA on dark */
+  --color-danger: 0 84% 63%;
+  /* Success — brightened green */
+  --color-success: 145 62% 48%;
+  /* Warning — brightened amber */
+  --color-warning: 38 92% 55%;
+  /* Info — brightened sky */
+  --color-info: 202 90% 60%;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
@@ -89,6 +119,17 @@
   }
   *::-webkit-scrollbar-thumb:hover {
     background-color: hsl(215 16% 68%);
+  }
+
+  /* Dark scrollbars — muted slate thumb on the deep surfaces. */
+  .dark * {
+    scrollbar-color: hsl(215 20% 35%) transparent;
+  }
+  .dark *::-webkit-scrollbar-thumb {
+    background-color: hsl(215 20% 35%);
+  }
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(215 20% 45%);
   }
 }
 

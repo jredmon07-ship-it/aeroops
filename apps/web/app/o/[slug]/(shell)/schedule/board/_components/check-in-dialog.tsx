@@ -339,7 +339,7 @@ export function CheckInDialog({
         {phase === 'checkin' && (
         <>
         {/* Reference OUT readings */}
-        <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-600 space-y-0.5">
+        <div className="rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 space-y-0.5">
           <p>
             <span className="font-medium">Hobbs out:</span>{' '}
             {ticket.hobbsOut.toFixed(1)}
@@ -354,7 +354,7 @@ export function CheckInDialog({
           {/* ── Hobbs IN ──────────────────────────────────────────────────── */}
           <div className="space-y-1.5">
             <Label htmlFor="ci-hobbs-in">
-              Hobbs IN <span aria-hidden="true" className="text-red-500">*</span>
+              Hobbs IN <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Input
               id="ci-hobbs-in"
@@ -381,7 +381,7 @@ export function CheckInDialog({
               <p
                 id="ci-hobbs-in-err"
                 role="alert"
-                className="text-xs text-red-600"
+                className="text-xs text-red-600 dark:text-red-400"
               >
                 {hobbsError}
               </p>
@@ -395,13 +395,13 @@ export function CheckInDialog({
               className="text-xs"
             >
               {hobbsIn.trim() !== '' && !derivedPreview.error && (
-                <span className="text-slate-600">
+                <span className="text-slate-600 dark:text-slate-300">
                   Derived flight time:{' '}
                   <strong>{derivedPreview.hours.toFixed(1)} hr</strong>
                 </span>
               )}
               {derivedPreview.error && (
-                <span className="text-red-600">{derivedPreview.error}</span>
+                <span className="text-red-600 dark:text-red-400">{derivedPreview.error}</span>
               )}
             </p>
           </div>
@@ -409,7 +409,7 @@ export function CheckInDialog({
           {/* ── Tach IN ───────────────────────────────────────────────────── */}
           <div className="space-y-1.5">
             <Label htmlFor="ci-tach-in">
-              Tach IN <span aria-hidden="true" className="text-red-500">*</span>
+              Tach IN <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Input
               id="ci-tach-in"
@@ -429,7 +429,7 @@ export function CheckInDialog({
               <p
                 id="ci-tach-in-err"
                 role="alert"
-                className="text-xs text-red-600"
+                className="text-xs text-red-600 dark:text-red-400"
               >
                 {tachError}
               </p>
@@ -445,16 +445,16 @@ export function CheckInDialog({
           )}
 
           {/* ── Squawk-on-return (Slice 3b.3) ─────────────────────────────── */}
-          <div className="border border-slate-200 rounded-md overflow-hidden">
+          <div className="border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden">
             <button
               type="button"
               onClick={() => setSquawkOpen((v) => !v)}
               aria-expanded={squawkOpen}
               aria-controls="ci-squawk-section"
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <span className="font-medium">Report a squawk? (optional)</span>
-              <span aria-hidden="true" className="text-slate-400">
+              <span aria-hidden="true" className="text-slate-400 dark:text-slate-500">
                 {squawkOpen ? '▲' : '▼'}
               </span>
             </button>
@@ -504,7 +504,7 @@ export function CheckInDialog({
                     value={squawkDescription}
                     onChange={(e) => setSquawkDescription(e.target.value)}
                     disabled={isSubmitting}
-                    className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+                    className="flex w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
                   />
                 </div>
 
@@ -515,14 +515,14 @@ export function CheckInDialog({
                     value={squawkSeverity}
                     onChange={(e) => setSquawkSeverity(e.target.value as typeof squawkSeverity)}
                     disabled={isSubmitting}
-                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
+                    className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                     <option value="grounding">Grounding (advisory label only)</option>
                   </select>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Severity is an operator triage label. Squawks do not automatically ground aircraft.
                   </p>
                 </div>
@@ -532,7 +532,7 @@ export function CheckInDialog({
 
           {/* Non-blocking squawk message (shown briefly before dialog closes) */}
           {squawkMessage && (
-            <p role="status" aria-live="polite" className="text-xs text-slate-600">
+            <p role="status" aria-live="polite" className="text-xs text-slate-600 dark:text-slate-300">
               {squawkMessage}
             </p>
           )}
@@ -567,7 +567,7 @@ export function CheckInDialog({
         {/* ── Oil & fuel follow-up step (optional; line-ops service log) ───── */}
         {phase === 'service' && (
           <div className="space-y-4">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               Aircraft checked in. Record oil &amp; fuel added at the line
               (optional) — or skip.
             </p>
@@ -621,11 +621,11 @@ export function CheckInDialog({
                 value={serviceNote}
                 onChange={(e) => setServiceNote(e.target.value)}
                 disabled={isSavingService}
-                className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+                className="flex w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
               />
             </div>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Operator line-ops record (fuel/oil uplift). Not a maintenance or
               airworthiness record.
             </p>

@@ -122,19 +122,19 @@ function DispatchStatusChip({ status }: { status: string }) {
   }
   if (status === 'closed') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         Closed
       </span>
     );
   }
   if (status === 'voided') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         Voided
       </span>
     );
   }
-  return <span className="text-xs text-slate-400">{status}</span>;
+  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
 }
 
 // ─── Inner async component ────────────────────────────────────────────────────
@@ -178,8 +178,8 @@ async function DetailContent({ resourceId, slug, canManage, canManageRequirement
         role="status"
       >
         <Plane className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-700 font-medium">Aircraft not found.</p>
-        <p className="text-sm text-slate-400">
+        <p className="text-slate-700 dark:text-slate-300 font-medium">Aircraft not found.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">
           It may have been removed or you may not have access.
         </p>
         <Button asChild variant="outline" size="sm">
@@ -238,7 +238,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       <div>
         <Link
           href={`/o/${slug}/fleet`}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           Fleet
@@ -248,13 +248,13 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       {/* ── Identity header ────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold nums text-slate-900">
+          <h1 className="text-2xl font-bold nums text-slate-900 dark:text-slate-100">
             {aircraft.tailNumber}
           </h1>
           {aircraft.displayName && aircraft.displayName !== aircraft.tailNumber && (
-            <p className="text-slate-600 font-medium">{aircraft.displayName}</p>
+            <p className="text-slate-600 dark:text-slate-300 font-medium">{aircraft.displayName}</p>
           )}
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-slate-500">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
             {(aircraft.make || aircraft.model) && (
               <span>{[aircraft.make, aircraft.model].filter(Boolean).join(' ')}</span>
             )}
@@ -272,7 +272,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
             )}
           </div>
           {!aircraft.active && (
-            <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+            <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
               Inactive
             </span>
           )}
@@ -299,7 +299,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+        <div className="flex items-center gap-2 rounded-md border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm text-green-800 dark:text-green-200">
           <CheckCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>Available — no active operator grounding</span>
         </div>
@@ -325,38 +325,38 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       {/* ── Meters card ───────────────────────────────────────────────────── */}
       {/* [VERIFY-5-A] label as "last recorded" — not an airworthiness total */}
       {(aircraft.hasHobbs || aircraft.hasTach) && (
-        <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-slate-400" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-700">
+            <Gauge className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               Last Recorded Meters
             </h2>
             {aircraft.currentMetersAsOf && (
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 dark:text-slate-500">
                 as of {formatDateTime(aircraft.currentMetersAsOf)}
               </span>
             )}
           </div>
 
           {aircraft.currentMetersAsOf === null ? (
-            <p className="text-sm text-slate-400 italic">No recorded meters yet.</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500 italic">No recorded meters yet.</p>
           ) : (
             <div className="flex flex-wrap gap-6">
               {aircraft.hasHobbs && (
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Hobbs</p>
-                  <p className="text-lg font-bold nums text-slate-900">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-medium">Hobbs</p>
+                  <p className="text-lg font-bold nums text-slate-900 dark:text-slate-100">
                     {formatMeter(aircraft.currentHobbs)}
-                    <span className="text-xs font-normal text-slate-500 ml-1">h</span>
+                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">h</span>
                   </p>
                 </div>
               )}
               {aircraft.hasTach && (
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Tach</p>
-                  <p className="text-lg font-bold nums text-slate-900">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-medium">Tach</p>
+                  <p className="text-lg font-bold nums text-slate-900 dark:text-slate-100">
                     {formatMeter(aircraft.currentTach)}
-                    <span className="text-xs font-normal text-slate-500 ml-1">h</span>
+                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">h</span>
                   </p>
                 </div>
               )}
@@ -366,13 +366,13 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       )}
 
       {/* ── Open squawks card ─────────────────────────────────────────────── */}
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <WrenchIcon className="h-4 w-4 text-slate-400" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-700">Open Squawks</h2>
+            <WrenchIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Open Squawks</h2>
             {aircraft.openSquawkCount > 0 && (
-              <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-amber-800">
+              <span className="inline-flex items-center rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-amber-800 dark:text-amber-200">
                 {aircraft.openSquawkCount}
               </span>
             )}
@@ -386,21 +386,21 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
         </div>
 
         {aircraft.recentSquawks.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">No open squawks.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No open squawks.</p>
         ) : (
           <div className="space-y-1.5">
             {aircraft.recentSquawks.map((s) => (
               <div
                 key={s.id}
-                className="flex items-start justify-between gap-2 rounded-md bg-slate-50 px-3 py-2"
+                className="flex items-start justify-between gap-2 rounded-md bg-slate-50 dark:bg-slate-800 px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{s.title}</p>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{s.title}</p>
                   {s.description && (
-                    <p className="text-xs text-slate-500 truncate">{s.description}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{s.description}</p>
                   )}
                 </div>
-                <span className="shrink-0 text-xs text-slate-400">{formatDate(s.reportedAt)}</span>
+                <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">{formatDate(s.reportedAt)}</span>
               </div>
             ))}
           </div>
@@ -408,32 +408,32 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       </div>
 
       {/* ── Recent dispatch card ───────────────────────────────────────────── */}
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Plane className="h-4 w-4 text-slate-400" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-slate-700">Recent Dispatch</h2>
+          <Plane className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent Dispatch</h2>
         </div>
 
         {aircraft.recentDispatch.length === 0 ? (
           <EmptyState icon={History} title="No dispatch history yet." className="py-6" />
         ) : (
-          <div className="rounded-md border border-slate-100 overflow-x-auto">
+          <div className="rounded-md border border-slate-100 dark:border-slate-800 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Recent dispatch history">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
                     Date
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 hidden sm:table-cell">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:table-cell">
                     Pilot
                   </th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">
+                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">
                     Hobbs Out / In
                   </th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 hidden sm:table-cell">
+                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:table-cell">
                     Flight time
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
                     Status
                   </th>
                 </tr>
@@ -442,16 +442,16 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
                 {aircraft.recentDispatch.map((ticket) => (
                   <tr
                     key={ticket.id}
-                    className="border-b border-slate-100 last:border-0"
+                    className="border-b border-slate-100 dark:border-slate-800 last:border-0"
                   >
-                    <td className="px-3 py-2 text-xs text-slate-600 nums">
+                    <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">
                       {formatDate(ticket.openedAt)}
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-600 hidden sm:table-cell font-mono truncate max-w-[8rem]">
+                    <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hidden sm:table-cell font-mono truncate max-w-[8rem]">
                       {ticket.pilotUserId}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <span className="nums text-xs text-slate-700">
+                      <span className="nums text-xs text-slate-700 dark:text-slate-300">
                         {formatMeter(ticket.hobbsOut)}
                         {ticket.hobbsIn !== null && (
                           <> / {formatMeter(ticket.hobbsIn)}</>
@@ -459,7 +459,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
                       </span>
                     </td>
                     <td className="px-3 py-2 text-right hidden sm:table-cell">
-                      <span className="nums text-xs text-slate-700">
+                      <span className="nums text-xs text-slate-700 dark:text-slate-300">
                         {ticket.flightTimeHours !== null
                           ? `${ticket.flightTimeHours.toFixed(1)} h`
                           : '—'}
@@ -477,11 +477,11 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       </div>
 
       {/* ── Upcoming reservations card ─────────────────────────────────────── */}
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-slate-400" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-700">Upcoming Reservations</h2>
+            <CalendarDays className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Upcoming Reservations</h2>
           </div>
           <Link
             href={`/o/${slug}/schedule`}
@@ -492,19 +492,19 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
         </div>
 
         {aircraft.upcomingReservations.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">No upcoming reservations.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No upcoming reservations.</p>
         ) : (
           <div className="space-y-1.5">
             {aircraft.upcomingReservations.map((res) => (
               <div
                 key={res.id}
-                className="flex items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2"
+                className="flex items-center justify-between gap-2 rounded-md bg-slate-50 dark:bg-slate-800 px-3 py-2"
               >
                 <div className="flex flex-wrap items-center gap-2 min-w-0">
-                  <span className="text-sm text-slate-700">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
                     {formatDateTime(res.startAt)}
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
                     → {formatDateTime(res.endAt)}
                   </span>
                   {res.seriesId && (

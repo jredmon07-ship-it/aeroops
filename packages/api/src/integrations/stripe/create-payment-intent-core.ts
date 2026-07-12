@@ -63,6 +63,20 @@ function truncateErrorDetail(message: string): string {
   return message.slice(0, 500);
 }
 
+/**
+ * Additive (fee-passing) options. When `feeCents > 0`, the created Stripe
+ * PaymentIntent is GROSSED UP to (invoice total + feeCents) and its metadata
+ * carries { baseCents, feeCents }; the payment_intent_record.amount_cents stays
+ * the BASE (invoice total) so the webhook's ledger credit posts the BASE ONLY
+ * (the fee is the platform's — the real fee split activates with Stripe Connect
+ * later). Omitted / 0 → BYTE-IDENTICAL to the pre-fee-passing behavior (PI
+ * amount = base, metadata = { invoiceId, orgId }).
+ */
+export interface CreatePaymentIntentForInvoiceOptions {
+  /** Pass-through processing fee, integer cents, non-negative. Default 0. */
+  feeCents?: number;
+}
+
 export async function createPaymentIntentForInvoiceTx(
   tx: AnyDb,
   orgId: string,
@@ -70,6 +84,7 @@ export async function createPaymentIntentForInvoiceTx(
   invoiceId: string,
   client: StripeClient = getStripeClient(),
   auditAction: string = 'billing.stripe_payment_intent_created',
+  opts?: CreatePaymentIntentForInvoiceOptions,
 ): Promise<CreatePaymentIntentForInvoiceResult> {
   // 1. Load the invoice — must exist and be finalized.
   const invoiceRows = await tx.select().from(invoice).where(eq(invoice.id, invoiceId)).limit(1);
@@ -116,15 +131,27 @@ export async function createPaymentIntentForInvoiceTx(
   }
   const stripeCustomerId = customerResult.stripeCustomerId;
 
+  // Fee-passing (additive): gross the CHARGE up by feeCents, but keep our
+  // recorded amount (and therefore the webhook's ledger credit) at the BASE.
+  // feeCents=0 (default / fee-passing OFF) ⇒ chargeCents === base, metadata
+  // === { invoiceId, orgId } ⇒ BYTE-IDENTICAL to the pre-fee-passing path.
+  const baseCents = invoiceRow.totalCents;
+  const feeCents = opts?.feeCents && opts.feeCents > 0 ? opts.feeCents : 0;
+  const chargeCents = baseCents + feeCents;
+  const piMetadata: Record<string, string> =
+    feeCents > 0
+      ? { invoiceId, orgId, baseCents: String(baseCents), feeCents: String(feeCents) }
+      : { invoiceId, orgId };
+
   // 4. Create the PaymentIntent (ACH-first, staff/self-serve — NOT off-session).
   let piResult;
   try {
     piResult = await client.createPaymentIntent({
-      amountCents: invoiceRow.totalCents,
+      amountCents: chargeCents,
       currency: 'usd',
       customerId: stripeCustomerId,
       paymentMethodTypes: DEFAULT_PAYMENT_METHOD_TYPES,
-      metadata: { invoiceId, orgId },
+      metadata: piMetadata,
     });
   } catch (err) {
     if (err instanceof StripeNotConfiguredError) {
@@ -193,6 +220,10 @@ export async function createPaymentIntentForInvoiceTx(
       stripePaymentIntentId: piResult.stripePaymentIntentId,
       amountCents: invoiceRow.totalCents,
       paymentMethodTypes: DEFAULT_PAYMENT_METHOD_TYPES,
+      // Fee-passing: informational only when a pass-through fee was charged.
+      // amountCents above stays the BASE (what the ledger credit will post);
+      // chargedCents is what Stripe actually collected (base + fee).
+      ...(feeCents > 0 ? { feeCents, chargedCents: chargeCents } : {}),
     },
   });
 

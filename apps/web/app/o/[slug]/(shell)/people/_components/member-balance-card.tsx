@@ -33,11 +33,11 @@ export async function MemberBalanceCard({ memberUserId, slug }: MemberBalanceCar
   const belowMinimum = minimumBalanceCents > 0 && balanceCents < minimumBalanceCents;
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Wallet className="h-4 w-4 text-slate-400" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-slate-700">Account balance</h2>
+          <Wallet className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Account balance</h2>
         </div>
         <Link
           href={`/o/${slug}/billing/accounts/${memberUserId}`}
@@ -48,18 +48,18 @@ export async function MemberBalanceCard({ memberUserId, slug }: MemberBalanceCar
       </div>
       <div className="flex items-baseline justify-between gap-4">
         <span
-          className={`nums text-2xl font-bold leading-none ${isNegative ? 'text-danger' : 'text-slate-900'}`}
+          className={`nums text-2xl font-bold leading-none ${isNegative ? 'text-danger' : 'text-slate-900 dark:text-slate-100'}`}
         >
           {formatCents(balanceCents)}
         </span>
         {minimumBalanceCents > 0 && (
-          <span className="text-xs text-slate-400 nums">
+          <span className="text-xs text-slate-400 dark:text-slate-500 nums">
             Minimum {formatCents(minimumBalanceCents)}
           </span>
         )}
       </div>
       {belowMinimum && (
-        <p className="text-xs text-amber-700">Below the operator&apos;s configured minimum balance.</p>
+        <p className="text-xs text-amber-700 dark:text-amber-300">Below the operator&apos;s configured minimum balance.</p>
       )}
     </div>
   );

@@ -187,7 +187,7 @@ export function ImportClient({ slug: _slug, canMembers, canAircraft }: ImportCli
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <p className="text-sm font-medium text-slate-700" id="import-source-label">
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300" id="import-source-label">
           Where are you migrating from?
         </p>
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="import-source-label">
@@ -205,7 +205,7 @@ export function ImportClient({ slug: _slug, canMembers, canAircraft }: ImportCli
             </Button>
           ))}
         </div>
-        <p className="text-xs text-slate-500">{SOURCE_HINT[source]}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{SOURCE_HINT[source]}</p>
       </div>
 
       {availableKinds.length > 1 && (
@@ -282,9 +282,9 @@ function mapActionError(result: { error: 'forbidden' | 'unauthenticated' | 'vali
 function UploadStep({ kind, onFileSelected }: { kind: ImportKind; onFileSelected: (f: File) => void }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center space-y-3">
-      <Upload className="h-8 w-8 mx-auto text-slate-400" aria-hidden="true" />
-      <p className="text-sm text-slate-600">
+    <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-10 text-center space-y-3">
+      <Upload className="h-8 w-8 mx-auto text-slate-400 dark:text-slate-500" aria-hidden="true" />
+      <p className="text-sm text-slate-600 dark:text-slate-300">
         Upload a {kind === 'members' ? 'Users Export' : 'aircraft list'} CSV from your previous provider.
       </p>
       <Label htmlFor="import-file" className="sr-only">
@@ -336,10 +336,10 @@ function MappingStep({
   const requiredMissing = !mapping[fields[0]!];
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-5 py-4 space-y-4">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 space-y-4">
       <div>
-        <h2 className="text-sm font-semibold text-slate-800">Confirm columns — {filename}</h2>
-        <p className="text-xs text-slate-500 mt-1">
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Confirm columns — {filename}</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           We guessed which column means what. Adjust anything that looks wrong before previewing.
         </p>
       </div>
@@ -347,13 +347,13 @@ function MappingStep({
       <div className="space-y-3">
         {fields.map((field, idx) => (
           <div key={field} className="flex items-center gap-3">
-            <Label htmlFor={`map-${field}`} className="w-32 shrink-0 text-sm text-slate-700">
+            <Label htmlFor={`map-${field}`} className="w-32 shrink-0 text-sm text-slate-700 dark:text-slate-300">
               {FIELD_LABELS[field] ?? field}
               {idx === 0 && <span className="text-danger ml-0.5">*</span>}
             </Label>
             <select
               id={`map-${field}`}
-              className="h-9 flex-1 rounded-md border border-slate-300 bg-white px-2 text-sm"
+              className="h-9 flex-1 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-sm"
               value={mapping[field] ?? ''}
               onChange={(e) => onMappingChange({ ...mapping, [field]: e.target.value || null })}
             >
@@ -369,7 +369,7 @@ function MappingStep({
       </div>
 
       {requiredMissing && (
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-amber-700 dark:text-amber-300">
           {FIELD_LABELS[fields[0]!]} is required for every row — rows without it will be skipped.
         </p>
       )}
@@ -405,10 +405,10 @@ function PreviewStep({
   const willSkip = preview.rows.filter((r) => r.status !== 'pending').length;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-5 py-4 space-y-4">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 space-y-4">
       <div>
-        <h2 className="text-sm font-semibold text-slate-800">Preview — {preview.batch.filename}</h2>
-        <p className="text-xs text-slate-500 mt-1">
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Preview — {preview.batch.filename}</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           {preview.batch.rowCount} row{preview.batch.rowCount === 1 ? '' : 's'} found · {willImport} will import ·{' '}
           {willSkip} will be skipped
         </p>
@@ -424,7 +424,7 @@ function PreviewStep({
       <PreviewTable kind={kind} rows={preview.rows} />
 
       {preview.rows.length < preview.batch.rowCount && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Showing the first {preview.rows.length} of {preview.batch.rowCount} rows — every row is staged and will be
           processed on commit.
         </p>
@@ -449,19 +449,19 @@ function PreviewStep({
 
 function PreviewTable({ rows }: { kind: ImportKind; rows: SerializedImportRow[] }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-slate-500">No rows to preview.</p>;
+    return <p className="text-sm text-slate-500 dark:text-slate-400">No rows to preview.</p>;
   }
   const columns = Object.keys(rows[0]!.raw).slice(0, 5);
   return (
-    <div className="rounded-md border border-slate-200 overflow-x-auto">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
       <table className="w-full text-sm" aria-label="Import preview">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-200">
-            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+          <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Status
             </th>
             {columns.map((c) => (
-              <th key={c} scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <th key={c} scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 {c}
               </th>
             ))}
@@ -469,12 +469,12 @@ function PreviewTable({ rows }: { kind: ImportKind; rows: SerializedImportRow[] 
         </thead>
         <tbody>
           {rows.slice(0, 100).map((row) => (
-            <tr key={row.rowIndex} className="border-b border-slate-100 last:border-0">
+            <tr key={row.rowIndex} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
               <td className="px-3 py-2">
                 <RowStatusChip status={row.status} errorDetail={row.errorDetail} />
               </td>
               {columns.map((c) => (
-                <td key={c} className="px-3 py-2 text-slate-700 max-w-[16rem] truncate">
+                <td key={c} className="px-3 py-2 text-slate-700 dark:text-slate-300 max-w-[16rem] truncate">
                   {row.raw[c]}
                 </td>
               ))}
@@ -489,7 +489,7 @@ function PreviewTable({ rows }: { kind: ImportKind; rows: SerializedImportRow[] 
 function RowStatusChip({ status, errorDetail }: { status: string; errorDetail: string | null }) {
   if (status === 'pending' || status === 'imported') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         {status === 'imported' ? 'Imported' : 'Will import'}
       </span>
     );
@@ -497,7 +497,7 @@ function RowStatusChip({ status, errorDetail }: { status: string; errorDetail: s
   if (status === 'skipped') {
     return (
       <span
-        className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800"
+        className="inline-flex items-center rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 dark:text-amber-200"
         title={errorDetail ?? undefined}
       >
         Duplicate — skipped
@@ -526,12 +526,12 @@ function DoneStep({
   onStartOver: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-5 py-4 space-y-3">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 space-y-3">
       <div className="flex items-center gap-2">
-        <CheckCircle2 className="h-5 w-5 text-green-600" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-slate-800">Import complete</h2>
+        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Import complete</h2>
       </div>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-slate-600 dark:text-slate-300">
         {result.batch.importedCount} {kind === 'members' ? 'member' : 'aircraft'}
         {result.batch.importedCount === 1 ? '' : 's'} imported · {result.batch.skippedCount} skipped.
       </p>
@@ -568,8 +568,8 @@ function HistorySection({ kind, refreshKey }: { kind: ImportKind; refreshKey: nu
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <History className="h-4 w-4 text-slate-400" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-slate-800">Import history</h2>
+        <History className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Import history</h2>
       </div>
 
       {state.phase === 'loading' && (
@@ -591,35 +591,35 @@ function HistorySection({ kind, refreshKey }: { kind: ImportKind; refreshKey: nu
       )}
 
       {state.phase === 'loaded' && state.batches.length > 0 && (
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Import history">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   File
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Status
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Imported / Skipped
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   When
                 </th>
               </tr>
             </thead>
             <tbody>
               {state.batches.map((b) => (
-                <tr key={b.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2 text-slate-700">{b.filename}</td>
+                <tr key={b.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <td className="px-3 py-2 text-slate-700 dark:text-slate-300">{b.filename}</td>
                   <td className="px-3 py-2">
                     <BatchStatusChip status={b.status} outOfScope={b.outOfScope} />
                   </td>
-                  <td className="px-3 py-2 text-slate-700 nums">
+                  <td className="px-3 py-2 text-slate-700 dark:text-slate-300 nums">
                     {b.importedCount} / {b.skippedCount}
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-500 nums">{new Date(b.createdAt).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 nums">{new Date(b.createdAt).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -633,21 +633,21 @@ function HistorySection({ kind, refreshKey }: { kind: ImportKind; refreshKey: nu
 function BatchStatusChip({ status, outOfScope }: { status: string; outOfScope: boolean }) {
   if (outOfScope) {
     return (
-      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800">
+      <span className="inline-flex items-center rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 dark:text-amber-200">
         Out of scope
       </span>
     );
   }
   if (status === 'committed') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         Committed
       </span>
     );
   }
   if (status === 'previewed') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         Previewed
       </span>
     );

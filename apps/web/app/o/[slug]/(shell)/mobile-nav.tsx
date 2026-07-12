@@ -63,8 +63,8 @@ export function MobileNav({ items, currentPath, orgName }: MobileNavProps) {
                       className={[
                         'block rounded-md px-3 py-2 text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-brand/8 text-brand-ink'
-                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
+                          ? 'bg-brand/8 text-brand-ink dark:bg-brand/20 dark:text-blue-200'
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100',
                       ].join(' ')}
                     >
                       {item.label}

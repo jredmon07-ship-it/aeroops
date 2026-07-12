@@ -67,7 +67,7 @@ export function ReservationList({
     <div className="space-y-4">
       {/* Success banner from redirect */}
       {successVisible && (
-        <Alert className="border-green-200 bg-green-50 text-green-800" role="status">
+        <Alert className="border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200" role="status">
           <AlertDescription className="flex items-center justify-between gap-4">
             <span>
               Reservation booked for {successDate}
@@ -76,7 +76,7 @@ export function ReservationList({
             <button
               type="button"
               onClick={() => setSuccessVisible(false)}
-              className="text-green-700 hover:text-green-900 text-sm underline shrink-0"
+              className="text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-200 text-sm underline shrink-0"
               aria-label="Dismiss success message"
             >
               Dismiss
@@ -114,9 +114,9 @@ export function ReservationList({
       {!error && reservations.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center space-y-2">
           <Calendar className="h-10 w-10 text-slate-300" aria-hidden="true" />
-          <p className="text-slate-600">No reservations on this date.</p>
+          <p className="text-slate-600 dark:text-slate-300">No reservations on this date.</p>
           {canCreate && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Book one with{' '}
               <Link
                 href={`/o/${slug}/schedule/new?date=${dateStr}`}
@@ -128,7 +128,7 @@ export function ReservationList({
             </p>
           )}
           {!canCreate && noResources && canManageResources && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               <Link
                 href={`/o/${slug}/schedule/resources`}
                 className="text-brand underline hover:no-underline"

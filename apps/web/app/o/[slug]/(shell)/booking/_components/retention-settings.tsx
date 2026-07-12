@@ -239,13 +239,13 @@ function RetentionSettingsCardInner({ slug }: { slug: string }) {
 
   return (
     <div
-      className="rounded-lg border border-slate-200 bg-white px-5 py-4 space-y-3"
+      className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 space-y-3"
       aria-label="Booking request retention settings"
     >
       {/* ── Card header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2">
-        <Clock className="h-4 w-4 text-slate-400 shrink-0" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-slate-800">Booking request retention</h2>
+        <Clock className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Booking request retention</h2>
       </div>
 
       {/* ── Loading skeleton ─────────────────────────────────────────────────── */}
@@ -324,21 +324,21 @@ function PopulatedView({
     <div className="space-y-2">
       {/* Disabled (days=0) warning */}
       {isDisabled && (
-        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+        <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-md px-3 py-2">
           Retention is OFF — booking requests are kept indefinitely. Set a retention window to enable automatic cleanup.
         </p>
       )}
 
       {/* Normal summary */}
       {!isDisabled && (
-        <p className="text-sm text-slate-700">
+        <p className="text-sm text-slate-700 dark:text-slate-300">
           {formatRetentionSummary(config.retentionDays)}
         </p>
       )}
 
       {/* Includes-converted indicator (when enabled) */}
       {!isDisabled && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           {config.includesConverted
             ? 'Converted requests are included in the purge window.'
             : 'Converted requests are excluded from the purge window.'}
@@ -405,9 +405,9 @@ function EditView({
     <div className="space-y-3">
       {/* Days input */}
       <div className="space-y-1">
-        <Label htmlFor="retention-days" className="text-sm font-medium text-slate-700">
+        <Label htmlFor="retention-days" className="text-sm font-medium text-slate-700 dark:text-slate-300">
           Retention window (days)
-          <span className="ml-1 text-slate-400 font-normal">(0 = keep forever)</span>
+          <span className="ml-1 text-slate-400 dark:text-slate-500 font-normal">(0 = keep forever)</span>
         </Label>
         <Input
           id="retention-days"
@@ -424,7 +424,7 @@ function EditView({
         />
         {/* Live preview */}
         {previewValid && !error && (
-          <p className="text-xs text-slate-500" aria-live="polite">
+          <p className="text-xs text-slate-500 dark:text-slate-400" aria-live="polite">
             {parsedDays === 0
               ? 'Retention will be OFF — requests are kept indefinitely.'
               : formatRetentionSummary(parsedDays)}
@@ -450,11 +450,11 @@ function EditView({
           checked={includesConverted}
           onChange={(e) => onIncludesConvertedChange(e.target.checked)}
           disabled={saving}
-          className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/40"
+          className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand focus:ring-brand/40"
         />
         <Label
           htmlFor="retention-include-converted"
-          className="text-sm text-slate-700 font-normal cursor-pointer"
+          className="text-sm text-slate-700 dark:text-slate-300 font-normal cursor-pointer"
         >
           Include converted requests in the purge window
         </Label>
@@ -526,8 +526,8 @@ function PurgeDialog({ open, phase, config, onConfirm, onClose }: PurgeDialogPro
             <div>
               {/* Confirming — fetching dry-run count */}
               {isDryRunLoading && (
-                <span className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="animate-spin h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full inline-block" aria-hidden="true" />
+                <span className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <span className="animate-spin h-4 w-4 border-2 border-slate-300 dark:border-slate-700 border-t-slate-600 rounded-full inline-block" aria-hidden="true" />
                   Checking eligible requests…
                 </span>
               )}
@@ -536,12 +536,12 @@ function PurgeDialog({ open, phase, config, onConfirm, onClose }: PurgeDialogPro
               {phase.step === 'dry_run_complete' && (
                 <div className="space-y-2">
                   {phase.retentionDisabled ? (
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
                       Retention is set to 0 (keep forever) — no requests will be deleted.
                     </p>
                   ) : (
                     <>
-                      <p className="text-sm text-slate-900">
+                      <p className="text-sm text-slate-900 dark:text-slate-100">
                         This will permanently delete{' '}
                         <strong className="nums">{phase.eligibleCount}</strong>{' '}
                         {phase.eligibleCount === 1 ? 'request' : 'requests'} older than{' '}
@@ -550,7 +550,7 @@ function PurgeDialog({ open, phase, config, onConfirm, onClose }: PurgeDialogPro
                         <span className="block mt-1 text-danger font-medium">This cannot be undone.</span>
                       </p>
                       {phase.eligibleCount === 0 && (
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           No requests are currently eligible for deletion.
                         </p>
                       )}
@@ -561,15 +561,15 @@ function PurgeDialog({ open, phase, config, onConfirm, onClose }: PurgeDialogPro
 
               {/* Applying */}
               {isApplying && (
-                <span className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="animate-spin h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full inline-block" aria-hidden="true" />
+                <span className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <span className="animate-spin h-4 w-4 border-2 border-slate-300 dark:border-slate-700 border-t-slate-600 rounded-full inline-block" aria-hidden="true" />
                   Deleting requests…
                 </span>
               )}
 
               {/* Applied — show result */}
               {phase.step === 'applied' && (
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-slate-700 dark:text-slate-300">
                   <strong className="nums">{phase.deletedCount}</strong>{' '}
                   {phase.deletedCount === 1 ? 'request was' : 'requests were'} permanently deleted.
                 </p>

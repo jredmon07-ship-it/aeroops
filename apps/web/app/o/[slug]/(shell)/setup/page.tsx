@@ -109,7 +109,7 @@ const STEP_META: Record<OnboardingStepKey, StepMeta> = {
 function ProgressBar({ percent }: { percent: number }) {
   return (
     <div
-      className="h-2 w-full overflow-hidden rounded-full bg-slate-100"
+      className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
       role="progressbar"
       aria-valuenow={percent}
       aria-valuemin={0}
@@ -157,13 +157,13 @@ function StepRow({
           <h3
             className={[
               'text-sm font-semibold',
-              done ? 'text-slate-500' : 'text-slate-900',
+              done ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
             ].join(' ')}
           >
             {meta.title}
           </h3>
         </div>
-        <p className="mt-0.5 text-sm text-slate-500">{meta.description}</p>
+        <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{meta.description}</p>
         {done ? (
           <p className="mt-1 text-xs font-medium text-brand-ink">{meta.doneNote(count)}</p>
         ) : (
@@ -178,7 +178,7 @@ function StepRow({
             {meta.secondary && (
               <Link
                 href={meta.secondary.href(slug)}
-                className="text-sm text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                className="text-sm text-slate-500 dark:text-slate-400 underline-offset-2 hover:text-slate-700 dark:hover:text-slate-200 hover:underline"
               >
                 {meta.secondary.label}
               </Link>
@@ -213,11 +213,11 @@ function StepGroup({
   return (
     <section aria-label={title}>
       <div className="mb-2">
-        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
-        <p className="text-xs text-slate-500">{subtitle}</p>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
       </div>
       <Card className="overflow-hidden p-0">
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
           {steps.map((s) => (
             <StepRow
               key={s.key}
@@ -284,16 +284,16 @@ export default async function SetupPage({ params }: SetupPageProps) {
                   Essentials complete — you can start scheduling.
                 </p>
               ) : (
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   Add your aircraft and team to start scheduling.
                 </p>
               )}
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 {status.doneCount} of {status.totalCount} steps set up
               </p>
             </div>
             <span
-              className="nums text-2xl font-bold text-slate-900"
+              className="nums text-2xl font-bold text-slate-900 dark:text-slate-100"
               aria-hidden="true"
             >
               {status.percentComplete}%
@@ -314,7 +314,7 @@ export default async function SetupPage({ params }: SetupPageProps) {
             <p className="text-sm font-semibold text-brand-ink">
               Your operation is fully set up.
             </p>
-            <p className="mt-0.5 text-sm text-slate-600">
+            <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">
               Everything on the checklist is done. You can revisit any surface below to make changes.
             </p>
           </div>

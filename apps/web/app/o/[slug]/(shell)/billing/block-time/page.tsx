@@ -44,10 +44,10 @@ function BlockTimeSkeleton() {
     <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading block time">
       <Skeleton className="h-8 w-56" />
       <Skeleton className="h-40 w-full" />
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <div className="h-10 bg-slate-50 border-b border-slate-200" />
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
         {[0, 1, 2].map((i) => (
-          <div key={i} className="h-14 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-14 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>
@@ -83,7 +83,7 @@ async function BlockTimeContent({ slug, canManage }: { slug: string; canManage: 
     <div className="space-y-8">
       {canManage && (
         <section className="space-y-3" aria-labelledby="sell-block-heading">
-          <h2 id="sell-block-heading" className="text-lg font-semibold text-slate-900">
+          <h2 id="sell-block-heading" className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             Sell a block
           </h2>
           <SellBlockClient
@@ -94,7 +94,7 @@ async function BlockTimeContent({ slug, canManage }: { slug: string; canManage: 
         </section>
       )}
       <section className="space-y-3" aria-labelledby="packages-heading">
-        <h2 id="packages-heading" className="text-lg font-semibold text-slate-900">
+        <h2 id="packages-heading" className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           Block packages
         </h2>
         <BlockPackagesClient slug={slug} initialPackages={packagesResult.packages} canManage={canManage} />
@@ -129,20 +129,20 @@ export default async function BlockTimePage({ params }: BlockTimePageProps) {
       <PageHeader
         title={
           <span className="flex items-center gap-2">
-            <Layers className="h-6 w-6 text-slate-400" aria-hidden="true" />
+            <Layers className="h-6 w-6 text-slate-400 dark:text-slate-500" aria-hidden="true" />
             Block time
           </span>
         }
         actions={
           <Link
             href={`/o/${slug}/billing`}
-            className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2"
+            className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline underline-offset-2"
           >
             Back to billing
           </Link>
         }
       />
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Prepaid, discounted hour bundles members buy up front and draw down as they fly. A block
         sale records an operator-recorded credit on the member&apos;s account — the same billing
         ledger a manual payment posts to. Amounts are recorded in cents; no card is ever charged

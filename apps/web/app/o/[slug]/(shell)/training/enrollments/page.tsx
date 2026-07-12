@@ -44,10 +44,10 @@ function EnrollmentsListSkeleton() {
         <Skeleton className="h-8 w-40" />
         <Skeleton className="h-9 w-36" />
       </div>
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <div className="h-10 bg-slate-50 border-b border-slate-200" />
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-16 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-16 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>
@@ -150,12 +150,12 @@ export default async function EnrollmentsPage({ params, searchParams }: Enrollme
         <div className="flex items-center gap-2 mb-1">
           <Link
             href={`/o/${slug}/training`}
-            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+            className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
             Training
           </Link>
           <span className="text-slate-300" aria-hidden="true">/</span>
-          <span className="text-sm text-slate-700">Enrollments</span>
+          <span className="text-sm text-slate-700 dark:text-slate-300">Enrollments</span>
         </div>
         <PageHeader title="Enrollments" />
       </div>

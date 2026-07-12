@@ -29,11 +29,11 @@ import { PageHeader } from '@/components/ui/page-header';
 
 function PermissionDeniedPanel() {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-6 py-10 text-center space-y-2">
-      <p className="text-sm font-medium text-slate-700">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-10 text-center space-y-2">
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
         Help isn&apos;t available for your role.
       </p>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Contact your administrator if you need access.
       </p>
     </div>
@@ -44,11 +44,11 @@ function PermissionDeniedPanel() {
 
 function ArticleNotFoundPanel({ slug }: { slug: string }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-6 py-10 text-center space-y-2">
-      <p className="text-sm font-medium text-slate-700">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-10 text-center space-y-2">
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
         We couldn&apos;t find that help article.
       </p>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         It may have been renamed or removed.
       </p>
       <Link
@@ -66,14 +66,14 @@ function ArticleNotFoundPanel({ slug }: { slug: string }) {
 function BlockRenderer({ block, index }: { block: HelpBlock; index: number }) {
   if (block.kind === 'p') {
     return (
-      <p key={index} className="text-sm leading-relaxed text-slate-700">
+      <p key={index} className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
         {block.text}
       </p>
     );
   }
   if (block.kind === 'ul') {
     return (
-      <ul key={index} className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-slate-700">
+      <ul key={index} className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
         {block.items.map((item, i) => (
           <li key={i}>{item}</li>
         ))}
@@ -84,7 +84,7 @@ function BlockRenderer({ block, index }: { block: HelpBlock; index: number }) {
   return (
     <div
       key={index}
-      className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-600"
+      className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300"
     >
       {block.text}
     </div>
@@ -116,7 +116,7 @@ export default async function HelpArticlePage({ params }: HelpArticlePageProps) 
       {/* ── Breadcrumb back to the hub ──────────────────────────────────── */}
       <Link
         href={`/o/${slug}/help`}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 rounded-sm"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 rounded-sm"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
         Help

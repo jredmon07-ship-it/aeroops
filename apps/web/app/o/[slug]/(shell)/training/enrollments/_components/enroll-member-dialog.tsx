@@ -178,7 +178,7 @@ export function EnrollMemberDialog({
             {/* Course picker (required) */}
             <div className="space-y-1.5">
               <Label htmlFor="em-course">
-                Course <span aria-hidden="true" className="text-red-500">*</span>
+                Course <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <select
                 id="em-course"
@@ -191,7 +191,7 @@ export function EnrollMemberDialog({
                 aria-required="true"
                 aria-invalid={fieldErrors.courseId ? 'true' : undefined}
                 aria-describedby={fieldErrors.courseId ? 'em-course-err' : undefined}
-                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.courseId ? 'border-red-500' : 'border-slate-300'}`}
+                className={`flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.courseId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
               >
                 <option value="">Select a course…</option>
                 {courses
@@ -203,7 +203,7 @@ export function EnrollMemberDialog({
                   ))}
               </select>
               {fieldErrors.courseId && (
-                <p id="em-course-err" role="alert" className="text-xs text-red-600">
+                <p id="em-course-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.courseId}
                 </p>
               )}
@@ -212,10 +212,10 @@ export function EnrollMemberDialog({
             {/* Member picker (required) */}
             <div className="space-y-1.5">
               <Label htmlFor="em-member">
-                Member <span aria-hidden="true" className="text-red-500">*</span>
+                Member <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               {loadingMembers ? (
-                <div className="flex items-center gap-2 h-10 px-3 text-sm text-slate-400">
+                <div className="flex items-center gap-2 h-10 px-3 text-sm text-slate-400 dark:text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Loading members…
                 </div>
@@ -231,7 +231,7 @@ export function EnrollMemberDialog({
                   aria-required="true"
                   aria-invalid={fieldErrors.studentUserId ? 'true' : undefined}
                   aria-describedby={fieldErrors.studentUserId ? 'em-member-err' : undefined}
-                  className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.studentUserId ? 'border-red-500' : 'border-slate-300'}`}
+                  className={`flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.studentUserId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
                 >
                   <option value="">Select a member…</option>
                   {members.map((m) => (
@@ -242,7 +242,7 @@ export function EnrollMemberDialog({
                 </select>
               )}
               {fieldErrors.studentUserId && (
-                <p id="em-member-err" role="alert" className="text-xs text-red-600">
+                <p id="em-member-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.studentUserId}
                 </p>
               )}

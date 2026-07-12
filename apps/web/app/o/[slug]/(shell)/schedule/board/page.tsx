@@ -55,7 +55,7 @@ import {
 function BoardSkeleton() {
   return (
     <div
-      className="rounded-md border border-slate-200 overflow-hidden"
+      className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden"
       aria-busy="true"
       aria-label="Loading dispatch board"
     >
@@ -63,7 +63,7 @@ function BoardSkeleton() {
       <Skeleton className="h-8 w-full rounded-none" />
       {/* Row skeletons */}
       {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-16 w-full rounded-none border-t border-slate-100" />
+        <Skeleton key={i} className="h-16 w-full rounded-none border-t border-slate-100 dark:border-slate-800" />
       ))}
     </div>
   );
@@ -191,16 +191,16 @@ async function BoardContent({
     return (
       <div className="relative">
         {/* Still render the board so layout is visible */}
-        <div className="rounded-md border border-slate-200 overflow-hidden opacity-40">
-          <div className="h-8 bg-slate-50 border-b border-slate-200" />
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden opacity-40">
+          <div className="h-8 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
           {resources.map((r) => (
-            <div key={r.id} className="h-16 border-b border-slate-100" />
+            <div key={r.id} className="h-16 border-b border-slate-100 dark:border-slate-800" />
           ))}
         </div>
         {/* Overlay */}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <CalendarX className="h-8 w-8 text-slate-400" aria-hidden="true" />
-          <p className="text-sm text-slate-500 font-medium">
+          <CalendarX className="h-8 w-8 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
             No reservations on this date.
           </p>
           {canCreate && (
@@ -286,7 +286,7 @@ export default async function BoardPage({
     <div className="space-y-4">
       {/* ── Header row ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-900">Dispatch Board</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Dispatch Board</h1>
         <div className="flex items-center gap-2">
           {/* Gate settings — dispatch:manage_requirements only (absent otherwise) */}
           <GateSettingsDialog canManageRequirements={canManageRequirements} />
@@ -311,13 +311,13 @@ export default async function BoardPage({
         <div
           role="group"
           aria-label="View"
-          className="flex rounded-md border border-slate-200 overflow-hidden"
+          className="flex rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden"
         >
           <Button
             asChild
             variant="ghost"
             size="sm"
-            className="rounded-none border-r border-slate-200"
+            className="rounded-none border-r border-slate-200 dark:border-slate-800"
           >
             <Link href={`/o/${slug}/schedule?date=${dateStr}`}>
               List

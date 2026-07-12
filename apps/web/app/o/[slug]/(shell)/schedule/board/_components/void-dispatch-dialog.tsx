@@ -131,7 +131,7 @@ export function VoidDispatchDialog({
         {/* Reason input — inside the alert dialog body */}
         <div className="space-y-1.5 mt-2">
           <Label htmlFor="void-reason">
-            Reason <span aria-hidden="true" className="text-red-500">*</span>
+            Reason <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
           </Label>
           <Input
             id="void-reason"
@@ -148,7 +148,7 @@ export function VoidDispatchDialog({
             <p
               id="void-reason-err"
               role="alert"
-              className="text-xs text-red-600"
+              className="text-xs text-red-600 dark:text-red-400"
             >
               {reasonError}
             </p>

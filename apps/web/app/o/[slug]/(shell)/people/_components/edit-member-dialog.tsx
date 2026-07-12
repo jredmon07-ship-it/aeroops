@@ -155,7 +155,7 @@ export function EditMemberDialog({ member, onSuccess }: EditMemberDialogProps) {
                 className={fieldErrors.fullName ? 'border-red-500' : ''}
               />
               {fieldErrors.fullName && (
-                <p id="em-fullName-err" role="alert" className="text-xs text-red-600">
+                <p id="em-fullName-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.fullName}
                 </p>
               )}
@@ -183,7 +183,7 @@ export function EditMemberDialog({ member, onSuccess }: EditMemberDialogProps) {
                 value={role}
                 onChange={(e) => setRole(e.target.value as MembershipRole)}
                 disabled={isSubmitting}
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
               >
                 {MEMBERSHIP_ROLES.map((r) => (
                   <option key={r} value={r}>

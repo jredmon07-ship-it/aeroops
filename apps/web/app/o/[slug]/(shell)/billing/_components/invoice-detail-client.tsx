@@ -156,7 +156,7 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
             <span className="block font-mono">{invoice.id}</span>
             <Link
               href={`/o/${slug}/billing/accounts/${invoice.memberUserId}`}
-              className="mt-1 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+              className="mt-1 inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             >
               <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
               View member account
@@ -174,42 +174,42 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
       )}
 
       {/* Totals */}
-      <div className="rounded-md border border-slate-200 px-4 py-3 max-w-sm space-y-1">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 px-4 py-3 max-w-sm space-y-1">
         <div className="flex justify-between text-sm">
-          <span className="text-slate-500">Subtotal</span>
+          <span className="text-slate-500 dark:text-slate-400">Subtotal</span>
           <span className="nums">{formatCents(invoice.subtotalCents)}</span>
         </div>
         <div className="flex justify-between text-sm font-semibold">
-          <span className="text-slate-700">Total</span>
+          <span className="text-slate-700 dark:text-slate-300">Total</span>
           <span className="nums">{formatCents(invoice.totalCents)}</span>
         </div>
       </div>
 
       {/* Line items */}
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Line items</h2>
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Line items</h2>
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Invoice line items">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Description
                 </th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Qty (hrs)
                 </th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Unit
                 </th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Total
                 </th>
               </tr>
             </thead>
             <tbody>
               {lineItems.map((line) => (
-                <tr key={line.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2 text-slate-700">{line.description}</td>
+                <tr key={line.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <td className="px-3 py-2 text-slate-700 dark:text-slate-300">{line.description}</td>
                   <td className="px-3 py-2 text-right nums">{line.quantityHours.toFixed(1)}</td>
                   <td className="px-3 py-2 text-right nums">{formatCents(line.unitAmountCents)}</td>
                   <td className="px-3 py-2 text-right nums">{formatCents(line.lineTotalCents)}</td>
@@ -245,8 +245,8 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
 
       {/* Export to QuickBooks (Slice QB1) — finalized invoices only */}
       {canManage && invoice.status === 'finalized' && (
-        <div className="rounded-md border border-slate-200 px-4 py-3 space-y-2 max-w-md">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">QuickBooks</h2>
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 px-4 py-3 space-y-2 max-w-md">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">QuickBooks</h2>
           <Button
             type="button"
             size="sm"
@@ -259,7 +259,7 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
             {exportState.phase === 'exporting' ? 'Exporting…' : 'Export to QuickBooks'}
           </Button>
           {exportState.phase === 'success' && (
-            <p className="text-sm text-green-700" role="status">
+            <p className="text-sm text-green-700 dark:text-green-300" role="status">
               {exportState.alreadyExported
                 ? `Already exported (QuickBooks invoice ${exportState.qboInvoiceId}).`
                 : `Exported to QuickBooks (invoice ${exportState.qboInvoiceId}).`}
@@ -301,20 +301,20 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
 function StatusBadge({ status }: { status: 'draft' | 'finalized' | 'void' }) {
   if (status === 'finalized') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-semibold leading-5 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 text-xs font-semibold leading-5 text-green-800 dark:text-green-200">
         Finalized
       </span>
     );
   }
   if (status === 'void') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold leading-5 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
         Void
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold leading-5 text-amber-800">
+    <span className="inline-flex items-center rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 text-xs font-semibold leading-5 text-amber-800 dark:text-amber-200">
       Draft
     </span>
   );

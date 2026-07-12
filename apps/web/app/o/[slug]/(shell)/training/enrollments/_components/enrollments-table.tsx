@@ -33,7 +33,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'completed') {
     return (
       <span
-        className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800"
+        className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200"
         title="Operator content flag — not a regulatory completion [VERIFY-T1-B]"
       >
         {enrollmentStatusLabel(status)}
@@ -42,12 +42,12 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   }
   if (status === 'withdrawn') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         {enrollmentStatusLabel(status)}
       </span>
     );
   }
-  return <span className="text-xs text-slate-400">{status}</span>;
+  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
 }
 
 /**
@@ -58,7 +58,7 @@ function ProgressBar({ percent }: { percent: number }) {
   const clamped = Math.min(100, Math.max(0, percent));
   return (
     <div
-      className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden"
+      className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"
       role="presentation"
       aria-hidden="true"
     >
@@ -85,20 +85,20 @@ export function EnrollmentsTable({
         </div>
       )}
 
-      <div className="rounded-md border border-slate-200 overflow-x-auto">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
         <table className="w-full text-sm" aria-label="Enrollments">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Student
               </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
                 Course
               </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Status
               </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden md:table-cell">
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden md:table-cell">
                 Progress
               </th>
             </tr>
@@ -107,7 +107,7 @@ export function EnrollmentsTable({
             {enrollments.map((enrollment) => (
               <tr
                 key={enrollment.enrollmentId}
-                className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 <td className="px-4 py-3">
                   <Link
@@ -117,14 +117,14 @@ export function EnrollmentsTable({
                     {enrollment.studentName}
                   </Link>
                   {/* Course shown inline on mobile */}
-                  <p className="text-xs text-slate-400 mt-0.5 sm:hidden line-clamp-1">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 sm:hidden line-clamp-1">
                     {enrollment.courseTitle}
                   </p>
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
                   <Link
                     href={`/o/${slug}/training/${enrollment.courseId}`}
-                    className="text-slate-700 hover:text-brand hover:underline underline-offset-2"
+                    className="text-slate-700 dark:text-slate-300 hover:text-brand hover:underline underline-offset-2"
                   >
                     {enrollment.courseTitle}
                   </Link>
@@ -135,7 +135,7 @@ export function EnrollmentsTable({
                 <td className="px-4 py-3 hidden md:table-cell">
                   {/* [VERIFY-T1-B]: content-coverage indicator, NOT Part-141 determination */}
                   <div className="space-y-1 min-w-[120px]">
-                    <span className="nums text-xs text-slate-700">
+                    <span className="nums text-xs text-slate-700 dark:text-slate-300">
                       {formatProgress(enrollment.completedCount, enrollment.totalLessons)}
                     </span>
                     <ProgressBar percent={enrollment.progressPercent} />

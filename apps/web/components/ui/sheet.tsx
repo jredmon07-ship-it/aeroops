@@ -42,7 +42,7 @@ const SheetContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Left slide-in drawer
-        'fixed inset-y-0 left-0 z-50 h-full w-72 border-r border-slate-200 bg-white shadow-xl',
+        'fixed inset-y-0 left-0 z-50 h-full w-72 border-r border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left',
         'duration-200',
@@ -70,7 +70,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-base font-semibold text-slate-900', className)}
+    className={cn('text-base font-semibold text-slate-900 dark:text-slate-100', className)}
     {...props}
   />
 ));
@@ -82,7 +82,7 @@ const SheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-slate-500', className)}
+    className={cn('text-sm text-slate-500 dark:text-slate-400', className)}
     {...props}
   />
 ));

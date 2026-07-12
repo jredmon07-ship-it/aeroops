@@ -71,10 +71,10 @@ export function RecurrenceControls({
   }
 
   return (
-    <div className="space-y-5 rounded-md border border-slate-200 bg-slate-50 p-4">
+    <div className="space-y-5 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
       {/* Weekday picker */}
       <fieldset>
-        <legend className="text-sm font-medium text-slate-900 mb-2">
+        <legend className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
           Repeat on <span aria-hidden="true">*</span>
         </legend>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Days of week">
@@ -90,8 +90,8 @@ export function RecurrenceControls({
                   'focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-1',
                   checked
                     ? 'border-brand bg-brand text-white'
-                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400',
-                  errors.weekdays ? 'border-red-300' : '',
+                    : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500',
+                  errors.weekdays ? 'border-red-300 dark:border-red-800' : '',
                 ].join(' ')}
                 title={label}
               >
@@ -109,7 +109,7 @@ export function RecurrenceControls({
           })}
         </div>
         {errors.weekdays && (
-          <p id="weekdays-error" role="alert" className="mt-1 text-sm text-red-600">
+          <p id="weekdays-error" role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400">
             {errors.weekdays}
           </p>
         )}
@@ -135,10 +135,10 @@ export function RecurrenceControls({
             className={['w-20', errors.intervalWeeks ? 'border-red-500' : ''].join(' ')}
             aria-describedby={errors.intervalWeeks ? 'intervalWeeks-error' : undefined}
           />
-          <span className="text-sm text-slate-700">week(s)</span>
+          <span className="text-sm text-slate-700 dark:text-slate-300">week(s)</span>
         </div>
         {errors.intervalWeeks && (
-          <p id="intervalWeeks-error" role="alert" className="text-sm text-red-600">
+          <p id="intervalWeeks-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
             {errors.intervalWeeks}
           </p>
         )}
@@ -146,7 +146,7 @@ export function RecurrenceControls({
 
       {/* End config */}
       <fieldset>
-        <legend className="text-sm font-medium text-slate-900 mb-2">
+        <legend className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
           Ends <span aria-hidden="true">*</span>
         </legend>
         <div className="space-y-3">
@@ -158,10 +158,10 @@ export function RecurrenceControls({
               value="count"
               checked={value.end.kind === 'count'}
               onChange={() => setEndKind('count')}
-              className="h-4 w-4 border-slate-300 text-brand focus:ring-brand"
+              className="h-4 w-4 border-slate-300 dark:border-slate-700 text-brand focus:ring-brand"
               aria-label="After a number of occurrences"
             />
-            <span className="text-sm text-slate-700">For</span>
+            <span className="text-sm text-slate-700 dark:text-slate-300">For</span>
             <Input
               id="endCount"
               type="number"
@@ -181,10 +181,10 @@ export function RecurrenceControls({
               aria-describedby={errors.count ? 'endCount-error' : undefined}
               aria-label="Number of occurrences"
             />
-            <span className="text-sm text-slate-700">occurrence(s)</span>
+            <span className="text-sm text-slate-700 dark:text-slate-300">occurrence(s)</span>
           </label>
           {errors.count && (
-            <p id="endCount-error" role="alert" className="text-sm text-red-600 pl-7">
+            <p id="endCount-error" role="alert" className="text-sm text-red-600 dark:text-red-400 pl-7">
               {errors.count}
             </p>
           )}
@@ -197,10 +197,10 @@ export function RecurrenceControls({
               value="until"
               checked={value.end.kind === 'until'}
               onChange={() => setEndKind('until')}
-              className="h-4 w-4 border-slate-300 text-brand focus:ring-brand"
+              className="h-4 w-4 border-slate-300 dark:border-slate-700 text-brand focus:ring-brand"
               aria-label="Until a specific date"
             />
-            <span className="text-sm text-slate-700">Until</span>
+            <span className="text-sm text-slate-700 dark:text-slate-300">Until</span>
             <Input
               id="endUntilDate"
               type="date"
@@ -216,7 +216,7 @@ export function RecurrenceControls({
             />
           </label>
           {errors.untilDate && (
-            <p id="endUntilDate-error" role="alert" className="text-sm text-red-600 pl-7">
+            <p id="endUntilDate-error" role="alert" className="text-sm text-red-600 dark:text-red-400 pl-7">
               {errors.untilDate}
             </p>
           )}
@@ -238,11 +238,11 @@ export function RecurrenceControls({
           aria-describedby="tz-hint"
           className={errors.tz ? 'border-red-500' : ''}
         />
-        <p id="tz-hint" className="text-xs text-slate-500">
+        <p id="tz-hint" className="text-xs text-slate-500 dark:text-slate-400">
           Defaulted from your browser. Confirm if scheduling for a different timezone.
         </p>
         {errors.tz && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
             {errors.tz}
           </p>
         )}

@@ -49,20 +49,20 @@ function entryTypeLabel(entryType: string): string {
 function StatusBadge({ status }: { status: 'draft' | 'finalized' | 'void' }) {
   if (status === 'finalized') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         Finalized
       </span>
     );
   }
   if (status === 'void') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         Void
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800">
+    <span className="inline-flex items-center rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 dark:text-amber-200">
       Draft
     </span>
   );
@@ -71,13 +71,13 @@ function StatusBadge({ status }: { status: 'draft' | 'finalized' | 'void' }) {
 function LedgerRow({ row }: { row: SerializedStatementLedgerRow }) {
   const signed = row.direction === 'credit' ? row.amountCents : -row.amountCents;
   return (
-    <tr className="border-b border-slate-100 last:border-0">
-      <td className="px-4 py-2.5 text-xs text-slate-500 nums whitespace-nowrap">
+    <tr className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+      <td className="px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 nums whitespace-nowrap">
         {new Date(row.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
       </td>
-      <td className="px-4 py-2.5 text-slate-700">{entryTypeLabel(row.entryType)}</td>
-      <td className="px-4 py-2.5 text-slate-500 text-xs">{row.memo ?? row.paymentId ?? '—'}</td>
-      <td className={['px-4 py-2.5 text-right nums font-medium', signed < 0 ? 'text-danger' : 'text-slate-700'].join(' ')}>
+      <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">{entryTypeLabel(row.entryType)}</td>
+      <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 text-xs">{row.memo ?? row.paymentId ?? '—'}</td>
+      <td className={['px-4 py-2.5 text-right nums font-medium', signed < 0 ? 'text-danger' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
         {signed < 0 ? `-${formatCents(row.amountCents)}` : formatCents(row.amountCents)}
       </td>
       <td className="px-4 py-2.5 text-right nums font-semibold">{formatCents(row.runningBalanceCents)}</td>
@@ -106,7 +106,7 @@ async function StatementContent({ slug, memberId }: { slug: string; memberId: st
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center space-y-3" role="status">
         <FileText className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-700 font-medium">This member could not be found.</p>
+        <p className="text-slate-700 dark:text-slate-300 font-medium">This member could not be found.</p>
         <Button asChild variant="outline" size="sm">
           <Link href={`/o/${slug}/billing/reports`}>
             <ArrowLeft className="h-4 w-4 mr-1" aria-hidden="true" />
@@ -123,12 +123,12 @@ async function StatementContent({ slug, memberId }: { slug: string; memberId: st
     <div className="space-y-6">
       <PageHeader title={statement.memberName} subtitle="Member statement — staff view." />
 
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4 inline-block">
-        <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Current balance</p>
-        <p className={['nums mt-1 text-2xl font-bold leading-none', statement.endingBalanceCents < 0 ? 'text-danger' : statement.endingBalanceCents === 0 ? 'text-slate-300' : 'text-green-700'].join(' ')}>
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-5 py-4 inline-block">
+        <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Current balance</p>
+        <p className={['nums mt-1 text-2xl font-bold leading-none', statement.endingBalanceCents < 0 ? 'text-danger' : statement.endingBalanceCents === 0 ? 'text-slate-300' : 'text-green-700 dark:text-green-300'].join(' ')}>
           {statement.endingBalanceCents < 0 ? `-${formatCents(statement.endingBalanceCents)}` : formatCents(statement.endingBalanceCents)}
         </p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
           {statement.endingBalanceCents < 0
             ? 'Owed to the operator'
             : statement.endingBalanceCents === 0
@@ -139,29 +139,29 @@ async function StatementContent({ slug, memberId }: { slug: string; memberId: st
 
       {/* Invoices */}
       <section aria-label="Invoices">
-        <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">Invoices</p>
+        <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">Invoices</p>
         {statement.invoices.length === 0 ? (
-          <p className="text-sm text-slate-400 py-4">No invoices for this member.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 py-4">No invoices for this member.</p>
         ) : (
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
             <table className="w-full text-sm" aria-label="Invoices">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Status</th>
-                  <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Total</th>
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Issued</th>
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
+                  <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Total</th>
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Issued</th>
                 </tr>
               </thead>
               <tbody>
                 {statement.invoices.map((inv) => (
-                  <tr key={inv.id} className="border-b border-slate-100 last:border-0">
+                  <tr key={inv.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
                     <td className="px-4 py-2.5">
                       <Link href={`/o/${slug}/billing/${inv.id}`}>
                         <StatusBadge status={inv.status} />
                       </Link>
                     </td>
                     <td className="px-4 py-2.5 text-right nums">{formatCents(inv.totalCents)}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-500 nums">
+                    <td className="px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 nums">
                       {inv.issuedAt ? new Date(inv.issuedAt).toLocaleDateString() : '—'}
                     </td>
                   </tr>
@@ -174,19 +174,19 @@ async function StatementContent({ slug, memberId }: { slug: string; memberId: st
 
       {/* Ledger */}
       <section aria-label="Ledger history">
-        <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">Ledger history (chronological)</p>
+        <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">Ledger history (chronological)</p>
         {statement.ledger.length === 0 ? (
-          <p className="text-sm text-slate-400 py-4">No ledger activity for this member.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 py-4">No ledger activity for this member.</p>
         ) : (
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
             <table className="w-full text-sm" aria-label="Ledger history">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Date</th>
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Type</th>
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Memo</th>
-                  <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Amount</th>
-                  <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Balance</th>
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</th>
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Type</th>
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Memo</th>
+                  <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Amount</th>
+                  <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Balance</th>
                 </tr>
               </thead>
               <tbody>
@@ -234,7 +234,7 @@ export default async function MemberStatementPage({ params }: StatementPageProps
     <div className="space-y-4">
       <Link
         href={`/o/${slug}/billing/reports`}
-        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
         Back to reports

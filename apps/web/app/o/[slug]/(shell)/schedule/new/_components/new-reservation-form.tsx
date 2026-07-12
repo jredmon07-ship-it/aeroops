@@ -680,12 +680,12 @@ export function NewReservationForm({
       <form onSubmit={handleSubmit} noValidate className="space-y-6 max-w-lg">
         {/* Grounding warning banner — shown when create succeeded with groundingWarnings */}
         {groundingWarnings.length > 0 && (
-          <Alert className="border-amber-200 bg-amber-50" role="alert">
+          <Alert className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40" role="alert">
             <AlertDescription className="space-y-2">
-              <p className="font-medium text-amber-900">
+              <p className="font-medium text-amber-900 dark:text-amber-200">
                 Reservation created — but one or more aircraft are grounded:
               </p>
-              <ul className="list-disc list-inside text-sm text-amber-800 space-y-0.5">
+              <ul className="list-disc list-inside text-sm text-amber-800 dark:text-amber-200 space-y-0.5">
                 {groundingWarnings.map((w) => {
                   const res = aircraft.find((r) => r.id === w.resourceId);
                   const name = res?.tailNumber ?? res?.displayName ?? w.resourceId;
@@ -705,7 +705,7 @@ export function NewReservationForm({
                       `/o/${slug}/schedule?date=${date}&success=1&start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}`,
                     )
                   }
-                  className="text-sm text-amber-800 underline"
+                  className="text-sm text-amber-800 dark:text-amber-200 underline"
                 >
                   Continue to schedule
                 </button>
@@ -767,12 +767,12 @@ export function NewReservationForm({
             Reservation WAS created. Non-blocking advisory.
             [VERIFY-4a-A] Astronomy-only; NOT an FAA night-currency determination. */}
         {twilightWarnings.length > 0 && !twilightBlocked && (
-          <Alert className="border-amber-200 bg-amber-50" role="status" aria-live="polite">
+          <Alert className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40" role="status" aria-live="polite">
             <AlertDescription className="space-y-1">
-              <p className="font-medium text-amber-900">
+              <p className="font-medium text-amber-900 dark:text-amber-200">
                 Booked. Note: this booking crosses your civil-twilight scheduling boundary.
               </p>
-              <ul className="list-disc list-inside text-sm text-amber-800 space-y-0.5">
+              <ul className="list-disc list-inside text-sm text-amber-800 dark:text-amber-200 space-y-0.5">
                 {twilightWarnings.map((hit, i) => {
                   const time = new Intl.DateTimeFormat(undefined, {
                     hour: '2-digit',
@@ -794,7 +794,7 @@ export function NewReservationForm({
                       `/o/${slug}/schedule?date=${date}&success=1&start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}`,
                     )
                   }
-                  className="text-sm text-amber-800 underline"
+                  className="text-sm text-amber-800 dark:text-amber-200 underline"
                 >
                   Continue to schedule
                 </button>
@@ -837,7 +837,7 @@ export function NewReservationForm({
             className={fieldErrors.date ? 'border-red-500' : ''}
           />
           {fieldErrors.date && (
-            <p id="date-error" role="alert" className="text-sm text-red-600">
+            <p id="date-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
               {fieldErrors.date}
             </p>
           )}
@@ -864,7 +864,7 @@ export function NewReservationForm({
               className={fieldErrors.startTime ? 'border-red-500' : ''}
             />
             {fieldErrors.startTime && (
-              <p id="startTime-error" role="alert" className="text-sm text-red-600">
+              <p id="startTime-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                 {fieldErrors.startTime}
               </p>
             )}
@@ -889,7 +889,7 @@ export function NewReservationForm({
               className={fieldErrors.endTime ? 'border-red-500' : ''}
             />
             {fieldErrors.endTime && (
-              <p id="endTime-error" role="alert" className="text-sm text-red-600">
+              <p id="endTime-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                 {fieldErrors.endTime}
               </p>
             )}
@@ -916,7 +916,7 @@ export function NewReservationForm({
                 .filter(Boolean)
                 .join(' ') || undefined
             }
-            className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+            className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
           >
             <option value="">— Select —</option>
             {aircraft.map((r) => {
@@ -938,12 +938,12 @@ export function NewReservationForm({
               <div
                 id="aircraft-grounded-warning"
                 role="status"
-                className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm"
+                className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm"
               >
                 <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 text-[0.6875rem] font-semibold text-destructive leading-5 shrink-0">
                   Grounded
                 </span>
-                <span className="text-amber-900">
+                <span className="text-amber-900 dark:text-amber-200">
                   {status.reason
                     ? `This aircraft is grounded: ${status.reason}. You may still book, but dispatch will be blocked until released.`
                     : 'This aircraft is grounded. You may still book, but dispatch will be blocked until released.'}
@@ -953,7 +953,7 @@ export function NewReservationForm({
           })()}
 
           {fieldErrors.resources && (
-            <p id="resources-error" role="alert" className="text-sm text-red-600">
+            <p id="resources-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
               {fieldErrors.resources}
             </p>
           )}
@@ -966,7 +966,7 @@ export function NewReservationForm({
             id="instructorId"
             value={instructorId}
             onChange={(e) => setInstructorId(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+            className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
           >
             <option value="">— None —</option>
             {instructors.map((r) => (
@@ -1014,19 +1014,19 @@ export function NewReservationForm({
             className={[
               'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
-              repeatEnabled ? 'bg-brand' : 'bg-slate-200',
+              repeatEnabled ? 'bg-brand' : 'bg-slate-200 dark:bg-slate-700',
             ].join(' ')}
           >
             <span
               aria-hidden="true"
               className={[
-                'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform',
+                'pointer-events-none inline-block h-5 w-5 rounded-full bg-white dark:bg-slate-900 shadow-lg ring-0 transition-transform',
                 repeatEnabled ? 'translate-x-5' : 'translate-x-0',
               ].join(' ')}
             />
           </button>
           <Label htmlFor="repeatToggle" className="flex items-center gap-1.5 cursor-pointer select-none">
-            <Repeat2 className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            <Repeat2 className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             Repeat weekly
           </Label>
         </div>

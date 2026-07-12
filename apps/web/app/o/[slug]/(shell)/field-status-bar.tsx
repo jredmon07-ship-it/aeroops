@@ -28,10 +28,10 @@ const DISCLAIMER =
 // ─── Category chip (FC palette: VFR green / MVFR blue / IFR red / LIFR magenta) ─
 
 const CATEGORY_CLS: Record<Exclude<FlightCategory, 'UNKNOWN'>, string> = {
-  VFR: 'border-green-300 bg-green-100 text-green-900',
-  MVFR: 'border-blue-300 bg-blue-100 text-blue-900',
-  IFR: 'border-red-300 bg-red-100 text-red-900',
-  LIFR: 'border-fuchsia-300 bg-fuchsia-100 text-fuchsia-900',
+  VFR: 'border-green-300 dark:border-green-800 bg-green-100 dark:bg-green-950/50 text-green-900 dark:text-green-200 dark:border-green-500/30 dark:bg-green-500/15 dark:text-green-300',
+  MVFR: 'border-blue-300 dark:border-blue-800 bg-blue-100 dark:bg-blue-950/50 text-blue-900 dark:text-blue-200 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-300',
+  IFR: 'border-red-300 dark:border-red-800 bg-red-100 dark:bg-red-950/50 text-red-900 dark:text-red-200 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300',
+  LIFR: 'border-fuchsia-300 dark:border-fuchsia-800 bg-fuchsia-100 dark:bg-fuchsia-950/50 text-fuchsia-900 dark:text-fuchsia-200 dark:border-fuchsia-500/30 dark:bg-fuchsia-500/15 dark:text-fuchsia-300',
 };
 
 function CategoryChip({ category }: { category: FlightCategory }) {
@@ -112,30 +112,30 @@ export function FieldStatusBar({ status }: FieldStatusBarProps) {
       role="contentinfo"
       aria-label="Field status"
       title={DISCLAIMER}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:border-slate-800 dark:bg-slate-900/95 dark:supports-[backdrop-filter]:bg-slate-900/85"
     >
       <div
         aria-live="off"
-        className="flex h-9 w-full items-center gap-x-4 overflow-x-auto whitespace-nowrap px-4 text-xs text-slate-600 sm:px-6"
+        className="flex h-9 w-full items-center gap-x-4 overflow-x-auto whitespace-nowrap px-4 text-xs text-slate-600 dark:text-slate-300 sm:px-6 dark:text-slate-400"
       >
         {/* Day/night + sunrise/sunset (local) */}
         {data && (sunrise || sunset) && (
           <span className="inline-flex items-center gap-2.5">
             {isDay !== null &&
               (isDay ? (
-                <Sun className="h-3.5 w-3.5 text-amber-500" aria-label="Daytime" />
+                <Sun className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" aria-label="Daytime" />
               ) : (
-                <Moon className="h-3.5 w-3.5 text-indigo-400" aria-label="Nighttime" />
+                <Moon className="h-3.5 w-3.5 text-indigo-400 dark:text-indigo-300" aria-label="Nighttime" />
               ))}
             {sunrise && (
               <span className="inline-flex items-center gap-1">
-                <Sunrise className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                <Sunrise className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
                 <span className="nums">{sunrise}</span>
               </span>
             )}
             {sunset && (
               <span className="inline-flex items-center gap-1">
-                <Sunset className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                <Sunset className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
                 <span className="nums">{sunset}</span>
               </span>
             )}
@@ -143,9 +143,9 @@ export function FieldStatusBar({ status }: FieldStatusBarProps) {
         )}
 
         {/* Local + Zulu clocks — always shown, even with no weather data */}
-        <span className="inline-flex items-center gap-2 font-mono text-slate-700">
+        <span className="inline-flex items-center gap-2 font-mono text-slate-700 dark:text-slate-300">
           <span className="nums">{localClock}</span>
-          <span className="text-slate-300" aria-hidden="true">
+          <span className="text-slate-300 dark:text-slate-600" aria-hidden="true">
             ·
           </span>
           <span className="nums font-semibold">{zuluClock}</span>
@@ -157,16 +157,16 @@ export function FieldStatusBar({ status }: FieldStatusBarProps) {
         {/* Station weather — omitted entirely when unavailable (never an error) */}
         {data && data.stationId && (
           <span className="inline-flex items-center gap-2.5">
-            <span className="font-mono font-semibold text-slate-700">{data.stationId}</span>
+            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data.stationId}</span>
             {data.tempC !== null && (
               <span className="inline-flex items-center gap-1">
-                <Thermometer className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                <Thermometer className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
                 <span className="nums">{data.tempC}°C</span>
               </span>
             )}
             {wind && (
               <span className="inline-flex items-center gap-1">
-                <Wind className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                <Wind className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
                 <span className="nums">{wind}</span>
               </span>
             )}

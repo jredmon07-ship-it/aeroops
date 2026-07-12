@@ -1809,6 +1809,40 @@ export {
 } from './portal/get-my-billing.js';
 export type { MyBillingView } from './portal/get-my-billing.js';
 
+// ─── Fee-passing + pay-full-balance (migration 0045, staged NOT applied) ─────
+// FEE-PASSING (default OFF → byte-identical): per-org toggle
+// dispatch_config.pass_ach_fee_to_member. When ON, the portal quotes invoice /
+// balance payments GROSSED UP by min(round(base × 1%), $15). The created
+// PaymentIntent charges the gross + carries {baseCents, feeCents} metadata; the
+// webhook ledger credit posts the BASE only (the fee is the platform's — the
+// real fee split activates with Stripe Connect later).
+// PAY FULL BALANCE: payMyBalance creates ONE PaymentIntent for the magnitude of
+// the member's negative balance (kind='balance_payment'); the webhook posts one
+// 'payment' credit for the base, naturally zeroing the balance (invoice rows
+// untouched). Fee-passing applies here too when ON.
+// GRACEFUL ABSENCE: every read/write of the 0045 schema is guarded — the fee
+// toggle reports available:false and payMyBalance returns not_available until a
+// human applies 0045. getFeePassing/setFeePassing gated by org:manage_settings;
+// payMyBalance gated by portal:access (self-scoped to session.userId).
+export {
+  getFeePassing,
+  getFeePassingWithDb,
+  setFeePassing,
+  setFeePassingWithDb,
+} from './billing/fee-passing-setting.js';
+export type {
+  FeePassingView,
+  GetFeePassingResult,
+  SetFeePassingInput,
+  SetFeePassingResult,
+} from './billing/fee-passing-setting.js';
+
+export {
+  payMyBalance,
+  payMyBalanceWithDb,
+} from './portal/pay-balance.js';
+export type { PayMyBalanceResult } from './portal/pay-balance.js';
+
 export {
   createDuesSchedule,
   createDuesScheduleWithDb,

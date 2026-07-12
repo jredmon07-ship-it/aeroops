@@ -39,10 +39,10 @@ function CatalogSkeleton() {
   return (
     <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading catalog">
       <Skeleton className="h-8 w-40" />
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <div className="h-10 bg-slate-50 border-b border-slate-200" />
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-14 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-14 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>
@@ -94,12 +94,12 @@ export default async function CatalogPage({ params }: CatalogPageProps) {
       <PageHeader
         title={
           <span className="flex items-center gap-2">
-            <Package className="h-6 w-6 text-slate-400" aria-hidden="true" />
+            <Package className="h-6 w-6 text-slate-400 dark:text-slate-500" aria-hidden="true" />
             Catalog
           </span>
         }
       />
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Non-flight goods and services (headsets, charts, fuel, merch) sold at the counter.
         Amounts are recorded in cents. Tax is not calculated.
       </p>

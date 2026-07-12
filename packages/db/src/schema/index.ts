@@ -401,6 +401,16 @@ export type { StripeEventSelect, StripeEventInsert } from './stripe-event.js';
 export { paymentIntentRecord } from './payment-intent-record.js';
 export type { PaymentIntentRecordSelect, PaymentIntentRecordInsert } from './payment-intent-record.js';
 
+// balance_payment: our record of a Stripe PaymentIntent that pays down a
+//   member's LEDGER BALANCE directly (fee-passing / pay-full-balance,
+//   migration 0045). Keyed to (org, member), NO invoice link. amount_cents is
+//   the BASE credited on a verified webhook; fee_cents is the informational
+//   pass-through processing fee (the platform's, NOT credited to the ledger).
+//   balance_payment_select ALSO permits platform-admin context for the webhook
+//   resolver (mirrors payment_intent_record_select).
+export { balancePayment } from './balance-payment.js';
+export type { BalancePaymentSelect, BalancePaymentInsert } from './balance-payment.js';
+
 // P0 revenue engine: payment methods + auto-pay — tenant-scoped (Slice
 // P0-REV / migration 0024). Builds on the Stripe seam-to-the-key-boundary
 // (migration 0023). NEVER stores raw card/bank data — PCI SAQ-A.

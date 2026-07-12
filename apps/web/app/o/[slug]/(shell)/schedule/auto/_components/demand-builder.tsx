@@ -189,19 +189,19 @@ function DemandBuilderRow({
 
   return (
     <div
-      className="rounded border border-slate-200 bg-white p-4 space-y-3"
+      className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3"
       aria-label={`Session ${index + 1}`}
     >
       {/* Row header */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           Session {index + 1}
         </span>
         {showRemove && (
           <button
             type="button"
             aria-label={`Remove session ${index + 1}`}
-            className="text-slate-400 hover:text-danger transition-colors p-0.5"
+            className="text-slate-400 dark:text-slate-500 hover:text-danger transition-colors p-0.5"
             onClick={() => onRemove(row.id)}
           >
             <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -219,7 +219,7 @@ function DemandBuilderRow({
             id={`${prefix}-aircraft`}
             value={row.aircraftId}
             onChange={(e) => onUpdate(row.id, { aircraftId: e.target.value })}
-            className="w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+            className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
             aria-describedby={errors?.aircraftId ? `${prefix}-aircraft-err` : undefined}
             aria-invalid={!!errors?.aircraftId}
           >
@@ -239,13 +239,13 @@ function DemandBuilderRow({
 
         <div className="space-y-1">
           <Label htmlFor={`${prefix}-instructor`} className="text-xs">
-            Instructor <span className="text-slate-400 font-normal">(optional)</span>
+            Instructor <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
           </Label>
           <select
             id={`${prefix}-instructor`}
             value={row.instructorId}
             onChange={(e) => onUpdate(row.id, { instructorId: e.target.value })}
-            className="w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+            className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
           >
             <option value="">No instructor</option>
             {instructors.map((r) => (
@@ -283,7 +283,7 @@ function DemandBuilderRow({
 
         <div className="space-y-1">
           <Label htmlFor={`${prefix}-priority`} className="text-xs">
-            Priority <span className="text-slate-400 font-normal">(higher first)</span>
+            Priority <span className="text-slate-400 dark:text-slate-500 font-normal">(higher first)</span>
           </Label>
           <Input
             id={`${prefix}-priority`}
@@ -455,13 +455,13 @@ export function DemandBuilder({
     <form onSubmit={handlePreview} noValidate className="space-y-6">
       {/* ── Global window ────────────────────────────────────────────────────── */}
       <section aria-labelledby="window-heading">
-        <h2 id="window-heading" className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-          <CalendarRange className="h-4 w-4 text-slate-400" aria-hidden="true" />
+        <h2 id="window-heading" className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+          <CalendarRange className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
           Scheduling window
         </h2>
-        <div className="rounded border border-slate-200 bg-white p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <fieldset className="space-y-2 border-0 p-0 m-0">
-            <legend className="text-xs font-medium text-slate-600">
+            <legend className="text-xs font-medium text-slate-600 dark:text-slate-300">
               From <span aria-hidden="true" className="text-danger">*</span>
             </legend>
             <div className="flex gap-2">
@@ -496,7 +496,7 @@ export function DemandBuilder({
           </fieldset>
 
           <fieldset className="space-y-2 border-0 p-0 m-0">
-            <legend className="text-xs font-medium text-slate-600">
+            <legend className="text-xs font-medium text-slate-600 dark:text-slate-300">
               To <span aria-hidden="true" className="text-danger">*</span>
             </legend>
             <div className="flex gap-2">
@@ -534,7 +534,7 @@ export function DemandBuilder({
 
       {/* ── Demand rows ───────────────────────────────────────────────────────── */}
       <section aria-labelledby="demands-heading">
-        <h2 id="demands-heading" className="text-sm font-semibold text-slate-700 mb-3">
+        <h2 id="demands-heading" className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
           Sessions to schedule
         </h2>
 
@@ -582,7 +582,7 @@ export function DemandBuilder({
       <section>
         <button
           type="button"
-          className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
+          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1"
           onClick={() => setShowObjective((v) => !v)}
           aria-expanded={showObjective}
         >
@@ -591,8 +591,8 @@ export function DemandBuilder({
         </button>
 
         {showObjective && (
-          <div className="mt-3 rounded border border-slate-200 bg-white p-4 space-y-2">
-            <Label htmlFor="objective" className="text-xs font-medium text-slate-600">
+          <div className="mt-3 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2">
+            <Label htmlFor="objective" className="text-xs font-medium text-slate-600 dark:text-slate-300">
               Objective
             </Label>
             <select
@@ -601,12 +601,12 @@ export function DemandBuilder({
               onChange={(e) =>
                 setObjective(e.target.value as 'maximize_utilization' | 'maximize_sessions_scheduled')
               }
-              className="w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              className="w-full rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
             >
               <option value="maximize_sessions_scheduled">Maximize sessions scheduled</option>
               <option value="maximize_utilization">Maximize utilization</option>
             </select>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Both objectives produce deterministic results for the same input.
             </p>
           </div>

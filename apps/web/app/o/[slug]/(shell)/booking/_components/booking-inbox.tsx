@@ -160,13 +160,13 @@ function ConvertSuccessBanner({
     (notice.warnings.availabilityWarnings?.length ?? 0) > 0;
 
   return (
-    <Alert className="border-green-200 bg-green-50" role="status" aria-live="polite">
+    <Alert className="border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40" role="status" aria-live="polite">
       <AlertDescription className="space-y-2">
-        <p className="font-medium text-green-900">
+        <p className="font-medium text-green-900 dark:text-green-200">
           Reservation created. The request has been marked as converted.
         </p>
         {hasWarnings && (
-          <ul className="list-disc list-inside text-sm text-amber-800 space-y-0.5">
+          <ul className="list-disc list-inside text-sm text-amber-800 dark:text-amber-200 space-y-0.5">
             {(notice.warnings.groundingWarnings ?? []).map((w, i) => (
               <li key={`grounding-${i}`}>
                 Aircraft is grounded{w.reason ? `: ${w.reason}` : ''}. Dispatch will be blocked until released.
@@ -192,7 +192,7 @@ function ConvertSuccessBanner({
         <div className="flex items-center gap-3 pt-1">
           <Link
             href={scheduleDayLink}
-            className="inline-flex items-center gap-1 text-sm text-green-800 underline underline-offset-2 hover:text-green-900"
+            className="inline-flex items-center gap-1 text-sm text-green-800 dark:text-green-200 underline underline-offset-2 hover:text-green-900 dark:hover:text-green-200"
           >
             <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
             View on schedule
@@ -200,7 +200,7 @@ function ConvertSuccessBanner({
           <button
             type="button"
             onClick={onDismiss}
-            className="text-sm text-green-700 hover:text-green-900"
+            className="text-sm text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-200"
           >
             Dismiss
           </button>
@@ -423,7 +423,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
       <div
         role="tablist"
         aria-label="Filter by status"
-        className="flex flex-wrap gap-1 rounded-md border border-slate-200 bg-slate-50 p-1"
+        className="flex flex-wrap gap-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-1"
       >
         {STATUS_TABS.map((tab) => {
           const isActive = tab.value === activeStatus;
@@ -439,8 +439,8 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
               className={[
                 'inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
                 isActive
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60',
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs border border-slate-200 dark:border-slate-800'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60',
               ].join(' ')}
             >
               {tab.label}
@@ -450,7 +450,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
                     'inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[0.6875rem] font-bold leading-none nums',
                     isActive
                       ? 'bg-brand text-white'
-                      : 'bg-slate-200 text-slate-600',
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300',
                   ].join(' ')}
                   aria-label={`${count} ${tab.label.toLowerCase()} requests`}
                 >
@@ -481,7 +481,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="h-16 rounded-md bg-slate-100 border border-slate-200"
+                className="h-16 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800"
               />
             ))}
           </div>
@@ -494,11 +494,11 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
             role="status"
           >
             <Inbox className="h-10 w-10 text-slate-300" aria-hidden="true" />
-            <p className="text-slate-500 font-medium">
+            <p className="text-slate-500 dark:text-slate-400 font-medium">
               {emptyLabel[activeStatus]}
             </p>
             {activeStatus !== 'new' && (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-400 dark:text-slate-500">
                 Switch to the{' '}
                 <button
                   type="button"
@@ -515,43 +515,43 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
 
         {/* Populated — table */}
         {!tabLoading && rows.length > 0 && (
-          <div className="rounded-md border border-slate-200 overflow-x-auto">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
             <table className="w-full text-sm" aria-label={`${activeStatus} booking requests`}>
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
                   <th
                     scope="col"
-                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide"
+                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide"
                   >
                     Requester
                   </th>
                   <th
                     scope="col"
-                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell"
+                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell"
                   >
                     Requested date
                   </th>
                   <th
                     scope="col"
-                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden md:table-cell"
+                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden md:table-cell"
                   >
                     Aircraft pref
                   </th>
                   <th
                     scope="col"
-                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide"
+                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide"
                   >
                     Status
                   </th>
                   <th
                     scope="col"
-                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell"
+                    className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell"
                   >
                     Received
                   </th>
                   <th
                     scope="col"
-                    className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide"
+                    className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide"
                   >
                     Actions
                   </th>
@@ -597,9 +597,9 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
 
           {/* Optional triage note */}
           <div className="space-y-2 py-2">
-            <Label htmlFor="triage-notes" className="text-sm font-medium text-slate-700">
+            <Label htmlFor="triage-notes" className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Note{' '}
-              <span className="text-slate-400 font-normal">(optional)</span>
+              <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
             </Label>
             <Textarea
               id="triage-notes"
@@ -703,10 +703,10 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
   }, [isConverted, row.convertedReservationId, row.requestedStart, slug]);
 
   return (
-    <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+    <tr className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
       {/* Requester */}
       <td className="px-3 py-3">
-        <p className="font-medium text-slate-900 truncate max-w-[160px]">
+        <p className="font-medium text-slate-900 dark:text-slate-100 truncate max-w-[160px]">
           {row.requesterName}
         </p>
         <a
@@ -716,26 +716,26 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
           {row.requesterEmail}
         </a>
         {row.requesterPhone && (
-          <p className="text-xs text-slate-500 nums">{row.requesterPhone}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 nums">{row.requesterPhone}</p>
         )}
         {row.message && (
-          <p className="text-xs text-slate-400 truncate max-w-[200px] mt-0.5 italic">
+          <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[200px] mt-0.5 italic">
             &ldquo;{row.message}&rdquo;
           </p>
         )}
       </td>
 
       {/* Requested date */}
-      <td className="px-3 py-3 hidden sm:table-cell text-xs text-slate-600 nums">
+      <td className="px-3 py-3 hidden sm:table-cell text-xs text-slate-600 dark:text-slate-300 nums">
         {formatRequestedDate(row.requestedStart, row.requestedEnd)}
       </td>
 
       {/* Aircraft pref */}
       <td className="px-3 py-3 hidden md:table-cell">
         {row.aircraftTypePref ? (
-          <span className="text-xs text-slate-700">{row.aircraftTypePref}</span>
+          <span className="text-xs text-slate-700 dark:text-slate-300">{row.aircraftTypePref}</span>
         ) : (
-          <span className="text-xs text-slate-400">—</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
         )}
       </td>
 
@@ -743,19 +743,19 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
       <td className="px-3 py-3">
         <BookingStatusBadge status={row.status} />
         {terminal && row.handledAt && (
-          <p className="text-[0.6875rem] text-slate-400 mt-0.5 nums">
+          <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500 mt-0.5 nums">
             {formatRelativeTime(row.handledAt)}
           </p>
         )}
         {row.triageNotes && (
-          <p className="text-[0.6875rem] text-slate-500 mt-0.5 truncate max-w-[120px] italic">
+          <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[120px] italic">
             {row.triageNotes}
           </p>
         )}
       </td>
 
       {/* Received */}
-      <td className="px-3 py-3 text-xs text-slate-500 hidden sm:table-cell nums">
+      <td className="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 hidden sm:table-cell nums">
         {formatRelativeTime(row.createdAt)}
       </td>
 
@@ -809,7 +809,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 text-xs text-slate-600"
+              className="h-7 text-xs text-slate-600 dark:text-slate-300"
               onClick={() => onAction(row, 'contacted')}
               aria-label={`Add note for ${row.requesterName}`}
             >
@@ -828,12 +828,12 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
                 View reservation
               </Link>
             ) : (
-              <span className="text-xs text-slate-400">Converted</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">Converted</span>
             )}
           </div>
         )}
         {row.status === 'declined' && (
-          <span className="text-xs text-slate-400">No actions</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500">No actions</span>
         )}
       </td>
     </tr>

@@ -29,6 +29,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { QboSettingsCard } from './_components/qbo-settings-card';
+import { FeePassingCard } from './_components/fee-passing-card';
+import { getFeePassingAction } from './actions';
 import { PageHeader } from '@/components/ui/page-header';
 
 interface OrgSettingsPageProps {
@@ -59,6 +61,11 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
   // ── Fetch org display data ────────────────────────────────────────────────
   // session is non-null here (requireCapability succeeded).
   const orgData = await getSessionOrg(session);
+  const feePassingResult = await getFeePassingAction();
+  const feePassing =
+    'ok' in feePassingResult && feePassingResult.ok
+      ? feePassingResult.setting
+      : { passAchFeeToMember: false, available: false };
 
   if (!orgData) {
     // Org row missing despite a valid session → bounce to no-access.
@@ -85,7 +92,7 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
         </CardHeader>
         <Separator />
         <CardContent className="pt-6 space-y-3">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             New here, or still getting configured? Follow a short checklist to add your aircraft,
             invite your team, and turn on optional depth as you grow.
           </p>
@@ -104,26 +111,29 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
         <CardContent className="pt-6">
           <dl className="space-y-4 text-sm">
             <div className="flex items-start justify-between gap-4">
-              <dt className="font-medium text-slate-500">Name</dt>
-              <dd className="text-right font-semibold text-slate-900">
+              <dt className="font-medium text-slate-500 dark:text-slate-400">Name</dt>
+              <dd className="text-right font-semibold text-slate-900 dark:text-slate-100">
                 {orgData.name}
               </dd>
             </div>
             <div className="flex items-start justify-between gap-4">
-              <dt className="font-medium text-slate-500">Slug</dt>
-              <dd className="text-right font-mono text-slate-700">
+              <dt className="font-medium text-slate-500 dark:text-slate-400">Slug</dt>
+              <dd className="text-right font-mono text-slate-700 dark:text-slate-300">
                 {orgData.slug}
               </dd>
             </div>
             <div className="flex items-start justify-between gap-4">
-              <dt className="font-medium text-slate-500">Status</dt>
-              <dd className="text-right text-slate-700 capitalize">
+              <dt className="font-medium text-slate-500 dark:text-slate-400">Status</dt>
+              <dd className="text-right text-slate-700 dark:text-slate-300 capitalize">
                 {orgData.status}
               </dd>
             </div>
           </dl>
         </CardContent>
       </Card>
+
+      {/* ── Payment processing fee passing (migration 0045) ───────────────── */}
+      <FeePassingCard slug={slug} initial={feePassing} />
 
       {/* ── QuickBooks Online integration card (Slice QB1) ────────────────── */}
       <div className="max-w-2xl">
@@ -137,7 +147,7 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
         </CardHeader>
         <Separator />
         <CardContent className="pt-6 space-y-3">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Send an email announcement to everyone active, or to a single role — a runway closure, a policy
             change, an event. Members who opt out of announcements are skipped automatically.
           </p>
@@ -154,7 +164,7 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
         </CardHeader>
         <Separator />
         <CardContent className="pt-6 space-y-3">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Migrating off another provider? Upload a members or aircraft export CSV — review a preview before
             anything is created.
           </p>

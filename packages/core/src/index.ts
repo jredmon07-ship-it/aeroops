@@ -266,6 +266,20 @@ export type { InvoiceLine, InvoiceTotals } from './billing/invoice-math.js';
 export { computeBalance } from './billing/ledger-math.js';
 export type { LedgerEntryAmount } from './billing/ledger-math.js';
 
+// ─── Fee-passing — Pure ACH pass-through processing-fee math (integer cents) ──
+// computeAchPassthroughFeeCents: fee = min(round(baseCents × 0.01), 1500) — the
+//   1%-capped-$15 ACH pricing, optionally passed through to the member
+//   at checkout when the operator opts in (dispatch_config.pass_ach_fee_to_member).
+// PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
+// Property-tested (hard guardrail): __tests__/fee-math.test.ts.
+// MONEY BOUNDARY: computes a QUOTED amount only; moves no money. The ledger
+//   credit posts the BASE (see packages/api/src/integrations/stripe/*).
+export {
+  computeAchPassthroughFeeCents,
+  ACH_FEE_RATE,
+  ACH_FEE_CAP_CENTS,
+} from './billing/fee-math.js';
+
 // ─── Slice B4 — Pure block-time (prepaid package) summary math ───────────────
 // aggregateBlockPurchases: Σ hours + Σ amountCents across a member's block
 //   purchases. Hours sum via an integer-tenths accumulator (no float drift,

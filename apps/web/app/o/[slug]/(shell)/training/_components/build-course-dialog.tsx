@@ -133,7 +133,7 @@ export function BuildCourseDialog({ slug }: BuildCourseDialogProps) {
             {/* Title (required) */}
             <div className="space-y-1.5">
               <Label htmlFor="bc-title">
-                Title <span aria-hidden="true" className="text-red-500">*</span>
+                Title <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Input
                 id="bc-title"
@@ -150,7 +150,7 @@ export function BuildCourseDialog({ slug }: BuildCourseDialogProps) {
                 className={fieldErrors.title ? 'border-red-500' : ''}
               />
               {fieldErrors.title && (
-                <p id="bc-title-err" role="alert" className="text-xs text-red-600">
+                <p id="bc-title-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.title}
                 </p>
               )}
@@ -166,7 +166,7 @@ export function BuildCourseDialog({ slug }: BuildCourseDialogProps) {
                 placeholder="Brief description of this course…"
                 rows={3}
                 disabled={isSubmitting}
-                className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+                className="flex min-h-[80px] w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
               />
             </div>
 

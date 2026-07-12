@@ -72,7 +72,7 @@ export default async function NoAccessPage({
               <AlertDescription>{message}</AlertDescription>
             </Alert>
 
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               If you believe this is a mistake, contact your operator
               administrator.
             </p>

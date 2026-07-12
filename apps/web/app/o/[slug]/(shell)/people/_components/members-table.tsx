@@ -32,13 +32,13 @@ function RoleBadge({ role }: { role: MembershipRole }) {
 function StatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         Active
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
       Inactive
     </span>
   );
@@ -66,7 +66,7 @@ function TagChips({ tagChips, tagCount }: { tagChips: MemberTagChipView[]; tagCo
         </span>
       ))}
       {overflow > 0 && (
-        <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-medium text-slate-400">
+        <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-medium text-slate-400 dark:text-slate-500">
           +{overflow}
         </span>
       )}
@@ -85,26 +85,26 @@ interface MembersTableProps {
 
 export function MembersTable({ members, slug }: MembersTableProps) {
   return (
-    <div className="rounded-md border border-slate-200 overflow-x-auto">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
       <table className="w-full text-sm" aria-label="Members roster">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-200">
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+          <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Name
             </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
               Email
             </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Role
             </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden md:table-cell">
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden md:table-cell">
               Status
             </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden lg:table-cell">
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden lg:table-cell">
               Tags
             </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden xl:table-cell">
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden xl:table-cell">
               Phone
             </th>
           </tr>
@@ -113,17 +113,17 @@ export function MembersTable({ members, slug }: MembersTableProps) {
           {members.map((member) => (
             <tr
               key={member.userId}
-              className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+              className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <td className="px-4 py-3">
                 <Link
                   href={`/o/${slug}/people/${member.userId}`}
-                  className="font-medium text-slate-900 hover:text-brand hover:underline underline-offset-2 transition-colors"
+                  className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand hover:underline underline-offset-2 transition-colors"
                 >
                   {member.displayName}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">
+              <td className="px-4 py-3 text-slate-600 dark:text-slate-300 hidden sm:table-cell">
                 {member.email}
               </td>
               <td className="px-4 py-3">
@@ -135,7 +135,7 @@ export function MembersTable({ members, slug }: MembersTableProps) {
               <td className="px-4 py-3 hidden lg:table-cell">
                 <TagChips tagChips={member.tagChips} tagCount={member.tagCount} />
               </td>
-              <td className="px-4 py-3 text-slate-600 hidden xl:table-cell">
+              <td className="px-4 py-3 text-slate-600 dark:text-slate-300 hidden xl:table-cell">
                 {member.phone ?? <span className="text-slate-300">—</span>}
               </td>
             </tr>

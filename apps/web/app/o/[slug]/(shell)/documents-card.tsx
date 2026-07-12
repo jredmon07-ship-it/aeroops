@@ -182,7 +182,7 @@ function UploadDialog({ open, onOpenChange, ownerType, ownerId, onSuccess }: Upl
         </DialogHeader>
 
         {/* [VERIFY-P1.6-A] operator-data framing */}
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Files are stored as-is — AeroOps does not read, scan, or interpret document
           contents. The category label below is a free-text tag you choose (e.g.
           &ldquo;Medical&rdquo;, &ldquo;Insurance&rdquo;) — it is not verified.
@@ -191,7 +191,7 @@ function UploadDialog({ open, onOpenChange, ownerType, ownerId, onSuccess }: Upl
         <form onSubmit={handleSubmit} className="space-y-3" noValidate>
           <div className="space-y-1.5">
             <Label htmlFor="doc-file-input">
-              File <span aria-hidden="true" className="text-red-500">*</span>
+              File <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Input
               id="doc-file-input"
@@ -218,7 +218,7 @@ function UploadDialog({ open, onOpenChange, ownerType, ownerId, onSuccess }: Upl
           </div>
 
           {error && (
-            <p id="doc-upload-err" role="alert" className="text-xs text-red-600">
+            <p id="doc-upload-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
               {error}
             </p>
           )}
@@ -244,7 +244,7 @@ function UploadDialog({ open, onOpenChange, ownerType, ownerId, onSuccess }: Upl
 function StatusChip({ status }: { status: 'pending' | 'stored' }) {
   if (status === 'pending') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800">
+      <span className="inline-flex items-center rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 dark:text-amber-200">
         Uploading…
       </span>
     );
@@ -352,11 +352,11 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
 
   return (
     <>
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-slate-400" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-700">Documents</h2>
+            <FileText className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Documents</h2>
             {!loading && !loadError && documents !== null && documents.length > 0 && (
               <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
                 {documents.length}
@@ -372,7 +372,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
         </div>
 
         {/* [VERIFY-P1.6-A] operator-data framing — verbatim disclaimer */}
-        <p className="text-[0.6875rem] text-slate-400">
+        <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
           Files are stored as uploaded — never scanned, parsed, or interpreted. Category
           labels are free-text tags the operator sets, not a verified classification.
         </p>
@@ -416,11 +416,11 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
             {documents.map((doc) => (
               <div
                 key={doc.id}
-                className="flex items-start justify-between gap-2 rounded-md bg-slate-50 px-3 py-2"
+                className="flex items-start justify-between gap-2 rounded-md bg-slate-50 dark:bg-slate-800 px-3 py-2"
               >
                 <div className="min-w-0 space-y-0.5">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm font-medium text-slate-800 truncate">{doc.filename}</span>
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{doc.filename}</span>
                     {doc.category && (
                       <Badge variant="outline" className="text-[0.6875rem] px-1.5 py-0 h-4">
                         {doc.category}
@@ -428,7 +428,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
                     )}
                     <StatusChip status={doc.status} />
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {formatBytes(doc.sizeBytes)} · {formatDate(doc.createdAt)}
                   </p>
                   {rowErrors[doc.id] && (

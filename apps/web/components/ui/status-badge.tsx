@@ -27,7 +27,7 @@ const statusBadgeVariants = cva(
         warning: 'border-warning/30 bg-warning/10 text-warning',
         info: 'border-info/25 bg-info/10 text-info',
         danger: 'border-danger/30 bg-danger/10 text-danger',
-        neutral: 'border-slate-200 bg-slate-50 text-slate-600',
+        neutral: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
       },
       size: {
         sm: 'px-1.5 py-0.5 text-[10px]',

@@ -47,17 +47,17 @@ function StatusChip({ status }: { status: MaintenanceDueStatus }) {
     },
     due_soon: {
       label: 'Due soon',
-      cls: 'border-amber-200 bg-amber-50 text-amber-800',
+      cls: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
       icon: <Clock className="h-3 w-3" aria-hidden="true" />,
     },
     ok: {
       label: 'OK',
-      cls: 'border-green-200 bg-green-50 text-green-800',
+      cls: 'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200',
       icon: <CheckCircle className="h-3 w-3" aria-hidden="true" />,
     },
     unknown: {
       label: 'No meter yet',
-      cls: 'border-slate-200 bg-slate-50 text-slate-500',
+      cls: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
       icon: <HelpCircle className="h-3 w-3" aria-hidden="true" />,
     },
   };
@@ -122,11 +122,11 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
 
   return (
     <>
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-slate-400" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-700">Maintenance due</h2>
+            <Wrench className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Maintenance due</h2>
             {dueCount > 0 && (
               <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-destructive">
                 {dueCount}
@@ -149,17 +149,17 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
         </div>
 
         {localItems.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">No maintenance items tracked.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No maintenance items tracked.</p>
         ) : (
           <div className="space-y-1.5">
             {localItems.map((item) => (
-              <div key={item.id} className="flex items-start justify-between gap-2 rounded-md bg-slate-50 px-3 py-2">
+              <div key={item.id} className="flex items-start justify-between gap-2 rounded-md bg-slate-50 dark:bg-slate-800 px-3 py-2">
                 <div className="min-w-0 space-y-0.5">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm font-medium text-slate-800 truncate">{item.title}</span>
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</span>
                     <StatusChip status={item.status} />
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {item.trackBy === 'hours'
                       ? `Due at ${item.dueValueHours ?? '—'} ${item.meterBasis ?? ''} hrs`
                       : `Due ${item.dueDate ?? '—'}`}
@@ -185,7 +185,7 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
           </div>
         )}
 
-        <p className="text-[0.6875rem] text-slate-400">
+        <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
           Operator-entered tracking data — not a computed Part-43/91.409 airworthiness or
           inspection-due determination.
         </p>

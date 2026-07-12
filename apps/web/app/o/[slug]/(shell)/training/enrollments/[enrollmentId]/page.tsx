@@ -48,10 +48,10 @@ function EnrollmentDetailSkeleton() {
         <Skeleton className="h-8 w-64" />
       </div>
       <Skeleton className="h-20 w-full" />
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <div className="h-10 bg-slate-50 border-b border-slate-200" />
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-12 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-12 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>
@@ -94,8 +94,8 @@ async function EnrollmentDetailContent({
         role="status"
       >
         <Users className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-700 font-medium">Enrollment not found.</p>
-        <p className="text-sm text-slate-400">
+        <p className="text-slate-700 dark:text-slate-300 font-medium">Enrollment not found.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">
           It may have been removed or you may not have access.
         </p>
         <Button asChild variant="outline" size="sm">
@@ -144,7 +144,7 @@ export default async function EnrollmentDetailPage({ params }: EnrollmentDetailP
       <div>
         <Link
           href={`/o/${slug}/training/enrollments`}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           Enrollments

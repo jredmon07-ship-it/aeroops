@@ -56,7 +56,7 @@ function LogbookSkeleton() {
   return (
     <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading logbook">
       <Skeleton className="h-8 w-40" />
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
         <div className="p-5 space-y-3">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-6 w-full" />
@@ -71,7 +71,7 @@ function LogbookSkeleton() {
 
 function LogbookDisclaimer() {
   return (
-    <p className="text-[0.6875rem] text-slate-400">
+    <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
       This logbook is a convenience view generated from your operator&rsquo;s dispatch
       records. It is not your official pilot logbook and is not a certified record
       under 14 CFR 61.51. AeroOps makes no determination of flight experience,
@@ -96,66 +96,66 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm" aria-label="Pilot logbook">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-100">
-            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Date</th>
-            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Tail</th>
-            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Make / Model</th>
-            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Category / Class</th>
-            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Hobbs Out → In</th>
-            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Flight Time</th>
-            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Night</th>
-            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Instrument</th>
-            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">XC</th>
-            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Running Total</th>
-            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Remarks</th>
-            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">
+          <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Date</th>
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Tail</th>
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Make / Model</th>
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Category / Class</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Hobbs Out → In</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Flight Time</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Night</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Instrument</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">XC</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Running Total</th>
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Remarks</th>
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
         </thead>
         <tbody>
           {log.entries.map((e) => (
-            <tr key={e.ticketId} className="border-b border-slate-100 last:border-0">
-              <td className="px-3 py-2 text-xs text-slate-600 nums whitespace-nowrap">{formatLocalDate(e.date)}</td>
-              <td className="px-3 py-2 text-sm font-medium text-slate-900 whitespace-nowrap">{e.tail}</td>
-              <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">
-                {e.make || e.model ? [e.make, e.model].filter(Boolean).join(' ') : <span className="text-slate-400">—</span>}
+            <tr key={e.ticketId} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+              <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums whitespace-nowrap">{formatLocalDate(e.date)}</td>
+              <td className="px-3 py-2 text-sm font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{e.tail}</td>
+              <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                {e.make || e.model ? [e.make, e.model].filter(Boolean).join(' ') : <span className="text-slate-400 dark:text-slate-500">—</span>}
               </td>
-              <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">
+              <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
                 {e.category || e.aircraftClass
                   ? [e.category, e.aircraftClass].filter(Boolean).join(' / ')
-                  : <span className="text-slate-400">—</span>}
+                  : <span className="text-slate-400 dark:text-slate-500">—</span>}
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
-                <span className="nums text-xs text-slate-700">
+                <span className="nums text-xs text-slate-700 dark:text-slate-300">
                   {e.hobbsOut.toFixed(1)} → {e.hobbsIn.toFixed(1)}
                 </span>
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
-                <span className="nums text-xs text-slate-700">{e.flightTimeHours.toFixed(1)} h</span>
+                <span className="nums text-xs text-slate-700 dark:text-slate-300">{e.flightTimeHours.toFixed(1)} h</span>
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
-                <span className="nums text-xs text-slate-700">
+                <span className="nums text-xs text-slate-700 dark:text-slate-300">
                   {e.nightHours != null ? `${e.nightHours.toFixed(1)} h` : '—'}
                 </span>
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
-                <span className="nums text-xs text-slate-700">
+                <span className="nums text-xs text-slate-700 dark:text-slate-300">
                   {e.instrumentHours != null ? `${e.instrumentHours.toFixed(1)} h` : '—'}
                 </span>
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
-                <span className="nums text-xs text-slate-700">
+                <span className="nums text-xs text-slate-700 dark:text-slate-300">
                   {e.crossCountryHours != null ? `${e.crossCountryHours.toFixed(1)} h` : '—'}
                 </span>
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
-                <span className="nums text-xs font-semibold text-slate-900">{e.runningTotalHours.toFixed(1)} h</span>
+                <span className="nums text-xs font-semibold text-slate-900 dark:text-slate-100">{e.runningTotalHours.toFixed(1)} h</span>
               </td>
-              <td className="px-3 py-2 text-xs text-slate-600 max-w-[16rem]">
+              <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 max-w-[16rem]">
                 {e.remarks
                   ? <span className="line-clamp-2" title={e.remarks}>{e.remarks}</span>
-                  : <span className="text-slate-400">—</span>}
+                  : <span className="text-slate-400 dark:text-slate-500">—</span>}
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
                 <AnnotateFlightDialog
@@ -171,10 +171,10 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
           ))}
         </tbody>
         <tfoot>
-          <tr className="border-t border-slate-200 bg-slate-50">
-            <td colSpan={9} className="px-3 py-2 text-right text-xs font-semibold text-slate-600">Total</td>
+          <tr className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
+            <td colSpan={9} className="px-3 py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">Total</td>
             <td className="px-3 py-2 text-right">
-              <span className="nums text-sm font-bold text-slate-900">{log.totalHours.toFixed(1)} h</span>
+              <span className="nums text-sm font-bold text-slate-900 dark:text-slate-100">{log.totalHours.toFixed(1)} h</span>
             </td>
             <td colSpan={2} />
           </tr>
@@ -228,7 +228,7 @@ async function LogbookContent({ slug }: LogbookContentProps) {
       />
 
       <section
-        className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden"
+        className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden"
         aria-label="Logbook entries"
       >
         <LogbookTable log={log} />

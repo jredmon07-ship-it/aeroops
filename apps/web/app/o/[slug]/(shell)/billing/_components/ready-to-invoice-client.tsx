@@ -46,7 +46,7 @@ export function ReadyToInvoiceClient({ slug, rows, rates }: ReadyToInvoiceClient
 
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         No closed flights are waiting to be invoiced. Check an aircraft back in on the{' '}
         <Link href={`/o/${slug}/schedule/board`} className="text-brand underline underline-offset-2">
           dispatch board
@@ -121,20 +121,20 @@ export function ReadyToInvoiceClient({ slug, rows, rates }: ReadyToInvoiceClient
           </AlertDescription>
         </Alert>
       )}
-      <div className="rounded-md border border-slate-200 overflow-x-auto">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
         <table className="w-full text-sm" aria-label="Flights ready to invoice">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Aircraft
               </th>
-              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
                 Pilot
               </th>
-              <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Hours
               </th>
-              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Rate
               </th>
               <th scope="col" className="px-3 py-2 w-28" />
@@ -146,10 +146,10 @@ export function ReadyToInvoiceClient({ slug, rows, rates }: ReadyToInvoiceClient
               const err = rowError?.ticketId === row.dispatchTicketId ? rowError.message : null;
               return (
                 <React.Fragment key={row.dispatchTicketId}>
-                  <tr className="border-b border-slate-100 last:border-0">
-                    <td className="px-3 py-3 nums font-semibold text-slate-900">{row.tailNumber}</td>
-                    <td className="px-3 py-3 text-slate-600 hidden sm:table-cell">{row.pilotName}</td>
-                    <td className="px-3 py-3 text-right nums text-slate-600">
+                  <tr className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                    <td className="px-3 py-3 nums font-semibold text-slate-900 dark:text-slate-100">{row.tailNumber}</td>
+                    <td className="px-3 py-3 text-slate-600 dark:text-slate-300 hidden sm:table-cell">{row.pilotName}</td>
+                    <td className="px-3 py-3 text-right nums text-slate-600 dark:text-slate-300">
                       {row.flightTimeHours != null ? row.flightTimeHours.toFixed(1) : '—'}
                     </td>
                     <td className="px-3 py-3">
@@ -160,7 +160,7 @@ export function ReadyToInvoiceClient({ slug, rows, rates }: ReadyToInvoiceClient
                           setSelectedRate((prev) => ({ ...prev, [row.dispatchTicketId]: e.target.value }))
                         }
                         disabled={busy || noRates}
-                        className="flex h-9 w-full max-w-[14rem] rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50"
+                        className="flex h-9 w-full max-w-[14rem] rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-sm text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50"
                       >
                         {rates.map((rate) => (
                           <option key={rate.id} value={rate.id}>

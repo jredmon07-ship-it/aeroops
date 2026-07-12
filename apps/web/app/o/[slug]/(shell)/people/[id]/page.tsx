@@ -110,44 +110,44 @@ function DispatchStatusChip({ status }: { status: string }) {
   }
   if (status === 'closed') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         Closed
       </span>
     );
   }
   if (status === 'voided') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         Voided
       </span>
     );
   }
-  return <span className="text-xs text-slate-400">{status}</span>;
+  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
 }
 
 // ─── Static contact card ───────────────────────────────────────────────────────
 
 function StaticContactCard({ member }: { member: SerializedMemberDetail }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
-      <h2 className="text-sm font-semibold text-slate-700">Contact</h2>
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+      <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact</h2>
       <dl className="space-y-2">
         <div className="flex items-center gap-2">
           <dt className="sr-only">Email</dt>
-          <Mail className="h-4 w-4 text-slate-400 shrink-0" aria-hidden="true" />
-          <dd className="text-sm text-slate-700 break-all">{member.email}</dd>
+          <Mail className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
+          <dd className="text-sm text-slate-700 dark:text-slate-300 break-all">{member.email}</dd>
         </div>
         {member.phone ? (
           <div className="flex items-center gap-2">
             <dt className="sr-only">Phone</dt>
-            <Phone className="h-4 w-4 text-slate-400 shrink-0" aria-hidden="true" />
-            <dd className="text-sm text-slate-700">{member.phone}</dd>
+            <Phone className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
+            <dd className="text-sm text-slate-700 dark:text-slate-300">{member.phone}</dd>
           </div>
         ) : (
           <div className="flex items-center gap-2">
             <dt className="sr-only">Phone</dt>
             <Phone className="h-4 w-4 text-slate-300 shrink-0" aria-hidden="true" />
-            <dd className="text-sm text-slate-400 italic">No phone on file</dd>
+            <dd className="text-sm text-slate-400 dark:text-slate-500 italic">No phone on file</dd>
           </div>
         )}
       </dl>
@@ -159,26 +159,26 @@ function StaticContactCard({ member }: { member: SerializedMemberDetail }) {
 
 function StaticUpcomingReservationsCard({ member }: { member: SerializedMemberDetail }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <CalendarDays className="h-4 w-4 text-slate-400" aria-hidden="true" />
+        <CalendarDays className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
         {/* [VERIFY-6-C]: wording must not imply flight assignment/training credit */}
-        <h2 className="text-sm font-semibold text-slate-700">Upcoming Reservations</h2>
-        <span className="text-xs text-slate-400">(booked by them)</span>
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Upcoming Reservations</h2>
+        <span className="text-xs text-slate-400 dark:text-slate-500">(booked by them)</span>
       </div>
 
       {member.upcomingReservations.length === 0 ? (
-        <p className="text-sm text-slate-400 italic">No upcoming reservations booked by this member.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No upcoming reservations booked by this member.</p>
       ) : (
         <div className="space-y-1.5">
           {member.upcomingReservations.map((res) => (
             <div
               key={res.id}
-              className="flex items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2"
+              className="flex items-center justify-between gap-2 rounded-md bg-slate-50 dark:bg-slate-800 px-3 py-2"
             >
               <div className="flex flex-wrap items-center gap-2 min-w-0">
-                <span className="text-sm text-slate-700">{formatDateTime(res.startAt)}</span>
-                <span className="text-xs text-slate-400">→ {formatDateTime(res.endAt)}</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300">{formatDateTime(res.startAt)}</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">→ {formatDateTime(res.endAt)}</span>
               </div>
             </div>
           ))}
@@ -192,45 +192,45 @@ function StaticUpcomingReservationsCard({ member }: { member: SerializedMemberDe
 
 function StaticDispatchCard({ member }: { member: SerializedMemberDetail }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <Plane className="h-4 w-4 text-slate-400" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-slate-700">Recent Dispatch as Pilot</h2>
+        <Plane className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent Dispatch as Pilot</h2>
       </div>
 
       {member.recentDispatch.length === 0 ? (
-        <p className="text-sm text-slate-400 italic">No dispatch history as pilot.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No dispatch history as pilot.</p>
       ) : (
-        <div className="rounded-md border border-slate-100 overflow-x-auto">
+        <div className="rounded-md border border-slate-100 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Recent dispatch as pilot">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
                   Date
                 </th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 hidden sm:table-cell">
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:table-cell">
                   Hobbs Out / In
                 </th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 hidden sm:table-cell">
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:table-cell">
                   Flight time
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
                   Status
                 </th>
               </tr>
             </thead>
             <tbody>
               {member.recentDispatch.map((ticket) => (
-                <tr key={ticket.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2 text-xs text-slate-600 nums">{formatDate(ticket.openedAt)}</td>
+                <tr key={ticket.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">{formatDate(ticket.openedAt)}</td>
                   <td className="px-3 py-2 text-right hidden sm:table-cell">
-                    <span className="nums text-xs text-slate-700">
+                    <span className="nums text-xs text-slate-700 dark:text-slate-300">
                       {ticket.hobbsOut.toFixed(1)}
                       {ticket.hobbsIn !== null && <> / {ticket.hobbsIn.toFixed(1)}</>}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right hidden sm:table-cell">
-                    <span className="nums text-xs text-slate-700">
+                    <span className="nums text-xs text-slate-700 dark:text-slate-300">
                       {ticket.flightTimeHours !== null
                         ? `${ticket.flightTimeHours.toFixed(1)} h`
                         : '—'}
@@ -283,8 +283,8 @@ async function DetailContent({ userId, slug, canManage, canViewBilling }: Detail
         role="status"
       >
         <Users className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-700 font-medium">Member not found.</p>
-        <p className="text-sm text-slate-400">
+        <p className="text-slate-700 dark:text-slate-300 font-medium">Member not found.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">
           They may have been removed or you may not have access.
         </p>
         <Button asChild variant="outline" size="sm">
@@ -305,7 +305,7 @@ async function DetailContent({ userId, slug, canManage, canViewBilling }: Detail
       <div>
         <Link
           href={`/o/${slug}/people`}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           People
@@ -322,9 +322,9 @@ async function DetailContent({ userId, slug, canManage, canViewBilling }: Detail
       {canViewBilling && (
         <Suspense
           fallback={
-            <div className="rounded-md border border-slate-200 bg-white p-4 animate-pulse" aria-busy="true">
-              <div className="h-4 w-28 bg-slate-200 rounded mb-3" />
-              <div className="h-7 w-24 bg-slate-100 rounded" />
+            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 animate-pulse" aria-busy="true">
+              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
+              <div className="h-7 w-24 bg-slate-100 dark:bg-slate-800 rounded" />
             </div>
           }
         >
@@ -346,11 +346,11 @@ async function DetailContent({ userId, slug, canManage, canViewBilling }: Detail
       {/* Renders for people:access holders; [VERIFY-T1-B] applies. */}
       <Suspense
         fallback={
-          <div className="rounded-md border border-slate-200 bg-white p-4 animate-pulse" aria-busy="true">
-            <div className="h-4 w-20 bg-slate-200 rounded mb-3" />
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 animate-pulse" aria-busy="true">
+            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
             <div className="space-y-2">
-              <div className="h-8 w-full bg-slate-100 rounded" />
-              <div className="h-8 w-full bg-slate-100 rounded" />
+              <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded" />
+              <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded" />
             </div>
           </div>
         }
@@ -362,11 +362,11 @@ async function DetailContent({ userId, slug, canManage, canViewBilling }: Detail
       {/* Convenience view of dispatch history — NOT a §61.51 record of record. */}
       <Suspense
         fallback={
-          <div className="rounded-md border border-slate-200 bg-white p-4 animate-pulse" aria-busy="true">
-            <div className="h-4 w-20 bg-slate-200 rounded mb-3" />
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 animate-pulse" aria-busy="true">
+            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
             <div className="space-y-2">
-              <div className="h-8 w-full bg-slate-100 rounded" />
-              <div className="h-8 w-full bg-slate-100 rounded" />
+              <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded" />
+              <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded" />
             </div>
           </div>
         }

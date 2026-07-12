@@ -29,7 +29,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'completed') {
     return (
       <span
-        className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800"
+        className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200"
         title="Operator content flag — not a regulatory completion [VERIFY-T1-B]"
       >
         {enrollmentStatusLabel(status)}
@@ -38,12 +38,12 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   }
   if (status === 'withdrawn') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         {enrollmentStatusLabel(status)}
       </span>
     );
   }
-  return <span className="text-xs text-slate-400">{status}</span>;
+  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
 }
 
 interface MemberTrainingCardProps {
@@ -73,22 +73,22 @@ export async function MemberTrainingCard({ userId, slug }: MemberTrainingCardPro
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <GraduationCap className="h-4 w-4 text-slate-400" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-slate-700">Training</h2>
-        <span className="nums text-xs text-slate-400">({enrollments.length})</span>
+        <GraduationCap className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Training</h2>
+        <span className="nums text-xs text-slate-400 dark:text-slate-500">({enrollments.length})</span>
       </div>
 
       {/* [VERIFY-T1-B]: progress and status are operator content flags, NOT Part-141 */}
       {enrollments.length === 0 ? (
-        <p className="text-sm text-slate-400 italic">No enrollments.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No enrollments.</p>
       ) : (
         <div className="space-y-2">
           {enrollments.map((e) => (
             <div
               key={e.enrollmentId}
-              className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2"
+              className="flex items-center justify-between gap-3 rounded-md bg-slate-50 dark:bg-slate-800 px-3 py-2"
             >
               <div className="min-w-0 space-y-0.5">
                 <Link
@@ -98,7 +98,7 @@ export async function MemberTrainingCard({ userId, slug }: MemberTrainingCardPro
                   {e.courseTitle}
                 </Link>
                 {/* [VERIFY-T1-B]: NOT a Part-141 completion ratio */}
-                <p className="nums text-xs text-slate-400">
+                <p className="nums text-xs text-slate-400 dark:text-slate-500">
                   {formatProgress(e.completedCount, e.totalLessons)}
                 </p>
               </div>

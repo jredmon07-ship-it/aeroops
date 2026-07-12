@@ -272,16 +272,17 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
         aria-label="Open search"
         className={cn(
           'flex items-center gap-2 rounded-md px-3 py-1.5',
-          'text-sm text-slate-400 hover:text-slate-600',
-          'border border-slate-200 bg-white/70 hover:bg-white',
+          'text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300',
+          'border border-slate-200 dark:border-slate-800 bg-white/70 hover:bg-white',
+          'dark:text-slate-500 dark:hover:text-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800',
           'transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900',
         )}
       >
         <Search className="h-3.5 w-3.5" aria-hidden="true" />
         <span className="hidden sm:inline">Search</span>
         <kbd
-          className="hidden sm:inline-flex items-center gap-0.5 rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-400"
+          className="hidden sm:inline-flex items-center gap-0.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
           aria-hidden="true"
         >
           ⌘K
@@ -308,7 +309,7 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
               'fixed left-[50%] top-[15%] z-50',
               'w-full max-w-xl translate-x-[-50%]',
               // Architectural corners + shadow
-              'rounded-md border border-slate-200 bg-white shadow-overlay',
+              'rounded-md border border-slate-200 bg-white shadow-overlay dark:border-slate-800 dark:bg-slate-900',
               // Animation
               'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
               'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
@@ -326,9 +327,9 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
             </DialogPrimitive.Description>
 
             {/* ── Search input ──────────────────────────────────────────── */}
-            <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+            <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
               <Search
-                className="h-4 w-4 shrink-0 text-slate-400"
+                className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500"
                 aria-hidden="true"
               />
               <input
@@ -349,13 +350,14 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
                 onChange={handleQueryChange}
                 onKeyDown={handleKeyDown}
                 className={cn(
-                  'flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400',
+                  'flex-1 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400',
+                  'dark:text-slate-100 dark:placeholder:text-slate-500',
                   'outline-none',
                 )}
               />
               {/* Esc hint */}
               <kbd
-                className="hidden shrink-0 items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-400 sm:flex"
+                className="hidden shrink-0 items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-400 sm:flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
                 aria-hidden="true"
               >
                 Esc
@@ -366,28 +368,28 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
             <div className="max-h-[min(28rem,60vh)] overflow-y-auto">
               {/* Empty / type-to-search */}
               {state.kind === 'empty' && (
-                <div className="flex items-center justify-center py-10 text-sm text-slate-400">
+                <div className="flex items-center justify-center py-10 text-sm text-slate-400 dark:text-slate-500">
                   Type to search…
                 </div>
               )}
 
               {/* Loading */}
               {state.kind === 'loading' && (
-                <div className="flex items-center justify-center py-10 text-sm text-slate-400">
+                <div className="flex items-center justify-center py-10 text-sm text-slate-400 dark:text-slate-500">
                   Searching…
                 </div>
               )}
 
               {/* No results */}
               {state.kind === 'no-results' && (
-                <div className="flex items-center justify-center py-10 text-sm text-slate-500">
+                <div className="flex items-center justify-center py-10 text-sm text-slate-500 dark:text-slate-400">
                   No matches for &lsquo;{state.query}&rsquo;.
                 </div>
               )}
 
               {/* Error */}
               {state.kind === 'error' && (
-                <div className="flex items-center justify-center py-10 text-sm text-slate-500">
+                <div className="flex items-center justify-center py-10 text-sm text-slate-500 dark:text-slate-400">
                   Search is unavailable right now.
                 </div>
               )}
@@ -407,10 +409,10 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
                         {/* Group header */}
                         <div className="flex items-center gap-2 px-4 py-2">
                           <Icon
-                            className="h-3 w-3 shrink-0 text-slate-400"
+                            className="h-3 w-3 shrink-0 text-slate-400 dark:text-slate-500"
                             aria-hidden="true"
                           />
-                          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400">
+                          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                             {group.label}
                           </span>
                         </div>
@@ -440,15 +442,15 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
                                 'flex cursor-pointer flex-col gap-0.5 px-4 py-2',
                                 'transition-colors',
                                 isHighlighted
-                                  ? 'bg-brand/8 text-slate-900'
-                                  : 'text-slate-700 hover:bg-slate-50',
+                                  ? 'bg-brand/8 text-slate-900 dark:bg-brand/20 dark:text-slate-100'
+                                  : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800',
                               )}
                             >
                               <span className="text-sm font-medium leading-tight">
                                 {result.primary}
                               </span>
                               {result.secondary && (
-                                <span className="nums text-xs text-slate-400 leading-tight">
+                                <span className="nums text-xs text-slate-400 leading-tight dark:text-slate-500">
                                   {result.secondary}
                                 </span>
                               )}

@@ -336,15 +336,18 @@ describe('training-schema: migration 0012 + constraints + RLS', () => {
     await pglite.exec(`SET ROLE aeroops_app`);
 
     // Org A context → only org A rows.
+    // Explicit projection of 0012-era columns: this suite pins migrations at
+    // 0019 by design, while the live drizzle schema has since gained additive
+    // columns (0038 enforce_stage_checks) that don't exist at this pin.
     const rowsA = await withOrgContext(db, orgAId, (tx) =>
-      tx.select().from(course).execute(),
+      tx.select({ id: course.id, orgId: course.orgId }).from(course).execute(),
     );
     expect(rowsA.every((r) => r.orgId === orgAId)).toBe(true);
     expect(rowsA.some((r) => r.orgId === orgBId)).toBe(false);
 
     // Org B context → only org B rows.
     const rowsB = await withOrgContext(db, orgBId, (tx) =>
-      tx.select().from(course).execute(),
+      tx.select({ id: course.id, orgId: course.orgId }).from(course).execute(),
     );
     expect(rowsB.every((r) => r.orgId === orgBId)).toBe(true);
     expect(rowsB.some((r) => r.orgId === orgAId)).toBe(false);
@@ -821,8 +824,10 @@ describe('training-schema: migration 0012 + constraints + RLS', () => {
     await pglite.exec(`COMMIT`);
     await pglite.exec(`SET ROLE aeroops_app`);
 
+    // Explicit projection: the suite pins migrations at 0019; the live schema
+    // has 0038's stage_check_passed column which doesn't exist at this pin.
     const rows = await withOrgContext(db, orgAId, (tx) =>
-      tx.select().from(lessonRecord).execute(),
+      tx.select({ id: lessonRecord.id, status: lessonRecord.status }).from(lessonRecord).execute(),
     );
     const row = rows.find((r) => r.id === recordId);
     expect(row?.status).toBe('recorded');
@@ -843,24 +848,25 @@ describe('training-schema: migration 0012 + constraints + RLS', () => {
     await pglite.exec(`COMMIT`);
     await pglite.exec(`SET ROLE aeroops_app`);
 
-    // All rows readable under correct org context.
+    // All rows readable under correct org context. Explicit projections of
+    // 0012-era columns (suite pins at 0019; live schema has 0038 additions).
     const courses = await withOrgContext(db, orgAId, (tx) =>
-      tx.select().from(course).execute(),
+      tx.select({ id: course.id }).from(course).execute(),
     );
     expect(courses.some((r) => r.id === courseId)).toBe(true);
 
     const lessons = await withOrgContext(db, orgAId, (tx) =>
-      tx.select().from(courseLesson).execute(),
+      tx.select({ id: courseLesson.id }).from(courseLesson).execute(),
     );
     expect(lessons.some((r) => r.id === lessonId)).toBe(true);
 
     const enrollments = await withOrgContext(db, orgAId, (tx) =>
-      tx.select().from(enrollment).execute(),
+      tx.select({ id: enrollment.id }).from(enrollment).execute(),
     );
     expect(enrollments.some((r) => r.id === enrollId)).toBe(true);
 
     const records = await withOrgContext(db, orgAId, (tx) =>
-      tx.select().from(lessonRecord).execute(),
+      tx.select({ id: lessonRecord.id }).from(lessonRecord).execute(),
     );
     expect(records.some((r) => r.id === recordId)).toBe(true);
   });

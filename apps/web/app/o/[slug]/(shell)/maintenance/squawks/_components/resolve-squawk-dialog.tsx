@@ -119,10 +119,10 @@ export function ResolveSquawkDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 space-y-0.5">
+        <div className="rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 space-y-0.5">
           <p className="font-medium truncate">{squawk.title}</p>
           {squawk.description && (
-            <p className="text-xs text-slate-500 line-clamp-2">{squawk.description}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{squawk.description}</p>
           )}
         </div>
 
@@ -143,12 +143,12 @@ export function ResolveSquawkDialog({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               disabled={isSubmitting}
-              className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+              className="flex w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
             />
           </div>
 
           {mode === 'deferred' && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Deferred is a plain operator status with a reason — it does not
               constitute an MEL or airworthiness determination.
             </p>

@@ -85,8 +85,8 @@ async function DetailContent({
         role="status"
       >
         <Wrench className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-700 font-medium">Work order not found.</p>
-        <p className="text-sm text-slate-400">
+        <p className="text-slate-700 dark:text-slate-300 font-medium">Work order not found.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">
           It may have been removed or you may not have access.
         </p>
         <Button asChild variant="outline" size="sm">

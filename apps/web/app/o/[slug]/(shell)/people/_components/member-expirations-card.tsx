@@ -39,20 +39,20 @@ import type { SerializedMemberExpirationView } from '../actions';
 function ExpirationStatusChip({ status }: { status: SerializedMemberExpirationView['status'] }) {
   if (status === 'expired') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-800">
+      <span className="inline-flex items-center rounded-sm border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-800 dark:text-red-200">
         Expired
       </span>
     );
   }
   if (status === 'due_soon') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800">
+      <span className="inline-flex items-center rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 dark:text-amber-200">
         Due soon
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
       OK
     </span>
   );
@@ -71,9 +71,9 @@ function formatDateOnly(iso: string): string {
 // ─── Row tone per status ────────────────────────────────────────────────────────
 
 const ROW_CLASSES: Record<SerializedMemberExpirationView['status'], string> = {
-  expired:  'bg-red-50 border border-red-100',
-  due_soon: 'bg-amber-50 border border-amber-100',
-  ok:       'bg-slate-50',
+  expired:  'bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/40',
+  due_soon: 'bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40',
+  ok:       'bg-slate-50 dark:bg-slate-800',
 };
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -208,14 +208,14 @@ export function MemberExpirationsCard({ memberUserId, canManage }: MemberExpirat
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <CalendarClock className="h-4 w-4 text-slate-400" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-slate-700">Expirations</h2>
+        <CalendarClock className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Expirations</h2>
       </div>
 
       {/* [VERIFY-FC-P2-A] — verbatim disclaimer. */}
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         Operator-entered reminder dates. Not a medical/currency/legal determination —
         verifying actual validity remains the operator&apos;s and pilot&apos;s
         responsibility.
@@ -224,7 +224,7 @@ export function MemberExpirationsCard({ memberUserId, canManage }: MemberExpirat
       {/* ── Loading ──────────────────────────────────────────────────────────── */}
       {expirations === null && !loadError && (
         <div
-          className="h-16 w-full rounded-md bg-slate-100 animate-pulse"
+          className="h-16 w-full rounded-md bg-slate-100 dark:bg-slate-800 animate-pulse"
           aria-busy="true"
           aria-label="Loading expirations"
         />
@@ -232,14 +232,14 @@ export function MemberExpirationsCard({ memberUserId, canManage }: MemberExpirat
 
       {/* ── Load error ───────────────────────────────────────────────────────── */}
       {loadError && (
-        <p className="text-sm text-slate-400 italic">Could not load expirations.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 italic">Could not load expirations.</p>
       )}
 
       {/* ── List ─────────────────────────────────────────────────────────────── */}
       {expirations !== null && !loadError && (
         <>
           {expirations.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">
+            <p className="text-sm text-slate-400 dark:text-slate-500 italic">
               No expiration reminders on file for this member.
             </p>
           ) : (
@@ -251,10 +251,10 @@ export function MemberExpirationsCard({ memberUserId, canManage }: MemberExpirat
                 >
                   <div className="min-w-0 space-y-0.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-slate-700">{exp.label}</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{exp.label}</span>
                       <ExpirationStatusChip status={exp.status} />
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {exp.status === 'expired' ? 'Expired' : 'Expires'}{' '}
                       {formatDateOnly(exp.expiresOn)}
                       {exp.note ? <> — {exp.note}</> : null}

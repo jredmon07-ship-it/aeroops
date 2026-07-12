@@ -68,7 +68,7 @@ function toDateStrTz(d: Date, tz?: string): string {
 
 function ConflictHitBullet({ hit, tz }: { hit: ConflictHit; tz?: string }) {
   return (
-    <li className="text-xs text-red-700">
+    <li className="text-xs text-red-700 dark:text-red-300">
       {hit.resourceDisplayName} is booked {formatTimeRangeTz(hit.start, hit.end, tz)}
     </li>
   );
@@ -78,25 +78,25 @@ function PolicyBullet({ v, tz }: { v: PolicyViolationView; tz?: string }) {
   switch (v.kind) {
     case 'max_duration_exceeded':
       return (
-        <li className="text-xs text-red-700">
+        <li className="text-xs text-red-700 dark:text-red-300">
           Max booking length is {v.limitMinutes} min; this is {v.actualMinutes} min.
         </li>
       );
     case 'too_far_in_advance':
       return (
-        <li className="text-xs text-red-700">
+        <li className="text-xs text-red-700 dark:text-red-300">
           Bookings can be made at most {v.limitDays} days ahead.
         </li>
       );
     case 'insufficient_lead_time':
       return (
-        <li className="text-xs text-red-700">
+        <li className="text-xs text-red-700 dark:text-red-300">
           Bookings require at least {v.requiredMinutes} min lead time.
         </li>
       );
     case 'blackout_overlap':
       return (
-        <li className="text-xs text-red-700">
+        <li className="text-xs text-red-700 dark:text-red-300">
           {v.resourceDisplayName} is unavailable {formatTime(new Date(v.blackoutStart), tz)}–{formatTime(new Date(v.blackoutEnd), tz)} (blackout).
         </li>
       );
@@ -132,10 +132,10 @@ function OccurrenceResultRow({
   const hasViolations = (occ.violations?.length ?? 0) > 0;
 
   return (
-    <li className="py-2.5 border-b border-slate-100 last:border-0">
+    <li className="py-2.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-slate-800">
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
             {occ.result === 'created' && occ.reservationId ? (
               <Link
                 href={`/o/${slug}/schedule?date=${dateStr}`}
@@ -148,7 +148,7 @@ function OccurrenceResultRow({
               dateLabel
             )}
           </p>
-          <p className="text-xs text-slate-500">{timeLabel}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{timeLabel}</p>
         </div>
         <div className="shrink-0 flex flex-col items-end gap-1">
           {occ.result === 'created' ? (
@@ -168,7 +168,7 @@ function OccurrenceResultRow({
         <div className="mt-1 pl-1">
           {hasConflicts && (
             <>
-              <p className="text-xs font-medium text-red-700">Conflict(s):</p>
+              <p className="text-xs font-medium text-red-700 dark:text-red-300">Conflict(s):</p>
               <ul className="list-disc list-inside">
                 {occ.conflicts!.map((h, i) => (
                   <ConflictHitBullet key={`${h.resourceId}-${i}`} hit={h} tz={tz} />
@@ -178,7 +178,7 @@ function OccurrenceResultRow({
           )}
           {hasViolations && (
             <>
-              <p className="text-xs font-medium text-red-700">Booking rules not met:</p>
+              <p className="text-xs font-medium text-red-700 dark:text-red-300">Booking rules not met:</p>
               <ul className="list-disc list-inside">
                 {occ.violations!.map((v, i) => (
                   <PolicyBullet key={`${v.resourceId}-${v.kind}-${i}`} v={v} tz={tz} />
@@ -209,13 +209,13 @@ export function SeriesCreateResult({ result, slug, onReset }: SeriesCreateResult
       className="space-y-5 max-w-lg"
     >
       {/* Header summary */}
-      <div className="flex items-start gap-3 rounded-md border border-green-200 bg-green-50 p-4">
-        <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" aria-hidden="true" />
+      <div className="flex items-start gap-3 rounded-md border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 p-4">
+        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true" />
         <div>
-          <p className="font-semibold text-green-900">
+          <p className="font-semibold text-green-900 dark:text-green-200">
             Series created: {result.createdCount} booked, {result.skippedCount} skipped
           </p>
-          <p className="text-sm text-green-700 mt-0.5">
+          <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
             The recurring series has been saved. Created occurrences are on the schedule.
           </p>
         </div>
@@ -223,7 +223,7 @@ export function SeriesCreateResult({ result, slug, onReset }: SeriesCreateResult
 
       {/* Cap truncation notice */}
       {result.truncatedByCap && (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-800" role="status">
+        <Alert className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200" role="status">
           <Info className="h-4 w-4" aria-hidden="true" />
           <AlertDescription className="text-sm">
             Limited to 52 occurrences maximum. Dates beyond the cap were excluded.
@@ -233,7 +233,7 @@ export function SeriesCreateResult({ result, slug, onReset }: SeriesCreateResult
 
       {/* DST-skip notice */}
       {(result.skippedLocalDates?.length ?? 0) > 0 && (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-800" role="status">
+        <Alert className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200" role="status">
           <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           <AlertDescription className="text-sm">
             {result.skippedLocalDates.length} date(s) skipped — the local start time does not exist on those dates due to DST.
@@ -255,12 +255,12 @@ export function SeriesCreateResult({ result, slug, onReset }: SeriesCreateResult
       {created.length > 0 && (
         <section aria-label="Created occurrences">
           <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-800">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
               Booked ({created.length})
             </h2>
           </div>
-          <ul className="divide-y divide-slate-100 rounded border border-slate-200 bg-white">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             {created.map((occ) => (
               <OccurrenceResultRow key={occ.index} occ={occ} slug={slug} tz={seriesTz} />
             ))}
@@ -272,12 +272,12 @@ export function SeriesCreateResult({ result, slug, onReset }: SeriesCreateResult
       {skipped.length > 0 && (
         <section aria-label="Skipped occurrences">
           <div className="flex items-center gap-2 mb-2">
-            <XCircle className="h-4 w-4 text-red-500" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-800">
+            <XCircle className="h-4 w-4 text-red-500 dark:text-red-400" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
               Skipped ({skipped.length})
             </h2>
           </div>
-          <ul className="divide-y divide-slate-100 rounded border border-red-100 bg-white">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800 rounded border border-red-100 dark:border-red-900/40 bg-white dark:bg-slate-900">
             {skipped.map((occ) => (
               <OccurrenceResultRow key={occ.index} occ={occ} slug={slug} tz={seriesTz} />
             ))}

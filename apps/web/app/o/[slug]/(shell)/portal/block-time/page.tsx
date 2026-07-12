@@ -96,7 +96,7 @@ export default async function PortalBlockTimePage({ params }: PortalBlockTimePag
     <div className="space-y-4">
       <Link
         href={`/o/${slug}/portal`}
-        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
         Back to portal

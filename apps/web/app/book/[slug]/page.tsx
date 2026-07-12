@@ -75,7 +75,7 @@ export default async function BookPage({ params }: BookPageProps) {
       <div className="w-full max-w-lg">
         <Card>
           <CardHeader className="text-center">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
               {org.name}
             </h1>
             <CardDescription>

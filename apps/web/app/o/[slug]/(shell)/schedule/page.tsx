@@ -266,14 +266,14 @@ export default async function SchedulePage({
         <div
           role="group"
           aria-label="View"
-          className="flex rounded-md border border-slate-200 overflow-hidden"
+          className="flex rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden"
         >
           {isMonthView ? (
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="rounded-none border-r border-slate-200"
+              className="rounded-none border-r border-slate-200 dark:border-slate-800"
             >
               <Link href={`/o/${slug}/schedule?date=${dateStr}`}>List</Link>
             </Button>
@@ -281,7 +281,7 @@ export default async function SchedulePage({
             <Button
               variant="default"
               size="sm"
-              className="rounded-none border-r border-slate-200"
+              className="rounded-none border-r border-slate-200 dark:border-slate-800"
               aria-current="page"
               disabled
             >
@@ -292,7 +292,7 @@ export default async function SchedulePage({
             <Button
               variant="default"
               size="sm"
-              className="rounded-none border-r border-slate-200"
+              className="rounded-none border-r border-slate-200 dark:border-slate-800"
               aria-current="page"
               disabled
             >
@@ -303,7 +303,7 @@ export default async function SchedulePage({
               asChild
               variant="ghost"
               size="sm"
-              className="rounded-none border-r border-slate-200"
+              className="rounded-none border-r border-slate-200 dark:border-slate-800"
             >
               <Link href={`/o/${slug}/schedule?view=month&month=${monthStr}`}>
                 Month

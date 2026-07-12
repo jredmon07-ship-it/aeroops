@@ -166,7 +166,7 @@ export function AddResourceDialog({ orgMembers, onSuccess }: AddResourceDialogPr
               id="resource-kind"
               value={kind}
               onChange={(e) => handleKindChange(e.target.value as 'aircraft' | 'instructor')}
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
+              className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
             >
               <option value="aircraft">Aircraft</option>
               <option value="instructor">Instructor</option>
@@ -193,7 +193,7 @@ export function AddResourceDialog({ orgMembers, onSuccess }: AddResourceDialogPr
               className={fieldErrors.displayName ? 'border-red-500' : ''}
             />
             {fieldErrors.displayName && (
-              <p id="displayName-error" role="alert" className="text-sm text-red-600">
+              <p id="displayName-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                 {fieldErrors.displayName}
               </p>
             )}
@@ -219,7 +219,7 @@ export function AddResourceDialog({ orgMembers, onSuccess }: AddResourceDialogPr
                 className={`font-mono ${fieldErrors.tailNumber ? 'border-red-500' : ''}`}
               />
               {fieldErrors.tailNumber && (
-                <p id="tailNumber-error" role="alert" className="text-sm text-red-600">
+                <p id="tailNumber-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                   {fieldErrors.tailNumber}
                 </p>
               )}
@@ -242,7 +242,7 @@ export function AddResourceDialog({ orgMembers, onSuccess }: AddResourceDialogPr
                 required
                 aria-required="true"
                 aria-describedby={fieldErrors.instructorUserId ? 'instructorUserId-error' : undefined}
-                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors ${fieldErrors.instructorUserId ? 'border-red-500' : 'border-slate-300'}`}
+                className={`flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors ${fieldErrors.instructorUserId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
               >
                 <option value="">— Select CFI —</option>
                 {orgMembers.map((m) => (
@@ -252,7 +252,7 @@ export function AddResourceDialog({ orgMembers, onSuccess }: AddResourceDialogPr
                 ))}
               </select>
               {fieldErrors.instructorUserId && (
-                <p id="instructorUserId-error" role="alert" className="text-sm text-red-600">
+                <p id="instructorUserId-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                   {fieldErrors.instructorUserId}
                 </p>
               )}

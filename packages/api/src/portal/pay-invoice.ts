@@ -28,6 +28,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { invoice } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
+import { computeAchPassthroughFeeCents } from '@aeroops/core';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
@@ -37,6 +38,7 @@ import { getStripeClient } from '../integrations/stripe/client.js';
 import type { StripeClient } from '../integrations/stripe/client.js';
 import { createPaymentIntentForInvoiceTx } from '../integrations/stripe/create-payment-intent-core.js';
 import type { CreatePaymentIntentForInvoiceResult } from '../integrations/stripe/create-payment-intent-core.js';
+import { loadFeePassingEnabled } from '../billing/fee-passing-internal.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -46,7 +48,22 @@ const payMyInvoiceInputSchema = z.object({
 
 export type PayMyInvoiceInput = z.infer<typeof payMyInvoiceInputSchema>;
 
-export type PayMyInvoiceResult = CreatePaymentIntentForInvoiceResult;
+/**
+ * The self-pay result: the shared PI-creation result, PLUS a fee breakdown on
+ * the ok arm so the portal can show the member exactly what they will be
+ * charged. feeCents=0 (fee-passing OFF) ⇒ chargedCents === baseCents and the
+ * created PaymentIntent is byte-identical to the pre-fee-passing behavior.
+ */
+export type PayMyInvoiceResult =
+  | (Extract<CreatePaymentIntentForInvoiceResult, { ok: true }> & {
+      /** The invoice total (what the ledger credit will post on success). */
+      baseCents: number;
+      /** The pass-through processing fee added at checkout (0 when OFF). */
+      feeCents: number;
+      /** What Stripe collects = baseCents + feeCents. */
+      chargedCents: number;
+    })
+  | Extract<CreatePaymentIntentForInvoiceResult, { ok: false }>;
 
 async function _payMyInvoiceImpl(
   db: AnyDb,
@@ -73,14 +90,29 @@ async function _payMyInvoiceImpl(
       return { ok: false, reason: 'not_found' } as const;
     }
 
-    return createPaymentIntentForInvoiceTx(
+    // Fee-passing (default OFF → feeCents=0 → byte-identical PI). When the org
+    // has opted in, quote the member the grossed amount = total + fee; the
+    // webhook still credits the BASE only (see create-payment-intent-core.ts).
+    const feePassingEnabled = await loadFeePassingEnabled(tx, sess.orgId);
+    const feeCents = feePassingEnabled ? computeAchPassthroughFeeCents(row.totalCents) : 0;
+
+    const coreResult = await createPaymentIntentForInvoiceTx(
       tx,
       sess.orgId,
       sess.userId,
       invoiceId,
       client,
       'billing.self_pay_payment_intent_created',
+      { feeCents },
     );
+    if (!coreResult.ok) return coreResult;
+
+    return {
+      ...coreResult,
+      baseCents: row.totalCents,
+      feeCents,
+      chargedCents: row.totalCents + feeCents,
+    };
   });
 }
 

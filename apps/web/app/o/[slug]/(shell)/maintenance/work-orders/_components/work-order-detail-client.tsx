@@ -46,12 +46,12 @@ interface WorkOrderDetailClientProps {
 
 function SeverityChip({ severity }: { severity: string }) {
   const map: Record<string, string> = {
-    low: 'border-slate-200 bg-slate-50 text-slate-600',
-    medium: 'border-amber-200 bg-amber-50 text-amber-800',
-    high: 'border-orange-200 bg-orange-50 text-orange-800',
+    low: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
+    medium: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
+    high: 'border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-200',
     grounding: 'border-destructive/30 bg-destructive/10 text-destructive',
   };
-  const cls = map[severity] ?? 'border-slate-200 bg-slate-50 text-slate-600';
+  const cls = map[severity] ?? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
   const label = severity.charAt(0).toUpperCase() + severity.slice(1);
   return (
     <span
@@ -139,7 +139,7 @@ export function WorkOrderDetailClient({
       <div>
         <Link
           href={`/o/${slug}/maintenance/work-orders`}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           Work orders
@@ -150,10 +150,10 @@ export function WorkOrderDetailClient({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 truncate">{workOrder.title}</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">{workOrder.title}</h1>
             <WorkOrderStatusBadge status={workOrder.status} />
           </div>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Aircraft:{' '}
             <Link
               href={`/o/${slug}/fleet/${workOrder.resourceId}`}
@@ -162,7 +162,7 @@ export function WorkOrderDetailClient({
               {workOrder.resourceId}
             </Link>
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             Opened {formatDateTime(workOrder.openedAt)}
           </p>
         </div>
@@ -217,22 +217,22 @@ export function WorkOrderDetailClient({
 
       {/* ── Linked squawk panel ───────────────────────────────────────────── */}
       {linkedSquawk && (
-        <div className="rounded-md border border-slate-200 bg-white p-4 space-y-2">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-700">Linked Squawk</h2>
+            <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Linked Squawk</h2>
           </div>
-          <div className="rounded-md bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
+          <div className="rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 px-3 py-2.5 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-slate-900">{linkedSquawk.title}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{linkedSquawk.title}</p>
               <SeverityChip severity={linkedSquawk.severity} />
               <span
                 className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${
                   linkedSquawk.status === 'open'
                     ? 'border-brand/30 bg-brand/8 text-brand-ink'
                     : linkedSquawk.status === 'deferred'
-                    ? 'border-amber-200 bg-amber-50 text-amber-800'
-                    : 'border-green-200 bg-green-50 text-green-800'
+                    ? 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200'
+                    : 'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200'
                 }`}
               >
                 {linkedSquawk.status === 'open'
@@ -243,10 +243,10 @@ export function WorkOrderDetailClient({
               </span>
             </div>
             {linkedSquawk.description && (
-              <p className="text-xs text-slate-500">{linkedSquawk.description}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{linkedSquawk.description}</p>
             )}
             {linkedSquawk.resolutionNotes && (
-              <p className="text-xs text-slate-500 italic">
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">
                 Resolution: {linkedSquawk.resolutionNotes}
               </p>
             )}
@@ -256,52 +256,52 @@ export function WorkOrderDetailClient({
 
       {/* ── Description ───────────────────────────────────────────────────── */}
       {workOrder.description && (
-        <div className="rounded-md border border-slate-200 bg-white p-4 space-y-1.5">
-          <h2 className="text-sm font-semibold text-slate-700">Description</h2>
-          <p className="text-sm text-slate-600 whitespace-pre-wrap">{workOrder.description}</p>
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-1.5">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Description</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{workOrder.description}</p>
         </div>
       )}
 
       {/* ── Work performed ────────────────────────────────────────────────── */}
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-1.5">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-1.5">
         <div className="flex items-center gap-2">
-          <WrenchIcon className="h-4 w-4 text-slate-400" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-slate-700">Work Performed</h2>
+          <WrenchIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Work Performed</h2>
         </div>
         {workOrder.workPerformed ? (
-          <p className="text-sm text-slate-600 whitespace-pre-wrap">{workOrder.workPerformed}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{workOrder.workPerformed}</p>
         ) : (
-          <p className="text-sm text-slate-400 italic">No work performed notes.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No work performed notes.</p>
         )}
       </div>
 
       {/* ── Sign-off block (completed only) ──────────────────────────────── */}
       {workOrder.status === 'completed' && (
-        <div className="rounded-md border border-green-200 bg-green-50 p-4 space-y-2">
+        <div className="rounded-md border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-600" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-green-900">Sign-off Record</h2>
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-green-900 dark:text-green-200">Sign-off Record</h2>
           </div>
           <div className="text-sm space-y-1">
             {workOrder.signedOffBy ? (
-              <p className="text-green-800">
+              <p className="text-green-800 dark:text-green-200">
                 Signed off by{' '}
                 <span className="font-mono text-xs">{workOrder.signedOffBy}</span>
               </p>
             ) : (
-              <p className="text-green-700 italic">Signer not recorded (account removed).</p>
+              <p className="text-green-700 dark:text-green-300 italic">Signer not recorded (account removed).</p>
             )}
             {workOrder.signedOffAt && (
-              <p className="text-green-700 text-xs">{formatDateTime(workOrder.signedOffAt)}</p>
+              <p className="text-green-700 dark:text-green-300 text-xs">{formatDateTime(workOrder.signedOffAt)}</p>
             )}
             {workOrder.signOffNotes && (
-              <p className="text-green-800 text-sm mt-1 whitespace-pre-wrap">
+              <p className="text-green-800 dark:text-green-200 text-sm mt-1 whitespace-pre-wrap">
                 {workOrder.signOffNotes}
               </p>
             )}
           </div>
           {/* MANDATORY compliance disclaimer [VERIFY-M1-A/C] */}
-          <p className="text-[0.6875rem] text-green-700 italic border-t border-green-200 pt-2">
+          <p className="text-[0.6875rem] text-green-700 dark:text-green-300 italic border-t border-green-200 dark:border-green-900/50 pt-2">
             This sign-off is an operator/mechanic maintenance record — it is NOT an FAA
             return-to-service or §43.9/§43.11 determination, and the system makes no
             airworthiness determination.
@@ -311,16 +311,16 @@ export function WorkOrderDetailClient({
 
       {/* ── Cancelled block (cancelled only) ──────────────────────────────── */}
       {workOrder.status === 'cancelled' && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 space-y-1.5">
-          <h2 className="text-sm font-semibold text-slate-700">Cancelled</h2>
-          <p className="text-sm text-slate-600">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4 space-y-1.5">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cancelled</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             <span className="font-medium">Reason:</span>{' '}
             {workOrder.cancelledReason ?? '—'}
           </p>
           {workOrder.cancelledAt && (
-            <p className="text-xs text-slate-400">{formatDateTime(workOrder.cancelledAt)}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">{formatDateTime(workOrder.cancelledAt)}</p>
           )}
-          <p className="text-xs text-slate-400 italic">
+          <p className="text-xs text-slate-400 dark:text-slate-500 italic">
             Cancellation does not resolve squawks or return the aircraft to service.
           </p>
         </div>

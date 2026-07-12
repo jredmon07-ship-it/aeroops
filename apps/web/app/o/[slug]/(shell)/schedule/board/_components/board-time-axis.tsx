@@ -22,7 +22,7 @@ function hourLabel(h: number): string {
 export function BoardTimeAxis() {
   return (
     <div
-      className="relative h-8 flex-shrink-0 bg-white border-b border-slate-200"
+      className="relative h-8 flex-shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800"
       style={{ width: TRACK_WIDTH_PX }}
       aria-hidden="true"
     >
@@ -33,11 +33,11 @@ export function BoardTimeAxis() {
           style={{ left: h * HOUR_WIDTH_PX }}
         >
           {/* Hour label */}
-          <span className="text-[0.6875rem] text-slate-400 font-medium pl-1 leading-tight pt-0.5">
+          <span className="text-[0.6875rem] text-slate-400 dark:text-slate-500 font-medium pl-1 leading-tight pt-0.5">
             {hourLabel(h)}
           </span>
           {/* Hour tick mark */}
-          <div className="h-2 w-px bg-slate-300 ml-0.5" />
+          <div className="h-2 w-px bg-slate-300 dark:bg-slate-600 ml-0.5" />
         </div>
       ))}
       {/* 15-min tick marks between hours */}
@@ -45,7 +45,7 @@ export function BoardTimeAxis() {
         [1, 2, 3].map((q) => (
           <div
             key={`${h}-${q}`}
-            className="absolute bottom-0 h-1 w-px bg-slate-200"
+            className="absolute bottom-0 h-1 w-px bg-slate-200 dark:bg-slate-700"
             style={{ left: h * HOUR_WIDTH_PX + q * (HOUR_WIDTH_PX / 4) }}
           />
         )),

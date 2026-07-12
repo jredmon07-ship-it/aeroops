@@ -96,7 +96,7 @@ const TabsList = React.forwardRef<HTMLDivElement, TabsListProps>(
         }}
         role="tablist"
         onKeyDown={handleKeyDown}
-        className={cn('flex gap-1 border-b border-slate-200 pb-0', className)}
+        className={cn('flex gap-1 border-b border-slate-200 pb-0 dark:border-slate-800', className)}
       >
         {children}
       </div>
@@ -127,10 +127,10 @@ function TabsTrigger({ value, children, className }: TabsTriggerProps) {
       tabIndex={isActive ? 0 : -1}
       onClick={() => onValueChange(value)}
       className={cn(
-        'inline-flex items-center justify-center px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 rounded-t-md',
+        'inline-flex items-center justify-center px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 rounded-t-md',
         isActive
-          ? 'border-b-2 border-sky-600 text-sky-700 bg-white'
-          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50',
+          ? 'border-b-2 border-sky-600 text-sky-700 bg-white dark:border-sky-400 dark:text-sky-400 dark:bg-transparent'
+          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800',
         className,
       )}
     >

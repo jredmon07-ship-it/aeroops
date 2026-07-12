@@ -47,14 +47,14 @@ import type { ReservationRow, ResourceRow } from '@aeroops/api';
 // stable hash of the primary resource id (lib/month-grid.ts paletteIndex).
 
 const CHIP_PALETTE = [
-  'bg-sky-100 text-sky-900 border-sky-200 hover:bg-sky-200',
-  'bg-emerald-100 text-emerald-900 border-emerald-200 hover:bg-emerald-200',
-  'bg-amber-100 text-amber-900 border-amber-200 hover:bg-amber-200',
-  'bg-violet-100 text-violet-900 border-violet-200 hover:bg-violet-200',
-  'bg-rose-100 text-rose-900 border-rose-200 hover:bg-rose-200',
-  'bg-teal-100 text-teal-900 border-teal-200 hover:bg-teal-200',
-  'bg-indigo-100 text-indigo-900 border-indigo-200 hover:bg-indigo-200',
-  'bg-orange-100 text-orange-900 border-orange-200 hover:bg-orange-200',
+  'bg-sky-100 dark:bg-sky-950/50 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900/50',
+  'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/50',
+  'bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900/50',
+  'bg-violet-100 dark:bg-violet-950/50 text-violet-900 dark:text-violet-200 border-violet-200 dark:border-violet-900/50 hover:bg-violet-200 dark:hover:bg-violet-900/50',
+  'bg-rose-100 dark:bg-rose-950/50 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-900/50 hover:bg-rose-200 dark:hover:bg-rose-900/50',
+  'bg-teal-100 dark:bg-teal-950/50 text-teal-900 dark:text-teal-200 border-teal-200 dark:border-teal-900/50 hover:bg-teal-200 dark:hover:bg-teal-900/50',
+  'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-200 dark:hover:bg-indigo-900/50',
+  'bg-orange-100 dark:bg-orange-950/50 text-orange-900 dark:text-orange-200 border-orange-200 dark:border-orange-900/50 hover:bg-orange-200 dark:hover:bg-orange-900/50',
 ] as const;
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
@@ -106,7 +106,7 @@ function chipInfoFor(
     : 'Unknown resource';
   const colorClass = primaryId
     ? CHIP_PALETTE[paletteIndex(primaryId, CHIP_PALETTE.length)]!
-    : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200';
+    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700';
   return { primaryResourceId: primaryId, resourceLabel, colorClass };
 }
 
@@ -337,7 +337,7 @@ export function MonthView({
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Button>
-        <output aria-live="polite" className="ml-2 text-sm font-medium text-slate-700">
+        <output aria-live="polite" className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300">
           {label}
         </output>
       </div>
@@ -353,10 +353,10 @@ export function MonthView({
 
       {/* ── Empty month — friendly state (grid still renders below on md+) ── */}
       {isEmpty && (
-        <div className="flex flex-col items-center justify-center rounded-md border border-slate-200 bg-white py-8 text-center space-y-2">
+        <div className="flex flex-col items-center justify-center rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-8 text-center space-y-2">
           <Calendar className="h-8 w-8 text-slate-300" aria-hidden="true" />
-          <p className="text-slate-600">No reservations in {label}.</p>
-          <p className="text-sm text-slate-500">
+          <p className="text-slate-600 dark:text-slate-300">No reservations in {label}.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Pick a day on the calendar to open its board, or book from{' '}
             <Link
               href={`${basePath}/new?date=${grid.firstOfMonthIso}`}
@@ -374,16 +374,16 @@ export function MonthView({
         <div
           role="grid"
           aria-label={`Month calendar, ${label}`}
-          className="hidden md:block rounded-md border border-slate-200 bg-white shadow-sm overflow-hidden"
+          className="hidden md:block rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden"
           onKeyDown={handleGridKeyDown}
         >
           {/* Weekday header */}
-          <div role="row" className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+          <div role="row" className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
             {WEEKDAY_LABELS.map((d) => (
               <div
                 key={d}
                 role="columnheader"
-                className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
               >
                 {d}
               </div>
@@ -395,7 +395,7 @@ export function MonthView({
             <div
               key={week[0]!.iso}
               role="row"
-              className={`grid grid-cols-7 ${wi > 0 ? 'border-t border-slate-200' : ''}`}
+              className={`grid grid-cols-7 ${wi > 0 ? 'border-t border-slate-200 dark:border-slate-800' : ''}`}
             >
               {week.map((cell, ci) => {
                 const isToday = cell.iso === effectiveTodayIso;
@@ -413,8 +413,8 @@ export function MonthView({
                     aria-current={isToday ? 'date' : undefined}
                     aria-label={`${dayLabelFor(cell.iso)}, ${count} reservation${count === 1 ? '' : 's'}`}
                     className={`min-h-[6.5rem] space-y-0.5 p-1 align-top focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset ${
-                      ci > 0 ? 'border-l border-slate-200' : ''
-                    } ${cell.inMonth ? 'bg-white' : 'bg-slate-50'} ${
+                      ci > 0 ? 'border-l border-slate-200 dark:border-slate-800' : ''
+                    } ${cell.inMonth ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800'} ${
                       isToday ? 'ring-2 ring-inset ring-brand/60' : ''
                     }`}
                   >
@@ -424,8 +424,8 @@ export function MonthView({
                           cell.inMonth
                             ? isToday
                               ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white'
-                              : 'text-slate-700'
-                            : 'text-slate-400'
+                              : 'text-slate-700 dark:text-slate-300'
+                            : 'text-slate-400 dark:text-slate-500'
                         }`}
                       >
                         {cell.day}
@@ -450,7 +450,7 @@ export function MonthView({
             if (daysWithReservations.length === 0) return null;
             return (
               <section key={week[0]!.iso} aria-label={`Week of ${dayLabelFor(week[0]!.iso)}`}>
-                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Week of {dayLabelFor(week[0]!.iso)}
                 </h3>
                 <div className="space-y-2">
@@ -459,13 +459,13 @@ export function MonthView({
                     return (
                       <div
                         key={cell.iso}
-                        className={`rounded-md border bg-white p-2 shadow-sm space-y-1 ${
-                          isToday ? 'border-brand/60 ring-1 ring-brand/40' : 'border-slate-200'
+                        className={`rounded-md border bg-white dark:bg-slate-900 p-2 shadow-sm space-y-1 ${
+                          isToday ? 'border-brand/60 ring-1 ring-brand/40' : 'border-slate-200 dark:border-slate-800'
                         }`}
                       >
                         <Link
                           href={`${boardPath}?date=${cell.iso}`}
-                          className="text-sm font-medium text-slate-900 hover:underline"
+                          className="text-sm font-medium text-slate-900 dark:text-slate-100 hover:underline"
                           aria-label={`${dayLabelFor(cell.iso)} — open day board`}
                         >
                           {dayLabelFor(cell.iso)}

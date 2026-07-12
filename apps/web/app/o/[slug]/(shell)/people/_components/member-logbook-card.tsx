@@ -75,72 +75,72 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
   if (notFound) return null;
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-slate-400" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-slate-700">Logbook</h2>
-          <span className="nums text-xs text-slate-400">({entries.length})</span>
+          <BookOpen className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Logbook</h2>
+          <span className="nums text-xs text-slate-400 dark:text-slate-500">({entries.length})</span>
         </div>
         <DownloadCsvButton action={() => exportPilotLogCsvAction(userId)} />
       </div>
 
       {entries.length === 0 ? (
-        <p className="text-sm text-slate-400 italic">No logged flights for this member.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No logged flights for this member.</p>
       ) : (
-        <div className="rounded-md border border-slate-100 overflow-hidden overflow-x-auto">
+        <div className="rounded-md border border-slate-100 dark:border-slate-800 overflow-hidden overflow-x-auto">
           <table className="w-full text-sm" aria-label="Member logbook">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Date</th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500">Tail</th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 hidden sm:table-cell">Cat / Class</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 hidden sm:table-cell">Hobbs Out / In</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Flight Time</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Night</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Instrument</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">XC</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">Running Total</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Date</th>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Tail</th>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:table-cell">Cat / Class</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:table-cell">Hobbs Out / In</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Flight Time</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Night</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Instrument</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">XC</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Running Total</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
             </thead>
             <tbody>
               {entries.map((e) => (
-                <tr key={e.ticketId} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2 text-xs text-slate-600 nums">{formatDate(e.date)}</td>
-                  <td className="px-3 py-2 text-sm font-medium text-slate-800">{e.tail}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600 hidden sm:table-cell whitespace-nowrap">
+                <tr key={e.ticketId} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">{formatDate(e.date)}</td>
+                  <td className="px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-100">{e.tail}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hidden sm:table-cell whitespace-nowrap">
                     {e.category || e.aircraftClass
                       ? [e.category, e.aircraftClass].filter(Boolean).join(' / ')
-                      : <span className="text-slate-400">—</span>}
+                      : <span className="text-slate-400 dark:text-slate-500">—</span>}
                   </td>
                   <td className="px-3 py-2 text-right hidden sm:table-cell">
-                    <span className="nums text-xs text-slate-700">
+                    <span className="nums text-xs text-slate-700 dark:text-slate-300">
                       {e.hobbsOut.toFixed(1)} / {e.hobbsIn.toFixed(1)}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <span className="nums text-xs text-slate-700">{e.flightTimeHours.toFixed(1)} h</span>
+                    <span className="nums text-xs text-slate-700 dark:text-slate-300">{e.flightTimeHours.toFixed(1)} h</span>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <span className="nums text-xs text-slate-700">
+                    <span className="nums text-xs text-slate-700 dark:text-slate-300">
                       {e.nightHours != null ? `${e.nightHours.toFixed(1)} h` : '—'}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <span className="nums text-xs text-slate-700">
+                    <span className="nums text-xs text-slate-700 dark:text-slate-300">
                       {e.instrumentHours != null ? `${e.instrumentHours.toFixed(1)} h` : '—'}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <span className="nums text-xs text-slate-700">
+                    <span className="nums text-xs text-slate-700 dark:text-slate-300">
                       {e.crossCountryHours != null ? `${e.crossCountryHours.toFixed(1)} h` : '—'}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <span className="nums text-xs font-semibold text-slate-900">{e.runningTotalHours.toFixed(1)} h</span>
+                    <span className="nums text-xs font-semibold text-slate-900 dark:text-slate-100">{e.runningTotalHours.toFixed(1)} h</span>
                   </td>
                   <td className="px-3 py-2 text-right whitespace-nowrap">
                     <AnnotateFlightDialog
@@ -156,10 +156,10 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t border-slate-200 bg-slate-50">
-                <td colSpan={8} className="px-3 py-2 text-right text-xs font-semibold text-slate-600">Total</td>
+              <tr className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
+                <td colSpan={8} className="px-3 py-2 text-right text-xs font-semibold text-slate-600 dark:text-slate-300">Total</td>
                 <td className="px-3 py-2 text-right">
-                  <span className="nums text-sm font-bold text-slate-900">{totalHours.toFixed(1)} h</span>
+                  <span className="nums text-sm font-bold text-slate-900 dark:text-slate-100">{totalHours.toFixed(1)} h</span>
                 </td>
                 <td />
               </tr>
@@ -169,7 +169,7 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
       )}
 
       {/* Verbatim disclaimer — always rendered, not gated behind the empty state. */}
-      <p className="text-[0.6875rem] text-slate-400">
+      <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
         This logbook is a convenience view generated from this member&rsquo;s dispatch
         records. It is not their official pilot logbook and is not a certified
         record under 14 CFR 61.51. AeroOps makes no determination of flight

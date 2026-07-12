@@ -124,7 +124,7 @@ export function SeriesOccurrenceList({
       {/* Success feedback */}
       {successMsg && (
         <Alert
-          className="border-green-200 bg-green-50 text-green-800"
+          className="border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200"
           role="status"
           aria-live="polite"
         >
@@ -133,7 +133,7 @@ export function SeriesOccurrenceList({
             <button
               type="button"
               onClick={() => setSuccessMsg(null)}
-              className="text-green-700 hover:text-green-900 text-sm underline shrink-0"
+              className="text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-200 text-sm underline shrink-0"
               aria-label="Dismiss message"
             >
               Dismiss
@@ -175,7 +175,7 @@ export function SeriesOccurrenceList({
       {/* Cancelled series notice */}
       {seriesCancelled && (
         <Alert
-          className="border-slate-200 bg-slate-50 text-slate-700"
+          className="border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
           role="status"
         >
           <AlertDescription>
@@ -191,7 +191,7 @@ export function SeriesOccurrenceList({
           role="status"
         >
           <Calendar className="h-10 w-10 text-slate-300" aria-hidden="true" />
-          <p className="text-slate-600">No occurrences found for this series.</p>
+          <p className="text-slate-600 dark:text-slate-300">No occurrences found for this series.</p>
           <Link
             href={`/o/${slug}/schedule`}
             className="text-sm text-brand underline hover:no-underline"
@@ -209,15 +209,15 @@ export function SeriesOccurrenceList({
               <article
                 key={r.id}
                 aria-label={`Occurrence ${idx + 1}: ${dateLabel} ${timeRange}, ${label}`}
-                className="rounded-md border border-border bg-white p-3 flex items-center justify-between gap-3 shadow-sm"
+                className="rounded-md border border-border bg-white dark:bg-slate-900 p-3 flex items-center justify-between gap-3 shadow-sm"
               >
                 <div className="min-w-0 flex-1 space-y-0.5">
-                  <p className="font-medium text-slate-900 text-sm truncate">
+                  <p className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">
                     {dateLabel}
                   </p>
-                  <p className="text-sm text-slate-600">{timeRange}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">{timeRange}</p>
                   {r.notes && (
-                    <p className="text-xs text-slate-500 truncate">{r.notes}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{r.notes}</p>
                   )}
                 </div>
                 <Badge variant={variant}>{label}</Badge>

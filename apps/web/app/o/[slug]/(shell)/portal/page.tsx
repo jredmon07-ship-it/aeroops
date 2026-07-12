@@ -94,13 +94,13 @@ function EnrollmentStatusPill({ status }: { status: string }) {
     active:
       'inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink',
     completed:
-      'inline-flex items-center rounded-sm border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-emerald-800',
+      'inline-flex items-center rounded-sm border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-emerald-800 dark:text-emerald-200',
     withdrawn:
-      'inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500',
+      'inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400',
   };
   const cls =
     variants[status] ??
-    'inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500';
+    'inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400';
   return (
     <span className={cls}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -114,7 +114,7 @@ function ReservationRoleChip({
   role: 'booker' | 'pilot' | 'booker_and_pilot';
 }) {
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-slate-600">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-slate-600 dark:text-slate-300">
       {reservationRoleLabel(role)}
     </span>
   );
@@ -132,8 +132,8 @@ function PortalSkeleton() {
       </div>
 
       {/* Reservations card */}
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
-        <div className="border-b border-slate-100 px-5 py-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+        <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3">
           <Skeleton className="h-3.5 w-44" />
         </div>
         <div className="p-5 space-y-3">
@@ -149,8 +149,8 @@ function PortalSkeleton() {
       </div>
 
       {/* Training card */}
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
-        <div className="border-b border-slate-100 px-5 py-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+        <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3">
           <Skeleton className="h-3.5 w-24" />
         </div>
         <div className="p-5 space-y-4">
@@ -170,8 +170,8 @@ function PortalSkeleton() {
       </div>
 
       {/* Account card */}
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
-        <div className="border-b border-slate-100 px-5 py-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+        <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3">
           <Skeleton className="h-3.5 w-20" />
         </div>
         <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -202,7 +202,7 @@ function SectionCard({
     <section aria-label={ariaLabel ?? title}>
       {/* Design-language eyebrow (the dashboard's section pattern). */}
       <SectionHeader eyebrow={title} />
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
         {children}
       </div>
     </section>
@@ -219,13 +219,13 @@ function ReservationsSection({
   if (reservations.length === 0) {
     return (
       <div className="px-5 py-10 text-center">
-        <p className="text-sm text-slate-400">No upcoming reservations.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">No upcoming reservations.</p>
       </div>
     );
   }
 
   return (
-    <ul className="divide-y divide-slate-100" role="list">
+    <ul className="divide-y divide-slate-100 dark:divide-slate-800" role="list">
       {reservations.map((r) => {
         const tailDisplay =
           r.resourceIds.length > 0 ? r.resourceIds.join(', ') : '—';
@@ -235,18 +235,18 @@ function ReservationsSection({
             className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3"
           >
             {/* Start time */}
-            <span className="nums text-sm text-slate-700 shrink-0">
+            <span className="nums text-sm text-slate-700 dark:text-slate-300 shrink-0">
               {formatLocalDateTime(r.startAt)}
             </span>
-            <span className="text-xs text-slate-400" aria-hidden="true">
+            <span className="text-xs text-slate-400 dark:text-slate-500" aria-hidden="true">
               →
             </span>
             {/* End time */}
-            <span className="nums text-sm text-slate-700 shrink-0">
+            <span className="nums text-sm text-slate-700 dark:text-slate-300 shrink-0">
               {formatLocalDateTime(r.endAt)}
             </span>
             {/* Tail numbers / resource ids */}
-            <span className="nums text-sm font-medium text-slate-900">
+            <span className="nums text-sm font-medium text-slate-900 dark:text-slate-100">
               {tailDisplay}
             </span>
             {/* Role chip */}
@@ -269,15 +269,15 @@ function TrainingSection({
     <>
       {training.length === 0 ? (
         <div className="px-5 py-10 text-center">
-          <p className="text-sm text-slate-400">Not enrolled in a course yet.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">Not enrolled in a course yet.</p>
         </div>
       ) : (
-        <ul className="divide-y divide-slate-100" role="list">
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800" role="list">
           {training.map((e) => (
             <li key={e.enrollmentId} className="px-5 py-4 space-y-2">
               {/* Title + status pill */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-slate-900">
+                <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
                   {e.courseTitle}
                 </span>
                 <EnrollmentStatusPill status={e.status} />
@@ -286,7 +286,7 @@ function TrainingSection({
               {/* Progress bar + count */}
               <div className="flex items-center gap-3">
                 <div
-                  className="flex-1 h-1.5 rounded-full bg-slate-100"
+                  className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800"
                   role="progressbar"
                   aria-valuenow={e.progressRatio.percent}
                   aria-valuemin={0}
@@ -298,7 +298,7 @@ function TrainingSection({
                     style={{ width: `${e.progressRatio.percent}%` }}
                   />
                 </div>
-                <span className="nums text-xs text-slate-500 shrink-0 tabular-nums">
+                <span className="nums text-xs text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">
                   {e.completedCount}/{e.totalLessons}
                 </span>
               </div>
@@ -307,7 +307,7 @@ function TrainingSection({
         </ul>
       )}
       {/* Verbatim [VERIFY-T1-B] footnote — required by spec */}
-      <p className="px-5 pb-4 pt-2 text-[0.6875rem] text-slate-400">
+      <p className="px-5 pb-4 pt-2 text-[0.6875rem] text-slate-400 dark:text-slate-500">
         Progress reflects lessons recorded by your instructor — not a regulatory
         completion or graduation.
       </p>
@@ -331,48 +331,48 @@ function AccountSection({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Name */}
         <div>
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Name
           </p>
-          <p className="mt-0.5 text-sm text-slate-900">{account.displayName}</p>
+          <p className="mt-0.5 text-sm text-slate-900 dark:text-slate-100">{account.displayName}</p>
         </div>
 
         {/* Email */}
         <div>
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Email
           </p>
-          <p className="mt-0.5 text-sm text-slate-900 break-all">{account.email}</p>
+          <p className="mt-0.5 text-sm text-slate-900 dark:text-slate-100 break-all">{account.email}</p>
         </div>
 
         {/* Phone */}
         <div>
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Phone
           </p>
-          <p className="mt-0.5 text-sm text-slate-700">
+          <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
             {account.phone !== null ? (
               account.phone
             ) : (
-              <span className="text-slate-400">—</span>
+              <span className="text-slate-400 dark:text-slate-500">—</span>
             )}
           </p>
         </div>
 
         {/* Role */}
         <div>
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Role
           </p>
-          <p className="mt-0.5 text-sm text-slate-700">{roleLabel}</p>
+          <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">{roleLabel}</p>
         </div>
 
         {/* Member since */}
         <div>
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Member since
           </p>
-          <p className="mt-0.5 text-sm text-slate-700">
+          <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
             {formatLocalDate(account.joinedAt)}
           </p>
         </div>
@@ -380,14 +380,14 @@ function AccountSection({
 
       {/* Tags (read-only) [VERIFY-6-A]: free-text operator labels only */}
       <div>
-        <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 mb-1.5">
+        <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1.5">
           Tags
-          <span className="ml-1 font-normal normal-case tracking-normal text-slate-400">
+          <span className="ml-1 font-normal normal-case tracking-normal text-slate-400 dark:text-slate-500">
             (operator labels)
           </span>
         </p>
         {account.tags.length === 0 ? (
-          <p className="text-sm text-slate-400">No tags assigned.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">No tags assigned.</p>
         ) : (
           <ul
             className="flex flex-wrap gap-1.5"
@@ -396,7 +396,7 @@ function AccountSection({
           >
             {account.tags.map((t) => (
               <li key={t.id}>
-                <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+                <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-700 dark:text-slate-300">
                   {t.tag}
                 </span>
               </li>
@@ -457,10 +457,10 @@ async function PortalContent({ slug }: PortalContentProps) {
     <div className="space-y-6">
       {/* ── A. Heading ─────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">
+        <h1 className="text-2xl font-bold tracking-tightish text-slate-900 dark:text-slate-100">
           Welcome, {firstName}
         </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
           Your upcoming reservations, training progress, and account info.
         </p>
       </div>
@@ -471,17 +471,17 @@ async function PortalContent({ slug }: PortalContentProps) {
           <SectionHeader eyebrow="Account balance" />
           <Link
             href={`/o/${slug}/portal/billing`}
-            className="flex items-end justify-between gap-4 rounded-md border border-slate-200 bg-white px-5 py-4 shadow-xs hover:border-brand/40"
+            className="flex items-end justify-between gap-4 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 shadow-xs hover:border-brand/40"
           >
             <span
               className={[
                 'nums text-3xl font-bold leading-none',
-                balanceCents < 0 ? 'text-danger' : 'text-slate-900',
+                balanceCents < 0 ? 'text-danger' : 'text-slate-900 dark:text-slate-100',
               ].join(' ')}
             >
               {formatCents(balanceCents)}
             </span>
-            <span className="text-sm font-medium text-slate-500">
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
               Billing — invoices &amp; payment methods{' '}
               <span aria-hidden="true">→</span>
             </span>
@@ -490,7 +490,7 @@ async function PortalContent({ slug }: PortalContentProps) {
       ) : (
         <Link
           href={`/o/${slug}/portal/billing`}
-          className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-xs hover:border-brand/40 hover:text-brand-ink"
+          className="flex items-center justify-between rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-xs hover:border-brand/40 hover:text-brand-ink"
         >
           Billing — balance, invoices, and payment methods
           <span aria-hidden="true">→</span>
@@ -500,7 +500,7 @@ async function PortalContent({ slug }: PortalContentProps) {
       {/* ── Block time (Slice B4) ─────────────────────────────────────────── */}
       <Link
         href={`/o/${slug}/portal/block-time`}
-        className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-xs hover:border-brand/40 hover:text-brand-ink"
+        className="flex items-center justify-between rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-xs hover:border-brand/40 hover:text-brand-ink"
       >
         Block time — your prepaid hours and balance
         <span aria-hidden="true">→</span>
@@ -509,7 +509,7 @@ async function PortalContent({ slug }: PortalContentProps) {
       {/* ── Logbook (Slice P2) ──────────────────────────────────────────── */}
       <Link
         href={`/o/${slug}/portal/logbook`}
-        className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-xs hover:border-brand/40 hover:text-brand-ink"
+        className="flex items-center justify-between rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-xs hover:border-brand/40 hover:text-brand-ink"
       >
         Logbook — your flight history and CSV export
         <span aria-hidden="true">→</span>

@@ -55,20 +55,20 @@ function ResourceCell({
   const squawkCount = isAircraft ? (openSquawkCounts.get(resource.id) ?? 0) : 0;
 
   return (
-    <div className="h-16 flex flex-col justify-center px-3 border-b border-slate-100 select-none gap-0.5">
+    <div className="h-16 flex flex-col justify-center px-3 border-b border-slate-100 dark:border-slate-800 select-none gap-0.5">
       {isAircraft ? (
         <>
-          <span className="font-mono text-xs text-slate-700 leading-tight truncate nums">
+          <span className="font-mono text-xs text-slate-700 dark:text-slate-300 leading-tight truncate nums">
             {resource.tailNumber ?? resource.displayName}
           </span>
           {resource.tailNumber && (
-            <span className="text-xs text-slate-500 truncate leading-tight">
+            <span className="text-xs text-slate-500 dark:text-slate-400 truncate leading-tight">
               {resource.displayName}
             </span>
           )}
         </>
       ) : (
-        <span className="text-sm font-medium text-slate-800 truncate">
+        <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
           {resource.displayName}
         </span>
       )}
@@ -87,7 +87,7 @@ function ResourceCell({
           )}
           {squawkCount > 0 && (
             <span
-              className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1 py-0 text-[0.6875rem] font-medium text-slate-600 leading-4 nums"
+              className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1 py-0 text-[0.6875rem] font-medium text-slate-600 dark:text-slate-300 leading-4 nums"
               aria-label={`${squawkCount} open squawk${squawkCount !== 1 ? 's' : ''}`}
             >
               {squawkCount} sqwk
@@ -99,7 +99,7 @@ function ResourceCell({
               <button
                 type="button"
                 onClick={() => onReleaseClick(resource)}
-                className="text-[0.6875rem] text-slate-500 hover:text-slate-800 underline leading-4"
+                className="text-[0.6875rem] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline leading-4"
                 aria-label={`Release ${resource.tailNumber ?? resource.displayName}`}
               >
                 Release
@@ -134,12 +134,12 @@ export function BoardGutter({
   const hasInstructors = grouped.instructors.length > 0;
 
   return (
-    <div className="flex-shrink-0 w-40 bg-white border-r border-slate-200 z-20">
+    <div className="flex-shrink-0 w-40 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-20">
       {/* Aircraft group */}
       {hasAircraft && (
         <>
-          <div className="h-8 flex items-end px-3 pb-1 border-b border-slate-200">
-            <span className="text-xs uppercase text-slate-400 font-medium tracking-wide">
+          <div className="h-8 flex items-end px-3 pb-1 border-b border-slate-200 dark:border-slate-800">
+            <span className="text-xs uppercase text-slate-400 dark:text-slate-500 font-medium tracking-wide">
               Aircraft
             </span>
           </div>
@@ -160,14 +160,14 @@ export function BoardGutter({
 
       {/* Group separator — only when both groups have entries */}
       {hasAircraft && hasInstructors && (
-        <div className="h-px bg-slate-300" />
+        <div className="h-px bg-slate-300 dark:bg-slate-600" />
       )}
 
       {/* Instructors group */}
       {hasInstructors && (
         <>
-          <div className="h-8 flex items-end px-3 pb-1 border-b border-slate-200">
-            <span className="text-xs uppercase text-slate-400 font-medium tracking-wide">
+          <div className="h-8 flex items-end px-3 pb-1 border-b border-slate-200 dark:border-slate-800">
+            <span className="text-xs uppercase text-slate-400 dark:text-slate-500 font-medium tracking-wide">
               Instructors
             </span>
           </div>

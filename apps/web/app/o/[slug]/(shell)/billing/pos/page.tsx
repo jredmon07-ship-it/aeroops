@@ -103,12 +103,12 @@ export default async function PosPage({ params }: PosPageProps) {
       <PageHeader
         title={
           <span className="flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6 text-slate-400" aria-hidden="true" />
+            <ShoppingCart className="h-6 w-6 text-slate-400 dark:text-slate-500" aria-hidden="true" />
             Counter sale
           </span>
         }
       />
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Sell headsets, charts, fuel, or other non-flight items. Amounts are recorded in cents.
         Creating a sale drafts an invoice; no card is charged until you finalize it. Tax is not calculated.
       </p>

@@ -157,7 +157,7 @@ export function CompleteWorkOrderDialog({
           <DialogTitle>Complete work order</DialogTitle>
         </DialogHeader>
 
-        <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700">
+        <div className="rounded-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-300">
           <p className="font-medium truncate">{workOrder.title}</p>
         </div>
 
@@ -173,7 +173,7 @@ export function CompleteWorkOrderDialog({
               value={workPerformed}
               onChange={(e) => setWorkPerformed(e.target.value)}
               disabled={isSubmitting}
-              className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+              className="flex w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
             />
           </div>
 
@@ -188,13 +188,13 @@ export function CompleteWorkOrderDialog({
               value={signOffNotes}
               onChange={(e) => setSignOffNotes(e.target.value)}
               disabled={isSubmitting}
-              className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+              className="flex w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
             />
           </div>
 
           {/* Resolve linked squawk option */}
           {canShowResolveSquawk && (
-            <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="space-y-2 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3">
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -202,12 +202,12 @@ export function CompleteWorkOrderDialog({
                   checked={resolveSquawk}
                   onChange={(e) => setResolveSquawk(e.target.checked)}
                   disabled={isSubmitting}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand focus:ring-brand"
                 />
-                <span className="text-sm text-slate-700">
+                <span className="text-sm text-slate-700 dark:text-slate-300">
                   <span className="font-medium">Resolve linked squawk</span>
                   {' — '}
-                  <span className="text-slate-500 truncate">{linkedSquawk?.title}</span>
+                  <span className="text-slate-500 dark:text-slate-400 truncate">{linkedSquawk?.title}</span>
                 </span>
               </label>
 
@@ -224,7 +224,7 @@ export function CompleteWorkOrderDialog({
                     value={squawkResolutionNotes}
                     onChange={(e) => setSquawkResolutionNotes(e.target.value)}
                     disabled={isSubmitting}
-                    className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+                    className="flex w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
                   />
                 </div>
               )}
@@ -233,7 +233,7 @@ export function CompleteWorkOrderDialog({
 
           {/* Unground option */}
           {canShowUnground && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3">
               {groundingMatchesSquawk ? (
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
@@ -242,18 +242,18 @@ export function CompleteWorkOrderDialog({
                     checked={unground}
                     onChange={(e) => setUnground(e.target.checked)}
                     disabled={isSubmitting}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-slate-700">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
                     <span className="font-medium">Return aircraft to service (unground)</span>
                     {' — '}
-                    <span className="text-slate-500">
+                    <span className="text-slate-500 dark:text-slate-400">
                       releases the current operator grounding
                     </span>
                   </span>
                 </label>
               ) : (
-                <div className="flex items-start gap-2 text-sm text-slate-500">
+                <div className="flex items-start gap-2 text-sm text-slate-500 dark:text-slate-400">
                   <Info className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>
                     Grounded for a different reason — remains grounded. Only the
@@ -265,7 +265,7 @@ export function CompleteWorkOrderDialog({
           )}
 
           {/* MANDATORY compliance disclaimer [VERIFY-M1-A/C] — verbatim, load-bearing */}
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <div className="rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
             <p>
               A sign-off is an operator/mechanic maintenance record — it is NOT an FAA
               return-to-service or §43.9/§43.11 determination, and the system makes no
@@ -322,15 +322,15 @@ export function CompleteResultPanel({
   });
 
   return (
-    <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2.5 space-y-1">
-      <p className="text-sm font-semibold text-green-900">Work order completed.</p>
+    <div className="rounded-md border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-3 py-2.5 space-y-1">
+      <p className="text-sm font-semibold text-green-900 dark:text-green-200">Work order completed.</p>
       <ul className="space-y-0.5" aria-label="Completion summary">
         {lines.slice(1).map((line, i) => (
-          <li key={i} className="flex items-start gap-1.5 text-xs text-green-800">
+          <li key={i} className="flex items-start gap-1.5 text-xs text-green-800 dark:text-green-200">
             {line.applied ? (
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600" aria-hidden="true" />
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden="true" />
             ) : (
-              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-700 opacity-60" aria-hidden="true" />
+              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-700 dark:text-green-300 opacity-60" aria-hidden="true" />
             )}
             <span>{line.label}</span>
           </li>

@@ -769,10 +769,10 @@ export function DispatchBoard({
       {/* ── Read-only badge ────────────────────────────────────────────── */}
       {!canDrag && (
         <div className="mb-2 flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+          <span className="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-800 px-2.5 py-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
             View only
           </span>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             You do not have permission to reschedule reservations.
           </span>
         </div>
@@ -827,11 +827,11 @@ export function DispatchBoard({
       )}
 
       {/* ── Board grid ────────────────────────────────────────────────── */}
-      <div className="flex border border-slate-200 rounded-md overflow-hidden bg-white">
+      <div className="flex border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden bg-white dark:bg-slate-900">
         {/* Left gutter (sticky) */}
         <div className="flex-shrink-0 sticky left-0 z-30">
           {/* Axis header spacer */}
-          <div className="h-8 bg-white border-b border-slate-200 w-40" />
+          <div className="h-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 w-40" />
           <BoardGutter
             grouped={grouped}
             groundingStatus={groundingStatus}
@@ -862,7 +862,7 @@ export function DispatchBoard({
                 {/* Group header spacer — matches gutter h-8 Aircraft header */}
                 <div
                   aria-hidden="true"
-                  className="h-8 border-b border-slate-200 bg-white"
+                  className="h-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
                 />
                 {grouped.aircraft.map((resource) => (
                   <BoardResourceRow
@@ -902,7 +902,7 @@ export function DispatchBoard({
 
             {/* Group separator — matches gutter h-px separator */}
             {grouped.aircraft.length > 0 && grouped.instructors.length > 0 && (
-              <div aria-hidden="true" className="h-px bg-slate-300" />
+              <div aria-hidden="true" className="h-px bg-slate-300 dark:bg-slate-600" />
             )}
 
             {/* Instructors group */}
@@ -911,7 +911,7 @@ export function DispatchBoard({
                 {/* Group header spacer — matches gutter h-8 Instructors header */}
                 <div
                   aria-hidden="true"
-                  className="h-8 border-b border-slate-200 bg-white"
+                  className="h-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
                 />
                 {grouped.instructors.map((resource) => (
                   <BoardResourceRow

@@ -138,7 +138,7 @@ export function SellBlockClient({ slug, members, activePackages }: SellBlockClie
     return (
       <div className="space-y-4">
         <Alert role="status">
-          <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden="true" />
+          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden="true" />
           <AlertDescription className="flex items-center justify-between gap-4">
             <span>
               Block sold — {success.purchase.hours} hrs / {formatCents(success.purchase.amountCents)}. New balance:{' '}
@@ -157,7 +157,7 @@ export function SellBlockClient({ slug, members, activePackages }: SellBlockClie
   }
 
   return (
-    <form onSubmit={handleSell} className="space-y-4 rounded-md border border-slate-200 p-4">
+    <form onSubmit={handleSell} className="space-y-4 rounded-md border border-slate-200 dark:border-slate-800 p-4">
       {error && (
         <Alert variant="destructive" role="alert">
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
@@ -173,7 +173,7 @@ export function SellBlockClient({ slug, members, activePackages }: SellBlockClie
           onChange={(e) => setMemberId(e.target.value)}
           disabled={submitting}
           aria-required="true"
-          className="flex h-10 w-full max-w-md rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+          className="flex h-10 w-full max-w-md rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
         >
           <option value="">— Select member —</option>
           {members.map((m) => (
@@ -186,7 +186,7 @@ export function SellBlockClient({ slug, members, activePackages }: SellBlockClie
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-slate-700">Block</legend>
+        <legend className="text-sm font-medium text-slate-700 dark:text-slate-300">Block</legend>
         <div className="flex gap-4">
           <label className="flex items-center gap-1.5 text-sm">
             <input
@@ -218,7 +218,7 @@ export function SellBlockClient({ slug, members, activePackages }: SellBlockClie
               value={packageId}
               onChange={(e) => setPackageId(e.target.value)}
               disabled={submitting}
-              className="flex h-10 w-full max-w-md rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              className="flex h-10 w-full max-w-md rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               <option value="">— Select package —</option>
               {activePackages.map((pkg) => (

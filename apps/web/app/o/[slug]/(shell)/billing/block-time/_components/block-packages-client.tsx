@@ -170,7 +170,7 @@ export function BlockPackagesClient({ slug, initialPackages, canManage }: BlockP
             Add package
           </Button>
         ) : (
-          <p className="text-sm text-slate-400">You do not have permission to manage block packages.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">You do not have permission to manage block packages.</p>
         )}
       </div>
 
@@ -188,32 +188,32 @@ export function BlockPackagesClient({ slug, initialPackages, canManage }: BlockP
           }
         />
       ) : (
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Block packages">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Name</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Hours</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Price</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">Effective rate</th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Status</th>
-                {canManage && <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Actions</th>}
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Name</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Hours</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Price</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">Effective rate</th>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Status</th>
+                {canManage && <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {packages.map((pkg) => (
-                <tr key={pkg.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                  <td className="px-3 py-3 font-medium text-slate-900">{pkg.name}</td>
+                <tr key={pkg.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <td className="px-3 py-3 font-medium text-slate-900 dark:text-slate-100">{pkg.name}</td>
                   <td className="px-3 py-3 text-right nums">{pkg.hours}</td>
                   <td className="px-3 py-3 text-right nums">{formatCents(pkg.priceCents)}</td>
-                  <td className="px-3 py-3 text-right nums text-xs text-slate-500 hidden sm:table-cell">
+                  <td className="px-3 py-3 text-right nums text-xs text-slate-500 dark:text-slate-400 hidden sm:table-cell">
                     {formatCents(pkg.effectiveRateCentsPerHour)}/hr
                   </td>
                   <td className="px-3 py-3">
                     {pkg.active ? (
-                      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">Active</span>
+                      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">Active</span>
                     ) : (
-                      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">Inactive</span>
+                      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">Inactive</span>
                     )}
                   </td>
                   {canManage && (

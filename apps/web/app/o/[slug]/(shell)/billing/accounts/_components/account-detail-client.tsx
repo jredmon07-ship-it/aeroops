@@ -361,47 +361,47 @@ export function AccountDetailClient({
       />
 
       {/* Balance card */}
-      <div className="rounded-md border border-slate-200 px-4 py-3 max-w-sm space-y-1">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 px-4 py-3 max-w-sm space-y-1">
         <div className="flex justify-between text-sm">
-          <span className="text-slate-500">Balance</span>
-          <span className={`nums font-semibold ${balanceCents < 0 ? 'text-danger' : 'text-slate-900'}`}>
+          <span className="text-slate-500 dark:text-slate-400">Balance</span>
+          <span className={`nums font-semibold ${balanceCents < 0 ? 'text-danger' : 'text-slate-900 dark:text-slate-100'}`}>
             {formatCents(balanceCents)}
           </span>
         </div>
         {minimumBalanceCents > 0 && (
-          <div className="flex justify-between text-xs text-slate-400">
+          <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500">
             <span>Operator minimum</span>
             <span className="nums">{formatCents(minimumBalanceCents)}</span>
           </div>
         )}
         {belowMinimum && (
-          <p className="text-xs text-amber-700 pt-1">Below the operator&apos;s configured minimum balance.</p>
+          <p className="text-xs text-amber-700 dark:text-amber-300 pt-1">Below the operator&apos;s configured minimum balance.</p>
         )}
       </div>
 
       {/* Ledger history */}
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Ledger history</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Ledger history</h2>
         {entries.length === 0 ? (
           <EmptyState icon={ScrollText} title="No ledger activity yet." className="py-6" />
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-x-auto">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Ledger entries">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Type
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
                     Reference
                   </th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Amount
                   </th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Balance
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
                     Date
                   </th>
                 </tr>
@@ -410,19 +410,19 @@ export function AccountDetailClient({
                 {entries.map((entry, i) => {
                   const runningBalance = runningBalances[i] ?? 0;
                   return (
-                  <tr key={entry.id} className="border-b border-slate-100 last:border-0">
-                    <td className="px-3 py-2 text-slate-700">{entryTypeLabel(entry.entryType)}</td>
-                    <td className="px-3 py-2 text-slate-500 hidden sm:table-cell">
+                  <tr key={entry.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                    <td className="px-3 py-2 text-slate-700 dark:text-slate-300">{entryTypeLabel(entry.entryType)}</td>
+                    <td className="px-3 py-2 text-slate-500 dark:text-slate-400 hidden sm:table-cell">
                       {entry.paymentId ?? entry.memo ?? '—'}
                     </td>
-                    <td className={`px-3 py-2 text-right nums ${entry.direction === 'debit' ? 'text-danger' : 'text-green-700'}`}>
+                    <td className={`px-3 py-2 text-right nums ${entry.direction === 'debit' ? 'text-danger' : 'text-green-700 dark:text-green-300'}`}>
                       {entry.direction === 'debit' ? '-' : '+'}
                       {formatCents(entry.amountCents)}
                     </td>
-                    <td className={`px-3 py-2 text-right nums font-medium ${runningBalance < 0 ? 'text-danger' : 'text-slate-700'}`}>
+                    <td className={`px-3 py-2 text-right nums font-medium ${runningBalance < 0 ? 'text-danger' : 'text-slate-700 dark:text-slate-300'}`}>
                       {formatCents(runningBalance)}
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-500 hidden sm:table-cell nums">
+                    <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 hidden sm:table-cell nums">
                       {new Date(entry.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -435,9 +435,9 @@ export function AccountDetailClient({
       </div>
 
       {/* ── Slice P0-REV: Billing profile — auto-pay + saved-PM + dues (DISPLAY ONLY) ── */}
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <div className="border-b border-slate-100 px-4 py-2.5 flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Billing profile</h2>
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="border-b border-slate-100 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Billing profile</h2>
           {canManage && (
             <div className="flex items-center gap-2">
               <Button type="button" size="sm" variant="outline" disabled={runDuesBusy} onClick={() => void handleRunDues()}>
@@ -450,21 +450,21 @@ export function AccountDetailClient({
           )}
         </div>
         <div className="px-4 py-3 space-y-3">
-          {runDuesResult && <p className="text-xs text-slate-500">{runDuesResult}</p>}
+          {runDuesResult && <p className="text-xs text-slate-500 dark:text-slate-400">{runDuesResult}</p>}
           {billingProfile === null ? (
-            <p className="text-sm text-slate-400">Billing profile unavailable.</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500">Billing profile unavailable.</p>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
-                <span className="text-slate-500">
+                <span className="text-slate-500 dark:text-slate-400">
                   Auto-pay:{' '}
-                  <span className={billingProfile.autopayEnabled ? 'text-brand-ink font-medium' : 'text-slate-700'}>
+                  <span className={billingProfile.autopayEnabled ? 'text-brand-ink font-medium' : 'text-slate-700 dark:text-slate-300'}>
                     {billingProfile.autopayEnabled ? 'On' : 'Off'}
                   </span>
                 </span>
-                <span className="text-slate-500">
+                <span className="text-slate-500 dark:text-slate-400">
                   Saved payment method:{' '}
-                  <span className="text-slate-700 font-medium">
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">
                     {billingProfile.defaultPaymentMethod
                       ? pmLabel(billingProfile.defaultPaymentMethod)
                       : billingProfile.savedPaymentMethodCount > 0
@@ -475,19 +475,19 @@ export function AccountDetailClient({
               </div>
 
               <div>
-                <h3 className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-400 mb-1">
+                <h3 className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1">
                   Active dues schedules
                 </h3>
                 {billingProfile.activeDuesSchedules.length === 0 ? (
-                  <p className="text-sm text-slate-400">None.</p>
+                  <p className="text-sm text-slate-400 dark:text-slate-500">None.</p>
                 ) : (
                   <ul className="space-y-1" role="list">
                     {billingProfile.activeDuesSchedules.map((s) => (
                       <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="text-slate-700">
+                        <span className="text-slate-700 dark:text-slate-300">
                           <span className="nums font-medium">{formatCents(s.amountCents)}</span> / {s.cadence} on day{' '}
                           {s.dayOfMonth}
-                          {s.memo && <span className="text-slate-400"> — {s.memo}</span>}
+                          {s.memo && <span className="text-slate-400 dark:text-slate-500"> — {s.memo}</span>}
                         </span>
                         {canManage && (
                           <Button
@@ -661,7 +661,7 @@ export function AccountDetailClient({
                 <Label htmlFor="adj-direction">Direction</Label>
                 <select
                   id="adj-direction"
-                  className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 w-full rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
                   value={adjDirection}
                   onChange={(e) => setAdjDirection(e.target.value as 'debit' | 'credit')}
                   disabled={adjBusy}

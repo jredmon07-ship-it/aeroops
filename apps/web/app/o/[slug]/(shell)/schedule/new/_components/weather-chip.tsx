@@ -37,10 +37,10 @@ const CATEGORY_STYLES: Record<
   Exclude<FlightCategory, 'UNKNOWN'>,
   { chipClass: string; label: string }
 > = {
-  VFR: { chipClass: 'border-green-200 bg-green-50 text-green-900', label: 'VFR' },
-  MVFR: { chipClass: 'border-blue-200 bg-blue-50 text-blue-900', label: 'MVFR' },
-  IFR: { chipClass: 'border-amber-200 bg-amber-50 text-amber-900', label: 'IFR' },
-  LIFR: { chipClass: 'border-red-200 bg-red-50 text-red-900', label: 'LIFR' },
+  VFR: { chipClass: 'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-900 dark:text-green-200', label: 'VFR' },
+  MVFR: { chipClass: 'border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200', label: 'MVFR' },
+  IFR: { chipClass: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200', label: 'IFR' },
+  LIFR: { chipClass: 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200', label: 'LIFR' },
 };
 
 /** Format epoch ms to a local HH:MM string; falls back to an em-dash on failure. */
@@ -69,7 +69,7 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
   if (state === 'loading') {
     return (
       <div
-        className="flex items-center gap-2 text-xs text-slate-500 py-1"
+        className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 py-1"
         role="status"
         aria-label={`Checking current weather for ${aircraftName}`}
       >
@@ -85,11 +85,11 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
     // the form.
     return (
       <div
-        className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+        className="flex items-start gap-2 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm"
         aria-label={`${aircraftName}: current weather unavailable`}
       >
-        <HelpCircle className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
-        <p className="text-slate-500 text-xs">
+        <HelpCircle className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" aria-hidden="true" />
+        <p className="text-slate-500 dark:text-slate-400 text-xs">
           Current weather unavailable — no home-base airport configured, or the
           weather service could not be reached.
         </p>
@@ -101,7 +101,7 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
   const { flightCategory, windKt, gustKt, visibilitySM, observedAt, rawText } = weather;
   const style =
     flightCategory === 'UNKNOWN'
-      ? { chipClass: 'border-slate-200 bg-slate-50 text-slate-700', label: 'Unknown' }
+      ? { chipClass: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300', label: 'Unknown' }
       : CATEGORY_STYLES[flightCategory];
 
   const windSummary =
@@ -113,18 +113,18 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
 
   return (
     <div
-      className="rounded-md border border-slate-200 bg-white text-sm"
+      className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm"
       aria-label={`${aircraftName}: current weather ${style.label}`}
     >
       <div className="flex items-center gap-2 px-3 py-2">
-        <CloudSun className="h-4 w-4 text-slate-400 shrink-0" aria-hidden="true" />
+        <CloudSun className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
         <span
           className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${style.chipClass}`}
         >
           {style.label}
         </span>
         {(windSummary || visSummary) && (
-          <span className="flex items-center gap-1 text-slate-600 text-xs">
+          <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 text-xs">
             {windSummary && (
               <span className="inline-flex items-center gap-0.5">
                 <Wind className="h-3 w-3" aria-hidden="true" />
@@ -134,14 +134,14 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
             {visSummary && <span>{visSummary}</span>}
           </span>
         )}
-        {asOf && <span className="text-slate-400 text-xs ml-auto">as of {asOf}</span>}
+        {asOf && <span className="text-slate-400 dark:text-slate-500 text-xs ml-auto">as of {asOf}</span>}
         {rawText && (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
             aria-label={expanded ? 'Hide raw METAR text' : 'Show raw METAR text'}
-            className="text-slate-400 hover:text-slate-600 shrink-0"
+            className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 shrink-0"
           >
             <ChevronDown
               className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
@@ -151,11 +151,11 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
         )}
       </div>
       {expanded && rawText && (
-        <div className="border-t border-slate-100 px-3 py-1.5 font-mono text-[0.6875rem] text-slate-500 break-all">
+        <div className="border-t border-slate-100 dark:border-slate-800 px-3 py-1.5 font-mono text-[0.6875rem] text-slate-500 dark:text-slate-400 break-all">
           {rawText}
         </div>
       )}
-      <p className="px-3 pb-1.5 text-[0.6875rem] text-slate-400">
+      <p className="px-3 pb-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
         Advisory only — not a go/no-go or airworthiness determination. The
         pilot in command decides.
       </p>

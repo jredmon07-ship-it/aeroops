@@ -100,12 +100,12 @@ export function NotificationPrefsCard() {
 
   return (
     <div
-      className="rounded-lg border border-slate-200 bg-white px-5 py-4 space-y-3"
+      className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 space-y-3"
       aria-label="Email notification settings"
     >
       <div>
-        <h2 className="text-sm font-semibold text-slate-800">Email notifications</h2>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Email notifications</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Choose which events send you an email. Off by default is not an option here — every
           event starts ON; turn any of them off below.
         </p>
@@ -127,7 +127,7 @@ export function NotificationPrefsCard() {
       )}
 
       {state.phase === 'populated' && (
-        <ul className="divide-y divide-slate-100" role="list">
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800" role="list">
           {state.prefs.map((pref) => {
             const info = eventLabelInfo(pref.eventType);
             const rowSaving = saving.has(pref.eventType);
@@ -136,11 +136,11 @@ export function NotificationPrefsCard() {
             return (
               <li key={pref.eventType} className="flex items-start justify-between gap-4 py-3">
                 <div className="min-w-0">
-                  <Label htmlFor={inputId} className="text-sm text-slate-800 font-medium cursor-pointer">
+                  <Label htmlFor={inputId} className="text-sm text-slate-800 dark:text-slate-100 font-medium cursor-pointer">
                     {info.label}
                   </Label>
                   {info.description && (
-                    <p className="text-xs text-slate-500 mt-0.5">{info.description}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{info.description}</p>
                   )}
                   {rowError && (
                     <p role="alert" className="text-xs text-danger mt-0.5">
@@ -155,7 +155,7 @@ export function NotificationPrefsCard() {
                   disabled={rowSaving}
                   aria-busy={rowSaving}
                   onChange={(e) => { void handleToggle(pref.eventType, e.target.checked); }}
-                  className="h-4 w-4 shrink-0 mt-0.5 rounded border-slate-300 text-brand focus:ring-brand/40"
+                  className="h-4 w-4 shrink-0 mt-0.5 rounded border-slate-300 dark:border-slate-700 text-brand focus:ring-brand/40"
                 />
               </li>
             );

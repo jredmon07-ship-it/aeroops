@@ -206,7 +206,7 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
         </DialogHeader>
 
         {/* [VERIFY-AV1-A] operator-data copy */}
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Set the hours this aircraft is available for scheduling on a given day.
           These are operator-defined operating hours — not a regulatory determination.
         </p>
@@ -215,14 +215,14 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
           {/* Day of week */}
           <div className="space-y-1.5">
             <Label htmlFor="aw-dow">
-              Day of week <span aria-hidden="true" className="text-red-500">*</span>
+              Day of week <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <select
               id="aw-dow"
               value={dayOfWeek}
               onChange={(e) => setDayOfWeek(Number(e.target.value))}
               disabled={submitting}
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50"
             >
               {DOW_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -236,7 +236,7 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="aw-start">
-                Start time <span aria-hidden="true" className="text-red-500">*</span>
+                Start time <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <input
                 id="aw-start"
@@ -252,14 +252,14 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
                 aria-invalid={fieldErrors.startTime ? 'true' : undefined}
                 aria-describedby={fieldErrors.startTime ? 'aw-start-err' : undefined}
                 className={[
-                  'flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900',
+                  'flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
                   'disabled:opacity-50',
-                  fieldErrors.startTime ? 'border-red-500' : 'border-slate-300',
+                  fieldErrors.startTime ? 'border-red-500' : 'border-slate-300 dark:border-slate-700',
                 ].join(' ')}
               />
               {fieldErrors.startTime && (
-                <p id="aw-start-err" role="alert" className="text-xs text-red-600">
+                <p id="aw-start-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.startTime}
                 </p>
               )}
@@ -267,7 +267,7 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
 
             <div className="space-y-1.5">
               <Label htmlFor="aw-end">
-                End time <span aria-hidden="true" className="text-red-500">*</span>
+                End time <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <input
                 id="aw-end"
@@ -283,18 +283,18 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
                 aria-invalid={fieldErrors.endTime ? 'true' : undefined}
                 aria-describedby={fieldErrors.endTime ? 'aw-end-err' : 'aw-end-hint'}
                 className={[
-                  'flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900',
+                  'flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
                   'disabled:opacity-50',
-                  fieldErrors.endTime ? 'border-red-500' : 'border-slate-300',
+                  fieldErrors.endTime ? 'border-red-500' : 'border-slate-300 dark:border-slate-700',
                 ].join(' ')}
               />
               {fieldErrors.endTime ? (
-                <p id="aw-end-err" role="alert" className="text-xs text-red-600">
+                <p id="aw-end-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.endTime}
                 </p>
               ) : (isOvernight && !isEndOfDay) ? (
-                <p id="aw-end-hint" className="text-xs text-amber-600">
+                <p id="aw-end-hint" className="text-xs text-amber-600 dark:text-amber-400">
                   Overnight: will create two windows (up to midnight + midnight to end).
                 </p>
               ) : null}
@@ -304,7 +304,7 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
           {/* Timezone */}
           <div className="space-y-1.5">
             <Label htmlFor="aw-tz">
-              Timezone <span aria-hidden="true" className="text-red-500">*</span>
+              Timezone <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <input
               id="aw-tz"
@@ -321,18 +321,18 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
               aria-invalid={fieldErrors.tz ? 'true' : undefined}
               aria-describedby={fieldErrors.tz ? 'aw-tz-err' : 'aw-tz-hint'}
               className={[
-                'flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm font-mono text-slate-900',
+                'flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm font-mono text-slate-900 dark:text-slate-100',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30',
                 'disabled:opacity-50',
-                fieldErrors.tz ? 'border-red-500' : 'border-slate-300',
+                fieldErrors.tz ? 'border-red-500' : 'border-slate-300 dark:border-slate-700',
               ].join(' ')}
             />
             {fieldErrors.tz ? (
-              <p id="aw-tz-err" role="alert" className="text-xs text-red-600">
+              <p id="aw-tz-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                 {fieldErrors.tz}
               </p>
             ) : (
-              <p id="aw-tz-hint" className="text-xs text-slate-500">
+              <p id="aw-tz-hint" className="text-xs text-slate-500 dark:text-slate-400">
                 IANA timezone (e.g. America/Chicago). Defaults to your browser timezone.
               </p>
             )}
@@ -443,12 +443,12 @@ export function AvailabilityWindowsCard({
   const grouped = windows ? groupWindowsByDay(windows) : [];
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       {/* ── Card header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-slate-400" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-slate-700">
+          <Clock className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Operating hours
           </h2>
           {!loading && !loadError && windows !== null && windows.length > 0 && (
@@ -471,7 +471,7 @@ export function AvailabilityWindowsCard({
       </div>
 
       {/* [VERIFY-AV1-A] operator-data framing + mandatory disclaimer */}
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         Weekly windows during which this aircraft is available for scheduling.
         These are operator-defined operating hours only — NOT an FAA duty-time,
         rest-period, or Part-117/135/121 determination.
@@ -479,9 +479,9 @@ export function AvailabilityWindowsCard({
 
       {/* ── Mandatory compliance disclaimer ──────────────────────────────── */}
       {/* [VERIFY-AV1-A]: Required by compliance. Do not remove or soften. */}
-      <div className="flex items-start gap-1.5 rounded bg-amber-50 border border-amber-200 px-2.5 py-2">
-        <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-        <p className="text-[0.6875rem] text-amber-800 leading-relaxed">
+      <div className="flex items-start gap-1.5 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2.5 py-2">
+        <Info className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+        <p className="text-[0.6875rem] text-amber-800 dark:text-amber-200 leading-relaxed">
           Operating-hours availability is an operator scheduling rule — it is{' '}
           <strong>NOT</strong> an FAA flight/duty-time, rest, or §117 determination.
         </p>
@@ -507,7 +507,7 @@ export function AvailabilityWindowsCard({
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {!loading && !loadError && windows !== null && windows.length === 0 && (
-        <p className="text-sm text-slate-400 italic">
+        <p className="text-sm text-slate-400 dark:text-slate-500 italic">
           No operating hours set — available any time.
         </p>
       )}
@@ -517,26 +517,26 @@ export function AvailabilityWindowsCard({
         <div className="space-y-3" role="list" aria-label="Operating hours by day">
           {grouped.map((group) => (
             <div key={group.dayOfWeek} role="listitem">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
                 {group.label}
               </p>
               <div className="space-y-1">
                 {group.windows.map((w) => (
                   <div
                     key={w.id}
-                    className="flex items-center justify-between gap-2 rounded-md border border-slate-100 bg-slate-50 px-3 py-1.5"
+                    className="flex items-center justify-between gap-2 rounded-md border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-1.5"
                   >
-                    <span className="nums text-sm text-slate-700 font-medium">
+                    <span className="nums text-sm text-slate-700 dark:text-slate-300 font-medium">
                       {w.range}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[0.6875rem] text-slate-400 font-mono">{w.tz}</span>
+                      <span className="text-[0.6875rem] text-slate-400 dark:text-slate-500 font-mono">{w.tz}</span>
                       <button
                         type="button"
                         onClick={() => setConfirmRemove({ id: w.id, label: `${group.label} ${w.range}` })}
                         disabled={removingId === w.id}
                         aria-label={`Remove window ${group.label} ${w.range}`}
-                        className="rounded-sm text-slate-400 hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
+                        className="rounded-sm text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
                       >
                         {removingId === w.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -571,7 +571,7 @@ export function AvailabilityWindowsCard({
             <AlertDialogTitle>Remove this window?</AlertDialogTitle>
             <AlertDialogDescription>
               Remove{' '}
-              <strong className="text-slate-800">{confirmRemove?.label}</strong>?
+              <strong className="text-slate-800 dark:text-slate-100">{confirmRemove?.label}</strong>?
               {' '}This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

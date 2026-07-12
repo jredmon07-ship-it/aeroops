@@ -64,17 +64,17 @@ function StatusChip({ status }: { status: MaintenanceDueStatus }) {
     },
     due_soon: {
       label: 'Due soon',
-      cls: 'border-amber-200 bg-amber-50 text-amber-800',
+      cls: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
       icon: <Clock className="h-3 w-3" aria-hidden="true" />,
     },
     ok: {
       label: 'OK',
-      cls: 'border-green-200 bg-green-50 text-green-800',
+      cls: 'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200',
       icon: <CheckCircle className="h-3 w-3" aria-hidden="true" />,
     },
     unknown: {
       label: 'No meter recorded yet',
-      cls: 'border-slate-200 bg-slate-50 text-slate-500',
+      cls: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
       icon: <HelpCircle className="h-3 w-3" aria-hidden="true" />,
     },
   };
@@ -116,7 +116,7 @@ function itemProgress(item: SerializedMaintenanceDueView) {
 function RemainingBar({ item }: { item: SerializedMaintenanceDueView }) {
   const p = itemProgress(item);
   if (p.tone === 'unknown') {
-    return <span className="text-xs text-slate-400">—</span>;
+    return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
   }
   const fillCls =
     p.tone === 'expired' ? 'bg-red-500' : p.tone === 'warn' ? 'bg-amber-400' : 'bg-green-500';
@@ -128,7 +128,7 @@ function RemainingBar({ item }: { item: SerializedMaintenanceDueView }) {
         aria-label={
           p.tone === 'expired' ? `Expired — ${remainingText}` : `${p.pctRemaining}% of interval remaining — ${remainingText}`
         }
-        className="relative h-2.5 w-full overflow-hidden rounded-sm bg-slate-100 border border-slate-200"
+        className="relative h-2.5 w-full overflow-hidden rounded-sm bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800"
       >
         <div className={`h-full ${fillCls}`} style={{ width: `${p.fillPct}%` }} />
         {p.tone === 'expired' && (
@@ -137,7 +137,7 @@ function RemainingBar({ item }: { item: SerializedMaintenanceDueView }) {
           </span>
         )}
       </div>
-      <p className="text-[0.6875rem] text-slate-500 nums">{remainingText}</p>
+      <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 nums">{remainingText}</p>
     </div>
   );
 }
@@ -320,14 +320,14 @@ export function MaintenanceDueList({
         <p
           role="status"
           aria-live="polite"
-          className={`text-xs ${notifyState === 'error' ? 'text-destructive' : 'text-slate-600'}`}
+          className={`text-xs ${notifyState === 'error' ? 'text-destructive' : 'text-slate-600 dark:text-slate-300'}`}
         >
           {notifyMessage}
         </p>
       )}
 
       {/* ── Compliance banner ────────────────────────────────────────────── */}
-      <p className="text-xs text-slate-500 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-xs text-slate-500 dark:text-slate-400 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2">
         Operator-entered tracking data and arithmetic reminders — not a computed Part-43/91.409
         airworthiness or inspection-due determination. A mechanic/IA makes the airworthiness call.
       </p>
@@ -336,14 +336,14 @@ export function MaintenanceDueList({
       {!fixedResourceId && (
         <div className="flex flex-wrap gap-3">
           <div className="space-y-1">
-            <label htmlFor="mi-filter-aircraft" className="text-xs text-slate-500 font-medium">
+            <label htmlFor="mi-filter-aircraft" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Aircraft
             </label>
             <select
               id="mi-filter-aircraft"
               value={filterResourceId}
               onChange={(e) => setFilterResourceId(e.target.value)}
-              className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
+              className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
             >
               <option value="">All aircraft</option>
               {aircraft.map((r) => (
@@ -354,14 +354,14 @@ export function MaintenanceDueList({
             </select>
           </div>
           <div className="space-y-1">
-            <label htmlFor="mi-filter-status" className="text-xs text-slate-500 font-medium">
+            <label htmlFor="mi-filter-status" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Status
             </label>
             <select
               id="mi-filter-status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as '' | MaintenanceDueStatus)}
-              className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
+              className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
             >
               <option value="">All statuses</option>
               <option value="overdue">Overdue</option>
@@ -371,14 +371,14 @@ export function MaintenanceDueList({
             </select>
           </div>
           <div className="space-y-1">
-            <label htmlFor="mi-sort" className="text-xs text-slate-500 font-medium">
+            <label htmlFor="mi-sort" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Sort
             </label>
             <select
               id="mi-sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'status' | 'remaining')}
-              className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
+              className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
             >
               <option value="status">Status</option>
               <option value="remaining">Remaining</option>
@@ -389,15 +389,15 @@ export function MaintenanceDueList({
 
       {/* ── One-click common reminders (owner/manager, aircraft with zero items) ── */}
       {showSeedButton && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 space-y-1.5">
-          <p className="text-sm text-slate-600">
-            <span className="font-medium text-slate-800">{aircraftName(seedTargetId)}</span> has no
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-3 space-y-1.5">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            <span className="font-medium text-slate-800 dark:text-slate-100">{aircraftName(seedTargetId)}</span> has no
             maintenance reminders yet.
           </p>
           <Button variant="outline" size="sm" onClick={handleSeedCommon} disabled={seedState === 'seeding'}>
             {seedState === 'seeding' ? 'Adding…' : 'Add common reminders'}
           </Button>
-          <p className="text-[0.6875rem] text-slate-400">
+          <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
             Adds 50 Hour Oil Change, 100 Hour Inspection, Annual Inspection, ELT Battery,
             Transponder Check and Pitot/Static Check as plain operator reminder items — each can be
             edited or deactivated individually.
@@ -431,49 +431,49 @@ export function MaintenanceDueList({
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Maintenance due items">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
                 {!fixedResourceId && (
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Aircraft
                   </th>
                 )}
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Item
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Status
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
                   Due
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Remaining
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide sr-only">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide sr-only">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                   {!fixedResourceId && (
                     <td className="px-3 py-3">
-                      <span className="font-mono text-xs nums text-slate-700">{aircraftName(item.resourceId)}</span>
+                      <span className="font-mono text-xs nums text-slate-700 dark:text-slate-300">{aircraftName(item.resourceId)}</span>
                     </td>
                   )}
                   <td className="px-3 py-3 max-w-xs">
-                    <p className="font-medium text-slate-900 truncate">{item.title}</p>
-                    {item.notes && <p className="text-xs text-slate-500 truncate">{item.notes}</p>}
+                    <p className="font-medium text-slate-900 dark:text-slate-100 truncate">{item.title}</p>
+                    {item.notes && <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.notes}</p>}
                   </td>
                   <td className="px-3 py-3">
                     <StatusChip status={item.status} />
                   </td>
                   <td className="px-3 py-3 hidden sm:table-cell">
-                    <span className="text-xs text-slate-500 nums">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 nums">
                       {item.trackBy === 'hours'
                         ? `${item.dueValueHours ?? '—'} ${item.meterBasis ?? ''} hrs`
                         : item.dueDate ?? '—'}
@@ -587,12 +587,12 @@ export function MaintenanceDueListSkeleton() {
   return (
     <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading maintenance due items">
       <div className="flex items-center justify-between gap-4">
-        <div className="h-8 bg-slate-200 rounded w-48" />
-        <div className="h-10 bg-slate-200 rounded w-32" />
+        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-48" />
+        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-32" />
       </div>
-      <div className="rounded-md border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-14 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-14 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>

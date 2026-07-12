@@ -63,6 +63,7 @@ import {
   auditLog,
   stripeEvent,
   paymentIntentRecord,
+  balancePayment,
   stripePaymentMethod,
   withOrgContext,
 } from '@aeroops/db';
@@ -70,6 +71,8 @@ import type { AnyDb } from '@aeroops/db';
 import { getStripeClient, StripeNotConfiguredError, StripeSignatureVerificationError } from './client.js';
 import type { StripeClient } from './client.js';
 import { resolveOrgByStripePaymentIntentId } from './resolve-payment-intent.js';
+import { resolveBalancePaymentByStripePaymentIntentId } from './resolve-balance-payment.js';
+import type { ResolvedBalancePayment } from './resolve-balance-payment.js';
 import { resolveOrgByStripeCustomerId } from './resolve-payment-customer.js';
 import { ensureBillingAccountTx } from '../../billing/ledger-internal.js';
 import { isUniqueViolation } from '../../dispatch/internal.js';
@@ -174,7 +177,15 @@ export async function handleStripeWebhookEvent(
 
   const resolved = await resolveOrgByStripePaymentIntentId(db, piId);
   if (!resolved) {
-    // We have no record of this PaymentIntent — nothing to credit. The
+    // Not an INVOICE payment. Try the BALANCE-payment arm (additive; inert in
+    // prod until migration 0045 is applied — resolveBalancePayment returns null
+    // when the table is absent). Everything ABOVE this point is byte-identical
+    // to the pre-fee-passing invoice-payment path.
+    const balResolved = await resolveBalancePaymentByStripePaymentIntentId(db, piId);
+    if (balResolved) {
+      await creditBalancePayment(db, balResolved, piId);
+    }
+    // Whether it was a balance payment or a truly-unknown PaymentIntent, the
     // dedup row is already written; this event will never be reprocessed.
     return { ok: true, alreadyProcessed: false };
   }
@@ -233,6 +244,65 @@ export async function handleStripeWebhookEvent(
   });
 
   return { ok: true, alreadyProcessed: false };
+}
+
+/**
+ * creditBalancePayment — post the single 'payment' ledger credit for a verified
+ * BALANCE payment (fee-passing / pay-full-balance feature). Additive: mirrors
+ * the invoice-payment credit arm above, but the credit carries invoice_id=NULL
+ * (a balance payment is not tied to any invoice — it simply zeroes a negative
+ * ledger balance). amount_cents credited is the BASE recorded on balance_payment
+ * (NOT any pass-through fee — the fee is the platform's).
+ *
+ * The guarded UPDATE (WHERE status <> 'succeeded') is idempotent even if a race
+ * slips past the stripe_event PK dedup (defense-in-depth; the PK is the REAL
+ * guard). org context is set via withOrgContext(db, resolvedOrgId) — the org_id
+ * resolved from OUR OWN balance_payment table, never from the Stripe payload.
+ */
+async function creditBalancePayment(
+  db: AnyDb,
+  resolved: ResolvedBalancePayment,
+  piId: string,
+): Promise<void> {
+  const { orgId, userId, balancePaymentId } = resolved;
+
+  await withOrgContext(db, orgId, async (tx) => {
+    const updated = await tx
+      .update(balancePayment)
+      .set({ status: 'succeeded', updatedAt: new Date() })
+      .where(and(eq(balancePayment.id, balancePaymentId), ne(balancePayment.status, 'succeeded')))
+      .returning();
+
+    if (!updated[0]) {
+      // Already succeeded (race) — nothing further to do.
+      return;
+    }
+
+    const accountId = await ensureBillingAccountTx(tx, orgId, userId);
+    await tx.insert(ledgerEntry).values({
+      orgId,
+      accountId,
+      entryType: 'payment',
+      direction: 'credit',
+      amountCents: updated[0].amountCents,
+      invoiceId: null, // balance payment — not tied to a specific invoice.
+      paymentId: piId,
+      memo: 'Stripe balance payment (webhook-verified)',
+      createdBy: null, // SYSTEM/webhook-generated — mirrors audit_log's nullable actor.
+    });
+
+    await tx.insert(auditLog).values({
+      orgId,
+      actorUserId: null,
+      action: 'billing.stripe_balance_payment_succeeded',
+      entityType: 'balance_payment',
+      entityId: balancePaymentId,
+      metadata: {
+        stripePaymentIntentId: piId,
+        amountCents: updated[0].amountCents,
+      },
+    });
+  });
 }
 
 /**

@@ -178,7 +178,7 @@ export function PosClient({ slug, members, catalogItems }: PosClientProps) {
     return (
       <div className="space-y-4">
         <Alert role="status">
-          <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden="true" />
+          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden="true" />
           <AlertDescription className="flex items-center justify-between gap-4">
             <span>
               Sale created — total {formatCents(success.totalCents)} ({success.status === 'finalized' ? 'finalized' : 'draft'}).
@@ -218,7 +218,7 @@ export function PosClient({ slug, members, catalogItems }: PosClientProps) {
           onChange={(e) => setMemberId(e.target.value)}
           disabled={submitting}
           aria-required="true"
-          className="flex h-10 w-full max-w-md rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+          className="flex h-10 w-full max-w-md rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
         >
           <option value="">— Select member —</option>
           {members.map((m) => (
@@ -230,8 +230,8 @@ export function PosClient({ slug, members, catalogItems }: PosClientProps) {
         </select>
       </div>
 
-      <div className="rounded-md border border-slate-200 p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700">Add catalog item</h2>
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Add catalog item</h2>
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1.5 flex-1 min-w-[220px]">
             <Label htmlFor="pos-catalog-item">Item</Label>
@@ -240,7 +240,7 @@ export function PosClient({ slug, members, catalogItems }: PosClientProps) {
               value={selectedCatalogId}
               onChange={(e) => setSelectedCatalogId(e.target.value)}
               disabled={submitting}
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               <option value="">— Select item —</option>
               {catalogItems.map((item) => (
@@ -270,8 +270,8 @@ export function PosClient({ slug, members, catalogItems }: PosClientProps) {
         </div>
       </div>
 
-      <div className="rounded-md border border-slate-200 p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700">Add ad-hoc line</h2>
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Add ad-hoc line</h2>
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1.5 flex-1 min-w-[180px]">
             <Label htmlFor="pos-adhoc-name">Name</Label>
@@ -293,40 +293,40 @@ export function PosClient({ slug, members, catalogItems }: PosClientProps) {
       </div>
 
       {lines.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 text-center space-y-2 text-slate-500" role="status">
+        <div className="flex flex-col items-center justify-center py-10 text-center space-y-2 text-slate-500 dark:text-slate-400" role="status">
           <ShoppingCart className="h-8 w-8 text-slate-300" aria-hidden="true" />
           <p>Add a line to start a sale.</p>
         </div>
       ) : (
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Sale lines">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Item</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Qty</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Unit price</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Total</th>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Item</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Qty</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Unit price</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total</th>
                 <th scope="col" className="px-3 py-2" />
               </tr>
             </thead>
             <tbody>
               {lines.map((line) => (
-                <tr key={line.key} className="border-b border-slate-100 last:border-0">
+                <tr key={line.key} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
                   <td className="px-3 py-2">{line.name}</td>
                   <td className="px-3 py-2 text-right nums">{line.quantity}</td>
                   <td className="px-3 py-2 text-right nums">{formatCents(line.unitPriceCents)}</td>
                   <td className="px-3 py-2 text-right nums">{formatCents(lineTotalCents(line))}</td>
                   <td className="px-3 py-2 text-right">
                     <Button variant="ghost" size="sm" aria-label={`Remove ${line.name}`} onClick={() => removeLine(line.key)} disabled={submitting}>
-                      <Trash2 className="h-4 w-4 text-red-600" aria-hidden="true" />
+                      <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" aria-hidden="true" />
                     </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="bg-slate-50 border-t border-slate-200">
-                <td colSpan={3} className="px-3 py-2 text-right text-sm font-medium text-slate-700">Subtotal</td>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-800">
+                <td colSpan={3} className="px-3 py-2 text-right text-sm font-medium text-slate-700 dark:text-slate-300">Subtotal</td>
                 <td className="px-3 py-2 text-right nums font-semibold">{formatCents(subtotalCents)}</td>
                 <td />
               </tr>

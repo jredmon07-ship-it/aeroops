@@ -43,7 +43,7 @@ import { PageHeader } from '@/components/ui/page-header';
 function AutoSchedulerSkeleton() {
   return (
     <div className="space-y-6 animate-pulse" aria-busy="true" aria-label="Loading auto-scheduler">
-      <div className="rounded border border-slate-200 bg-white p-4">
+      <div className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <Skeleton className="h-6 w-40 mb-4" />
         <div className="grid grid-cols-2 gap-3">
           <Skeleton className="h-9 w-full" />
@@ -104,8 +104,8 @@ async function AutoSchedulerContent({ slug }: AutoSchedulerContentProps) {
       <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
         <PlaneTakeoff className="h-12 w-12 text-slate-300" aria-hidden="true" />
         <div className="space-y-2">
-          <p className="text-slate-700 font-medium">No aircraft available to schedule.</p>
-          <p className="text-sm text-slate-500 max-w-sm">
+          <p className="text-slate-700 dark:text-slate-300 font-medium">No aircraft available to schedule.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
             Add at least one active aircraft as a resource before using the auto-scheduler.
           </p>
         </div>
@@ -162,7 +162,7 @@ export default async function AutoSchedulerPage({ params }: AutoSchedulerPagePro
       />
 
       {/* ── Instructions strip ────────────────────────────────────────────── */}
-      <div className="rounded border border-brand/20 bg-brand/5 px-4 py-3 text-sm text-slate-700">
+      <div className="rounded border border-brand/20 bg-brand/5 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
         <ol className="space-y-0.5 list-decimal list-inside">
           <li>Add the sessions you want to schedule below.</li>
           <li>Click <strong>Preview</strong> to see a proposed plan (no reservations created yet).</li>

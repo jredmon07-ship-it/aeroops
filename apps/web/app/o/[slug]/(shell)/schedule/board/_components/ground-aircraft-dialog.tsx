@@ -115,7 +115,7 @@ export function GroundAircraftDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             Grounding this aircraft will prevent it from being dispatched until
             released. This is operator data — it does not constitute a
             regulatory airworthiness determination.

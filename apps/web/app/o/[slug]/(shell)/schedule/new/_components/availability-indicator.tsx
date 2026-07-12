@@ -70,13 +70,13 @@ function ResourceBadge({
   if (!report.wouldViolate) {
     return (
       <div
-        className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm"
+        className="flex items-start gap-2 rounded-md border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm"
         aria-label={`${name}: within operating hours`}
       >
-        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
+        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" aria-hidden="true" />
         <div>
-          <span className="font-mono text-green-900">{name}</span>
-          <p className="text-green-700 text-xs mt-0.5">Within operating hours</p>
+          <span className="font-mono text-green-900 dark:text-green-200">{name}</span>
+          <p className="text-green-700 dark:text-green-300 text-xs mt-0.5">Within operating hours</p>
         </div>
       </div>
     );
@@ -93,15 +93,15 @@ function ResourceBadge({
 
   return (
     <div
-      className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm"
+      className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm"
       role="status"
       aria-label={`${name}: ${hitDescriptions.join('; ')}`}
     >
-      <Clock className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+      <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
       <div>
-        <span className="font-mono text-amber-900">{name}</span>
+        <span className="font-mono text-amber-900 dark:text-amber-200">{name}</span>
         {hitDescriptions.map((desc, i) => (
-          <p key={i} className="text-amber-800 text-xs mt-0.5">{desc}</p>
+          <p key={i} className="text-amber-800 dark:text-amber-200 text-xs mt-0.5">{desc}</p>
         ))}
       </div>
     </div>
@@ -120,7 +120,7 @@ export function AvailabilityIndicator({
   if (state === 'loading') {
     return (
       <div
-        className="flex items-center gap-2 text-xs text-slate-500 py-1"
+        className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 py-1"
         role="status"
         aria-label="Checking operating hours"
       >
@@ -147,7 +147,7 @@ export function AvailabilityIndicator({
 
   return (
     <div className="space-y-1.5" aria-label="Operating hours indicators">
-      <p className="text-xs text-slate-500 font-medium">
+      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
         Operating hours (advisory)
         {/* [VERIFY-AV1-A]: operator scheduling rule, NOT an FAA determination */}
       </p>

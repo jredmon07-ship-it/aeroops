@@ -23,9 +23,9 @@ import type { AircraftListRow } from '@aeroops/api';
 function StatusChip({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     open: { label: 'Open', cls: 'border-brand/30 bg-brand/8 text-brand-ink' },
-    in_progress: { label: 'In progress', cls: 'border-amber-200 bg-amber-50 text-amber-800' },
+    in_progress: { label: 'In progress', cls: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200' },
   };
-  const conf = map[status] ?? { label: status, cls: 'border-slate-200 bg-slate-50 text-slate-500' };
+  const conf = map[status] ?? { label: status, cls: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400' };
   return (
     <span
       className={`inline-flex items-center rounded-sm border px-1 py-0.5 text-[0.6875rem] font-semibold leading-4 ${conf.cls}`}
@@ -67,11 +67,11 @@ export function OpenWorkOrdersCard({
 
   return (
     <>
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-slate-400" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-slate-700">Open Work Orders</h2>
+            <Wrench className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Open Work Orders</h2>
             {displayCount > 0 && (
               <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
                 {displayCount}
@@ -94,26 +94,26 @@ export function OpenWorkOrdersCard({
         </div>
 
         {localWorkOrders.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">No open work orders.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No open work orders.</p>
         ) : (
           <div className="space-y-1.5">
             {localWorkOrders.map((wo) => (
               <div
                 key={wo.id}
-                className="flex items-start justify-between gap-2 rounded-md bg-slate-50 px-3 py-2"
+                className="flex items-start justify-between gap-2 rounded-md bg-slate-50 dark:bg-slate-800 px-3 py-2"
               >
                 <div className="min-w-0 space-y-0.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Link
                       href={`/o/${slug}/maintenance/work-orders/${wo.id}`}
-                      className="text-sm font-medium text-slate-800 hover:text-brand hover:underline underline-offset-2 truncate"
+                      className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-brand hover:underline underline-offset-2 truncate"
                     >
                       {wo.title}
                     </Link>
                     <StatusChip status={wo.status} />
                     {wo.squawkId && (
                       <span
-                        className="inline-flex items-center gap-0.5 text-[0.6875rem] text-amber-700"
+                        className="inline-flex items-center gap-0.5 text-[0.6875rem] text-amber-700 dark:text-amber-300"
                         title="Linked to a squawk"
                       >
                         <AlertTriangle className="h-3 w-3" aria-hidden="true" />
@@ -121,7 +121,7 @@ export function OpenWorkOrdersCard({
                     )}
                   </div>
                   {wo.description && (
-                    <p className="text-xs text-slate-500 truncate">{wo.description}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{wo.description}</p>
                   )}
                 </div>
               </div>

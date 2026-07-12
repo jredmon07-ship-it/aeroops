@@ -37,6 +37,8 @@ import { CommandPalette } from './command-palette';
 import { AlertsBell } from './alerts-bell';
 import { FieldStatusBar } from './field-status-bar';
 import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from './theme-provider';
+import { ThemeToggle } from './theme-toggle';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -85,9 +87,10 @@ export default async function OrgShellLayout({
   const navItems = filterNavForSession(session, NAV_ITEMS, slug);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <ThemeProvider>
+    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-800 dark:bg-slate-950">
       {/* ── Top header ──────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-slate-800 dark:bg-slate-900/95 dark:supports-[backdrop-filter]:bg-slate-900/80">
         <div className="flex h-14 w-full items-center gap-4 px-4 sm:px-6">
           {/* Mobile menu trigger (renders inside the MobileNav client component) */}
           <MobileNav
@@ -105,10 +108,10 @@ export default async function OrgShellLayout({
             >
               ✈
             </span>
-            <span className="text-[0.95rem] font-semibold tracking-tightish text-slate-900 leading-tight">
+            <span className="text-[0.95rem] font-semibold tracking-tightish text-slate-900 leading-tight dark:text-slate-100">
               {orgName}
             </span>
-            <span className="hidden text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400 sm:inline">
+            <span className="hidden text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400 sm:inline dark:text-slate-500">
               · AeroOps
             </span>
           </div>
@@ -128,19 +131,22 @@ export default async function OrgShellLayout({
               userId={session.userId}
             />
 
+            {/* Light/dark theme switch — persisted per browser by next-themes. */}
+            <ThemeToggle />
+
             {/* Notification email settings — every role holds app:access;
                 self-scoped page, intentionally kept out of the primary
                 sidebar (see notifications/page.tsx doc comment). */}
             <Link
               href={`/o/${slug}/notifications`}
-              className="hidden text-xs font-medium text-slate-500 hover:text-slate-800 sm:block"
+              className="hidden text-xs font-medium text-slate-500 hover:text-slate-800 sm:block dark:text-slate-400 dark:hover:text-slate-200"
             >
               Notifications
             </Link>
 
             <Separator orientation="vertical" className="h-5" />
 
-            <span className="hidden text-sm text-slate-500 sm:block">
+            <span className="hidden text-sm text-slate-500 sm:block dark:text-slate-400">
               {session.user.email}
             </span>
             <Badge variant="secondary" aria-label={`Role: ${roleLabel}`}>
@@ -201,5 +207,6 @@ export default async function OrgShellLayout({
       {/* ── App-wide toast stack (toast-on-mutation standard) ─────────────── */}
       <Toaster />
     </div>
+    </ThemeProvider>
   );
 }

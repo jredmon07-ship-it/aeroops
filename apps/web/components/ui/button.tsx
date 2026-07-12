@@ -10,19 +10,21 @@ import { Loader2 } from 'lucide-react';
 import { cn } from './utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default:
-          'bg-brand text-white shadow-sm hover:bg-brand-ink active:translate-y-px focus-visible:ring-brand',
+          'bg-brand text-white shadow-sm hover:bg-brand-ink active:translate-y-px focus-visible:ring-brand dark:hover:bg-blue-500',
+        // dark: the danger token is brightened for chips, so pin the solid fill
+        // to a darker red that keeps white-text AA in dark mode.
         destructive:
-          'bg-danger text-white shadow-sm hover:bg-red-700 active:translate-y-px focus-visible:ring-danger',
+          'bg-danger text-white shadow-sm hover:bg-red-700 active:translate-y-px focus-visible:ring-danger dark:bg-red-600 dark:hover:bg-red-500',
         outline:
-          'border border-slate-300 bg-white shadow-xs hover:bg-slate-50 hover:border-slate-400 text-slate-900 focus-visible:ring-slate-400',
+          'border border-slate-300 bg-white shadow-xs hover:bg-slate-50 hover:border-slate-400 text-slate-900 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:hover:border-slate-600',
         ghost:
-          'hover:bg-slate-100 text-slate-700 hover:text-slate-900 focus-visible:ring-slate-400',
-        link: 'text-brand underline-offset-4 hover:underline focus-visible:ring-brand',
+          'hover:bg-slate-100 text-slate-700 hover:text-slate-900 focus-visible:ring-slate-400 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+        link: 'text-brand underline-offset-4 hover:underline focus-visible:ring-brand dark:text-sky-400',
       },
       size: {
         default: 'h-10 px-4 py-2',

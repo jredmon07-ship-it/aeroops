@@ -79,7 +79,7 @@ async function DetailContent({ memberId, slug, canManage }: DetailContentProps) 
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center space-y-3" role="status">
         <Wallet className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-700 font-medium">This member has no billing account.</p>
+        <p className="text-slate-700 dark:text-slate-300 font-medium">This member has no billing account.</p>
         <Button asChild variant="outline" size="sm">
           <Link href={`/o/${slug}/billing`}>
             <ArrowLeft className="h-4 w-4 mr-1" aria-hidden="true" />
@@ -131,7 +131,7 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
     <div className="space-y-4">
       <Link
         href={`/o/${slug}/billing`}
-        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
         Back to Billing

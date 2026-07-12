@@ -28,15 +28,15 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <div className={cn('mb-1.5', className)}>
-      <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+      <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
         {eyebrow}
       </p>
       {title && (
-        <h2 className="mt-0.5 text-lg font-semibold tracking-tightish text-slate-900">
+        <h2 className="mt-0.5 text-lg font-semibold tracking-tightish text-slate-900 dark:text-slate-100">
           {title}
         </h2>
       )}
-      {hint && <p className="mt-0.5 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{hint}</p>}
     </div>
   );
 }

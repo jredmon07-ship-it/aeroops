@@ -55,14 +55,14 @@ export function SetupBanner({ slug }: { slug: string }) {
           Finish setting up your operation
           <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
           Add your aircraft and team to start scheduling.
         </p>
       </div>
       <button
         type="button"
         onClick={dismiss}
-        className="shrink-0 rounded-sm p-1 text-slate-400 transition-colors hover:bg-brand/10 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand"
+        className="shrink-0 rounded-sm p-1 text-slate-400 dark:text-slate-500 transition-colors hover:bg-brand/10 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand"
         aria-label="Dismiss setup reminder"
       >
         <X className="h-4 w-4" aria-hidden="true" />

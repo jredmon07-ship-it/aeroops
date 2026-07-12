@@ -215,7 +215,7 @@ export function MaintenanceItemDialog({
                 onChange={(e) => setResourceId(e.target.value)}
                 disabled={isSubmitting || !!preselectResourceId}
                 aria-required="true"
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50 transition-colors"
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50 transition-colors"
               >
                 <option value="">— Select aircraft —</option>
                 {aircraft.map((r) => (
@@ -251,7 +251,7 @@ export function MaintenanceItemDialog({
                 value={trackBy}
                 onChange={(e) => setTrackBy(e.target.value as 'hours' | 'date')}
                 disabled={isSubmitting}
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50 transition-colors"
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50 transition-colors"
               >
                 <option value="hours">Meter hours (Hobbs/tach)</option>
                 <option value="date">Calendar date</option>
@@ -269,7 +269,7 @@ export function MaintenanceItemDialog({
                     value={meterBasis}
                     onChange={(e) => setMeterBasis(e.target.value as 'hobbs' | 'tach')}
                     disabled={isSubmitting}
-                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50 transition-colors"
+                    className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 disabled:opacity-50 transition-colors"
                   >
                     <option value="hobbs">Hobbs</option>
                     <option value="tach">Tach</option>
@@ -277,7 +277,7 @@ export function MaintenanceItemDialog({
                 </div>
               )}
               {mode === 'edit' && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Tracked by {effectiveBasis === 'tach' ? 'tach' : 'Hobbs'} hours.
                 </p>
               )}
@@ -354,7 +354,7 @@ export function MaintenanceItemDialog({
             />
           </div>
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             This is operator-entered tracking data and an arithmetic reminder — not a computed
             Part-43/91.409 airworthiness or inspection-due determination. A mechanic/IA makes the
             airworthiness call.

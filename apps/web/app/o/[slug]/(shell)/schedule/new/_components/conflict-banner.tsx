@@ -131,7 +131,7 @@ export function ConflictBanner({
 
   if (state === 'checking') {
     return (
-      <Alert role="status" aria-live="polite" className="border-slate-200 bg-slate-50">
+      <Alert role="status" aria-live="polite" className="border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
         <AlertDescription>Checking availability…</AlertDescription>
       </Alert>
@@ -140,7 +140,7 @@ export function ConflictBanner({
 
   if (state === 'clear') {
     return (
-      <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-green-700 py-2">
+      <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300 py-2">
         <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span>This time slot is available and meets all booking rules.</span>
       </div>
@@ -215,7 +215,7 @@ export function ConflictBanner({
 
   // state === 'error'
   return (
-    <Alert className="border-amber-200 bg-amber-50 text-amber-800" role="status" aria-live="polite">
+    <Alert className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200" role="status" aria-live="polite">
       <AlertDescription>
         Availability check failed. You can still try submitting.
       </AlertDescription>

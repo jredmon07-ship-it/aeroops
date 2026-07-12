@@ -21,34 +21,34 @@ interface CoursesTableProps {
 function CourseStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         {courseStatusLabel(status)}
       </span>
     );
   }
   if (status === 'archived') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         {courseStatusLabel(status)}
       </span>
     );
   }
-  return <span className="text-xs text-slate-400">{status}</span>;
+  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
 }
 
 export function CoursesTable({ courses, slug }: CoursesTableProps) {
   return (
-    <div className="rounded-md border border-slate-200 overflow-x-auto">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
       <table className="w-full text-sm" aria-label="Courses">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-200">
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+          <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Title
             </th>
-            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Status
             </th>
-            <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Lessons
             </th>
           </tr>
@@ -57,7 +57,7 @@ export function CoursesTable({ courses, slug }: CoursesTableProps) {
           {courses.map((course) => (
             <tr
               key={course.courseId}
-              className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+              className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <td className="px-4 py-3">
                 <Link
@@ -67,14 +67,14 @@ export function CoursesTable({ courses, slug }: CoursesTableProps) {
                   {course.title}
                 </Link>
                 {course.description && (
-                  <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{course.description}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 line-clamp-1">{course.description}</p>
                 )}
               </td>
               <td className="px-4 py-3">
                 <CourseStatusChip status={course.status} />
               </td>
               <td className="px-4 py-3 text-right">
-                <span className="nums text-slate-700">{course.lessonCount}</span>
+                <span className="nums text-slate-700 dark:text-slate-300">{course.lessonCount}</span>
               </td>
             </tr>
           ))}

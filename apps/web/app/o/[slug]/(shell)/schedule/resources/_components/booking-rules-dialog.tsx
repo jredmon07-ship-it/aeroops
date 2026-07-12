@@ -526,7 +526,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
               {/* Empty state notice */}
               {!hasAnyPolicy && blackouts.length === 0 && saveState !== 'success' && (
                 <p
-                  className="text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-3"
+                  className="text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-3"
                   role="status"
                   aria-live="polite"
                 >
@@ -537,7 +537,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
               {/* Success banner */}
               {saveState === 'success' && (
                 <Alert
-                  className="border-green-200 bg-green-50 text-green-800"
+                  className="border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200"
                   role="status"
                   aria-live="polite"
                 >
@@ -560,7 +560,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
 
               {/* ── Policy fields ────────────────────────────────────────── */}
               <fieldset className="space-y-4">
-                <legend className="text-sm font-semibold text-slate-700">
+                <legend className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Booking restrictions
                 </legend>
 
@@ -586,11 +586,11 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
                     }
                     className={fieldErrors.maxDurationMinutes ? 'border-red-500' : ''}
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
                     Leave blank for no maximum. Must be at least 1 minute.
                   </p>
                   {fieldErrors.maxDurationMinutes && (
-                    <p id="maxDuration-error" role="alert" className="text-sm text-red-600">
+                    <p id="maxDuration-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                       {fieldErrors.maxDurationMinutes}
                     </p>
                   )}
@@ -618,11 +618,11 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
                     }
                     className={fieldErrors.maxAdvanceDays ? 'border-red-500' : ''}
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
                     Leave blank for no advance limit. 0 = same-day only.
                   </p>
                   {fieldErrors.maxAdvanceDays && (
-                    <p id="maxAdvance-error" role="alert" className="text-sm text-red-600">
+                    <p id="maxAdvance-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                       {fieldErrors.maxAdvanceDays}
                     </p>
                   )}
@@ -650,11 +650,11 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
                     }
                     className={fieldErrors.minAdvanceMinutes ? 'border-red-500' : ''}
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
                     Leave blank for no lead time requirement. 0 = last-minute bookings allowed.
                   </p>
                   {fieldErrors.minAdvanceMinutes && (
-                    <p id="minLead-error" role="alert" className="text-sm text-red-600">
+                    <p id="minLead-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                       {fieldErrors.minAdvanceMinutes}
                     </p>
                   )}
@@ -665,10 +665,10 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
               <section aria-labelledby="blackouts-heading" className="space-y-3">
                 <h3
                   id="blackouts-heading"
-                  className="text-sm font-semibold text-slate-700"
+                  className="text-sm font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Blackout windows
-                  <span className="ml-1 text-xs font-normal text-slate-400">
+                  <span className="ml-1 text-xs font-normal text-slate-400 dark:text-slate-500">
                     (times when this resource cannot be booked)
                   </span>
                 </h3>
@@ -685,7 +685,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
 
                 {/* Existing blackouts */}
                 {blackouts.length === 0 ? (
-                  <p className="text-xs text-slate-400">No blackouts configured.</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">No blackouts configured.</p>
                 ) : (
                   <ul className="space-y-2" aria-label="Existing blackout windows">
                     {blackouts.map((b) => (
@@ -767,13 +767,13 @@ function BlackoutRow({ blackout, onDelete }: BlackoutRowProps) {
   };
 
   return (
-    <li className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+    <li className="flex items-start gap-2 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm">
       <div className="flex-1 min-w-0">
-        <span className="text-slate-700 font-mono text-xs">
+        <span className="text-slate-700 dark:text-slate-300 font-mono text-xs">
           {formatDatetime(blackout.startAt)} – {formatDatetime(blackout.endAt)}
         </span>
         {blackout.reason && (
-          <p className="text-xs text-slate-500 mt-0.5 truncate" title={blackout.reason}>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate" title={blackout.reason}>
             {blackout.reason}
           </p>
         )}
@@ -784,7 +784,7 @@ function BlackoutRow({ blackout, onDelete }: BlackoutRowProps) {
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0 shrink-0 text-slate-400 hover:text-red-600"
+            className="h-7 w-7 p-0 shrink-0 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400"
             aria-label={`Remove blackout ${formatDatetime(blackout.startAt)} – ${formatDatetime(blackout.endAt)}`}
             disabled={pending}
           >
@@ -830,11 +830,11 @@ interface AddBlackoutFormProps {
 
 function AddBlackoutForm({ value, onChange, onSubmit, error, submitting }: AddBlackoutFormProps) {
   return (
-    <div className="rounded-md border border-dashed border-slate-300 p-3 space-y-3 bg-white">
-      <p className="text-xs font-medium text-slate-600">Add blackout window</p>
+    <div className="rounded-md border border-dashed border-slate-300 dark:border-slate-700 p-3 space-y-3 bg-white dark:bg-slate-900">
+      <p className="text-xs font-medium text-slate-600 dark:text-slate-300">Add blackout window</p>
       <form onSubmit={onSubmit} noValidate className="space-y-3">
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
         )}
@@ -929,7 +929,7 @@ function ClearRulesButton({ hasPolicy, saving, onClear }: ClearRulesButtonProps)
         <Button
           type="button"
           variant="outline"
-          className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+          className="text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300"
           disabled={saving}
         >
           Clear rules

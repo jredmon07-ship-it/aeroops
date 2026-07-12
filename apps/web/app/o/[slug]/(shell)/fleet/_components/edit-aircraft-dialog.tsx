@@ -294,7 +294,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                 className={fieldErrors.displayName ? 'border-red-500' : ''}
               />
               {fieldErrors.displayName && (
-                <p id="ea-displayName-err" role="alert" className="text-xs text-red-600">
+                <p id="ea-displayName-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.displayName}
                 </p>
               )}
@@ -345,7 +345,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                 className={fieldErrors.year ? 'border-red-500' : ''}
               />
               {fieldErrors.year && (
-                <p id="ea-year-err" role="alert" className="text-xs text-red-600">
+                <p id="ea-year-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.year}
                 </p>
               )}
@@ -388,7 +388,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                   disabled={isSubmitting}
                 />
               </div>
-              <p className="col-span-2 text-xs text-slate-400">
+              <p className="col-span-2 text-xs text-slate-400 dark:text-slate-500">
                 Free-text identity labels shown on logbook rows — operator-entered,
                 not a certification determination.
               </p>
@@ -399,7 +399,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
               <Label htmlFor="ea-home-base">Home base</Label>
               {locationsLoading ? (
                 <div
-                  className="flex h-10 w-full items-center rounded-md border border-slate-200 bg-slate-50 px-3 animate-pulse"
+                  className="flex h-10 w-full items-center rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 animate-pulse"
                   aria-busy="true"
                   aria-label="Loading locations"
                 >
@@ -416,8 +416,8 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                   disabled={isSubmitting}
                   aria-invalid={fieldErrors.homeBaseLocationId ? 'true' : undefined}
                   aria-describedby={fieldErrors.homeBaseLocationId ? 'ea-home-base-err' : undefined}
-                  className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${
-                    fieldErrors.homeBaseLocationId ? 'border-red-500' : 'border-slate-300'
+                  className={`flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${
+                    fieldErrors.homeBaseLocationId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
                   }`}
                 >
                   <option value="">— No home base —</option>
@@ -430,7 +430,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                 </select>
               )}
               {fieldErrors.homeBaseLocationId && (
-                <p id="ea-home-base-err" role="alert" className="text-xs text-red-600">
+                <p id="ea-home-base-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.homeBaseLocationId}
                 </p>
               )}
@@ -438,7 +438,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
 
             {/* Meter config checkboxes */}
             <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-700">Meter tracking</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Meter tracking</p>
               <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -446,10 +446,10 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                     checked={hasHobbs}
                     onChange={(e) => setHasHobbs(e.target.checked)}
                     disabled={isSubmitting}
-                    className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand focus:ring-brand"
                     id="ea-has-hobbs"
                   />
-                  <span className="text-sm text-slate-700">Track Hobbs meter</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Track Hobbs meter</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -457,13 +457,13 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                     checked={hasTach}
                     onChange={(e) => setHasTach(e.target.checked)}
                     disabled={isSubmitting}
-                    className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand focus:ring-brand"
                     id="ea-has-tach"
                   />
-                  <span className="text-sm text-slate-700">Track Tach meter</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Track Tach meter</span>
                 </label>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 Display only — does not affect the dispatch meter-capture path.
               </p>
             </div>

@@ -43,16 +43,16 @@ export function ResourceRowCard({ resource, onDeactivated }: ResourceRowProps) {
         <div className="min-w-0 flex-1 space-y-0.5">
           <div className="flex items-center gap-2 flex-wrap">
             {resource.kind === 'aircraft' && resource.tailNumber && (
-              <span className="font-mono text-sm text-slate-700">
+              <span className="font-mono text-sm text-slate-700 dark:text-slate-300">
                 {resource.tailNumber}
               </span>
             )}
-            <span className="text-sm font-medium text-slate-900 truncate">
+            <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
               {resource.displayName}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 capitalize">{resource.kind}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 capitalize">{resource.kind}</span>
           </div>
         </div>
 

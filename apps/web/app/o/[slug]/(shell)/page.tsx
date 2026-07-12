@@ -89,7 +89,7 @@ function DashboardSkeleton() {
       {/* B: snapshot strip skeleton */}
       <div>
         <Skeleton className="h-3 w-16 mb-2" />
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs divide-x divide-slate-200 flex">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs divide-x divide-slate-200 dark:divide-slate-800 flex">
           {[0, 1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="flex-1 px-4 py-4 space-y-2">
               <Skeleton className="h-2.5 w-14" />
@@ -105,7 +105,7 @@ function DashboardSkeleton() {
         <Skeleton className="h-3 w-24 mb-2" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-md border border-slate-200 bg-white shadow-xs p-4 space-y-2">
+            <div key={i} className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-4 space-y-2">
               <Skeleton className="h-2.5 w-20" />
               <Skeleton className="h-9 w-16" />
               <Skeleton className="h-2.5 w-24" />
@@ -117,10 +117,10 @@ function DashboardSkeleton() {
       {/* D: utilization table skeleton */}
       <div>
         <Skeleton className="h-3 w-48 mb-2" />
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
-          <div className="h-10 bg-slate-50 border-b border-slate-200" />
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+          <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-12 border-b border-slate-100 flex items-center px-4 gap-8">
+            <div key={i} className="h-12 border-b border-slate-100 dark:border-slate-800 flex items-center px-4 gap-8">
               <Skeleton className="h-3 w-16" />
               <Skeleton className="h-3 w-8" />
               <Skeleton className="h-3 w-12" />
@@ -135,7 +135,7 @@ function DashboardSkeleton() {
         <Skeleton className="h-3 w-20 mb-2" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+            <div key={i} className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
               <div className="hairline px-4 py-2.5">
                 <Skeleton className="h-3 w-28" />
               </div>
@@ -156,11 +156,11 @@ function DashboardSkeleton() {
 
 function PermissionDeniedPanel() {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-6 py-10 text-center space-y-2">
-      <p className="text-sm font-medium text-slate-700">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-10 text-center space-y-2">
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
         Reporting isn&apos;t available for your role.
       </p>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Contact your administrator if you need access.
       </p>
     </div>
@@ -260,21 +260,21 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
     <div className="space-y-6">
       {/* ── B. Snapshot strip ─────────────────────────────────────────────── */}
       <section aria-label="Operational snapshot">
-        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
           As of now
         </p>
         {/* One white panel, hairline divide-x: instrument cluster */}
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs">
-          <div className="flex divide-x divide-slate-200 max-sm:grid max-sm:grid-cols-2 max-sm:divide-x-0">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+          <div className="flex divide-x divide-slate-200 dark:divide-slate-800 max-sm:grid max-sm:grid-cols-2 max-sm:divide-x-0">
             {/* Tile 1: Grounded */}
             <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Grounded
               </p>
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.groundedAircraftCount > 0 ? 'text-danger' : 'text-slate-400',
+                  metrics.groundedAircraftCount > 0 ? 'text-danger' : 'text-slate-400 dark:text-slate-500',
                 ].join(' ')}
               >
                 {metrics.groundedAircraftCount}
@@ -284,7 +284,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                   'mt-1 text-xs',
                   metrics.groundedAircraftCount > 0
                     ? 'text-danger/70'
-                    : 'text-slate-400',
+                    : 'text-slate-400 dark:text-slate-500',
                 ].join(' ')}
               >
                 {metrics.groundedAircraftCount > 0
@@ -295,13 +295,13 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
 
             {/* Tile 2: Open squawks */}
             <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Open squawks
               </p>
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.openSquawkCount > 0 ? 'text-amber-700' : 'text-slate-400',
+                  metrics.openSquawkCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400 dark:text-slate-500',
                 ].join(' ')}
               >
                 {metrics.openSquawkCount}
@@ -309,7 +309,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
               <p
                 className={[
                   'mt-1 text-xs',
-                  metrics.openSquawkCount > 0 ? 'text-amber-600' : 'text-slate-400',
+                  metrics.openSquawkCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500',
                 ].join(' ')}
               >
                 {metrics.openSquawkCount > 0 ? 'open' : 'all clear'}
@@ -318,54 +318,54 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
 
             {/* Tile 3: Active aircraft */}
             <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Active aircraft
               </p>
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.activeAircraftCount === 0 ? 'text-slate-400' : 'text-slate-900',
+                  metrics.activeAircraftCount === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {metrics.activeAircraftCount}
               </p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                 {metrics.activeAircraftCount === 0 ? 'none yet' : 'in fleet'}
               </p>
             </div>
 
             {/* Tile 4: Active members */}
             <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Active members
               </p>
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.activeMemberCount === 0 ? 'text-slate-400' : 'text-slate-900',
+                  metrics.activeMemberCount === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {metrics.activeMemberCount}
               </p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                 {metrics.activeMemberCount === 0 ? 'none yet' : 'on roster'}
               </p>
             </div>
 
             {/* Tile 5: Open work orders */}
             <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Open work orders
               </p>
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.openWorkOrderCount > 0 ? 'text-amber-700' : 'text-slate-400',
+                  metrics.openWorkOrderCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400 dark:text-slate-500',
                 ].join(' ')}
               >
                 {metrics.openWorkOrderCount}
               </p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                 <Link
                   href={`/o/${slug}/maintenance/work-orders`}
                   className="hover:text-brand underline-offset-2 hover:underline"
@@ -377,18 +377,18 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
 
             {/* Tile 6: Active enrollments */}
             <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Active enrollments
               </p>
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.activeEnrollmentCount === 0 ? 'text-slate-400' : 'text-slate-900',
+                  metrics.activeEnrollmentCount === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {metrics.activeEnrollmentCount}
               </p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                 <Link
                   href={`/o/${slug}/training/enrollments`}
                   className="hover:text-brand underline-offset-2 hover:underline"
@@ -400,13 +400,13 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
 
             {/* Tile 7: Maintenance due (Slice P1.5) [VERIFY-P1.5-A] */}
             <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Maintenance due
               </p>
               {maintenanceDueSummary === null ? (
                 <>
                   <p className="nums mt-1 text-2xl font-bold leading-none text-slate-300">—</p>
-                  <p className="mt-1 text-xs text-slate-400">not available</p>
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">not available</p>
                 </>
               ) : (
                 <>
@@ -416,13 +416,13 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                       maintenanceDueSummary.overdueCount > 0
                         ? 'text-danger'
                         : maintenanceDueSummary.dueSoonCount > 0
-                          ? 'text-amber-700'
-                          : 'text-slate-400',
+                          ? 'text-amber-700 dark:text-amber-300'
+                          : 'text-slate-400 dark:text-slate-500',
                     ].join(' ')}
                   >
                     {maintenanceDueSummary.overdueCount + maintenanceDueSummary.dueSoonCount}
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                     <Link
                       href={`/o/${slug}/maintenance/due`}
                       className="hover:text-brand underline-offset-2 hover:underline"
@@ -443,25 +443,25 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
 
       {/* ── C. KPI row (range-scoped) ─────────────────────────────────────── */}
       <section aria-label={`Throughput — last ${rangeLbl}`}>
-        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
           Last {rangeLbl}
         </p>
         {/* Structurally DIFFERENT from B: separate gap-3 grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Flights */}
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-5 py-4">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Flights
             </p>
             <p
               className={[
                 'nums mt-1 text-3xl font-bold leading-none',
-                metrics.totalFlights === 0 ? 'text-slate-300' : 'text-slate-900',
+                metrics.totalFlights === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
               ].join(' ')}
             >
               {metrics.totalFlights}
             </p>
-            <p className="mt-1.5 text-xs text-slate-400" aria-hidden="true">
+            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500" aria-hidden="true">
               {metrics.totalFlights === 0 ? 'no flights in period' : 'completed dispatches'}
             </p>
             {/* Reserved 16px trend slot — future sparkline */}
@@ -469,38 +469,38 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
           </div>
 
           {/* Flight hours */}
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-5 py-4">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Flight hours *
             </p>
             <p
               className={[
                 'nums mt-1 text-3xl font-bold leading-none',
-                metrics.totalFlightHours === 0 ? 'text-slate-300' : 'text-slate-900',
+                metrics.totalFlightHours === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
               ].join(' ')}
             >
               {metrics.totalFlightHours.toFixed(1)}
             </p>
-            <p className="mt-1.5 text-xs text-slate-400">
+            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
               {metrics.totalFlightHours === 0 ? 'no … in period' : 'utilization hrs'}
             </p>
             <div className="h-4" aria-hidden="true" />
           </div>
 
           {/* Reservations */}
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-5 py-4">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Reservations
             </p>
             <p
               className={[
                 'nums mt-1 text-3xl font-bold leading-none',
-                metrics.reservationsInRange === 0 ? 'text-slate-300' : 'text-slate-900',
+                metrics.reservationsInRange === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
               ].join(' ')}
             >
               {metrics.reservationsInRange}
             </p>
-            <p className="mt-1.5 text-xs text-slate-400">
+            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
               {metrics.reservationsInRange === 0 ? 'no … in period' : 'incl. upcoming'}
             </p>
             <div className="h-4" aria-hidden="true" />
@@ -508,7 +508,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
         </div>
         {/* Range-no-data subline */}
         {metrics.activeAircraftCount > 0 && metrics.totalFlights === 0 && (
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
             No completed flights in the selected period. Try a wider range.
           </p>
         )}
@@ -516,43 +516,43 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
 
       {/* ── D. Utilization table ──────────────────────────────────────────── */}
       <section aria-label={`Fleet utilization — last ${rangeLbl}`}>
-        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
           Fleet utilization — last {rangeLbl}
         </p>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
           <table
             className="w-full text-sm"
             aria-label={`Fleet utilization last ${rangeLbl}`}
           >
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400"
                 >
                   Tail #
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500"
+                  className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400"
                 >
                   Flights
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500"
+                  className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400"
                 >
                   Hours *
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 w-28"
+                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 w-28"
                 >
                   Utilization
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 hidden sm:table-cell"
+                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 hidden sm:table-cell"
                 >
                   Status
                 </th>
@@ -563,7 +563,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-4 py-10 text-center text-sm text-slate-400"
+                    className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500"
                   >
                     No active aircraft.{' '}
                     <Link
@@ -580,13 +580,13 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                   return (
                     <tr
                       key={row.resourceId}
-                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                      className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       {/* Tail # */}
                       <td className="px-4 py-3">
                         <Link
                           href={`/o/${slug}/fleet/${row.resourceId}`}
-                          className="nums font-bold text-slate-900 hover:text-brand underline-offset-2 hover:underline"
+                          className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
                           aria-label={`View details for ${row.tailNumber}`}
                         >
                           {row.tailNumber}
@@ -594,18 +594,18 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                       </td>
                       {/* Flights */}
                       <td className="px-4 py-3 text-right">
-                        <span className="nums text-slate-700">{row.flightCount}</span>
+                        <span className="nums text-slate-700 dark:text-slate-300">{row.flightCount}</span>
                       </td>
                       {/* Hours */}
                       <td className="px-4 py-3 text-right">
-                        <span className="nums text-slate-700">
+                        <span className="nums text-slate-700 dark:text-slate-300">
                           {row.flightHours.toFixed(1)}h
                         </span>
                       </td>
                       {/* Proportion bar — decorative only */}
                       <td className="px-4 py-3">
                         <div
-                          className="w-24 h-1.5 rounded-full bg-slate-100"
+                          className="w-24 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800"
                           aria-hidden="true"
                         >
                           <div
@@ -625,7 +625,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                           {(squawkCountByResource.get(row.resourceId) ?? 0) > 0 && (
                             <Link
                               href={`/o/${slug}/maintenance/squawks?resourceId=${row.resourceId}`}
-                              className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 hover:bg-amber-100 transition-colors"
+                              className="inline-flex items-center gap-1 rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors"
                               aria-label={`${squawkCountByResource.get(row.resourceId)} open squawk${(squawkCountByResource.get(row.resourceId) ?? 0) !== 1 ? 's' : ''} for ${row.tailNumber}`}
                             >
                               {squawkCountByResource.get(row.resourceId)} open squawk{(squawkCountByResource.get(row.resourceId) ?? 0) !== 1 ? 's' : ''}
@@ -633,7 +633,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                           )}
                           {!groundedIdSet.has(row.resourceId) &&
                             (squawkCountByResource.get(row.resourceId) ?? 0) === 0 && (
-                              <span className="text-xs text-slate-400">—</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
                             )}
                         </div>
                       </td>
@@ -645,7 +645,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
           </table>
         </div>
         {/* Mandatory hours footnote [VERIFY-A] */}
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
           * Utilization hours derived from recorded Hobbs at check-in. Operational
           figure only — not a billing or airworthiness statement.
         </p>
@@ -658,7 +658,7 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
           role="note"
         >
           <p className="text-sm font-semibold text-brand-ink">Getting started</p>
-          <p className="mt-0.5 text-sm text-slate-600">
+          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">
             Add aircraft in{' '}
             <Link
               href={`/o/${slug}/schedule/resources`}
@@ -680,16 +680,16 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
 
       {/* ── E. At-a-glance ───────────────────────────────────────────────── */}
       <section aria-label="Today's operations">
-        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
           On the board
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Card 1: Today's flights */}
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
             <div className="hairline flex items-center justify-between px-4 py-2.5">
-              <span className="text-xs font-semibold text-slate-700">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Today&apos;s flights
-                <span className="ml-1 text-[0.625rem] font-normal text-slate-400 uppercase tracking-wide">
+                <span className="ml-1 text-[0.625rem] font-normal text-slate-400 dark:text-slate-500 uppercase tracking-wide">
                   UTC
                 </span>
               </span>
@@ -702,20 +702,20 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
             </div>
             <div className="max-h-52 overflow-y-auto">
               {todaysFlights.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-slate-400">
+                <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                   No flights today.
                 </p>
               ) : (
-                <ul className="divide-y divide-slate-100">
+                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                   {todaysFlights.map((r) => (
                     <li key={r.id} className="flex items-baseline gap-2 px-4 py-2.5">
-                      <span className="nums text-xs text-slate-500 shrink-0">
+                      <span className="nums text-xs text-slate-500 dark:text-slate-400 shrink-0">
                         {formatUtcTime(r.startAt)}
                       </span>
-                      <span className="text-xs text-slate-700 truncate">
+                      <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
                         {r.resourceIds.length > 0 ? r.resourceIds[0]?.slice(0, 8) : '—'}
                       </span>
-                      <span className="text-xs text-slate-400 truncate ml-auto">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate ml-auto">
                         {r.createdBy.slice(0, 8)}
                       </span>
                     </li>
@@ -726,9 +726,9 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
           </div>
 
           {/* Card 2: Grounded aircraft */}
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
             <div className="hairline flex items-center justify-between px-4 py-2.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {groundedAircraft.length > 0 && (
                   <span
                     className="inline-block h-2 w-2 rounded-full bg-danger"
@@ -746,20 +746,20 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
             </div>
             <div className="max-h-52 overflow-y-auto">
               {groundedAircraft.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-slate-400">
+                <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                   No aircraft grounded.
                 </p>
               ) : (
-                <ul className="divide-y divide-slate-100">
+                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                   {groundedAircraft.map((a) => (
                     <li key={a.id} className="flex items-baseline gap-2 px-4 py-2.5">
                       <Link
                         href={`/o/${slug}/fleet/${a.id}`}
-                        className="nums text-xs font-bold text-slate-900 hover:text-brand underline-offset-2 hover:underline shrink-0"
+                        className="nums text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline shrink-0"
                       >
                         {a.tailNumber}
                       </Link>
-                      <span className="text-xs text-slate-400 truncate">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
                         {a.groundingReason ?? 'No reason given'}
                       </span>
                     </li>
@@ -770,9 +770,9 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
           </div>
 
           {/* Card 3: Open squawks */}
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
             <div className="hairline flex items-center justify-between px-4 py-2.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {openSquawks.length > 0 && (
                   <span
                     className="inline-block h-2 w-2 rounded-full bg-amber-500"
@@ -790,18 +790,18 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
             </div>
             <div className="max-h-52 overflow-y-auto">
               {openSquawks.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-slate-400">
+                <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                   No open squawks.
                 </p>
               ) : (
-                <ul className="divide-y divide-slate-100">
+                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                   {openSquawks.map((s) => (
                     <li key={s.id}>
                       <Link
                         href={`/o/${slug}/maintenance/squawks?resourceId=${s.resourceId}`}
-                        className="flex items-start gap-2 px-4 py-2.5 hover:bg-slate-50 transition-colors"
+                        className="flex items-start gap-2 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                       >
-                        <span className="flex-1 min-w-0 text-xs text-slate-700 truncate">
+                        <span className="flex-1 min-w-0 text-xs text-slate-700 dark:text-slate-300 truncate">
                           {s.title}
                         </span>
                         <SeverityChip severity={s.severity} />
@@ -833,7 +833,7 @@ function RangeSelector({ slug, current }: RangeSelectorProps) {
   ];
 
   return (
-    <nav aria-label="Report range" className="flex items-center rounded-md border border-slate-200 overflow-hidden">
+    <nav aria-label="Report range" className="flex items-center rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
       {options.map(({ key, label }) => {
         const isActive = current === key;
         return (
@@ -845,7 +845,7 @@ function RangeSelector({ slug, current }: RangeSelectorProps) {
               'px-3 py-1.5 text-xs font-medium transition-colors',
               isActive
                 ? 'bg-brand-ink text-white'
-                : 'text-slate-600 hover:bg-slate-50',
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800',
             ].join(' ')}
           >
             {label}
@@ -923,10 +923,10 @@ export default async function DashboardPage({
       {/* ── A. Heading row — OUTSIDE Suspense (always interactive/instant) ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tightish text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tightish text-slate-900 dark:text-slate-100">
             {orgName}
           </h1>
-          <p className="mt-0.5 text-sm text-slate-500">Operations overview</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Operations overview</p>
         </div>
         {canViewReporting && (
           <RangeSelector slug={slug} current={range} />

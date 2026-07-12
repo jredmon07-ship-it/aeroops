@@ -44,19 +44,19 @@ import { EmptyState } from '@/components/ui/empty-state';
 function CourseStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         {courseStatusLabel(status)}
       </span>
     );
   }
   if (status === 'archived') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         {courseStatusLabel(status)}
       </span>
     );
   }
-  return <span className="text-xs text-slate-400">{status}</span>;
+  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
 }
 
 // ─── Stage label chip ──────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ function StageLabelChip({ label }: { label: string }) {
 function StageCheckChip() {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800"
+      className="inline-flex items-center gap-1 rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 dark:text-amber-200"
       title="Operator-designated stage check — not a Part-61/141 stage check of record"
     >
       <Flag className="h-3 w-3" aria-hidden="true" />
@@ -206,7 +206,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
             {/* Title (required) */}
             <div className="space-y-1.5">
               <Label htmlFor="al-title">
-                Lesson title <span aria-hidden="true" className="text-red-500">*</span>
+                Lesson title <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Input
                 id="al-title"
@@ -223,7 +223,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
                 className={fieldErrors.title ? 'border-red-500' : ''}
               />
               {fieldErrors.title && (
-                <p id="al-title-err" role="alert" className="text-xs text-red-600">
+                <p id="al-title-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.title}
                 </p>
               )}
@@ -241,7 +241,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
                 placeholder="e.g. Ground School, Solo Prep"
                 disabled={isSubmitting}
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 Free-text operator grouping label — not a regulatory stage.
               </p>
             </div>
@@ -254,13 +254,13 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
                 checked={isStageCheck}
                 onChange={(e) => setIsStageCheck(e.target.checked)}
                 disabled={isSubmitting}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
               />
               <div className="space-y-0.5">
                 <Label htmlFor="al-stage-check" className="cursor-pointer">
                   Stage check
                 </Label>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   Marks this lesson a milestone evaluation in your course structure — not a
                   Part-61/141 stage check of record.
                 </p>
@@ -277,7 +277,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
                 placeholder="Brief description of this lesson…"
                 rows={3}
                 disabled={isSubmitting}
-                className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+                className="flex min-h-[80px] w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
               />
             </div>
 
@@ -364,7 +364,7 @@ function RemoveLessonConfirm({
         variant="ghost"
         size="sm"
         onClick={() => setOpen(true)}
-        className="text-slate-400 hover:text-danger hover:bg-danger/5"
+        className="text-slate-400 dark:text-slate-500 hover:text-danger hover:bg-danger/5"
         aria-label={`Remove lesson: ${lessonTitle}`}
       >
         <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -377,11 +377,11 @@ function RemoveLessonConfirm({
           </DialogHeader>
 
           <div className="space-y-3 py-1">
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
               Are you sure you want to remove{' '}
               <strong className="font-semibold">{lessonTitle}</strong>?
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               This action cannot be undone. Lessons with recorded completions cannot be removed.
             </p>
 
@@ -468,7 +468,7 @@ function LessonStageCheckToggle({
       size="sm"
       onClick={handleToggle}
       disabled={isSubmitting}
-      className="text-slate-400 hover:text-amber-700 hover:bg-amber-50 text-xs"
+      className="text-slate-400 dark:text-slate-500 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-xs"
       aria-label={
         isStageCheck
           ? `Unmark stage check: ${lessonTitle}`
@@ -533,11 +533,11 @@ function EnforceStageChecksToggle({
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-2">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-0.5">
-          <h2 className="text-sm font-semibold text-slate-700">Enforce stage checks</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Enforce stage checks</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Blocks recording lessons past an unpassed stage check. This enforces YOUR course
             structure — it is not a Part-61/141 determination.
           </p>
@@ -553,7 +553,7 @@ function EnforceStageChecksToggle({
             onChange={(e) => handleToggle(e.target.checked)}
             disabled={isSubmitting}
           />
-          <div className="w-9 h-5 rounded-full bg-slate-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+          <div className="w-9 h-5 rounded-full bg-slate-200 dark:bg-slate-700 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
         </label>
       </div>
       {error && (
@@ -584,11 +584,11 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900">{course.title}</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{course.title}</h1>
             <CourseStatusChip status={course.status} />
           </div>
           {course.description && (
-            <p className="text-sm text-slate-500">{course.description}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{course.description}</p>
           )}
         </div>
         {canManage && (
@@ -614,9 +614,9 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
             <AlertDescription>{lessonToggleError}</AlertDescription>
           </Alert>
         )}
-        <h2 className="text-sm font-semibold text-slate-700">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Lessons
-          <span className="ml-1.5 nums text-slate-400 font-normal">
+          <span className="ml-1.5 nums text-slate-400 dark:text-slate-500 font-normal">
             ({course.lessons.length})
           </span>
         </h2>
@@ -625,7 +625,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
           <EmptyState
             icon={BookOpen}
             title="No lessons yet."
-            className="py-12 rounded-md border border-dashed border-slate-200"
+            className="py-12 rounded-md border border-dashed border-slate-200 dark:border-slate-800"
             body={
               canManage && (
                 <>
@@ -645,18 +645,18 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
             }
           />
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-x-auto">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Course lessons">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide w-12">
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide w-12">
                     #
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Lesson
                   </th>
                   {canManage && (
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide w-52">
+                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide w-52">
                       <span className="sr-only">Actions</span>
                     </th>
                   )}
@@ -666,22 +666,22 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
                 {course.lessons.map((lesson) => (
                   <tr
                     key={lesson.lessonId}
-                    className="border-b border-slate-100 last:border-0"
+                    className="border-b border-slate-100 dark:border-slate-800 last:border-0"
                   >
                     <td className="px-4 py-3">
-                      <span className="nums text-slate-400 text-xs">{lesson.position + 1}</span>
+                      <span className="nums text-slate-400 dark:text-slate-500 text-xs">{lesson.position + 1}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="space-y-0.5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-slate-900">{lesson.title}</span>
+                          <span className="font-medium text-slate-900 dark:text-slate-100">{lesson.title}</span>
                           {/* [VERIFY-T1-G]: stage_label = FREE-TEXT grouping only */}
                           {lesson.stageLabel && <StageLabelChip label={lesson.stageLabel} />}
                           {/* Slice P2-SC1: operator flag — NOT a Part-61/141 stage check */}
                           {lesson.isStageCheck && <StageCheckChip />}
                         </div>
                         {lesson.description && (
-                          <p className="text-xs text-slate-400 line-clamp-2">{lesson.description}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 line-clamp-2">{lesson.description}</p>
                         )}
                       </div>
                     </td>

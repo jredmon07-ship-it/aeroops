@@ -259,15 +259,15 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
         role="status"
         aria-label="Request submitted"
       >
-        <Alert className="border-green-200 bg-green-50 text-green-900">
+        <Alert className="border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-900 dark:text-green-200">
           <AlertDescription>
             <p className="font-medium">Your request has been submitted to {orgName}.</p>
-            <p className="mt-1 text-sm text-green-800">
+            <p className="mt-1 text-sm text-green-800 dark:text-green-200">
               The operator will contact you to confirm. This is not an instant booking.
             </p>
           </AlertDescription>
         </Alert>
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-1">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4 text-sm text-slate-700 dark:text-slate-300 space-y-1">
           <p><span className="font-medium">Name:</span> {s.name}</p>
           <p><span className="font-medium">Email:</span> {s.email}</p>
           {s.phone && <p><span className="font-medium">Phone:</span> {s.phone}</p>}
@@ -324,7 +324,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       )}
 
       {/* Disclaimer */}
-      <p className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+      <p className="rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
         This is a request — the operator will contact you to confirm. Not an instant booking.
       </p>
 
@@ -367,7 +367,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       {/* Phone (optional) */}
       <div className="space-y-1.5">
         <Label htmlFor="phone">
-          Phone <span className="text-slate-400 font-normal">(optional)</span>
+          Phone <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
         </Label>
         <Input
           id="phone"
@@ -382,7 +382,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
 
       {/* Requested date + time */}
       <fieldset className="space-y-1.5">
-        <legend className="text-sm font-medium text-slate-700">
+        <legend className="text-sm font-medium text-slate-700 dark:text-slate-300">
           Requested date &amp; time <span aria-hidden="true" className="text-danger">*</span>
         </legend>
         <div className="flex gap-3">
@@ -409,8 +409,8 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
 
       {/* Optional end date + time */}
       <fieldset className="space-y-1.5">
-        <legend className="text-sm font-medium text-slate-700">
-          End date &amp; time <span className="text-slate-400 font-normal">(optional)</span>
+        <legend className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          End date &amp; time <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
         </legend>
         <div className="flex gap-3">
           <Input
@@ -435,7 +435,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       {/* Aircraft type preference (free-text, optional) */}
       <div className="space-y-1.5">
         <Label htmlFor="aircraftTypePref">
-          Aircraft preference <span className="text-slate-400 font-normal">(optional)</span>
+          Aircraft preference <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
         </Label>
         <Input
           id="aircraftTypePref"
@@ -450,7 +450,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       {/* Message (optional textarea) */}
       <div className="space-y-1.5">
         <Label htmlFor="message">
-          Message <span className="text-slate-400 font-normal">(optional)</span>
+          Message <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
         </Label>
         <Textarea
           id="message"

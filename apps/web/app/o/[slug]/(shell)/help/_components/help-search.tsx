@@ -68,13 +68,13 @@ export function HelpSearch({ slug, categories, articles }: HelpSearchProps) {
       <div className="max-w-md">
         <label
           htmlFor="help-search-input"
-          className="mb-1.5 block text-sm font-medium text-slate-700"
+          className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
         >
           Search help articles
         </label>
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500"
             aria-hidden="true"
           />
           <Input
@@ -96,11 +96,11 @@ export function HelpSearch({ slug, categories, articles }: HelpSearchProps) {
 
       {/* ── Empty state — search matched nothing ──────────────────────── */}
       {hasQuery && resultCount === 0 && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-6 py-10 text-center space-y-1">
-          <p className="text-sm font-medium text-slate-700">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-10 text-center space-y-1">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
             No articles match &ldquo;{query.trim()}&rdquo;.
           </p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Try a different word, or browse the categories below by clearing the search.
           </p>
         </div>
@@ -111,11 +111,11 @@ export function HelpSearch({ slug, categories, articles }: HelpSearchProps) {
         <section key={category.id} aria-labelledby={`help-cat-${category.id}`}>
           <h2
             id={`help-cat-${category.id}`}
-            className="text-lg font-semibold tracking-tightish text-slate-900"
+            className="text-lg font-semibold tracking-tightish text-slate-900 dark:text-slate-100"
           >
             {category.label}
           </h2>
-          <p className="mt-0.5 text-sm text-slate-500">{category.description}</p>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{category.description}</p>
 
           <ul className="mt-3 grid gap-3 sm:grid-cols-2" role="list">
             {categoryArticles.map((article) => (
@@ -128,10 +128,10 @@ export function HelpSearch({ slug, categories, articles }: HelpSearchProps) {
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1',
                     ].join(' ')}
                   >
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {article.title}
                     </p>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                       {article.summary}
                     </p>
                   </Link>

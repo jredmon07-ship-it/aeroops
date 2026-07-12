@@ -34,9 +34,9 @@ interface SquawkListProps {
 
 function SeverityChip({ severity }: { severity: SquawkSeverity }) {
   const map: Record<SquawkSeverity, { label: string; cls: string }> = {
-    low: { label: 'Low', cls: 'border-slate-200 bg-slate-50 text-slate-600' },
-    medium: { label: 'Medium', cls: 'border-amber-200 bg-amber-50 text-amber-800' },
-    high: { label: 'High', cls: 'border-orange-200 bg-orange-50 text-orange-800' },
+    low: { label: 'Low', cls: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+    medium: { label: 'Medium', cls: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200' },
+    high: { label: 'High', cls: 'border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-200' },
     grounding: { label: 'Grounding', cls: 'border-destructive/30 bg-destructive/10 text-destructive' },
   };
   const { label, cls } = map[severity];
@@ -58,12 +58,12 @@ function StatusChip({ status }: { status: SquawkStatus }) {
     },
     deferred: {
       label: 'Deferred',
-      cls: 'border-amber-200 bg-amber-50 text-amber-800',
+      cls: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
       icon: <Clock className="h-3 w-3" aria-hidden="true" />,
     },
     resolved: {
       label: 'Resolved',
-      cls: 'border-green-200 bg-green-50 text-green-800',
+      cls: 'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200',
       icon: <CheckCircle className="h-3 w-3" aria-hidden="true" />,
     },
   };
@@ -161,14 +161,14 @@ export function SquawkList({
       {/* ── Filters ───────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-3">
         <div className="space-y-1">
-          <label htmlFor="filter-aircraft" className="text-xs text-slate-500 font-medium">
+          <label htmlFor="filter-aircraft" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             Aircraft
           </label>
           <select
             id="filter-aircraft"
             value={filterResourceId}
             onChange={(e) => setFilterResourceId(e.target.value)}
-            className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
+            className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             <option value="">All aircraft</option>
             {aircraft.map((r) => (
@@ -180,14 +180,14 @@ export function SquawkList({
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="filter-status" className="text-xs text-slate-500 font-medium">
+          <label htmlFor="filter-status" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             Status
           </label>
           <select
             id="filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as '' | SquawkStatus)}
-            className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
+            className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             <option value="">All statuses</option>
             <option value="open">Open</option>
@@ -218,26 +218,26 @@ export function SquawkList({
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Squawks">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Aircraft
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Title
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Severity
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Status
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
                   Reported
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide sr-only">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide sr-only">
                   Actions
                 </th>
               </tr>
@@ -246,17 +246,17 @@ export function SquawkList({
               {filtered.map((squawk) => (
                 <tr
                   key={squawk.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <td className="px-3 py-3">
-                    <span className="font-mono text-xs nums text-slate-700">
+                    <span className="font-mono text-xs nums text-slate-700 dark:text-slate-300">
                       {aircraftName(squawk.resourceId)}
                     </span>
                   </td>
                   <td className="px-3 py-3 max-w-xs">
-                    <p className="font-medium text-slate-900 truncate">{squawk.title}</p>
+                    <p className="font-medium text-slate-900 dark:text-slate-100 truncate">{squawk.title}</p>
                     {squawk.description && (
-                      <p className="text-xs text-slate-500 truncate">{squawk.description}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{squawk.description}</p>
                     )}
                   </td>
                   <td className="px-3 py-3">
@@ -267,7 +267,7 @@ export function SquawkList({
                       <StatusChip status={squawk.status} />
                       {squawk.resolutionNotes && (
                         <span
-                          className="text-xs text-slate-500 truncate max-w-[12rem]"
+                          className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[12rem]"
                           title={squawk.resolutionNotes}
                         >
                           {squawk.resolutionNotes}
@@ -278,7 +278,7 @@ export function SquawkList({
                   <td className="px-3 py-3 hidden sm:table-cell">
                     <time
                       dateTime={squawk.reportedAt instanceof Date ? squawk.reportedAt.toISOString() : String(squawk.reportedAt)}
-                      className="text-xs text-slate-500 nums"
+                      className="text-xs text-slate-500 dark:text-slate-400 nums"
                     >
                       {formatDate(squawk.reportedAt instanceof Date ? squawk.reportedAt : new Date(squawk.reportedAt))}
                     </time>
@@ -305,7 +305,7 @@ export function SquawkList({
                       </div>
                     )}
                     {squawk.status !== 'open' && (
-                      <span className="text-xs text-slate-400 italic">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 italic">
                         {squawk.status === 'resolved' ? 'Resolved' : 'Deferred'}
                       </span>
                     )}
@@ -346,16 +346,16 @@ export function SquawkListSkeleton() {
   return (
     <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading squawks">
       <div className="flex items-center justify-between gap-4">
-        <div className="h-8 bg-slate-200 rounded w-32" />
-        <div className="h-10 bg-slate-200 rounded w-36" />
+        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-32" />
+        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-36" />
       </div>
       <div className="flex gap-3">
-        <div className="h-9 bg-slate-200 rounded w-40" />
-        <div className="h-9 bg-slate-200 rounded w-32" />
+        <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-40" />
+        <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-32" />
       </div>
-      <div className="rounded-md border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-14 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-14 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>

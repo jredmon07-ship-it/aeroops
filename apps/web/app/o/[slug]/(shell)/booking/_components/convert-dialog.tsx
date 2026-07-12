@@ -326,11 +326,11 @@ export function ConvertDialog({
         </DialogHeader>
 
         {/* ── Requester context block (read-only) ─────────────────────────── */}
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 space-y-0.5">
-          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mb-1">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-4 py-3 space-y-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wide mb-1">
             Booking for
           </p>
-          <p className="text-sm font-semibold text-slate-900">{row.requesterName}</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{row.requesterName}</p>
           <a
             href={`mailto:${row.requesterEmail}`}
             className="text-sm text-brand hover:underline underline-offset-2 block"
@@ -338,7 +338,7 @@ export function ConvertDialog({
             {row.requesterEmail}
           </a>
           {row.requesterPhone && (
-            <p className="text-sm text-slate-600 nums">{row.requesterPhone}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 nums">{row.requesterPhone}</p>
           )}
         </div>
 
@@ -371,10 +371,10 @@ export function ConvertDialog({
             Aircraft <span aria-hidden="true">*</span>
           </Label>
           {aircraftLoading && (
-            <div className="h-10 rounded-md border border-slate-200 bg-slate-50 animate-pulse" />
+            <div className="h-10 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 animate-pulse" />
           )}
           {!aircraftLoading && aircraftError && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
               Could not load aircraft. Try closing and reopening the dialog.
             </p>
           )}
@@ -391,11 +391,11 @@ export function ConvertDialog({
               aria-required="true"
               aria-describedby={resourceIdError ? 'convert-aircraft-error' : undefined}
               className={[
-                'flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900',
-                'hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand',
+                'flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100',
+                'hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand',
                 'focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0',
                 'disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
-                resourceIdError ? 'border-red-500' : 'border-slate-300',
+                resourceIdError ? 'border-red-500' : 'border-slate-300 dark:border-slate-700',
               ].join(' ')}
             >
               <option value="">— Select aircraft —</option>
@@ -415,7 +415,7 @@ export function ConvertDialog({
             </select>
           )}
           {resourceIdError && (
-            <p id="convert-aircraft-error" role="alert" className="text-sm text-red-600">
+            <p id="convert-aircraft-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
               {resourceIdError}
             </p>
           )}
@@ -443,7 +443,7 @@ export function ConvertDialog({
               className={startAtError ? 'border-red-500' : ''}
             />
             {startAtError && (
-              <p id="convert-start-error" role="alert" className="text-sm text-red-600">
+              <p id="convert-start-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                 {startAtError}
               </p>
             )}
@@ -470,7 +470,7 @@ export function ConvertDialog({
               className={endAtError ? 'border-red-500' : ''}
             />
             {endAtError && (
-              <p id="convert-end-error" role="alert" className="text-sm text-red-600">
+              <p id="convert-end-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
                 {endAtError}
               </p>
             )}

@@ -78,10 +78,10 @@ const PILOT_UUID_RE =
 type PreflightTone = 'ok' | 'warn' | 'bad' | 'muted';
 
 const PREFLIGHT_CHIP_CLASSES: Record<PreflightTone, string> = {
-  ok:    'border-green-200 bg-green-50 text-green-800',
-  warn:  'border-amber-200 bg-amber-50 text-amber-800',
-  bad:   'border-red-200 bg-red-50 text-red-800',
-  muted: 'border-slate-200 bg-slate-50 text-slate-500',
+  ok:    'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200',
+  warn:  'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
+  bad:   'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200',
+  muted: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
 };
 
 function PreflightChip({ tone, children }: { tone: PreflightTone; children: React.ReactNode }) {
@@ -106,7 +106,7 @@ function PreflightRow({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-slate-600">{label}</span>
+        <span className="text-xs text-slate-600 dark:text-slate-300">{label}</span>
         {chip}
       </div>
       {detail}
@@ -416,7 +416,7 @@ export function CheckOutDialog({
           {/* ── Hobbs OUT ─────────────────────────────────────────────────── */}
           <div className="space-y-1.5">
             <Label htmlFor="co-hobbs-out">
-              Hobbs OUT <span aria-hidden="true" className="text-red-500">*</span>
+              Hobbs OUT <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Input
               id="co-hobbs-out"
@@ -436,7 +436,7 @@ export function CheckOutDialog({
               <p
                 id="co-hobbs-out-err"
                 role="alert"
-                className="text-xs text-red-600"
+                className="text-xs text-red-600 dark:text-red-400"
               >
                 {hobbsError}
               </p>
@@ -446,7 +446,7 @@ export function CheckOutDialog({
           {/* ── Tach OUT ──────────────────────────────────────────────────── */}
           <div className="space-y-1.5">
             <Label htmlFor="co-tach-out">
-              Tach OUT <span aria-hidden="true" className="text-red-500">*</span>
+              Tach OUT <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Input
               id="co-tach-out"
@@ -466,7 +466,7 @@ export function CheckOutDialog({
               <p
                 id="co-tach-out-err"
                 role="alert"
-                className="text-xs text-red-600"
+                className="text-xs text-red-600 dark:text-red-400"
               >
                 {tachError}
               </p>
@@ -476,12 +476,12 @@ export function CheckOutDialog({
           {/* ── Pilot ─────────────────────────────────────────────────────── */}
           <div className="space-y-1.5">
             <Label htmlFor="co-pilot">
-              Pilot <span aria-hidden="true" className="text-red-500">*</span>
+              Pilot <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
 
             {membersLoading && (
               <div
-                className="h-10 w-full rounded-md border border-slate-200 bg-slate-50 animate-pulse"
+                className="h-10 w-full rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 animate-pulse"
                 aria-busy="true"
                 aria-label="Loading pilot list"
               />
@@ -497,7 +497,7 @@ export function CheckOutDialog({
                 aria-required="true"
                 aria-invalid={pilotError ? 'true' : undefined}
                 aria-describedby={pilotError ? 'co-pilot-err' : undefined}
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
               >
                 <option value="">— Select pilot —</option>
                 {members.map((m) => (
@@ -527,7 +527,7 @@ export function CheckOutDialog({
               />
             )}
             {membersUnavailable && (
-              <p id="co-pilot-fallback-hint" className="text-xs text-slate-500">
+              <p id="co-pilot-fallback-hint" className="text-xs text-slate-500 dark:text-slate-400">
                 Enter the pilot&apos;s user ID directly.
               </p>
             )}
@@ -536,7 +536,7 @@ export function CheckOutDialog({
               <p
                 id="co-pilot-err"
                 role="alert"
-                className="text-xs text-red-600"
+                className="text-xs text-red-600 dark:text-red-400"
               >
                 {pilotError}
               </p>
@@ -558,27 +558,27 @@ export function CheckOutDialog({
 
           {/* ── Pre-flight checklist (Slice FC-P2 — read-only, warn-only) ── */}
           {/* Never blocks: the FROZEN openDispatch gate still runs on submit. */}
-          <div className="rounded-md border border-slate-200 bg-slate-50/60 p-3 space-y-2.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50/60 p-3 space-y-2.5">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Confirm dispatch — pre-flight check
             </h3>
 
             {!PILOT_UUID_RE.test(pilotUserId.trim()) && (
-              <p className="text-xs text-slate-400 italic">
+              <p className="text-xs text-slate-400 dark:text-slate-500 italic">
                 Select a pilot to run the pre-flight check.
               </p>
             )}
 
             {PILOT_UUID_RE.test(pilotUserId.trim()) && preflightLoading && (
               <div
-                className="h-16 w-full rounded-md bg-slate-100 animate-pulse"
+                className="h-16 w-full rounded-md bg-slate-100 dark:bg-slate-800 animate-pulse"
                 aria-busy="true"
                 aria-label="Loading pre-flight check"
               />
             )}
 
             {PILOT_UUID_RE.test(pilotUserId.trim()) && !preflightLoading && preflight === null && (
-              <p className="text-xs text-slate-400 italic">
+              <p className="text-xs text-slate-400 dark:text-slate-500 italic">
                 Pre-flight status unavailable. You can still dispatch — the
                 dispatch gate runs on submit.
               </p>
@@ -599,7 +599,7 @@ export function CheckOutDialog({
                     }
                     detail={
                       preflight.grounding.grounded && preflight.grounding.reason ? (
-                        <p className="text-xs text-red-700">{preflight.grounding.reason}</p>
+                        <p className="text-xs text-red-700 dark:text-red-300">{preflight.grounding.reason}</p>
                       ) : undefined
                     }
                   />
@@ -642,7 +642,7 @@ export function CheckOutDialog({
                             <p
                               key={e.id}
                               className={`text-xs ${
-                                e.status === 'expired' ? 'text-red-700' : 'text-amber-700'
+                                e.status === 'expired' ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'
                               }`}
                             >
                               {e.label} — {e.status === 'expired' ? 'expired' : 'due'}{' '}
@@ -650,7 +650,7 @@ export function CheckOutDialog({
                             </p>
                           ))}
                         {/* [VERIFY-FC-P2-A] — verbatim disclaimer. */}
-                        <p className="text-[0.6875rem] leading-4 text-slate-400">
+                        <p className="text-[0.6875rem] leading-4 text-slate-400 dark:text-slate-500">
                           Operator-entered reminder dates. Not a medical/currency/legal
                           determination — verifying actual validity remains the
                           operator&apos;s and pilot&apos;s responsibility.
@@ -681,7 +681,7 @@ export function CheckOutDialog({
             )}
 
             {/* Local confirmation — UI-only affordance, clearly NOT recorded. */}
-            <label className="flex items-start gap-2 pt-1 text-sm text-slate-700">
+            <label className="flex items-start gap-2 pt-1 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={briefed}
@@ -692,7 +692,7 @@ export function CheckOutDialog({
               />
               <span>
                 Pilot briefed: W&amp;B, NOTAMs, weather verified{' '}
-                <span id="co-briefed-hint" className="text-xs text-slate-400">
+                <span id="co-briefed-hint" className="text-xs text-slate-400 dark:text-slate-500">
                   (confirmation to enable Dispatch — not recorded)
                 </span>
               </span>

@@ -32,7 +32,7 @@ export default function SetupLoading() {
         <div key={g} className="space-y-2">
           <Skeleton className="h-4 w-32" />
           <Card className="overflow-hidden p-0">
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {[0, 1].map((i) => (
                 <div key={i} className="flex items-start gap-4 px-5 py-4">
                   <Skeleton className="h-5 w-5 rounded-full" />

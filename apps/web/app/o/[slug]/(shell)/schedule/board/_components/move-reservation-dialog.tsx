@@ -163,10 +163,10 @@ export function MoveReservationDialog({
         </DialogHeader>
 
         {/* Current time display */}
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Currently: {formatTimeRange(currentBlock.startAt, currentBlock.endAt)}
           {currentBlock.reservation.seriesId && (
-            <span className="ml-2 text-xs text-slate-400">(series)</span>
+            <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">(series)</span>
           )}
         </p>
 
@@ -198,7 +198,7 @@ export function MoveReservationDialog({
               aria-required="true"
               disabled={isSubmitting}
             />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               Duration is preserved ({Math.round(durationMs / 60000)} min)
             </p>
           </div>
@@ -214,7 +214,7 @@ export function MoveReservationDialog({
                 value={resourceId}
                 onChange={(e) => setResourceId(e.target.value)}
                 disabled={isSubmitting}
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
               >
                 <option value={currentBlock.resourceId}>
                   {thisResource?.displayName ?? currentBlock.resourceId} (current)

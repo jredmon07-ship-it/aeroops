@@ -42,11 +42,11 @@ import { PageHeader } from '@/components/ui/page-header';
 
 function PermissionDeniedPanel() {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-6 py-10 text-center space-y-2">
-      <p className="text-sm font-medium text-slate-700">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-10 text-center space-y-2">
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
         Help isn&apos;t available for your role.
       </p>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Contact your administrator if you need access.
       </p>
     </div>

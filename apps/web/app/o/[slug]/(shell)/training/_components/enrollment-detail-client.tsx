@@ -70,7 +70,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'completed') {
     return (
       <span
-        className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800"
+        className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200"
         title="Operator content flag — not a regulatory completion [VERIFY-T1-B]"
       >
         {enrollmentStatusLabel(status)}
@@ -79,12 +79,12 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   }
   if (status === 'withdrawn') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
         {enrollmentStatusLabel(status)}
       </span>
     );
   }
-  return <span className="text-xs text-slate-400">{status}</span>;
+  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
 }
 
 // ─── Progress bar ──────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ function ProgressBar({ percent }: { percent: number }) {
   const clamped = Math.min(100, Math.max(0, percent));
   return (
     <div
-      className="h-2 w-full rounded-full bg-slate-100 overflow-hidden"
+      className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"
       role="presentation"
       aria-hidden="true"
     >
@@ -283,7 +283,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
             {/* Lesson picker (required) */}
             <div className="space-y-1.5">
               <Label htmlFor="rl-lesson">
-                Lesson <span aria-hidden="true" className="text-red-500">*</span>
+                Lesson <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <select
                 id="rl-lesson"
@@ -296,7 +296,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 aria-required="true"
                 aria-invalid={fieldErrors.lessonId ? 'true' : undefined}
                 aria-describedby={fieldErrors.lessonId ? 'rl-lesson-err' : undefined}
-                className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.lessonId ? 'border-red-500' : 'border-slate-300'}`}
+                className={`flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.lessonId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
               >
                 <option value="">Select a lesson…</option>
                 {lessonProgress.map((lp) => (
@@ -306,7 +306,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 ))}
               </select>
               {fieldErrors.lessonId && (
-                <p id="rl-lesson-err" role="alert" className="text-xs text-red-600">
+                <p id="rl-lesson-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.lessonId}
                 </p>
               )}
@@ -316,7 +316,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 Instructor-STATED pass/fail; NOT a computed ACS/Part-61/141 verdict. */}
             {selectedIsStageCheck && (
               <fieldset className="space-y-1.5">
-                <legend className="text-sm font-medium text-slate-900">
+                <legend className="text-sm font-medium text-slate-900 dark:text-slate-100">
                   Stage-check outcome
                 </legend>
                 <div className="flex gap-3">
@@ -343,7 +343,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                     Fail
                   </label>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   Instructor-stated outcome for your course structure — not a computed
                   ACS/Part-61/141 verdict. Only a Pass unlocks later lessons when
                   enforcement is on.
@@ -355,10 +355,10 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
             {/* [VERIFY-T1-C]: NOT an e-signature; [VERIFY-T1-E]: ANY member */}
             <div className="space-y-1.5">
               <Label htmlFor="rl-instructor">
-                Instructor <span aria-hidden="true" className="text-red-500">*</span>
+                Instructor <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               {loadingMembers ? (
-                <div className="flex items-center gap-2 h-10 px-3 text-sm text-slate-400">
+                <div className="flex items-center gap-2 h-10 px-3 text-sm text-slate-400 dark:text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Loading members…
                 </div>
@@ -374,7 +374,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                   aria-required="true"
                   aria-invalid={fieldErrors.instructorUserId ? 'true' : undefined}
                   aria-describedby={fieldErrors.instructorUserId ? 'rl-instr-err' : undefined}
-                  className={`flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.instructorUserId ? 'border-red-500' : 'border-slate-300'}`}
+                  className={`flex h-10 w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors ${fieldErrors.instructorUserId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
                 >
                   <option value="">Select an instructor…</option>
                   {members.map((m) => (
@@ -385,11 +385,11 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 </select>
               )}
               {fieldErrors.instructorUserId && (
-                <p id="rl-instr-err" role="alert" className="text-xs text-red-600">
+                <p id="rl-instr-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.instructorUserId}
                 </p>
               )}
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 Data entry only — not a regulatory sign-off or e-signature.
               </p>
             </div>
@@ -416,7 +416,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 placeholder="e.g. Satisfactory, Needs review…"
                 disabled={isSubmitting}
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 Free-text operator label — not a computed ACS/Part-61/141 verdict.
               </p>
             </div>
@@ -431,7 +431,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 placeholder="Optional instructor notes…"
                 rows={3}
                 disabled={isSubmitting}
-                className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+                className="flex min-h-[80px] w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
               />
             </div>
 
@@ -531,7 +531,7 @@ function VoidRecordDialog({ record, onSuccess }: VoidRecordDialogProps) {
         variant="ghost"
         size="sm"
         onClick={() => setOpen(true)}
-        className="text-slate-400 hover:text-danger hover:bg-danger/5 text-xs"
+        className="text-slate-400 dark:text-slate-500 hover:text-danger hover:bg-danger/5 text-xs"
         aria-label="Void this record"
       >
         Void
@@ -544,7 +544,7 @@ function VoidRecordDialog({ record, onSuccess }: VoidRecordDialogProps) {
           </DialogHeader>
 
           <div className="space-y-4 py-1">
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
               Voiding marks this record as invalid. The record remains visible for audit
               purposes (struck-through) and cannot be deleted.
             </p>
@@ -558,7 +558,7 @@ function VoidRecordDialog({ record, onSuccess }: VoidRecordDialogProps) {
 
             <div className="space-y-1.5">
               <Label htmlFor="vr-reason">
-                Reason for voiding <span aria-hidden="true" className="text-red-500">*</span>
+                Reason for voiding <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Input
                 id="vr-reason"
@@ -575,7 +575,7 @@ function VoidRecordDialog({ record, onSuccess }: VoidRecordDialogProps) {
                 className={reasonError ? 'border-red-500' : ''}
               />
               {reasonError && (
-                <p id="vr-reason-err" role="alert" className="text-xs text-red-600">
+                <p id="vr-reason-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {reasonError}
                 </p>
               )}
@@ -718,9 +718,9 @@ function SignLessonDialog({ lessonRecordId, onSuccess }: SignLessonDialogProps) 
           </DialogHeader>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4 pt-1">
-            <Alert className="border-slate-200 bg-slate-50" role="note">
-              <ShieldCheck className="h-4 w-4 text-slate-500" aria-hidden="true" />
-              <AlertDescription className="text-xs text-slate-600">
+            <Alert className="border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800" role="note">
+              <ShieldCheck className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+              <AlertDescription className="text-xs text-slate-600 dark:text-slate-300">
                 {ESIGN_DISCLAIMER_FULL}
               </AlertDescription>
             </Alert>
@@ -734,7 +734,7 @@ function SignLessonDialog({ lessonRecordId, onSuccess }: SignLessonDialogProps) 
 
             <div className="space-y-1.5">
               <Label htmlFor="sl-attestation">
-                Attestation statement <span aria-hidden="true" className="text-red-500">*</span>
+                Attestation statement <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <textarea
                 id="sl-attestation"
@@ -749,10 +749,10 @@ function SignLessonDialog({ lessonRecordId, onSuccess }: SignLessonDialogProps) 
                 aria-required="true"
                 aria-invalid={fieldError ? 'true' : undefined}
                 aria-describedby={fieldError ? 'sl-attestation-err' : undefined}
-                className={`flex min-h-[80px] w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors ${fieldError ? 'border-red-500' : 'border-slate-300'}`}
+                className={`flex min-h-[80px] w-full rounded-md border bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors ${fieldError ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
               />
               {fieldError && (
-                <p id="sl-attestation-err" role="alert" className="text-xs text-red-600">
+                <p id="sl-attestation-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldError}
                 </p>
               )}
@@ -856,7 +856,7 @@ function VoidSignatureDialog({ signatureId, onSuccess }: VoidSignatureDialogProp
         variant="ghost"
         size="sm"
         onClick={() => setOpen(true)}
-        className="text-slate-400 hover:text-danger hover:bg-danger/5 text-xs"
+        className="text-slate-400 dark:text-slate-500 hover:text-danger hover:bg-danger/5 text-xs"
         aria-label="Void this signature"
       >
         Void signature
@@ -869,7 +869,7 @@ function VoidSignatureDialog({ signatureId, onSuccess }: VoidSignatureDialogProp
           </DialogHeader>
 
           <div className="space-y-4 py-1">
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
               Voiding appends a new tombstone entry — the original signature is never edited or
               deleted, only marked voided.
             </p>
@@ -883,7 +883,7 @@ function VoidSignatureDialog({ signatureId, onSuccess }: VoidSignatureDialogProp
 
             <div className="space-y-1.5">
               <Label htmlFor="vs-reason">
-                Reason for voiding <span aria-hidden="true" className="text-red-500">*</span>
+                Reason for voiding <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Input
                 id="vs-reason"
@@ -900,7 +900,7 @@ function VoidSignatureDialog({ signatureId, onSuccess }: VoidSignatureDialogProp
                 className={reasonError ? 'border-red-500' : ''}
               />
               {reasonError && (
-                <p id="vs-reason-err" role="alert" className="text-xs text-red-600">
+                <p id="vs-reason-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {reasonError}
                 </p>
               )}
@@ -988,7 +988,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
 
   if (signatures === null) {
     return showSpinner ? (
-      <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+      <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
         Loading…
       </span>
@@ -1007,7 +1007,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
         <div className="space-y-0.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span
-              className="inline-flex items-center gap-1 rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-700"
+              className="inline-flex items-center gap-1 rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-700 dark:text-green-300"
               title="Operator/instructor attestation — not an FAA-recognized signature. [VERIFY-P2-A]"
             >
               <ShieldCheck className="h-3 w-3" aria-hidden="true" />
@@ -1017,7 +1017,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
               <VoidSignatureDialog signatureId={active.id} onSuccess={setSignatures} />
             )}
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             {active.signerName} ({active.roleAtSigning}) · {formatDateTime(active.signedAt)}
           </p>
           <p
@@ -1032,15 +1032,15 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
       {!active && voidedOriginal && (
         <div className="space-y-0.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="line-through text-xs text-slate-400">
+            <span className="line-through text-xs text-slate-400 dark:text-slate-500">
               {voidedOriginal.signerName} ({voidedOriginal.roleAtSigning})
             </span>
-            <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700">
+            <span className="inline-flex items-center rounded-sm border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700 dark:text-red-300">
               Voided
             </span>
           </div>
           {tombstone && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               by {tombstone.signerName} · {formatDateTime(tombstone.signedAt)} — {tombstone.attestationText}
             </p>
           )}
@@ -1052,7 +1052,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
 
       {!active && !voidedOriginal && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-slate-400 italic">Not signed.</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500 italic">Not signed.</span>
           {canManage && (
             <SignLessonDialog lessonRecordId={lessonRecordId} onSuccess={setSignatures} />
           )}
@@ -1124,9 +1124,9 @@ function StatusControls({ enrollmentId, status, onSuccess }: StatusControlsProps
       )}
 
       {confirmTarget === 'completed' && (
-        <Alert className="border-green-200 bg-green-50" role="alert">
+        <Alert className="border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40" role="alert">
           <AlertDescription className="flex items-center justify-between gap-2">
-            <span className="text-sm text-green-800">
+            <span className="text-sm text-green-800 dark:text-green-200">
               Mark this enrollment as completed? This is an operator flag — NOT a regulatory determination.
             </span>
             <div className="flex items-center gap-2 shrink-0">
@@ -1186,7 +1186,7 @@ function StatusControls({ enrollmentId, status, onSuccess }: StatusControlsProps
             variant="outline"
             onClick={() => setConfirmTarget('completed')}
             disabled={!!submitting}
-            className="border-green-200 text-green-800 hover:bg-green-50"
+            className="border-green-200 dark:border-green-900/50 text-green-800 dark:text-green-200 hover:bg-green-50 dark:hover:bg-green-950/40"
           >
             Mark completed
           </Button>
@@ -1195,7 +1195,7 @@ function StatusControls({ enrollmentId, status, onSuccess }: StatusControlsProps
             variant="outline"
             onClick={() => setConfirmTarget('withdrawn')}
             disabled={!!submitting}
-            className="border-red-200 text-red-700 hover:bg-red-50"
+            className="border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
           >
             Withdraw
           </Button>
@@ -1227,7 +1227,7 @@ export function EnrollmentDetailClient({
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Enrollment for{' '}
             <a
               href={`/o/${slug}/training/${enrollment.courseId}`}
@@ -1237,7 +1237,7 @@ export function EnrollmentDetailClient({
             </a>
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900">{enrollment.studentName}</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{enrollment.studentName}</h1>
             <EnrollmentStatusChip status={enrollment.status} />
           </div>
         </div>
@@ -1261,21 +1261,21 @@ export function EnrollmentDetailClient({
 
       {/* ── Progress summary ─────────────────────────────────────────────── */}
       {/* [VERIFY-T1-B]: content-coverage indicator ONLY — NOT a regulatory completion */}
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-sm font-semibold text-slate-700">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Operator progress
-            <span className="ml-1.5 text-xs font-normal text-slate-400">
+            <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
               (content coverage — not a regulatory completion)
             </span>
           </h2>
-          <span className="nums text-sm text-slate-700 font-medium">
+          <span className="nums text-sm text-slate-700 dark:text-slate-300 font-medium">
             {formatProgress(pr.completed, pr.total)}
           </span>
         </div>
         <ProgressBar percent={pr.percent} />
         <p
-          className="text-xs text-slate-400"
+          className="text-xs text-slate-400 dark:text-slate-500"
           aria-label={`${pr.completed} of ${pr.total} lessons covered`}
         >
           {pr.completed} of {pr.total} lesson{pr.total !== 1 ? 's' : ''} with a recorded completion.
@@ -1284,31 +1284,31 @@ export function EnrollmentDetailClient({
 
       {/* ── Per-lesson checklist ─────────────────────────────────────────── */}
       <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-700">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Lessons
-          <span className="ml-1.5 nums text-slate-400 font-normal">
+          <span className="ml-1.5 nums text-slate-400 dark:text-slate-500 font-normal">
             ({enrollment.lessonProgress.length})
           </span>
         </h2>
 
         {enrollment.lessonProgress.length === 0 ? (
           <div
-            className="flex flex-col items-center justify-center py-10 text-center rounded-md border border-dashed border-slate-200"
+            className="flex flex-col items-center justify-center py-10 text-center rounded-md border border-dashed border-slate-200 dark:border-slate-800"
             role="status"
           >
             <BookOpen className="h-7 w-7 text-slate-300 mb-2" aria-hidden="true" />
-            <p className="text-sm text-slate-500">This course has no lessons yet.</p>
-            <p className="nums text-xs text-slate-400 mt-0.5">0 / 0 — 0%</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">This course has no lessons yet.</p>
+            <p className="nums text-xs text-slate-400 dark:text-slate-500 mt-0.5">0 / 0 — 0%</p>
           </div>
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-x-auto">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Lesson checklist">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide w-8">
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide w-8">
                     <span className="sr-only">Done</span>
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Lesson
                   </th>
                 </tr>
@@ -1317,12 +1317,12 @@ export function EnrollmentDetailClient({
                 {enrollment.lessonProgress.map((lp) => (
                   <tr
                     key={lp.lessonId}
-                    className="border-b border-slate-100 last:border-0"
+                    className="border-b border-slate-100 dark:border-slate-800 last:border-0"
                   >
                     <td className="px-4 py-3">
                       {lp.completed ? (
                         <CheckCircle2
-                          className="h-4 w-4 text-green-500"
+                          className="h-4 w-4 text-green-500 dark:text-green-400"
                           aria-label="Completed"
                         />
                       ) : (
@@ -1336,7 +1336,7 @@ export function EnrollmentDetailClient({
                       <div className="space-y-0.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`font-medium ${lp.completed ? 'text-slate-900' : 'text-slate-600'}`}
+                            className={`font-medium ${lp.completed ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-300'}`}
                           >
                             {lp.position + 1}. {lp.title}
                           </span>
@@ -1357,7 +1357,7 @@ export function EnrollmentDetailClient({
                             )[0];
                           if (!rec) return null;
                           return (
-                            <div className="text-xs text-slate-400 space-x-2">
+                            <div className="text-xs text-slate-400 dark:text-slate-500 space-x-2">
                               <span>by {rec.instructorName}</span>
                               <span>·</span>
                               <span>{formatDate(rec.completedAt)}</span>
@@ -1384,47 +1384,47 @@ export function EnrollmentDetailClient({
       {/* ── Record log ───────────────────────────────────────────────────── */}
       {/* [VERIFY-T1-C]: full log incl. voided records (audit history) */}
       <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-700">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Record log
-          <span className="ml-1.5 nums text-slate-400 font-normal">
+          <span className="ml-1.5 nums text-slate-400 dark:text-slate-500 font-normal">
             ({enrollment.records.length})
           </span>
         </h2>
         {/* [VERIFY-T1-C]: the persisted log makes the same disclaimer the entry
             form does — the instructor column is attribution, not an endorsement. */}
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           Instructor-recorded data entry — not a regulatory sign-off or e-signature.
         </p>
         {/* [VERIFY-P2-A]: condensed disclaimer; full text shown in the Sign dialog. */}
-        <p className="text-xs text-slate-400">{ESIGN_DISCLAIMER_SHORT}</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">{ESIGN_DISCLAIMER_SHORT}</p>
 
         {enrollment.records.length === 0 ? (
           <EmptyState icon={ClipboardList} title="No records yet." className="py-6" />
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-x-auto">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Lesson record log">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Lesson
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
                     Instructor
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden md:table-cell">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden md:table-cell">
                     Completed
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden lg:table-cell">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden lg:table-cell">
                     Grade
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Status
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Signature
                   </th>
                   {canManage && (
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wide w-16">
+                    <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide w-16">
                       <span className="sr-only">Actions</span>
                     </th>
                   )}
@@ -1440,42 +1440,42 @@ export function EnrollmentDetailClient({
                   return (
                     <tr
                       key={record.id}
-                      className={`border-b border-slate-100 last:border-0 ${isVoided ? 'opacity-50' : ''}`}
+                      className={`border-b border-slate-100 dark:border-slate-800 last:border-0 ${isVoided ? 'opacity-50' : ''}`}
                     >
                       <td className="px-4 py-3">
-                        <span className={isVoided ? 'line-through text-slate-400' : 'text-slate-700'}>
+                        <span className={isVoided ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'}>
                           {lesson ? `${lesson.position + 1}. ${lesson.title}` : 'Unknown lesson'}
                         </span>
                         {isVoided && (
-                          <p className="text-xs text-slate-400 mt-0.5">
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                             Voided: {record.voidedReason ?? '—'}
                           </p>
                         )}
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className={isVoided ? 'line-through text-slate-400' : 'text-slate-600'}>
+                        <span className={isVoided ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}>
                           {record.instructorName}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <span className={`nums text-xs ${isVoided ? 'line-through text-slate-400' : 'text-slate-600'}`}>
+                        <span className={`nums text-xs ${isVoided ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}`}>
                           {formatDateTime(record.completedAt)}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         {/* [VERIFY-T1-A]: grade_label = FREE-TEXT only */}
-                        <span className={`italic text-xs ${isVoided ? 'line-through text-slate-400' : 'text-slate-500'}`}>
+                        <span className={`italic text-xs ${isVoided ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>
                           {record.gradeLabel ?? '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1">
                           {isVoided ? (
-                            <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700">
+                            <span className="inline-flex items-center rounded-sm border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700 dark:text-red-300">
                               Voided
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-700">
+                            <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-700 dark:text-green-300">
                               Recorded
                             </span>
                           )}
@@ -1484,8 +1484,8 @@ export function EnrollmentDetailClient({
                             <span
                               className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${
                                 record.stageCheckPassed
-                                  ? 'border-amber-200 bg-amber-50 text-amber-800'
-                                  : 'border-red-200 bg-red-50 text-red-700'
+                                  ? 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200'
+                                  : 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300'
                               }`}
                               title="Instructor-stated stage-check outcome — not a computed ACS/Part-61/141 verdict"
                             >

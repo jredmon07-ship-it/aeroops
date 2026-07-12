@@ -73,11 +73,11 @@ const LEAD_TIME_LABELS: Record<'lt24h' | 'd1_7' | 'gt7d', string> = {
 
 function PermissionDeniedPanel() {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-6 py-10 text-center space-y-2">
-      <p className="text-sm font-medium text-slate-700">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-10 text-center space-y-2">
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
         Reporting isn&apos;t available for your role.
       </p>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         Contact your administrator if you need access.
       </p>
     </div>
@@ -101,7 +101,7 @@ interface RangeSelectorProps {
 
 function RangeSelector({ slug, current }: RangeSelectorProps) {
   return (
-    <nav aria-label="Report range" className="flex items-center rounded-md border border-slate-200 overflow-hidden">
+    <nav aria-label="Report range" className="flex items-center rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
       {RANGE_OPTIONS.map(({ key, label }) => {
         const isActive = current === key;
         return (
@@ -113,7 +113,7 @@ function RangeSelector({ slug, current }: RangeSelectorProps) {
               'px-3 py-1.5 text-xs font-medium transition-colors',
               isActive
                 ? 'bg-brand-ink text-white'
-                : 'text-slate-600 hover:bg-slate-50',
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800',
             ].join(' ')}
           >
             {label}
@@ -136,9 +136,9 @@ function ReportsSkeleton() {
       {/* Section B skeleton — utilization trend stat strip + bar rows */}
       <div>
         <Skeleton className="h-3 w-48 mb-3" />
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs p-4 space-y-4">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-4 space-y-4">
           {/* Stat strip */}
-          <div className="grid grid-cols-3 gap-4 pb-4 border-b border-slate-100">
+          <div className="grid grid-cols-3 gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
             {[0, 1, 2].map((i) => (
               <div key={i} className="space-y-2">
                 <Skeleton className="h-2.5 w-16" />
@@ -163,10 +163,10 @@ function ReportsSkeleton() {
       {/* Section C skeleton — hours by tail */}
       <div>
         <Skeleton className="h-3 w-36 mb-3" />
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
-          <div className="h-10 bg-slate-50 border-b border-slate-200" />
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+          <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-12 border-b border-slate-100 flex items-center px-4 gap-8">
+            <div key={i} className="h-12 border-b border-slate-100 dark:border-slate-800 flex items-center px-4 gap-8">
               <Skeleton className="h-3 w-16" />
               <Skeleton className="h-3 w-8" />
               <Skeleton className="h-3 w-12" />
@@ -179,7 +179,7 @@ function ReportsSkeleton() {
       {/* Section D skeleton — reservations vs flights */}
       <div>
         <Skeleton className="h-3 w-52 mb-3" />
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs p-4 space-y-3">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-4 space-y-3">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-4">
               <Skeleton className="h-2.5 w-12 shrink-0" />
@@ -198,7 +198,7 @@ function ReportsSkeleton() {
         {[0, 1].map((i) => (
           <div key={i}>
             <Skeleton className="h-3 w-36 mb-3" />
-            <div className="rounded-md border border-slate-200 bg-white shadow-xs p-4 space-y-3">
+            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-4 space-y-3">
               {[0, 1, 2, 3].map((j) => (
                 <div key={j} className="flex items-center justify-between">
                   <Skeleton className="h-2.5 w-32" />
@@ -233,12 +233,12 @@ function StatNum({
           ? 'text-danger'
           : isZero
           ? 'text-slate-300'
-          : 'text-slate-900',
+          : 'text-slate-900 dark:text-slate-100',
       ].join(' ')}
     >
       {value}
       {suffix && (
-        <span className="text-base font-normal text-slate-400 ml-0.5">{suffix}</span>
+        <span className="text-base font-normal text-slate-400 dark:text-slate-500 ml-0.5">{suffix}</span>
       )}
     </span>
   );
@@ -259,11 +259,11 @@ function StatRow({
 }) {
   const isZero = value === 0;
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-slate-100 last:border-0">
-      <span className="text-sm text-slate-600">{label}</span>
+    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
+      <span className="text-sm text-slate-600 dark:text-slate-300">{label}</span>
       <div className="flex items-center gap-2 shrink-0">
         {note && (
-          <span className="text-xs text-slate-400">{note}</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500">{note}</span>
         )}
         <span
           className={[
@@ -272,7 +272,7 @@ function StatRow({
               ? 'text-danger'
               : isZero
               ? 'text-slate-300'
-              : 'text-slate-900',
+              : 'text-slate-900 dark:text-slate-100',
           ].join(' ')}
         >
           {value}
@@ -469,50 +469,50 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
       {/* ── B. Fleet utilization over time ───────────────────────────────── */}
       <section aria-label={`Fleet utilization over time — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
             Fleet utilization over time — last {rangeLbl}
           </p>
           <ExportCsvButton rows={utilizationCsv} filename={csvFilename('utilization-trend')} />
         </div>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           {/* Stat strip */}
-          <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
+          <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
             <div className="px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Total flights
               </p>
               <StatNum value={utilizationTrend.totalFlights} />
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                 {utilizationTrend.totalFlights === 0 ? 'none in period' : 'completed dispatches'}
               </p>
             </div>
             <div className="px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Total hours *
               </p>
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  utilizationTrend.totalFlightHours === 0 ? 'text-slate-300' : 'text-slate-900',
+                  utilizationTrend.totalFlightHours === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {utilizationTrend.totalFlightHours.toFixed(1)}
               </p>
-              <p className="mt-1 text-xs text-slate-400">utilization hrs</p>
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">utilization hrs</p>
             </div>
             <div className="px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Avg hrs / flight *
               </p>
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  utilizationTrend.avgHoursPerFlight === 0 ? 'text-slate-300' : 'text-slate-900',
+                  utilizationTrend.avgHoursPerFlight === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {utilizationTrend.avgHoursPerFlight.toFixed(1)}
               </p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                 {utilizationTrend.totalFlights === 0 ? '—' : 'per closed dispatch'}
               </p>
             </div>
@@ -521,7 +521,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
           {/* Bucket bar-rows */}
           <div className="p-4">
             {utilizationTrend.buckets.length === 0 ? (
-              <p className="text-center text-sm text-slate-400 py-4">
+              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-4">
                 No bucket data available.
               </p>
             ) : (
@@ -531,13 +531,13 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                   const label = formatBucketLabel(bucket.bucketStart, gran);
                   return (
                     <div key={i} className="flex items-center gap-3 text-xs">
-                      <span className="nums text-slate-500 w-14 shrink-0 tabular-nums">
+                      <span className="nums text-slate-500 dark:text-slate-400 w-14 shrink-0 tabular-nums">
                         {label}
                       </span>
                       <span
                         className={[
                           'nums w-8 shrink-0 text-right tabular-nums',
-                          bucket.flightCount === 0 ? 'text-slate-300' : 'text-slate-700',
+                          bucket.flightCount === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
                         ].join(' ')}
                         aria-label={`${bucket.flightCount} flights`}
                       >
@@ -546,14 +546,14 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                       <span
                         className={[
                           'nums w-12 shrink-0 text-right tabular-nums',
-                          bucket.flightHours === 0 ? 'text-slate-300' : 'text-slate-700',
+                          bucket.flightHours === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
                         ].join(' ')}
                         aria-label={`${bucket.flightHours.toFixed(1)} hours`}
                       >
                         {bucket.flightHours.toFixed(1)}h
                       </span>
                       <div
-                        className="flex-1 h-1.5 rounded-full bg-slate-100"
+                        className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800"
                         aria-hidden="true"
                       >
                         <div
@@ -569,14 +569,14 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
 
             {/* Range-no-data note */}
             {!hasUtilizationData && !isEmptyOrg && (
-              <p className="mt-3 text-xs text-slate-400">
+              <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
                 No flights in the selected period. Try a wider range.
               </p>
             )}
 
             {/* Empty-org nudge */}
             {isEmptyOrg && (
-              <p className="mt-3 text-xs text-slate-400">
+              <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
                 No aircraft yet.{' '}
                 <Link
                   href={`/o/${slug}/schedule/resources`}
@@ -589,7 +589,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
           </div>
         </div>
         {/* Hours footnote — verbatim [VERIFY-A] */}
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
           * {HOURS_FOOTNOTE}
         </p>
       </section>
@@ -597,39 +597,39 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
       {/* ── C. Hours by tail ──────────────────────────────────────────────── */}
       <section aria-label={`Hours by tail — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
             Hours by tail — last {rangeLbl}
           </p>
           <ExportCsvButton rows={hoursByTailCsv} filename={csvFilename('hours-by-tail')} disabled={hoursByTail.length === 0} />
         </div>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
           <table
             className="w-full text-sm"
             aria-label={`Hours by tail last ${rangeLbl}`}
           >
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400"
                 >
                   Tail #
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500"
+                  className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400"
                 >
                   Flights
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500"
+                  className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400"
                 >
                   Hours *
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 w-28"
+                  className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 w-28"
                 >
                   Utilization
                 </th>
@@ -640,7 +640,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-4 py-10 text-center text-sm text-slate-400"
+                    className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500"
                   >
                     No active aircraft.{' '}
                     <Link
@@ -657,12 +657,12 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                   return (
                     <tr
                       key={row.resourceId}
-                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                      className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       <td className="px-4 py-3">
                         <Link
                           href={`/o/${slug}/fleet/${row.resourceId}`}
-                          className="nums font-bold text-slate-900 hover:text-brand underline-offset-2 hover:underline"
+                          className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
                           aria-label={`View details for ${row.tailNumber}`}
                         >
                           {row.tailNumber}
@@ -672,7 +672,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                         <span
                           className={[
                             'nums tabular-nums',
-                            row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700',
+                            row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
                           ].join(' ')}
                         >
                           {row.flightCount}
@@ -682,7 +682,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                         <span
                           className={[
                             'nums tabular-nums',
-                            row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700',
+                            row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
                           ].join(' ')}
                         >
                           {row.flightHours.toFixed(1)}h
@@ -690,7 +690,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                       </td>
                       <td className="px-4 py-3">
                         <div
-                          className="w-24 h-1.5 rounded-full bg-slate-100"
+                          className="w-24 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800"
                           aria-hidden="true"
                         >
                           <div
@@ -706,7 +706,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             </tbody>
           </table>
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
           * {HOURS_FOOTNOTE}
         </p>
       </section>
@@ -714,7 +714,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
       {/* ── C2. Aircraft report (FC-parity: flights/hours/oil/fuel) ───────── */}
       <section aria-label={`Aircraft report — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
             Aircraft report — last {rangeLbl}
           </p>
           <ExportCsvButton
@@ -723,23 +723,23 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             disabled={aircraftReport.length === 0}
           />
         </div>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
           <table className="w-full text-sm" aria-label={`Aircraft report last ${rangeLbl}`}>
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Tail #
                 </th>
-                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Flights
                 </th>
-                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Hours *
                 </th>
-                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Oil added
                 </th>
-                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Fuel added
                 </th>
               </tr>
@@ -747,7 +747,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             <tbody>
               {aircraftReport.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
                     No active aircraft.{' '}
                     <Link
                       href={`/o/${slug}/schedule/resources`}
@@ -761,34 +761,34 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                 aircraftReport.map((row) => (
                   <tr
                     key={row.resourceId}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                    className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
                     <td className="px-4 py-3">
                       <Link
                         href={`/o/${slug}/fleet/${row.resourceId}`}
-                        className="nums font-bold text-slate-900 hover:text-brand underline-offset-2 hover:underline"
+                        className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
                         aria-label={`View details for ${row.tailNumber}`}
                       >
                         {row.tailNumber}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.flightCount}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.flightHours.toFixed(1)}h
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.oilAddedQuarts === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                      <span className={['nums tabular-nums', row.oilAddedQuarts === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.oilAddedQuarts.toFixed(1)} qt
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.fuelAddedGallons === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                      <span className={['nums tabular-nums', row.fuelAddedGallons === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.fuelAddedGallons.toFixed(1)} gal
                       </span>
                     </td>
@@ -798,7 +798,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             </tbody>
           </table>
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
           * {HOURS_FOOTNOTE} Oil &amp; fuel are operator line-ops uplift figures recorded at check-in — not a maintenance or airworthiness record.
         </p>
       </section>
@@ -806,29 +806,29 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
       {/* ── D. Reservations & flights trend ──────────────────────────────── */}
       <section aria-label={`Reservations and flights trend — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
             Reservations &amp; flights trend — last {rangeLbl}
           </p>
           <ExportCsvButton rows={reservationsCsv} filename={csvFilename('reservations-vs-flights')} />
         </div>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
           {/* Totals strip */}
-          <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+          <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
             <div className="px-5 py-3">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Reservations created
               </p>
               <StatNum value={reservationsVsFlights.totalReservationsCreated} />
-              <p className="mt-0.5 text-[0.6875rem] text-slate-400">
+              <p className="mt-0.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
                 all statuses incl. cancelled
               </p>
             </div>
             <div className="px-5 py-3">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Flights completed
               </p>
               <StatNum value={reservationsVsFlights.totalFlightsClosed} />
-              <p className="mt-0.5 text-[0.6875rem] text-slate-400">closed dispatches</p>
+              <p className="mt-0.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">closed dispatches</p>
             </div>
           </div>
 
@@ -838,16 +838,16 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             <div className="flex items-center gap-4 mb-3">
               <div className="flex items-center gap-1.5">
                 <div className="h-1.5 w-4 rounded-full bg-brand" aria-hidden="true" />
-                <span className="text-xs text-slate-500">Reservations</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Reservations</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-1.5 w-4 rounded-full bg-slate-400" aria-hidden="true" />
-                <span className="text-xs text-slate-500">Flights closed</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Flights closed</span>
               </div>
             </div>
 
             {reservationsVsFlights.buckets.length === 0 ? (
-              <p className="text-center text-sm text-slate-400 py-4">
+              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-4">
                 No bucket data available.
               </p>
             ) : (
@@ -858,14 +858,14 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                   const label = formatBucketLabel(bucket.bucketStart, gran);
                   return (
                     <div key={i} className="flex items-start gap-3 text-xs">
-                      <span className="nums text-slate-500 w-14 shrink-0 tabular-nums pt-0.5">
+                      <span className="nums text-slate-500 dark:text-slate-400 w-14 shrink-0 tabular-nums pt-0.5">
                         {label}
                       </span>
                       <div className="w-10 shrink-0 text-right space-y-1">
                         <span
                           className={[
                             'nums block tabular-nums',
-                            bucket.reservationsCreated === 0 ? 'text-slate-300' : 'text-slate-700',
+                            bucket.reservationsCreated === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
                           ].join(' ')}
                         >
                           {bucket.reservationsCreated}
@@ -873,20 +873,20 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                         <span
                           className={[
                             'nums block tabular-nums',
-                            bucket.flightsClosed === 0 ? 'text-slate-300' : 'text-slate-500',
+                            bucket.flightsClosed === 0 ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400',
                           ].join(' ')}
                         >
                           {bucket.flightsClosed}
                         </span>
                       </div>
                       <div className="flex-1 space-y-1" aria-hidden="true">
-                        <div className="h-1.5 rounded-full bg-slate-100">
+                        <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
                           <div
                             className="h-1.5 rounded-full bg-brand"
                             style={{ width: `${resvBar}%` }}
                           />
                         </div>
-                        <div className="h-1.5 rounded-full bg-slate-100">
+                        <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
                           <div
                             className="h-1.5 rounded-full bg-slate-400"
                             style={{ width: `${flightBar}%` }}
@@ -900,7 +900,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             )}
 
             {!hasResvData && !isEmptyOrg && (
-              <p className="mt-3 text-xs text-slate-400">
+              <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
                 No activity in the selected period. Try a wider range.
               </p>
             )}
@@ -914,12 +914,12 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
         {/* E. Training throughput */}
         <section aria-label={`Training throughput — last ${rangeLbl}`}>
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
               Training throughput — last {rangeLbl}
             </p>
             <ExportCsvButton rows={trainingCsv} filename={csvFilename('training-throughput')} />
           </div>
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs px-4 py-3">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-4 py-3">
             <StatRow
               label="Enrollments created"
               value={trainingThroughput.enrollmentsCreatedInRange}
@@ -939,11 +939,11 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             />
           </div>
           {!hasTrainingData && !isEmptyOrg && (
-            <p className="mt-1.5 text-xs text-slate-400">
+            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
               No training activity in period. Try a wider range.
             </p>
           )}
-          <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+          <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
             {OPERATOR_COUNT_CAPTION}
           </p>
         </section>
@@ -951,12 +951,12 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
         {/* F. Maintenance trend */}
         <section aria-label={`Maintenance trend — last ${rangeLbl}`}>
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
               Maintenance trend — last {rangeLbl}
             </p>
             <ExportCsvButton rows={maintenanceTrendCsv} filename={csvFilename('maintenance-trend')} />
           </div>
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs px-4 py-3">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-4 py-3">
             <StatRow
               label="Squawks opened"
               value={maintenanceTrend.squawksOpenedInRange}
@@ -986,11 +986,11 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             />
           </div>
           {!hasMaintenanceData && !isEmptyOrg && (
-            <p className="mt-1.5 text-xs text-slate-400">
+            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
               No maintenance activity in period. Try a wider range.
             </p>
           )}
-          <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+          <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
             {OPERATOR_COUNT_CAPTION}
           </p>
         </section>
@@ -1002,7 +1002,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
           <SectionHeader eyebrow={`Instructor utilization — last ${rangeLbl}`} className="mb-0" />
           <ExportCsvButton rows={instructorCsv} filename={csvFilename('instructor-utilization')} disabled={instructorUtilization.length === 0} />
         </div>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
           {instructorUtilization.length === 0 ? (
             <EmptyState
               icon={GraduationCap}
@@ -1021,20 +1021,20 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
               aria-label={`Instructor utilization last ${rangeLbl}`}
             >
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Instructor
                   </th>
-                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Flights
                   </th>
-                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Hours *
                   </th>
-                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Lessons
                   </th>
-                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Students
                   </th>
                 </tr>
@@ -1043,33 +1043,33 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                 {instructorUtilization.map((row) => (
                   <tr
                     key={row.instructorUserId}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                    className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
                     <td className="px-4 py-3">
                       <Link
                         href={`/o/${slug}/people/${row.instructorUserId}`}
-                        className="font-medium text-slate-900 hover:text-brand underline-offset-2 hover:underline"
+                        className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
                       >
                         {row.instructorName}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.flightCount}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.flightHours.toFixed(1)}h
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.lessonsGiven === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                      <span className={['nums tabular-nums', row.lessonsGiven === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.lessonsGiven}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.distinctStudents === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                      <span className={['nums tabular-nums', row.distinctStudents === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.distinctStudents}
                       </span>
                     </td>
@@ -1080,11 +1080,11 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
           )}
         </div>
         {instructorUtilization.length > 0 && !hasInstructorActivity && !isEmptyOrg && (
-          <p className="mt-1.5 text-xs text-slate-400">
+          <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
             No instructor activity in the selected period. Try a wider range.
           </p>
         )}
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
           * {HOURS_FOOTNOTE} {OPERATOR_COUNT_CAPTION}
         </p>
       </section>
@@ -1092,13 +1092,13 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
       {/* ── H. Squawks (org-wide) ─────────────────────────────────────────── */}
       <section aria-label="Squawks — org-wide">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
             <Wrench className="h-3 w-3" aria-hidden="true" />
             Squawks — {squawks.openCount} open · {squawks.deferredCount} deferred · {squawks.resolvedCount} resolved
           </p>
           <ExportCsvButton rows={squawksCsv} filename={csvFilename('squawks')} disabled={squawks.rows.length === 0} />
         </div>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
           {squawks.rows.length === 0 ? (
             <EmptyState
               icon={Wrench}
@@ -1109,26 +1109,26 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
           ) : (
             <table className="w-full text-sm" aria-label="Squawks org-wide">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Tail #</th>
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Squawk</th>
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Severity</th>
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Status</th>
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Reported</th>
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Tail #</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Squawk</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Severity</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Reported</th>
                 </tr>
               </thead>
               <tbody>
                 {squawks.rows.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 nums font-bold text-slate-900">{r.tailNumber}</td>
-                    <td className="px-4 py-3 text-slate-700">{r.title}</td>
+                  <tr key={r.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <td className="px-4 py-3 nums font-bold text-slate-900 dark:text-slate-100">{r.tailNumber}</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{r.title}</td>
                     <td className="px-4 py-3">
                       <StatusBadge variant={severityVariant(r.severity)}>{r.severity}</StatusBadge>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge variant={squawkStatusVariant(r.status)}>{r.status}</StatusBadge>
                     </td>
-                    <td className="px-4 py-3 nums text-slate-500 text-xs">
+                    <td className="px-4 py-3 nums text-slate-500 dark:text-slate-400 text-xs">
                       {new Date(r.reportedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
                   </tr>
@@ -1137,19 +1137,19 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             </table>
           )}
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400">{OPERATOR_COUNT_CAPTION}</p>
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">{OPERATOR_COUNT_CAPTION}</p>
       </section>
 
       {/* ── I. Maintenance reminders (org-wide) ───────────────────────────── */}
       <section aria-label="Maintenance reminders — org-wide">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
             <ClipboardList className="h-3 w-3" aria-hidden="true" />
             Maintenance reminders — {maintenanceReminders.overdueCount} overdue · {maintenanceReminders.dueSoonCount} due soon
           </p>
           <ExportCsvButton rows={remindersCsv} filename={csvFilename('maintenance-reminders')} disabled={maintenanceReminders.rows.length === 0} />
         </div>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
           {maintenanceReminders.rows.length === 0 ? (
             <EmptyState
               icon={ClipboardList}
@@ -1160,26 +1160,26 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
           ) : (
             <table className="w-full text-sm" aria-label="Maintenance reminders org-wide">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Tail #</th>
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Item</th>
-                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Status</th>
-                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Due</th>
-                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Remaining</th>
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Tail #</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Item</th>
+                  <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Due</th>
+                  <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Remaining</th>
                 </tr>
               </thead>
               <tbody>
                 {maintenanceReminders.rows.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 nums font-bold text-slate-900">{r.tailNumber}</td>
-                    <td className="px-4 py-3 text-slate-700">{r.title}</td>
+                  <tr key={r.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <td className="px-4 py-3 nums font-bold text-slate-900 dark:text-slate-100">{r.tailNumber}</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{r.title}</td>
                     <td className="px-4 py-3">
                       <StatusBadge variant={dueStatusVariant(r.status)}>{r.status.replace('_', ' ')}</StatusBadge>
                     </td>
-                    <td className="px-4 py-3 text-right nums text-slate-600 text-xs">
+                    <td className="px-4 py-3 text-right nums text-slate-600 dark:text-slate-300 text-xs">
                       {r.dueDate ?? (r.dueValueHours != null ? `${r.dueValueHours.toFixed(1)}h` : <span className="text-slate-300">—</span>)}
                     </td>
-                    <td className="px-4 py-3 text-right nums text-slate-600 text-xs">
+                    <td className="px-4 py-3 text-right nums text-slate-600 dark:text-slate-300 text-xs">
                       {r.remainingHours != null
                         ? `${r.remainingHours.toFixed(1)}h`
                         : r.remainingDays != null
@@ -1192,7 +1192,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             </table>
           )}
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
           Arithmetic on operator-entered thresholds vs last-recorded meters — {OPERATOR_COUNT_CAPTION}
         </p>
       </section>
@@ -1200,7 +1200,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
       {/* ── J. Cancellations ──────────────────────────────────────────────── */}
       <section aria-label={`Cancellations — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
             <CalendarX2 className="h-3 w-3" aria-hidden="true" />
             Cancellations — last {rangeLbl}
           </p>
@@ -1211,28 +1211,28 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
           />
         </div>
         {/* Lead-time totals strip */}
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs">
-          <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+          <div className="grid grid-cols-4 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
             <div className="px-5 py-3">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Total
               </p>
               <StatNum value={cancellations.totalCount} />
             </div>
             <div className="px-5 py-3">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 &lt;24h notice
               </p>
               <StatNum value={cancellations.lt24hCount} danger />
             </div>
             <div className="px-5 py-3">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 1–7d notice
               </p>
               <StatNum value={cancellations.d1_7Count} />
             </div>
             <div className="px-5 py-3">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 &gt;7d notice
               </p>
               <StatNum value={cancellations.gt7dCount} />
@@ -1249,23 +1249,23 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             ) : (
               <table className="w-full text-sm" aria-label={`Cancellations last ${rangeLbl}`}>
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Cancelled</th>
-                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Resource</th>
-                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Cancelled by</th>
-                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Reason</th>
-                    <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Lead time</th>
+                  <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Cancelled</th>
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Resource</th>
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Cancelled by</th>
+                    <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Reason</th>
+                    <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Lead time</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cancellations.rows.map((r) => (
-                    <tr key={r.reservationId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 nums text-slate-500 text-xs whitespace-nowrap">
+                    <tr key={r.reservationId} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                      <td className="px-4 py-3 nums text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
                         {new Date(r.cancelledAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
-                      <td className="px-4 py-3 nums font-medium text-slate-900">{r.resourceLabel}</td>
-                      <td className="px-4 py-3 text-slate-700">{r.cancelledByName}</td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="px-4 py-3 nums font-medium text-slate-900 dark:text-slate-100">{r.resourceLabel}</td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{r.cancelledByName}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                         {r.reason ?? <span className="text-slate-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -1280,7 +1280,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             )}
           </div>
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
           Lead time = notice before the scheduled start (start − cancelled). {OPERATOR_COUNT_CAPTION}
         </p>
       </section>

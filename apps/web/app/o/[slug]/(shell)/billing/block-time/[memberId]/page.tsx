@@ -79,53 +79,53 @@ async function SummaryContent({ slug, memberId }: SummaryContentProps) {
       <PageHeader title={summary.memberName} subtitle="Block-time summary" />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
-        <div className="rounded-md border border-slate-200 p-4">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Hours purchased</p>
-          <p className="mt-1 nums text-xl font-semibold text-slate-900">{summary.totalHoursPurchased}</p>
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 p-4">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Hours purchased</p>
+          <p className="mt-1 nums text-xl font-semibold text-slate-900 dark:text-slate-100">{summary.totalHoursPurchased}</p>
         </div>
-        <div className="rounded-md border border-slate-200 p-4">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Amount purchased</p>
-          <p className="mt-1 nums text-xl font-semibold text-slate-900">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 p-4">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Amount purchased</p>
+          <p className="mt-1 nums text-xl font-semibold text-slate-900 dark:text-slate-100">
             {formatCents(summary.totalAmountPurchasedCents)}
           </p>
         </div>
-        <div className="rounded-md border border-slate-200 p-4">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Prepaid balance</p>
-          <p className="mt-1 nums text-xl font-semibold text-slate-900">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 p-4">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Prepaid balance</p>
+          <p className="mt-1 nums text-xl font-semibold text-slate-900 dark:text-slate-100">
             {formatCents(summary.prepaidBalanceCents)}
           </p>
         </div>
       </div>
-      <p className="text-xs text-slate-400 max-w-2xl">
+      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-2xl">
         Prepaid balance is the member&apos;s remaining ledger credit — it never shows negative here
         (a member who owes money is tracked on the accounts-receivable report instead). Drawdown per
         flight hour is not tracked in this version; the balance reflects payments and invoices only.
       </p>
 
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-2">Purchase history</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Purchase history</h2>
         {summary.purchases.length === 0 ? (
           <EmptyState icon={Layers} title="No blocks purchased yet." className="py-12" />
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-x-auto">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Block purchase history">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Date</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Hours</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Amount</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">Note</th>
+                <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Date</th>
+                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Hours</th>
+                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Amount</th>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">Note</th>
                 </tr>
               </thead>
               <tbody>
                 {summary.purchases.map((p) => (
-                  <tr key={p.id} className="border-b border-slate-100 last:border-0">
-                    <td className="px-3 py-2 nums text-xs text-slate-500">
+                  <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                    <td className="px-3 py-2 nums text-xs text-slate-500 dark:text-slate-400">
                       {new Date(p.purchasedAt).toLocaleDateString()}
                     </td>
                     <td className="px-3 py-2 text-right nums">{p.hours}</td>
                     <td className="px-3 py-2 text-right nums">{formatCents(p.amountCents)}</td>
-                    <td className="px-3 py-2 text-xs text-slate-500 hidden sm:table-cell">{p.note ?? '—'}</td>
+                    <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 hidden sm:table-cell">{p.note ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -158,7 +158,7 @@ export default async function MemberBlockTimePage({ params }: MemberBlockTimePag
     <div className="space-y-4">
       <Link
         href={`/o/${slug}/billing/block-time`}
-        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
       >
         <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
         Back to block time

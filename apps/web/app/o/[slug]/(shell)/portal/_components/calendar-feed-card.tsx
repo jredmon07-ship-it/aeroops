@@ -148,16 +148,16 @@ export function CalendarFeedCard() {
 
   return (
     <section
-      className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden"
+      className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden"
       aria-label="Calendar feed"
     >
-      <div className="border-b border-slate-100 px-5 py-3 flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-slate-400" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-slate-700">Calendar feed</h2>
+      <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3 flex items-center gap-2">
+        <Calendar className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Calendar feed</h2>
       </div>
 
       <div className="px-5 py-4 space-y-3">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Subscribe your reservations into Apple Calendar, Google Calendar, or Outlook.
           The feed updates automatically as your schedule changes.
         </p>
@@ -200,7 +200,7 @@ export function CalendarFeedCard() {
                 value={feedUrl(state.feed.feedToken)}
                 aria-label="Your calendar subscribe URL"
                 onFocus={(e) => e.currentTarget.select()}
-                className="flex h-9 w-full min-w-0 rounded-md border border-slate-300 bg-slate-50 px-3 text-xs font-mono text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+                className="flex h-9 w-full min-w-0 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-xs font-mono text-slate-700 dark:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
               />
               <Button
                 size="sm"
@@ -217,9 +217,9 @@ export function CalendarFeedCard() {
             </div>
 
             {/* Load-bearing privacy warning — not decorative. */}
-            <div className="flex items-start gap-1.5 rounded bg-amber-50 border border-amber-200 px-2.5 py-2">
-              <ShieldAlert className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-[0.6875rem] text-amber-800 leading-relaxed">
+            <div className="flex items-start gap-1.5 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-2.5 py-2">
+              <ShieldAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-[0.6875rem] text-amber-800 dark:text-amber-200 leading-relaxed">
                 This link is private — anyone who has it can see your schedule. Don&apos;t share it publicly.
                 Revoke or refresh it below if it&apos;s ever exposed.
               </p>
@@ -240,7 +240,7 @@ export function CalendarFeedCard() {
                 variant="outline"
                 onClick={() => setConfirmRevoke(true)}
                 disabled={busy}
-                className="text-red-600 hover:text-red-700 hover:border-red-300"
+                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-800"
               >
                 <XCircle className="h-4 w-4 mr-1" aria-hidden="true" />
                 Revoke

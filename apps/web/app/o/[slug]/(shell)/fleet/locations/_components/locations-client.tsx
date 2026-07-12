@@ -70,17 +70,17 @@ export function LocationsClient({ locations, slug, canManage }: LocationsClientP
           }
         />
       ) : (
-        <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Locations">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Name
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   ICAO
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Coordinates
                 </th>
                 {canManage && <th scope="col" className="px-3 py-2 w-16" />}
@@ -90,14 +90,14 @@ export function LocationsClient({ locations, slug, canManage }: LocationsClientP
               {locations.map((loc) => {
                 const hasCoords = loc.latitude != null && loc.longitude != null;
                 return (
-                  <tr key={loc.id} className="border-b border-slate-100 last:border-0">
-                    <td className="px-3 py-3 font-medium text-slate-900">{loc.name}</td>
-                    <td className="px-3 py-3 nums text-slate-600">{loc.icao ?? '—'}</td>
-                    <td className="px-3 py-3 nums text-slate-600">
+                  <tr key={loc.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                    <td className="px-3 py-3 font-medium text-slate-900 dark:text-slate-100">{loc.name}</td>
+                    <td className="px-3 py-3 nums text-slate-600 dark:text-slate-300">{loc.icao ?? '—'}</td>
+                    <td className="px-3 py-3 nums text-slate-600 dark:text-slate-300">
                       {hasCoords ? (
                         `${loc.latitude!.toFixed(4)}, ${loc.longitude!.toFixed(4)}`
                       ) : (
-                        <span className="text-amber-600">No coordinates</span>
+                        <span className="text-amber-600 dark:text-amber-400">No coordinates</span>
                       )}
                     </td>
                     {canManage && (
@@ -293,7 +293,7 @@ function LocationDialog({ mode, slug, location, open, onOpenChange }: LocationDi
               className={fieldErrors.name ? 'border-red-500' : ''}
             />
             {fieldErrors.name && (
-              <p id="loc-name-err" role="alert" className="text-xs text-red-600">
+              <p id="loc-name-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                 {fieldErrors.name}
               </p>
             )}
@@ -317,7 +317,7 @@ function LocationDialog({ mode, slug, location, open, onOpenChange }: LocationDi
               className={`nums ${fieldErrors.icao ? 'border-red-500' : ''}`}
             />
             {fieldErrors.icao && (
-              <p id="loc-icao-err" role="alert" className="text-xs text-red-600">
+              <p id="loc-icao-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                 {fieldErrors.icao}
               </p>
             )}
@@ -344,7 +344,7 @@ function LocationDialog({ mode, slug, location, open, onOpenChange }: LocationDi
                 className={`nums ${fieldErrors.latitude ? 'border-red-500' : ''}`}
               />
               {fieldErrors.latitude && (
-                <p id="loc-lat-err" role="alert" className="text-xs text-red-600">
+                <p id="loc-lat-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.latitude}
                 </p>
               )}
@@ -368,13 +368,13 @@ function LocationDialog({ mode, slug, location, open, onOpenChange }: LocationDi
                 className={`nums ${fieldErrors.longitude ? 'border-red-500' : ''}`}
               />
               {fieldErrors.longitude && (
-                <p id="loc-lon-err" role="alert" className="text-xs text-red-600">
+                <p id="loc-lon-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.longitude}
                 </p>
               )}
             </div>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             Coordinates (WGS84 decimal degrees) enable accurate day/night scheduling.
             Operator data — not an FAA determination.
           </p>

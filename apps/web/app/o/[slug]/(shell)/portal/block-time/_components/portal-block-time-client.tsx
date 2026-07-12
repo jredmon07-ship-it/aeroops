@@ -33,41 +33,41 @@ export function PortalBlockTimeClient({ summary }: PortalBlockTimeClientProps) {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <section className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4" aria-label="Hours purchased">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Hours purchased</p>
-          <p className="mt-1 nums text-xl font-semibold text-slate-900">{summary.totalHoursPurchased}</p>
+        <section className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-5 py-4" aria-label="Hours purchased">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Hours purchased</p>
+          <p className="mt-1 nums text-xl font-semibold text-slate-900 dark:text-slate-100">{summary.totalHoursPurchased}</p>
         </section>
-        <section className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4" aria-label="Amount purchased">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Amount purchased</p>
-          <p className="mt-1 nums text-xl font-semibold text-slate-900">
+        <section className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-5 py-4" aria-label="Amount purchased">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Amount purchased</p>
+          <p className="mt-1 nums text-xl font-semibold text-slate-900 dark:text-slate-100">
             {formatCents(summary.totalAmountPurchasedCents)}
           </p>
         </section>
-        <section className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4" aria-label="Prepaid balance">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Prepaid balance</p>
-          <p className="mt-1 nums text-xl font-semibold text-slate-900">
+        <section className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-5 py-4" aria-label="Prepaid balance">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Prepaid balance</p>
+          <p className="mt-1 nums text-xl font-semibold text-slate-900 dark:text-slate-100">
             {formatCents(summary.prepaidBalanceCents)}
           </p>
         </section>
       </div>
 
-      <section className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden" aria-label="Purchase history">
-        <div className="border-b border-slate-100 px-5 py-3">
-          <h2 className="text-sm font-semibold text-slate-700">Purchase history</h2>
+      <section className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden" aria-label="Purchase history">
+        <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Purchase history</h2>
         </div>
         {summary.purchases.length === 0 ? (
           <EmptyState icon={Layers} title="No blocks purchased yet." className="py-10" />
         ) : (
-          <ul className="divide-y divide-slate-100" role="list">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800" role="list">
             {summary.purchases.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
                 <div>
-                  <p className="nums text-sm font-medium text-slate-900">
+                  <p className="nums text-sm font-medium text-slate-900 dark:text-slate-100">
                     {p.hours} hrs / {formatCents(p.amountCents)}
                   </p>
-                  <p className="text-xs text-slate-400">{new Date(p.purchasedAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">{new Date(p.purchasedAt).toLocaleDateString()}</p>
                 </div>
-                {p.note && <p className="text-xs text-slate-500">{p.note}</p>}
+                {p.note && <p className="text-xs text-slate-500 dark:text-slate-400">{p.note}</p>}
               </li>
             ))}
           </ul>

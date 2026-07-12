@@ -140,7 +140,7 @@ export function CancelWorkOrderDialog({
               aria-invalid={reasonError ? 'true' : undefined}
               aria-describedby={reasonError ? 'cancel-reason-err' : undefined}
               disabled={isSubmitting}
-              className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
+              className="flex w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm placeholder:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 resize-none transition-colors"
             />
             {reasonError && (
               <p id="cancel-reason-err" role="alert" className="text-xs text-destructive">

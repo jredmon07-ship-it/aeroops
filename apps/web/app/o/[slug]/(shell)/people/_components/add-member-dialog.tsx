@@ -170,7 +170,7 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
             {/* Email (required) */}
             <div className="space-y-1.5">
               <Label htmlFor="am-email">
-                Email <span aria-hidden="true" className="text-red-500">*</span>
+                Email <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Input
                 id="am-email"
@@ -190,7 +190,7 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
                 className={fieldErrors.email ? 'border-red-500' : ''}
               />
               {fieldErrors.email && (
-                <p id="am-email-err" role="alert" className="text-xs text-red-600">
+                <p id="am-email-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.email}
                 </p>
               )}
@@ -213,7 +213,7 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
                 className={fieldErrors.fullName ? 'border-red-500' : ''}
               />
               {fieldErrors.fullName && (
-                <p id="am-fullName-err" role="alert" className="text-xs text-red-600">
+                <p id="am-fullName-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {fieldErrors.fullName}
                 </p>
               )}
@@ -241,7 +241,7 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
                 value={role}
                 onChange={(e) => setRole(e.target.value as MembershipRole)}
                 disabled={isSubmitting}
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 hover:border-slate-400 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
+                className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:opacity-50 transition-colors"
               >
                 {MEMBERSHIP_ROLES.map((r) => (
                   <option key={r} value={r}>

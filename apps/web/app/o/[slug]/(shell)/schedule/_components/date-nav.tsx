@@ -77,7 +77,7 @@ export function DateNav({ date, basePath }: DateNavProps) {
 
       <output
         aria-live="polite"
-        className="ml-2 text-sm font-medium text-slate-700 min-w-[12rem]"
+        className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300 min-w-[12rem]"
       >
         {formatDate(date)}
       </output>

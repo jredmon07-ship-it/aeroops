@@ -121,7 +121,7 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
         )}
         {success && (
           <Alert role="status">
-            <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden="true" />
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden="true" />
             <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
@@ -131,7 +131,7 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
           <div className="flex flex-wrap items-center gap-2">
             <select
               id="msg-audience"
-              className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
               value={audience}
               onChange={(e) => setAudience(e.target.value as 'all_active' | 'role')}
               disabled={busy}
@@ -142,7 +142,7 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
             {audience === 'role' && (
               <select
                 aria-label="Role"
-                className="flex h-9 rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 disabled={busy}
@@ -154,7 +154,7 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
                 ))}
               </select>
             )}
-            <span className="text-sm text-slate-500" role="status">
+            <span className="text-sm text-slate-500 dark:text-slate-400" role="status">
               {previewCount === null ? 'Counting recipients…' : `${previewCount} recipient(s)`}
             </span>
           </div>
@@ -186,7 +186,7 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
             maxLength={5000}
             required
           />
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             Members who have opted out of announcements are skipped automatically.
           </p>
         </div>
@@ -201,23 +201,23 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
 
       {/* Sent history */}
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Recent messages</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Recent messages</h2>
         {history.length === 0 ? (
           <EmptyState icon={Send} title="No messages sent yet." className="py-6" />
         ) : (
           <ul className="space-y-2" role="list">
             {history.map((m) => (
-              <li key={m.id} className="rounded-md border border-slate-200 px-4 py-3">
+              <li key={m.id} className="rounded-md border border-slate-200 dark:border-slate-800 px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-medium text-slate-900">{m.subject}</p>
-                  <span className="text-xs text-slate-400 whitespace-nowrap nums">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{m.subject}</p>
+                  <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap nums">
                     {new Date(m.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {audienceLabel(m)} · {m.recipientCount} recipient(s)
                 </p>
-                <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap line-clamp-3">{m.body}</p>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap line-clamp-3">{m.body}</p>
               </li>
             ))}
           </ul>

@@ -65,7 +65,7 @@ function resolveRangeKey(raw: string | undefined): RangeKey {
 
 function RangeSelector({ slug, current }: { slug: string; current: RangeKey }) {
   return (
-    <nav aria-label="Revenue range" className="flex items-center rounded-md border border-slate-200 overflow-hidden">
+    <nav aria-label="Revenue range" className="flex items-center rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
       {RANGE_OPTIONS.map(({ key, label }) => {
         const isActive = current === key;
         return (
@@ -75,7 +75,7 @@ function RangeSelector({ slug, current }: { slug: string; current: RangeKey }) {
             aria-current={isActive ? 'page' : undefined}
             className={[
               'px-3 py-1.5 text-xs font-medium transition-colors',
-              isActive ? 'bg-brand-ink text-white' : 'text-slate-600 hover:bg-slate-50',
+              isActive ? 'bg-brand-ink text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800',
             ].join(' ')}
           >
             {label}
@@ -93,16 +93,16 @@ function ReportsSkeleton() {
     <div className="space-y-8 animate-pulse" aria-busy="true" aria-label="Loading financial reports">
       <div>
         <Skeleton className="h-3 w-48 mb-3" />
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
-          <div className="h-10 bg-slate-50 border-b border-slate-200" />
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+          <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-12 border-b border-slate-100" />
+            <div key={i} className="h-12 border-b border-slate-100 dark:border-slate-800" />
           ))}
         </div>
       </div>
       <div>
         <Skeleton className="h-3 w-36 mb-3" />
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs p-4 space-y-3">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-4 space-y-3">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-3 w-full" />
           ))}
@@ -135,10 +135,10 @@ async function AccountsReceivableSection({ slug }: { slug: string }) {
 
   if (data.rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center space-y-2 rounded-md border border-slate-200 bg-white" role="status">
+      <div className="flex flex-col items-center justify-center py-12 text-center space-y-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900" role="status">
         <Wallet className="h-8 w-8 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-700 font-medium">No outstanding balances.</p>
-        <p className="text-sm text-slate-400">Every member is paid up or has a credit on account.</p>
+        <p className="text-slate-700 dark:text-slate-300 font-medium">No outstanding balances.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">Every member is paid up or has a credit on account.</p>
       </div>
     );
   }
@@ -161,55 +161,55 @@ async function AccountsReceivableSection({ slug }: { slug: string }) {
       <div className="flex justify-end">
         <ExportCsvButton rows={csvRows} filename={csvFilename('accounts-receivable')} />
       </div>
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
       <table className="w-full text-sm" aria-label="Accounts receivable, by member">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-200">
-            <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+          <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+            <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Member
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Owed
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Current
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               1-30
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               31-60
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               61-90
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               90+
             </th>
           </tr>
         </thead>
         <tbody>
           {data.rows.map((row) => (
-            <tr key={row.memberUserId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+            <tr key={row.memberUserId} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <td className="px-4 py-3">
                 <Link
                   href={`/o/${slug}/billing/reports/${row.memberUserId}`}
-                  className="font-medium text-slate-900 hover:text-brand underline-offset-2 hover:underline"
+                  className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
                 >
                   {row.memberName}
                 </Link>
               </td>
               <td className="px-4 py-3 text-right nums font-semibold">{formatCents(row.balanceCents)}</td>
-              <td className="px-4 py-3 text-right nums text-slate-600">
+              <td className="px-4 py-3 text-right nums text-slate-600 dark:text-slate-300">
                 {row.aging.current > 0 ? formatCents(row.aging.current) : <span className="text-slate-300">—</span>}
               </td>
-              <td className="px-4 py-3 text-right nums text-slate-600">
+              <td className="px-4 py-3 text-right nums text-slate-600 dark:text-slate-300">
                 {row.aging.d30 > 0 ? formatCents(row.aging.d30) : <span className="text-slate-300">—</span>}
               </td>
-              <td className="px-4 py-3 text-right nums text-slate-600">
+              <td className="px-4 py-3 text-right nums text-slate-600 dark:text-slate-300">
                 {row.aging.d60 > 0 ? formatCents(row.aging.d60) : <span className="text-slate-300">—</span>}
               </td>
-              <td className="px-4 py-3 text-right nums text-slate-600">
+              <td className="px-4 py-3 text-right nums text-slate-600 dark:text-slate-300">
                 {row.aging.d90 > 0 ? formatCents(row.aging.d90) : <span className="text-slate-300">—</span>}
               </td>
               <td className="px-4 py-3 text-right nums text-danger font-medium">
@@ -219,8 +219,8 @@ async function AccountsReceivableSection({ slug }: { slug: string }) {
           ))}
         </tbody>
         <tfoot>
-          <tr className="bg-slate-50 border-t border-slate-200 font-semibold">
-            <td className="px-4 py-2.5 text-slate-700">Total</td>
+          <tr className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-800 font-semibold">
+            <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">Total</td>
             <td className="px-4 py-2.5 text-right nums">{formatCents(data.totalOutstandingCents)}</td>
             <td className="px-4 py-2.5 text-right nums">{formatCents(data.totals.current)}</td>
             <td className="px-4 py-2.5 text-right nums">{formatCents(data.totals.d30)}</td>
@@ -266,50 +266,50 @@ async function RevenueSection({ range }: { slug: string; range: RangeKey }) {
       <div className="flex justify-end">
         <ExportCsvButton rows={csvRows} filename={csvFilename('revenue')} disabled={!hasActivity} />
       </div>
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs">
-      <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+      <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
         <div className="px-5 py-4">
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Finalized (billed)</p>
-          <p className={['nums mt-1 text-2xl font-bold leading-none', data.totalFinalizedCents === 0 ? 'text-slate-300' : 'text-slate-900'].join(' ')}>
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Finalized (billed)</p>
+          <p className={['nums mt-1 text-2xl font-bold leading-none', data.totalFinalizedCents === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100'].join(' ')}>
             {formatCents(data.totalFinalizedCents)}
           </p>
         </div>
         <div className="px-5 py-4">
-          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Collected (payments)</p>
-          <p className={['nums mt-1 text-2xl font-bold leading-none', data.totalCollectedCents === 0 ? 'text-slate-300' : 'text-slate-900'].join(' ')}>
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Collected (payments)</p>
+          <p className={['nums mt-1 text-2xl font-bold leading-none', data.totalCollectedCents === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100'].join(' ')}>
             {formatCents(data.totalCollectedCents)}
           </p>
         </div>
       </div>
 
       {!hasActivity ? (
-        <p className="px-5 py-6 text-center text-sm text-slate-400">No billing or payment activity in this period.</p>
+        <p className="px-5 py-6 text-center text-sm text-slate-400 dark:text-slate-500">No billing or payment activity in this period.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm" aria-label={`Revenue by period — last ${range}`}>
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Period
                 </th>
-                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Finalized
                 </th>
-                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Collected
                 </th>
               </tr>
             </thead>
             <tbody>
               {data.buckets.map((b) => (
-                <tr key={b.bucketStart} className="border-b border-slate-100 last:border-0">
-                  <td className="px-4 py-2 nums text-slate-500 text-xs">
+                <tr key={b.bucketStart} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <td className="px-4 py-2 nums text-slate-500 dark:text-slate-400 text-xs">
                     {new Date(b.bucketStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </td>
-                  <td className={['px-4 py-2 text-right nums', b.finalizedCents === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                  <td className={['px-4 py-2 text-right nums', b.finalizedCents === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                     {formatCents(b.finalizedCents)}
                   </td>
-                  <td className={['px-4 py-2 text-right nums', b.collectedCents === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                  <td className={['px-4 py-2 text-right nums', b.collectedCents === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                     {formatCents(b.collectedCents)}
                   </td>
                 </tr>
@@ -356,7 +356,7 @@ async function ItemsSoldSection({ range }: { slug: string; range: RangeKey }) {
       <div className="flex justify-end">
         <ExportCsvButton rows={csvRows} filename={csvFilename('items-sold')} disabled={data.rows.length === 0} />
       </div>
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
       {data.rows.length === 0 ? (
         <EmptyState
           icon={ShoppingBag}
@@ -367,32 +367,32 @@ async function ItemsSoldSection({ range }: { slug: string; range: RangeKey }) {
       ) : (
         <table className="w-full text-sm" aria-label={`Items sold — last ${range}`}>
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+              <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Product
               </th>
-              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Qty sold
               </th>
-              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Gross
               </th>
-              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+              <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Tax
               </th>
             </tr>
           </thead>
           <tbody>
             {data.rows.map((row) => (
-              <tr key={row.productId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+              <tr key={row.productId} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 <td className="px-4 py-3">
-                  <span className="font-medium text-slate-900">{row.productName}</span>
-                  {row.sku && <span className="ml-2 text-xs text-slate-400 nums">{row.sku}</span>}
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{row.productName}</span>
+                  {row.sku && <span className="ml-2 text-xs text-slate-400 dark:text-slate-500 nums">{row.sku}</span>}
                 </td>
-                <td className={['px-4 py-3 text-right nums', row.qtySold === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                <td className={['px-4 py-3 text-right nums', row.qtySold === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                   {row.qtySold}
                 </td>
-                <td className={['px-4 py-3 text-right nums font-medium', row.grossCents === 0 ? 'text-slate-300' : 'text-slate-900'].join(' ')}>
+                <td className={['px-4 py-3 text-right nums font-medium', row.grossCents === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100'].join(' ')}>
                   {formatCents(row.grossCents)}
                 </td>
                 <td className="px-4 py-3 text-right nums text-slate-300">
@@ -402,17 +402,17 @@ async function ItemsSoldSection({ range }: { slug: string; range: RangeKey }) {
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-slate-50 border-t border-slate-200 font-semibold">
-              <td className="px-4 py-2.5 text-slate-700">Total</td>
+            <tr className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-800 font-semibold">
+              <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">Total</td>
               <td className="px-4 py-2.5 text-right nums">{data.totalQtySold}</td>
               <td className="px-4 py-2.5 text-right nums">{formatCents(data.totalGrossCents)}</td>
-              <td className="px-4 py-2.5 text-right nums text-slate-400">{formatCents(data.totalTaxCents)}</td>
+              <td className="px-4 py-2.5 text-right nums text-slate-400 dark:text-slate-500">{formatCents(data.totalTaxCents)}</td>
             </tr>
           </tfoot>
         </table>
       )}
       {data.rows.length > 0 && !hasSales && (
-        <p className="px-4 py-3 text-xs text-slate-400">No counter-sale activity in this period. Try a wider range.</p>
+        <p className="px-4 py-3 text-xs text-slate-400 dark:text-slate-500">No counter-sale activity in this period. Try a wider range.</p>
       )}
       </div>
     </div>
@@ -450,7 +450,7 @@ async function PaymentsSection({ range }: { slug: string; range: RangeKey }) {
       <div className="flex justify-end">
         <ExportCsvButton rows={csvRows} filename={csvFilename('payments')} disabled={data.rows.length === 0} />
       </div>
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
         {data.rows.length === 0 ? (
           <EmptyState
             icon={Banknote}
@@ -461,30 +461,30 @@ async function PaymentsSection({ range }: { slug: string; range: RangeKey }) {
         ) : (
           <table className="w-full text-sm" aria-label={`Payments — last ${range}`}>
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Date</th>
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Member</th>
-                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Amount</th>
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Reference</th>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Member</th>
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Amount</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Reference</th>
               </tr>
             </thead>
             <tbody>
               {data.rows.map((r) => (
-                <tr key={r.entryId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 nums text-slate-500 text-xs">
+                <tr key={r.entryId} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <td className="px-4 py-3 nums text-slate-500 dark:text-slate-400 text-xs">
                     {new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
-                  <td className="px-4 py-3 text-slate-900">{r.memberName}</td>
+                  <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{r.memberName}</td>
                   <td className="px-4 py-3 text-right nums font-medium text-success">{formatCents(r.amountCents)}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">
                     {r.paymentId ?? r.memo ?? <span className="text-slate-300">—</span>}
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="bg-slate-50 border-t border-slate-200 font-semibold">
-                <td className="px-4 py-2.5 text-slate-700" colSpan={2}>Total — {data.paymentCount} payment{data.paymentCount === 1 ? '' : 's'}</td>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-800 font-semibold">
+                <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300" colSpan={2}>Total — {data.paymentCount} payment{data.paymentCount === 1 ? '' : 's'}</td>
                 <td className="px-4 py-2.5 text-right nums">{formatCents(data.totalPaymentCents)}</td>
                 <td className="px-4 py-2.5" />
               </tr>
@@ -532,7 +532,7 @@ async function AdjustmentsSection({ range }: { slug: string; range: RangeKey }) 
       <div className="flex justify-end">
         <ExportCsvButton rows={csvRows} filename={csvFilename('adjustments')} disabled={data.rows.length === 0} />
       </div>
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-x-auto">
         {data.rows.length === 0 ? (
           <EmptyState
             icon={Scale}
@@ -543,22 +543,22 @@ async function AdjustmentsSection({ range }: { slug: string; range: RangeKey }) 
         ) : (
           <table className="w-full text-sm" aria-label={`Adjustments — last ${range}`}>
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Date</th>
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Member</th>
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Type</th>
-                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Amount</th>
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Memo</th>
-                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Posted by</th>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Date</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Member</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Type</th>
+                <th scope="col" className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Amount</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Memo</th>
+                <th scope="col" className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Posted by</th>
               </tr>
             </thead>
             <tbody>
               {data.rows.map((r) => (
-                <tr key={r.entryId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 nums text-slate-500 text-xs">
+                <tr key={r.entryId} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <td className="px-4 py-3 nums text-slate-500 dark:text-slate-400 text-xs">
                     {new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
-                  <td className="px-4 py-3 text-slate-900">{r.memberName}</td>
+                  <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{r.memberName}</td>
                   <td className="px-4 py-3">
                     <StatusBadge variant={r.entryType === 'credit_memo' ? 'info' : 'neutral'}>
                       {typeLabel(r.entryType)}
@@ -567,16 +567,16 @@ async function AdjustmentsSection({ range }: { slug: string; range: RangeKey }) 
                   <td className={['px-4 py-3 text-right nums font-medium', r.direction === 'credit' ? 'text-success' : 'text-danger'].join(' ')}>
                     {r.direction === 'credit' ? '+' : '−'}{formatCents(r.amountCents)}
                   </td>
-                  <td className="px-4 py-3 text-slate-600 text-xs max-w-xs truncate" title={r.memo ?? undefined}>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300 text-xs max-w-xs truncate" title={r.memo ?? undefined}>
                     {r.memo ?? <span className="text-slate-300">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{r.createdByName ?? 'System'}</td>
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{r.createdByName ?? 'System'}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="bg-slate-50 border-t border-slate-200 font-semibold">
-                <td className="px-4 py-2.5 text-slate-700" colSpan={3}>Totals — {data.count} correction{data.count === 1 ? '' : 's'}</td>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-800 font-semibold">
+                <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300" colSpan={3}>Totals — {data.count} correction{data.count === 1 ? '' : 's'}</td>
                 <td className="px-4 py-2.5 text-right nums">
                   <span className="text-success">+{formatCents(data.totalCreditCents)}</span>
                   {' / '}
@@ -623,35 +623,35 @@ async function TaxesOwedSection({ range }: { slug: string; range: RangeKey }) {
       <div className="flex justify-end">
         <ExportCsvButton rows={csvRows} filename={csvFilename('taxes-owed')} disabled={!hasBase} />
       </div>
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs">
-        <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-b border-slate-100 dark:border-slate-800">
           <div className="px-5 py-4">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Taxable POS base</p>
-            <p className={['nums mt-1 text-2xl font-bold leading-none', !hasBase ? 'text-slate-300' : 'text-slate-900'].join(' ')}>
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Taxable POS base</p>
+            <p className={['nums mt-1 text-2xl font-bold leading-none', !hasBase ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100'].join(' ')}>
               {formatCents(data.totalTaxableGrossCents)}
             </p>
           </div>
           <div className="px-5 py-4">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Tax collected</p>
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Tax collected</p>
             <p className="nums mt-1 text-2xl font-bold leading-none text-slate-300">{formatCents(data.totalTaxCents)}</p>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm" aria-label={`Taxes — last ${range}`}>
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Period</th>
-                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Taxable base</th>
-                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Tax</th>
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <th scope="col" className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Period</th>
+                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Taxable base</th>
+                <th scope="col" className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Tax</th>
               </tr>
             </thead>
             <tbody>
               {data.buckets.map((b) => (
-                <tr key={b.bucketStart} className="border-b border-slate-100 last:border-0">
-                  <td className="px-4 py-2 nums text-slate-500 text-xs">
+                <tr key={b.bucketStart} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <td className="px-4 py-2 nums text-slate-500 dark:text-slate-400 text-xs">
                     {new Date(b.bucketStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </td>
-                  <td className={['px-4 py-2 text-right nums', b.taxableGrossCents === 0 ? 'text-slate-300' : 'text-slate-700'].join(' ')}>
+                  <td className={['px-4 py-2 text-right nums', b.taxableGrossCents === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                     {formatCents(b.taxableGrossCents)}
                   </td>
                   <td className="px-4 py-2 text-right nums text-slate-300">{formatCents(b.taxCents)}</td>
@@ -696,7 +696,7 @@ export default async function BillingReportsPage({ params, searchParams }: Repor
         actions={
           <Link
             href={`/o/${slug}/billing`}
-            className="text-sm text-slate-500 hover:text-slate-700 underline-offset-2 hover:underline"
+            className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline-offset-2 hover:underline"
           >
             Back to Billing
           </Link>
@@ -705,7 +705,7 @@ export default async function BillingReportsPage({ params, searchParams }: Repor
 
       <Suspense fallback={<ReportsSkeleton />}>
         <section aria-label="Accounts receivable">
-          <div className="mb-2 flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+          <div className="mb-2 flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
             <Wallet className="h-3 w-3" aria-hidden="true" />
             Accounts receivable — as of now
           </div>
@@ -716,7 +716,7 @@ export default async function BillingReportsPage({ params, searchParams }: Repor
       <Suspense fallback={<ReportsSkeleton />}>
         <section aria-label={`Revenue summary — last ${range}`}>
           <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
+            <div className="flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
               <TrendingUp className="h-3 w-3" aria-hidden="true" />
               Revenue — last {range}
             </div>
@@ -737,7 +737,7 @@ export default async function BillingReportsPage({ params, searchParams }: Repor
             }
           />
           <ItemsSoldSection slug={slug} range={range} />
-          <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+          <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
             Units sold and gross revenue from finalized counter sales. Tax is not
             yet modeled in point-of-sale — sales-tax collection is a deferred item.
           </p>
@@ -783,7 +783,7 @@ export default async function BillingReportsPage({ params, searchParams }: Repor
             }
           />
           <TaxesOwedSection slug={slug} range={range} />
-          <p className="mt-1.5 text-[0.6875rem] text-slate-400">
+          <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
             Scoped to point-of-sale activity. Sales tax is not yet modeled in the
             schema, so tax collected is reported as $0.00 over the taxable POS
             base — sales-tax collection and remittance is a deferred item.

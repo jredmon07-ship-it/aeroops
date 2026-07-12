@@ -135,13 +135,13 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
   return (
     <div className="space-y-3" aria-label="Member tags">
       {/* [VERIFY-6-A] disclaimer */}
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         Free-text operator labels only. Tags carry no regulatory or eligibility meaning.
       </p>
 
       {/* Existing tags */}
       {tags.length === 0 ? (
-        <p className="text-sm text-slate-400 italic">No tags yet.</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No tags yet.</p>
       ) : (
         <div className="flex flex-wrap gap-1.5" role="list" aria-label="Current tags">
           {tags.map((t) => (
@@ -160,7 +160,7 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
                   onClick={() => handleRemove(t.id, t.tag)}
                   disabled={removingIds.has(t.id)}
                   aria-label={`Remove tag ${t.tag}`}
-                  className="ml-0.5 rounded-sm text-slate-400 hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
+                  className="ml-0.5 rounded-sm text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
                 >
                   {removingIds.has(t.id) ? (
                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
@@ -170,7 +170,7 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
                 </button>
               )}
               {removeErrors[t.id] && (
-                <span className="text-xs text-red-600 ml-1" role="alert">
+                <span className="text-xs text-red-600 dark:text-red-400 ml-1" role="alert">
                   {removeErrors[t.id]}
                 </span>
               )}
@@ -199,7 +199,7 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
                 className={addError ? 'border-red-500' : ''}
               />
               {addError && (
-                <p id="tag-add-err" role="alert" className="text-xs text-red-600">
+                <p id="tag-add-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                   {addError}
                 </p>
               )}
@@ -212,7 +212,7 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
           {/* Color picker dots */}
           <fieldset className="flex items-center gap-1.5">
             <legend className="sr-only">Tag color</legend>
-            <span className="text-xs text-slate-400 mr-0.5">Color:</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 mr-0.5">Color:</span>
             {MEMBER_TAG_COLOR_KEYS.map((color) => {
               const selected = newColor === color;
               return (
@@ -229,7 +229,7 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
                     tagDotClasses(color),
                     selected
                       ? 'ring-2 ring-brand ring-offset-white'
-                      : 'ring-1 ring-slate-200 hover:ring-slate-400',
+                      : 'ring-1 ring-slate-200 dark:ring-slate-700 hover:ring-slate-400 dark:hover:ring-slate-500',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50',
                   ].join(' ')}
                 />

@@ -30,13 +30,13 @@ import { TagEditor } from './tag-editor';
 function StatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800 dark:text-green-200">
         Active
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
       Inactive
     </span>
   );
@@ -89,17 +89,17 @@ export function MemberDetailClient({ member: initialMember, slug, canManage }: M
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900">{member.displayName}</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{member.displayName}</h1>
             <StatusChip status={member.status} />
             <RoleBadge role={member.role} />
           </div>
           {/* [AUTH-DECISION]: no-login hint — only for members without a credential. */}
           {!member.hasLogin && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               Roster entry — no login yet. Login access requires a future invite slice.
             </p>
           )}
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Member since{' '}
             {member.joinedAt
               ? new Intl.DateTimeFormat('en-US', {
@@ -120,10 +120,10 @@ export function MemberDetailClient({ member: initialMember, slug, canManage }: M
       </div>
 
       {/* ── Tags card ──────────────────────────────────────────────────────── */}
-      <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Tag className="h-4 w-4 text-slate-400" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-slate-700">Tags</h2>
+          <Tag className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tags</h2>
         </div>
         <TagEditor member={member} canManage={canManage} onUpdate={handleTagUpdate} />
       </div>

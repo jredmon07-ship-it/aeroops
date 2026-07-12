@@ -52,19 +52,19 @@ function ToastCard({ item }: { item: ToastItem }) {
       role={kind === 'error' ? 'alert' : 'status'}
       className={cn(
         'pointer-events-auto flex items-start gap-2.5 rounded-md border border-slate-200',
-        'bg-white px-3.5 py-2.5 shadow-md',
+        'bg-white px-3.5 py-2.5 shadow-md dark:border-slate-800 dark:bg-slate-900',
       )}
     >
       <Icon
         className={cn('mt-0.5 h-4 w-4 shrink-0', KIND_ICON_CLASS[kind])}
         aria-hidden="true"
       />
-      <p className="flex-1 text-sm text-slate-700">{message}</p>
+      <p className="flex-1 text-sm text-slate-700 dark:text-slate-200">{message}</p>
       <button
         type="button"
         onClick={() => toastStore.dismiss(id)}
         aria-label="Dismiss notification"
-        className="shrink-0 rounded-sm p-0.5 text-slate-400 transition-colors hover:text-slate-600"
+        className="shrink-0 rounded-sm p-0.5 text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
       >
         <X className="h-3.5 w-3.5" aria-hidden="true" />
       </button>

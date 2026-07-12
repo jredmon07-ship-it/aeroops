@@ -38,6 +38,7 @@ import {
   saveMyPaymentMethod,
   setMyAutopay,
   payMyInvoice,
+  payMyBalance,
   createCalendarFeed,
   listMyCalendarFeeds,
   revokeCalendarFeed,
@@ -237,6 +238,8 @@ export interface SerializedMyBilling {
   invoices: SerializedMyInvoiceRow[];
   paymentMethods: SavedPaymentMethodView[];
   autopay: AutopaySettingView;
+  /** Whether the operator passes the ACH processing fee (1%, max $15) to the member. */
+  feePassingEnabled: boolean;
 }
 
 export type GetMyBillingActionResult =
@@ -256,6 +259,7 @@ export async function getMyBillingAction(): Promise<GetMyBillingActionResult> {
         invoices: billing.invoices.map(serializeMyInvoice),
         paymentMethods: billing.paymentMethods,
         autopay: billing.autopay,
+        feePassingEnabled: billing.feePassingEnabled,
       },
     };
   } catch (err) {
@@ -408,7 +412,16 @@ export async function setMyAutopayAction(
 // ─── payMyInvoiceAction ─────────────────────────────────────────────────────────
 
 export type PayMyInvoiceActionResult =
-  | { ok: true; paymentIntentId: string; clientSecret: string; status: string; alreadyExists: boolean }
+  | {
+      ok: true;
+      paymentIntentId: string;
+      clientSecret: string;
+      status: string;
+      alreadyExists: boolean;
+      baseCents: number;
+      feeCents: number;
+      chargedCents: number;
+    }
   | { ok: false; reason: 'not_configured' }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'not_finalized' }
@@ -420,6 +433,41 @@ export async function payMyInvoiceAction(invoiceId: string): Promise<PayMyInvoic
   const session = await auth();
   try {
     return await payMyInvoice(session, { invoiceId });
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── payMyBalanceAction (Pay full balance) ────────────────────────────────────
+//
+// SELF-SCOPED (portal:access): pay down the caller's OWN negative ledger
+// balance directly. NO row-identifying input — subject is always session.userId
+// inside payMyBalance. not_available when migration 0045 is unapplied.
+
+export type PayMyBalanceActionResult =
+  | {
+      ok: true;
+      paymentIntentId: string;
+      clientSecret: string;
+      status: string;
+      alreadyExists: boolean;
+      baseCents: number;
+      feeCents: number;
+      chargedCents: number;
+    }
+  | { ok: false; reason: 'not_available' }
+  | { ok: false; reason: 'no_balance_due' }
+  | { ok: false; reason: 'not_configured' }
+  | { ok: false; reason: 'provider_error'; message?: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function payMyBalanceAction(): Promise<PayMyBalanceActionResult> {
+  const session = await auth();
+  try {
+    return await payMyBalance(session);
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

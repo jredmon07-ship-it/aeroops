@@ -130,7 +130,7 @@ function AddRequirementDialog({
         </DialogHeader>
 
         {/* [VERIFY-3c-A] operator-data copy; no currency/endorsement implication */}
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Required tags are free-text labels you define. A pilot must carry a
           matching tag to be checked out in this aircraft.
         </p>
@@ -138,7 +138,7 @@ function AddRequirementDialog({
         <form onSubmit={handleSubmit} className="space-y-3" noValidate>
           <div className="space-y-1.5">
             <Label htmlFor="dr-tag-input">
-              Tag <span aria-hidden="true" className="text-red-500">*</span>
+              Tag <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Input
               id="dr-tag-input"
@@ -157,7 +157,7 @@ function AddRequirementDialog({
               className={error ? 'border-red-500' : ''}
             />
             {error && (
-              <p id="dr-tag-err" role="alert" className="text-xs text-red-600">
+              <p id="dr-tag-err" role="alert" className="text-xs text-red-600 dark:text-red-400">
                 {error}
               </p>
             )}
@@ -264,12 +264,12 @@ export function DispatchRequirementsCard({
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 space-y-3">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       {/* ── Card header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-slate-400" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-slate-700">
+          <ShieldCheck className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Dispatch requirements
           </h2>
           {!loading && !loadError && tags !== null && tags.length > 0 && (
@@ -292,7 +292,7 @@ export function DispatchRequirementsCard({
       </div>
 
       {/* ── [VERIFY-3c-A] operator-data framing ─────────────────────────── */}
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         Required tags (free-text labels you define). A pilot must carry a matching
         tag to be checked out in this aircraft. These are operator-defined labels
         only — no regulatory or eligibility determination is computed.
@@ -318,7 +318,7 @@ export function DispatchRequirementsCard({
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {!loading && !loadError && tags !== null && tags.length === 0 && (
-        <p className="text-sm text-slate-400 italic">
+        <p className="text-sm text-slate-400 dark:text-slate-500 italic">
           No dispatch requirements. Any qualified pilot can be checked out in this aircraft.
         </p>
       )}
@@ -343,7 +343,7 @@ export function DispatchRequirementsCard({
                   onClick={() => handleRemove(t.id, t.requiredTag)}
                   disabled={removingIds.has(t.id)}
                   aria-label={`Remove requirement: ${t.requiredTag}`}
-                  className="ml-0.5 rounded-sm text-brand/60 hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
+                  className="ml-0.5 rounded-sm text-brand/60 hover:text-red-500 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
                 >
                   {removingIds.has(t.id) ? (
                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
@@ -353,7 +353,7 @@ export function DispatchRequirementsCard({
                 </button>
               )}
               {removeErrors[t.id] && (
-                <span className="text-xs text-red-600 ml-1" role="alert">
+                <span className="text-xs text-red-600 dark:text-red-400 ml-1" role="alert">
                   {removeErrors[t.id]}
                 </span>
               )}

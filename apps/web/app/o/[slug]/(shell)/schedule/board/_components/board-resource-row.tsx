@@ -82,7 +82,7 @@ export function BoardResourceRow({
     <div
       role="row"
       aria-label={`${resource.kind === 'aircraft' ? 'Aircraft' : 'Instructor'} ${resource.displayName}`}
-      className="relative h-16 border-b border-slate-100 flex-shrink-0"
+      className="relative h-16 border-b border-slate-100 dark:border-slate-800 flex-shrink-0"
       style={{ width: TRACK_WIDTH_PX }}
     >
       {/* Drop zones — only during active drag */}

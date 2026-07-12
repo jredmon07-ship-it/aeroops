@@ -89,13 +89,13 @@ function ResourceBadge({
   if (!events && classification === null) {
     return (
       <div
-        className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+        className="flex items-start gap-2 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm"
         aria-label={`${name}: daylight unknown`}
       >
-        <HelpCircle className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
+        <HelpCircle className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" aria-hidden="true" />
         <div>
-          <span className="font-mono text-slate-700">{name}</span>
-          <p className="text-slate-500 text-xs mt-0.5">
+          <span className="font-mono text-slate-700 dark:text-slate-300">{name}</span>
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
             Daylight unknown — base coordinates not set.
           </p>
         </div>
@@ -159,15 +159,15 @@ function ResourceBadge({
 
     return (
       <div
-        className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm"
+        className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm"
         role="status"
         aria-label={`${name}: ${lines.join('; ')}`}
       >
-        <Moon className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+        <Moon className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
         <div>
-          <span className="font-mono text-amber-900">{name}</span>
+          <span className="font-mono text-amber-900 dark:text-amber-200">{name}</span>
           {lines.map((line, i) => (
-            <p key={i} className="text-amber-800 text-xs mt-0.5">{line}</p>
+            <p key={i} className="text-amber-800 dark:text-amber-200 text-xs mt-0.5">{line}</p>
           ))}
         </div>
       </div>
@@ -177,13 +177,13 @@ function ResourceBadge({
   // Normal, within daylight
   return (
     <div
-      className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm"
+      className="flex items-start gap-2 rounded-md border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm"
       aria-label={`${name}: within daylight`}
     >
-      <Sun className="h-4 w-4 text-green-600 shrink-0 mt-0.5" aria-hidden="true" />
+      <Sun className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" aria-hidden="true" />
       <div>
-        <span className="font-mono text-green-900">{name}</span>
-        <p className="text-green-700 text-xs mt-0.5">Within daylight</p>
+        <span className="font-mono text-green-900 dark:text-green-200">{name}</span>
+        <p className="text-green-700 dark:text-green-300 text-xs mt-0.5">Within daylight</p>
       </div>
     </div>
   );
@@ -203,7 +203,7 @@ export function TwilightIndicator({
   if (state === 'loading') {
     return (
       <div
-        className="flex items-center gap-2 text-xs text-slate-500 py-1"
+        className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 py-1"
         role="status"
         aria-label="Checking daylight window"
       >
@@ -228,7 +228,7 @@ export function TwilightIndicator({
 
   return (
     <div className="space-y-1.5" aria-label="Civil-twilight day/night indicators">
-      <p className="text-xs text-slate-500 font-medium">
+      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
         Day/night window (advisory)
         {/* [VERIFY-4a-A] astronomy, not FAA night-currency */}
       </p>

@@ -27,8 +27,10 @@ import {
   setQboAccountMapping,
   deleteQboAccountMapping,
   disconnectQbo,
+  getFeePassing,
+  setFeePassing,
 } from '@aeroops/api';
-import type { QboLineKind } from '@aeroops/api';
+import type { QboLineKind, FeePassingView } from '@aeroops/api';
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
 
@@ -188,6 +190,55 @@ export async function disconnectQboAction(slug: string): Promise<DisconnectQboAc
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── Fee-passing (pass the ACH fee to the member) — migration 0045 ────────────
+//
+// org:manage_settings (enforced inside getFeePassing / setFeePassing). When
+// migration 0045 is unapplied the read returns available:false and the setter
+// returns not_available — the settings card renders a disabled "available in an
+// upcoming update" state rather than crashing. NO card/bank data; the fee is a
+// pure boolean toggle (the amount is computed at checkout).
+
+export type GetFeePassingActionResult =
+  | { ok: true; setting: FeePassingView }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function getFeePassingAction(): Promise<GetFeePassingActionResult> {
+  const session = await auth();
+  try {
+    const setting = await getFeePassing(session);
+    return { ok: true, setting };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export type SetFeePassingActionResult =
+  | { ok: true; passAchFeeToMember: boolean }
+  | { ok: false; reason: 'not_available' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function setFeePassingAction(
+  slug: string,
+  passAchFeeToMember: boolean,
+): Promise<SetFeePassingActionResult> {
+  const session = await auth();
+  try {
+    const result = await setFeePassing(session, { passAchFeeToMember });
+    revalidatePath(`/o/${slug}/settings`);
+    return result;
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
     return { error: 'server' };
   }
 }

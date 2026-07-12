@@ -121,18 +121,18 @@ export function StatusToggle({ member, onSuccess }: StatusToggleProps) {
             )}
 
             {isActive ? (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 This will mark <strong>{member.displayName}</strong> as inactive on the roster.
                 They will no longer appear in active-only views.
               </p>
             ) : (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 This will mark <strong>{member.displayName}</strong> as active on the roster again.
               </p>
             )}
 
             {/* [VERIFY-6-D]: status flag disclaimer */}
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               Note: roster status is a flag only and does not affect login access in this release.
             </p>
           </div>

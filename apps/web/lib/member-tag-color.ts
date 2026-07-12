@@ -47,14 +47,14 @@ export const MEMBER_TAG_COLOR_LABELS: Record<MemberTagColor, string> = {
 
 /** Chip classes (border + background + text) for a colored tag chip. */
 const CHIP_CLASSES: Record<MemberTagColor, string> = {
-  slate: 'border-slate-200 bg-slate-100 text-slate-700',
-  red: 'border-red-200 bg-red-50 text-red-700',
-  amber: 'border-amber-200 bg-amber-50 text-amber-800',
-  green: 'border-green-200 bg-green-50 text-green-800',
-  sky: 'border-sky-200 bg-sky-50 text-sky-700',
-  violet: 'border-violet-200 bg-violet-50 text-violet-700',
-  rose: 'border-rose-200 bg-rose-50 text-rose-700',
-  teal: 'border-teal-200 bg-teal-50 text-teal-700',
+  slate: 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
+  red: 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300',
+  amber: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
+  green: 'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200',
+  sky: 'border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300',
+  violet: 'border-violet-200 dark:border-violet-900/50 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300',
+  rose: 'border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300',
+  teal: 'border-teal-200 dark:border-teal-900/50 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300',
 };
 
 /** Solid swatch classes for the color-picker dots. */

@@ -141,27 +141,27 @@ function OccurrenceRow({ occ, tz }: { occ: PreviewSeriesOccurrenceReport; tz?: s
   const timeLabel = formatTimeRangeTz(occ.startAt, occ.endAt, tz);
 
   return (
-    <li className="py-2 border-b border-slate-100 last:border-0">
+    <li className="py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-slate-800">
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
             {dateLabel}
           </p>
-          <p className="text-xs text-slate-500">{timeLabel}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{timeLabel}</p>
         </div>
         <OccurrenceBadge occ={occ} />
       </div>
       {showReasons && (
         <div className="mt-1 pl-1">
           {hasConflicts && (
-            <ul className="list-disc list-inside text-red-700">
+            <ul className="list-disc list-inside text-red-700 dark:text-red-300">
               {occ.conflicts!.map((h, i) => (
                 <ConflictHitBullet key={`${h.resourceId}-${i}`} hit={h} tz={tz} />
               ))}
             </ul>
           )}
           {hasViolations && (
-            <ul className="list-disc list-inside text-red-700">
+            <ul className="list-disc list-inside text-red-700 dark:text-red-300">
               {occ.violations!.map((v, i) => (
                 <PolicyBullet key={`${v.resourceId}-${v.kind}-${i}`} v={v} tz={tz} />
               ))}
@@ -179,8 +179,8 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
   return (
     <div aria-live="polite" aria-label="Series preview">
       {state === 'loading' && (
-        <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-4">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="space-y-2 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4">
+          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             <span>Checking availability…</span>
           </div>
@@ -191,7 +191,7 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
       )}
 
       {state === 'error' && (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-800" role="status">
+        <Alert className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200" role="status">
           <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           <AlertDescription>
             {errorMessage ?? 'Preview failed. You can still try submitting.'}
@@ -200,7 +200,7 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
       )}
 
       {state === 'populated' && preview && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 space-y-3">
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-4 space-y-3">
           {/* Summary line.
               Denominator = occurrences.length (= wouldCreate + wouldSkip), which
               self-reconciles: wouldCreate + wouldSkip === occurrences.length.
@@ -208,15 +208,15 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
               are surfaced via the dedicated DST notice below — not folded into the
               headline denominator (mirrors series-create-result.tsx convention). */}
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" aria-hidden="true" />
-            <p className="text-sm font-medium text-slate-800">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" aria-hidden="true" />
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
               Will create{' '}
-              <span className="text-green-700">{preview.wouldCreateCount}</span> of{' '}
+              <span className="text-green-700 dark:text-green-300">{preview.wouldCreateCount}</span> of{' '}
               {preview.occurrences.length} occurrence(s)
               {preview.wouldSkipCount > 0 && (
                 <>
                   {' '}
-                  (<span className="text-red-700">{preview.wouldSkipCount} skipped</span>)
+                  (<span className="text-red-700 dark:text-red-300">{preview.wouldSkipCount} skipped</span>)
                 </>
               )}
             </p>
@@ -224,7 +224,7 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
 
           {/* Cap truncation notice */}
           {preview.truncatedByCap && (
-            <Alert className="border-amber-200 bg-amber-50 text-amber-800 py-2" role="status">
+            <Alert className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 py-2" role="status">
               <Info className="h-4 w-4" aria-hidden="true" />
               <AlertDescription className="text-xs">
                 Limited to 52 occurrences maximum. Some dates beyond the cap were excluded.
@@ -235,7 +235,7 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
           {/* DST-skip notice — separate from the headline count (these are dates
               that were dropped before expansion, not would_skip occurrences). */}
           {(preview.skippedLocalDates?.length ?? 0) > 0 && (
-            <Alert className="border-amber-200 bg-amber-50 text-amber-800 py-2" role="status">
+            <Alert className="border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 py-2" role="status">
               <Info className="h-4 w-4" aria-hidden="true" />
               <AlertDescription className="text-xs">
                 {preview.skippedLocalDates.length} date(s) skipped due to DST — the local time does not exist on those dates.
@@ -246,11 +246,11 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
           {/* Per-occurrence list */}
           {preview.occurrences.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                 Occurrences
               </p>
               <ul
-                className="max-h-64 overflow-y-auto divide-y divide-slate-100 rounded border border-slate-200 bg-white"
+                className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
                 aria-label="Occurrence list"
               >
                 {preview.occurrences.map((occ) => (
@@ -261,7 +261,7 @@ export function SeriesPreviewPanel({ state, preview, errorMessage, tz }: SeriesP
           )}
 
           {preview.occurrences.length === 0 && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               No future occurrences match these settings. The series will still be created.
             </p>
           )}

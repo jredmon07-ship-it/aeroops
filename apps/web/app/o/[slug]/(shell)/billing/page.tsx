@@ -41,10 +41,10 @@ function InvoiceListSkeleton() {
   return (
     <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading invoices">
       <Skeleton className="h-8 w-40" />
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <div className="h-10 bg-slate-50 border-b border-slate-200" />
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-14 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-14 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>
@@ -81,24 +81,24 @@ async function InvoiceListContent({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="rounded-md border border-slate-200 overflow-hidden">
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
       <table className="w-full text-sm" aria-label="Invoices">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-200">
-            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">
+          <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Status
             </th>
-            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">
+            <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Total
             </th>
-            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell">
+            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
               Created
             </th>
           </tr>
         </thead>
         <tbody>
           {result.invoices.map((inv) => (
-            <tr key={inv.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+            <tr key={inv.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <td className="px-3 py-3">
                 <Link href={`/o/${slug}/billing/${inv.id}`} className="flex items-center gap-2">
                   <InvoiceStatusBadge status={inv.status} />
@@ -107,7 +107,7 @@ async function InvoiceListContent({ slug }: { slug: string }) {
               <td className="px-3 py-3 text-right nums">
                 <Link href={`/o/${slug}/billing/${inv.id}`}>{formatCents(inv.totalCents)}</Link>
               </td>
-              <td className="px-3 py-3 text-xs text-slate-500 hidden sm:table-cell nums">
+              <td className="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 hidden sm:table-cell nums">
                 <Link href={`/o/${slug}/billing/${inv.id}`}>{new Date(inv.createdAt).toLocaleDateString()}</Link>
               </td>
             </tr>
@@ -141,10 +141,10 @@ async function ReadyToInvoiceContent({ slug }: { slug: string }) {
   return (
     <section className="space-y-3" aria-labelledby="ready-to-invoice-heading">
       <div>
-        <h2 id="ready-to-invoice-heading" className="text-lg font-semibold text-slate-900">
+        <h2 id="ready-to-invoice-heading" className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           Flights ready to invoice
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Closed flights with no invoice yet. Pick a rate and the draft builds itself from the
           Hobbs reading.
         </p>
@@ -158,10 +158,10 @@ function ReadyToInvoiceSkeleton() {
   return (
     <div className="space-y-3 animate-pulse" aria-busy="true" aria-label="Loading flights ready to invoice">
       <Skeleton className="h-6 w-56" />
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <div className="h-10 bg-slate-50 border-b border-slate-200" />
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="h-10 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800" />
         {[0, 1].map((i) => (
-          <div key={i} className="h-14 border-b border-slate-100 bg-white" />
+          <div key={i} className="h-14 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900" />
         ))}
       </div>
     </div>
@@ -202,58 +202,58 @@ async function BillingSnapshotContent() {
   return (
     <section aria-label="Billing snapshot">
       <SectionHeader eyebrow="As of now" />
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs">
-        <div className="flex divide-x divide-slate-200 max-sm:grid max-sm:grid-cols-1 max-sm:divide-x-0">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="flex divide-x divide-slate-200 dark:divide-slate-800 max-sm:grid max-sm:grid-cols-1 max-sm:divide-x-0">
           {/* Tile 1: Outstanding balance */}
           <div className="flex-1 px-5 py-4">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Outstanding
             </p>
             <p
               className={[
                 'nums mt-1 text-2xl font-bold leading-none',
-                outstandingCents > 0 ? 'text-slate-900' : 'text-slate-400',
+                outstandingCents > 0 ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500',
               ].join(' ')}
             >
               {formatCents(outstandingCents)}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
               {outstandingCents > 0 ? 'owed across all members' : 'nothing owed'}
             </p>
           </div>
 
           {/* Tile 2: Members overdue (past 30 days) */}
           <div className="flex-1 px-5 py-4">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Overdue
             </p>
             <p
               className={[
                 'nums mt-1 text-2xl font-bold leading-none',
-                overdueMemberCount > 0 ? 'text-warning' : 'text-slate-400',
+                overdueMemberCount > 0 ? 'text-warning' : 'text-slate-400 dark:text-slate-500',
               ].join(' ')}
             >
               {overdueMemberCount}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
               {overdueMemberCount > 0 ? 'members past 30 days' : 'no one past 30 days'}
             </p>
           </div>
 
           {/* Tile 3: Collected — last 30 days */}
           <div className="flex-1 px-5 py-4">
-            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Collected — 30d
             </p>
             <p
               className={[
                 'nums mt-1 text-2xl font-bold leading-none',
-                collectedCents > 0 ? 'text-slate-900' : 'text-slate-400',
+                collectedCents > 0 ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500',
               ].join(' ')}
             >
               {formatCents(collectedCents)}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
               {collectedCents > 0 ? 'payments received' : 'none received'}
             </p>
           </div>
@@ -267,7 +267,7 @@ function BillingSnapshotSkeleton() {
   return (
     <div className="animate-pulse" aria-busy="true" aria-label="Loading billing snapshot">
       <Skeleton className="h-3 w-16 mb-2" />
-      <div className="rounded-md border border-slate-200 bg-white shadow-xs divide-x divide-slate-200 flex">
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs divide-x divide-slate-200 dark:divide-slate-800 flex">
         {[0, 1, 2].map((i) => (
           <div key={i} className="flex-1 px-5 py-4 space-y-2">
             <Skeleton className="h-2.5 w-20" />
@@ -327,7 +327,7 @@ export default async function BillingPage({ params }: BillingPageProps) {
         </Suspense>
       )}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Invoices</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Invoices</h2>
         <Suspense fallback={<InvoiceListSkeleton />}>
           <InvoiceListContent slug={slug} />
         </Suspense>

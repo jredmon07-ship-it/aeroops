@@ -83,7 +83,7 @@ export function ResourceList({ resources: initialResources, orgMembers }: Resour
       {/* Success banner after add */}
       {addSuccessVisible && (
         <Alert
-          className="border-green-200 bg-green-50 text-green-800"
+          className="border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200"
           role="status"
           aria-live="polite"
         >
@@ -92,7 +92,7 @@ export function ResourceList({ resources: initialResources, orgMembers }: Resour
             <button
               type="button"
               onClick={() => setAddSuccessVisible(false)}
-              className="text-green-700 hover:text-green-900 text-sm underline shrink-0"
+              className="text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-200 text-sm underline shrink-0"
               aria-label="Dismiss success message"
             >
               Dismiss
@@ -157,7 +157,7 @@ function AircraftSection({ activeAircraft, inactiveAircraft, onDeactivated }: Ai
     <div className="space-y-6 pt-4">
       {activeAircraft.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1">
             Active
           </h2>
           <div className="space-y-2">
@@ -173,7 +173,7 @@ function AircraftSection({ activeAircraft, inactiveAircraft, onDeactivated }: Ai
       )}
       {inactiveAircraft.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1">
             Inactive
           </h2>
           <div className="space-y-2">
@@ -210,7 +210,7 @@ function InstructorsSection({ activeInstructors, inactiveInstructors, onDeactiva
     <div className="space-y-6 pt-4">
       {activeInstructors.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1">
             Active
           </h2>
           <div className="space-y-2">
@@ -226,7 +226,7 @@ function InstructorsSection({ activeInstructors, inactiveInstructors, onDeactiva
       )}
       {inactiveInstructors.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1">
             Inactive
           </h2>
           <div className="space-y-2">
@@ -255,7 +255,7 @@ export function ResourceListSkeleton() {
         <Skeleton className="h-10 w-32" />
       </div>
       {/* Tab skeleton */}
-      <div className="flex gap-1 border-b border-slate-200 pb-0">
+      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800 pb-0">
         <Skeleton className="h-10 w-28" />
         <Skeleton className="h-10 w-28" />
       </div>
