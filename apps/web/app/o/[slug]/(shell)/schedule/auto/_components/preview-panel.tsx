@@ -20,7 +20,6 @@ import {
   XCircle,
   AlertTriangle,
   CalendarCheck,
-  Loader2,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -284,15 +283,9 @@ export function PreviewPanel({
                 onClick={onCommit}
                 disabled={isCommitting}
                 className="min-w-[160px] shrink-0"
+                isLoading={isCommitting}
               >
-                {isCommitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
-                    Committing…
-                  </>
-                ) : (
-                  'Commit schedule'
-                )}
+                Commit schedule
               </Button>
             </div>
           )}

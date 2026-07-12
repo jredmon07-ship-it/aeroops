@@ -17,9 +17,6 @@
  * (0000–0023, through stripe_customer) → seedTwoOrgs → setTestAppRole.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { sql } from 'drizzle-orm';
 import type { PGlite } from '@electric-sql/pglite';
@@ -29,6 +26,7 @@ import {
   setTestAppRole,
   withOrgContext,
   seedTwoOrgs,
+  loadMigrationSql,
 } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 
@@ -41,40 +39,8 @@ import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 import { can, MEMBERSHIP_ROLES } from '@aeroops/core';
 
-// ── Path resolution ───────────────────────────────────────────────────────────
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const MIGRATION_SQL = [
-  '0000_loud_prodigy',
-  '0001_auth_credential',
-  '0002_scheduling',
-  '0003_booking_policies',
-  '0004_recurrence',
-  '0005_dispatch',
-  '0006_squawks_grounding',
-  '0007_fleet',
-  '0008_people',
-  '0009_dispatch_gate',
-  '0010_civil_twilight',
-  '0011_optimizer_run',
-  '0012_training',
-  '0013_work_orders',
-  '0014_availability',
-  '0015_booking_request',
-  '0016_booking_request_convert',
-  '0017_booking_retention',
-  '0018_dispatch_ticket_correction',
-  '0019_billing_records',
-  '0020_demo_reset_state',
-  '0021_qbo_integration',
-  '0022_billing_ledger',
-  '0023_stripe_foundation',
-  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
-  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
-  '0037_logbook_annotation',
-].map((name) => readFileSync(resolve(__dirname, `../../../db/migrations/${name}.sql`), 'utf-8'));
+// All up migrations through 0037 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0037');
 
 // ── Session helper ─────────────────────────────────────────────────────────────
 

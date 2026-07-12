@@ -63,7 +63,7 @@ function StatusChip({ status }: { status: MaintenanceDueStatus }) {
   };
   const { label, cls, icon } = map[status];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${cls}`}>
+    <span className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${cls}`}>
       {icon}
       {label}
     </span>
@@ -128,7 +128,7 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
             <Wrench className="h-4 w-4 text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700">Maintenance due</h2>
             {dueCount > 0 && (
-              <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
+              <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-destructive">
                 {dueCount}
               </span>
             )}
@@ -185,7 +185,7 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
           </div>
         )}
 
-        <p className="text-[11px] text-slate-400">
+        <p className="text-[0.6875rem] text-slate-400">
           Operator-entered tracking data — not a computed Part-43/91.409 airworthiness or
           inspection-due determination.
         </p>

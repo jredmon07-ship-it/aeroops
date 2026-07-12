@@ -43,6 +43,7 @@ import { deriveFlightTime } from '@aeroops/core';
 import { closeDispatchAction } from '../../actions';
 import { reportSquawkAction } from '../../../maintenance/actions';
 import type { DispatchTicketView } from '@aeroops/api';
+import { toast } from '@/lib/toast-store';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -223,6 +224,7 @@ export function CheckInDialog({
         }
       }
 
+      toast.success('Aircraft checked in — dispatch ticket closed.');
       onSuccess(closedTicket);
       onOpenChange(false);
     } catch {

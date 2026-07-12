@@ -23,6 +23,7 @@ import { ArrowLeft } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability } from '@aeroops/api';
 import { getArticleBySlug, type HelpBlock } from '@/lib/help-articles';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Permission-denied panel (mirrors the hub) ───────────────────────────────
 
@@ -125,9 +126,7 @@ export default async function HelpArticlePage({ params }: HelpArticlePageProps) 
         <ArticleNotFoundPanel slug={slug} />
       ) : (
         <article className="space-y-4">
-          <h1 className="text-2xl font-bold tracking-tightish text-slate-900">
-            {article.title}
-          </h1>
+          <PageHeader title={article.title} />
           <div className="space-y-4">
             {article.body.map((block, i) => (
               <BlockRenderer key={i} block={block} index={i} />

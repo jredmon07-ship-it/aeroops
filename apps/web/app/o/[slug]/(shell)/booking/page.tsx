@@ -34,6 +34,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { listBookingRequestsAction } from './actions';
 import { BookingInbox } from './_components/booking-inbox';
 import { RetentionSettingsCard } from './_components/retention-settings';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -168,9 +169,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
   return (
     <div className="space-y-4">
       {/* ── Heading ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Booking requests</h1>
-      </div>
+      <PageHeader title="Booking requests" />
 
       {/* ── Permission-denied panel (inline, no redirect) ──────────────────── */}
       {!hasAccess && <PermissionDeniedPanel />}

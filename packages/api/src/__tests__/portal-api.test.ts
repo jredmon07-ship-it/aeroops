@@ -24,7 +24,6 @@
  * NO writes, NO audit, NO money, NO migration (read-only slice).
  */
 
-import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -35,6 +34,7 @@ import {
   setTestAppRole,
   withOrgContext,
   seedTwoOrgs,
+  loadMigrationSql,
 } from '@aeroops/db';
 import { appUser, membership } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
@@ -64,40 +64,11 @@ import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
-// ── Path resolution ───────────────────────────────────────────────────────────
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 
-const MIGRATION_SQL = [
-  readFileSync(resolve(__dirname, '../../../db/migrations/0000_loud_prodigy.sql'),      'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0001_auth_credential.sql'),   'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0002_scheduling.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'),  'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0004_recurrence.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0005_dispatch.sql'),          'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0006_squawks_grounding.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0007_fleet.sql'),             'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0008_people.sql'),            'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0010_civil_twilight.sql'),    'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0011_optimizer_run.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0012_training.sql'),          'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0013_work_orders.sql'),       'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0014_availability.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0015_booking_request.sql'),  'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0016_booking_request_convert.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0017_booking_retention.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0018_dispatch_ticket_correction.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0019_billing_records.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0020_demo_reset_state.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0021_qbo_integration.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0022_billing_ledger.sql'), 'utf-8'),
-  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
-  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
-  readFileSync(resolve(__dirname, '../../../db/migrations/0037_logbook_annotation.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0038_stage_check_enforcement.sql'), 'utf-8'),
-];
+// All up migrations through 0038 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0038');
 
 // ── Test env ──────────────────────────────────────────────────────────────────
 

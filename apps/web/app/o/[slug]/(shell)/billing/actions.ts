@@ -42,8 +42,6 @@ import {
   listInvoiceableDispatch,
   listRateSchedules,
   generateInvoiceFromDispatch,
-  ForbiddenError,
-  UnauthenticatedError,
 } from '@aeroops/api';
 import type {
   InvoiceStatus,
@@ -54,14 +52,10 @@ import type {
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
 
-export type AuthErrorResult = { error: 'forbidden' } | { error: 'unauthenticated' };
-export type ServerErrorResult = { error: 'server'; message?: string };
+import { mapAuthError, mapActionError } from '@/lib/action-errors-result';
+import type { AuthErrorResult, ServerErrorResult } from '@/lib/action-errors-result';
 
-function mapAuthError(err: unknown): AuthErrorResult | null {
-  if (err instanceof ForbiddenError) return { error: 'forbidden' };
-  if (err instanceof UnauthenticatedError) return { error: 'unauthenticated' };
-  return null;
-}
+export type { AuthErrorResult, ServerErrorResult };
 
 // ─── Serialized types ──────────────────────────────────────────────────────────
 
@@ -344,17 +338,8 @@ export async function recordManualPaymentAction(
     revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
     return { ok: true, balanceCentsAfter: result.balanceCentsAfter };
   } catch (err) {
-    const authErr = mapAuthError(err);
-    if (authErr) return authErr;
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: unknown }).code === 'VALIDATION' &&
-      err instanceof Error
-    ) {
-      return { error: 'validation', message: err.message };
-    }
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
     return { error: 'server' };
   }
 }
@@ -384,17 +369,8 @@ export async function issueCreditMemoAction(
     revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
     return { ok: true, balanceCentsAfter: result.balanceCentsAfter };
   } catch (err) {
-    const authErr = mapAuthError(err);
-    if (authErr) return authErr;
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: unknown }).code === 'VALIDATION' &&
-      err instanceof Error
-    ) {
-      return { error: 'validation', message: err.message };
-    }
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
     return { error: 'server' };
   }
 }
@@ -420,17 +396,8 @@ export async function issueAdjustmentAction(
     revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
     return { ok: true, balanceCentsAfter: result.balanceCentsAfter };
   } catch (err) {
-    const authErr = mapAuthError(err);
-    if (authErr) return authErr;
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: unknown }).code === 'VALIDATION' &&
-      err instanceof Error
-    ) {
-      return { error: 'validation', message: err.message };
-    }
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
     return { error: 'server' };
   }
 }
@@ -479,17 +446,8 @@ export async function createDuesScheduleAction(
     revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
     return { ok: true };
   } catch (err) {
-    const authErr = mapAuthError(err);
-    if (authErr) return authErr;
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: unknown }).code === 'VALIDATION' &&
-      err instanceof Error
-    ) {
-      return { error: 'validation', message: err.message };
-    }
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
     return { error: 'server' };
   }
 }
@@ -546,17 +504,8 @@ export async function runDuesForPeriodAction(periodKey: string, slug: string): P
 
     return { ok: true, createdCount: result.created.length, skippedCount: result.skipped.length };
   } catch (err) {
-    const authErr = mapAuthError(err);
-    if (authErr) return authErr;
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: unknown }).code === 'VALIDATION' &&
-      err instanceof Error
-    ) {
-      return { error: 'validation', message: err.message };
-    }
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
     return { error: 'server' };
   }
 }
@@ -657,17 +606,8 @@ export async function generateInvoiceFromDispatchAction(
     revalidatePath(`/o/${slug}/billing`);
     return { ok: true, invoiceId: result.invoice.id };
   } catch (err) {
-    const authErr = mapAuthError(err);
-    if (authErr) return authErr;
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: unknown }).code === 'VALIDATION' &&
-      err instanceof Error
-    ) {
-      return { error: 'validation', message: err.message };
-    }
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
     return { error: 'server' };
   }
 }

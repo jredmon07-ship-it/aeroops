@@ -20,7 +20,7 @@ import type { OrgMemberListRow } from '@aeroops/api';
 function RoleBadge({ role }: { role: MembershipRole }) {
   const label = ROLE_LABELS[role] ?? role;
   return (
-    <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
+    <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
       {label}
     </span>
   );
@@ -31,13 +31,13 @@ function RoleBadge({ role }: { role: MembershipRole }) {
 function StatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         Active
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
       Inactive
     </span>
   );
@@ -56,13 +56,13 @@ function TagChips({ tags, tagCount }: { tags: string[]; tagCount: number }) {
       {visible.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600"
+          className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[0.6875rem] font-medium text-slate-600"
         >
           {tag}
         </span>
       ))}
       {overflow > 0 && (
-        <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+        <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-medium text-slate-400">
           +{overflow}
         </span>
       )}
@@ -81,7 +81,7 @@ interface MembersTableProps {
 
 export function MembersTable({ members, slug }: MembersTableProps) {
   return (
-    <div className="rounded-md border border-slate-200 overflow-hidden">
+    <div className="rounded-md border border-slate-200 overflow-x-auto">
       <table className="w-full text-sm" aria-label="Members roster">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">

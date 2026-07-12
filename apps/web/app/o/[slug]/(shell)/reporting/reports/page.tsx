@@ -47,6 +47,7 @@ import {
   clampReportBarWidth,
 } from './_components/report-utils';
 import type { ReportRangeKey } from './_components/report-utils';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Hours footnote (verbatim per spec) ──────────────────────────────────────
 
@@ -465,7 +466,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
         <p className="mb-2 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400">
           Hours by tail — last {rangeLbl}
         </p>
-        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+        <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
           <table
             className="w-full text-sm"
             aria-label={`Hours by tail last ${rangeLbl}`}
@@ -788,19 +789,11 @@ export default async function ReportsPage({
   return (
     <div className="space-y-6">
       {/* ── A. Heading row — OUTSIDE Suspense (always instant) ─────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tightish text-slate-900">
-            Operational reports
-          </h1>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Aggregated activity for the selected period.
-          </p>
-        </div>
-        {canViewReporting && (
-          <RangeSelector slug={slug} current={range} />
-        )}
-      </div>
+      <PageHeader
+        title="Operational reports"
+        subtitle="Aggregated activity for the selected period."
+        actions={canViewReporting && <RangeSelector slug={slug} current={range} />}
+      />
 
       {/* ── B–F: ONE Suspense boundary ───────────────────────────────────── */}
       {canViewReporting ? (

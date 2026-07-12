@@ -27,6 +27,7 @@ import {
   previewMemberMessageRecipientsAction,
   type SerializedMemberMessage,
 } from '../actions';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface ComposeClientProps {
   slug: string;
@@ -202,9 +203,7 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Recent messages</h2>
         {history.length === 0 ? (
-          <p className="text-sm text-slate-400 py-6 text-center" role="status">
-            No messages sent yet.
-          </p>
+          <EmptyState icon={Send} title="No messages sent yet." className="py-6" />
         ) : (
           <ul className="space-y-2" role="list">
             {history.map((m) => (

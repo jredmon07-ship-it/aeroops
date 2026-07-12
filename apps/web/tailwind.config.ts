@@ -15,6 +15,9 @@ const config: Config = {
         'text-default': 'hsl(var(--color-text) / <alpha-value>)',
         border: 'hsl(var(--color-border) / <alpha-value>)',
         danger: 'hsl(var(--color-danger) / <alpha-value>)',
+        success: 'hsl(var(--color-success) / <alpha-value>)',
+        warning: 'hsl(var(--color-warning) / <alpha-value>)',
+        info: 'hsl(var(--color-info) / <alpha-value>)',
       },
       fontFamily: {
         sans: [

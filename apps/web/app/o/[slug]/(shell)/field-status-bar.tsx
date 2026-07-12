@@ -38,7 +38,7 @@ function CategoryChip({ category }: { category: FlightCategory }) {
   if (category === 'UNKNOWN') return null;
   return (
     <span
-      className={`inline-flex items-center rounded-sm border px-1.5 py-px text-[10px] font-bold leading-4 tracking-wide ${CATEGORY_CLS[category]}`}
+      className={`inline-flex items-center rounded-sm border px-1.5 py-px text-[0.6875rem] font-bold leading-4 tracking-wide ${CATEGORY_CLS[category]}`}
     >
       {category}
     </span>

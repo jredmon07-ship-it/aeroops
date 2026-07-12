@@ -58,8 +58,3 @@ export function resolveLineKind(rateKind: string | null | undefined): QboMappabl
   }
   return 'other';
 }
-
-/** Runtime guard for a value read back from qbo_account_mapping.line_kind. */
-export function isQboLineKind(value: string): value is QboLineKind {
-  return (QBO_LINE_KINDS as readonly string[]).includes(value);
-}

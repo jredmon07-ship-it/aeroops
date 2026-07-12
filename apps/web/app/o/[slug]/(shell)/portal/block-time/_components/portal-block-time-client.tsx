@@ -12,6 +12,8 @@
 
 import { Layers } from 'lucide-react';
 import type { SerializedMyBlockSummary } from '../../actions';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 function formatCents(cents: number): string {
   const sign = cents < 0 ? '-' : '';
@@ -25,12 +27,10 @@ interface PortalBlockTimeClientProps {
 export function PortalBlockTimeClient({ summary }: PortalBlockTimeClientProps) {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Block time</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Your prepaid, discounted hour bundles and remaining balance.
-        </p>
-      </div>
+      <PageHeader
+        title="Block time"
+        subtitle="Your prepaid, discounted hour bundles and remaining balance."
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <section className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4" aria-label="Hours purchased">
@@ -56,10 +56,7 @@ export function PortalBlockTimeClient({ summary }: PortalBlockTimeClientProps) {
           <h2 className="text-sm font-semibold text-slate-700">Purchase history</h2>
         </div>
         {summary.purchases.length === 0 ? (
-          <div className="px-5 py-10 text-center space-y-2">
-            <Layers className="h-8 w-8 text-slate-300 mx-auto" aria-hidden="true" />
-            <p className="text-sm text-slate-400">No blocks purchased yet.</p>
-          </div>
+          <EmptyState icon={Layers} title="No blocks purchased yet." className="py-10" />
         ) : (
           <ul className="divide-y divide-slate-100" role="list">
             {summary.purchases.map((p) => (

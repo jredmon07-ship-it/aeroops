@@ -32,6 +32,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { listEnrollmentsAction, listCoursesAction } from '../actions';
 import { EnrollmentsTable } from './_components/enrollments-table';
 import { EnrollMemberDialog } from './_components/enroll-member-dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -89,23 +91,20 @@ async function EnrollmentsContent({ slug, courseId, canManage }: EnrollmentsCont
 
   if (enrollments.length === 0) {
     return (
-      <div
-        className="flex flex-col items-center justify-center py-16 text-center space-y-3"
-        role="status"
-      >
-        <Users className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-500 font-medium">
-          {courseId ? 'No enrollments for this course.' : 'No enrollments yet.'}
-        </p>
-        {canManage ? (
-          <>
-            <p className="text-sm text-slate-400">Enroll a member to get started.</p>
+      <EmptyState
+        icon={Users}
+        title={courseId ? 'No enrollments for this course.' : 'No enrollments yet.'}
+        body={
+          canManage
+            ? 'Enroll a member to get started.'
+            : 'No members are enrolled in training yet.'
+        }
+        cta={
+          canManage && (
             <EnrollMemberDialog slug={slug} courses={courses} initialCourseId={courseId} />
-          </>
-        ) : (
-          <p className="text-sm text-slate-400">No members are enrolled in training yet.</p>
-        )}
-      </div>
+          )
+        }
+      />
     );
   }
 
@@ -147,25 +146,18 @@ export default async function EnrollmentsPage({ params, searchParams }: Enrollme
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              href={`/o/${slug}/training`}
-              className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
-            >
-              Training
-            </Link>
-            <span className="text-slate-300" aria-hidden="true">/</span>
-            <span className="text-sm text-slate-700">Enrollments</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">Enrollments</h1>
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <Link
+            href={`/o/${slug}/training`}
+            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          >
+            Training
+          </Link>
+          <span className="text-slate-300" aria-hidden="true">/</span>
+          <span className="text-sm text-slate-700">Enrollments</span>
         </div>
-        {canManage && (
-          // Show the trigger; full dialog needs courses, loaded in content.
-          // We pass a placeholder and courses will come from content.
-          null
-        )}
+        <PageHeader title="Enrollments" />
       </div>
 
       <Suspense fallback={<EnrollmentsListSkeleton />}>

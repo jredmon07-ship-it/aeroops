@@ -9,12 +9,12 @@
  * to the client component. NO money.
  */
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { auth } from '@/auth';
 import { requireCapability } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { listMemberMessagesAction } from './actions';
 import { ComposeClient } from './_components/compose-client';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface MessagesPageProps {
   params: Promise<{ slug: string }>;
@@ -38,16 +38,17 @@ export default async function MessagesPage({ params }: MessagesPageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/o/${slug}/settings`} className="text-xs text-slate-500 hover:text-slate-700">
-          ← Org settings
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Messages</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Send an email announcement to your members — everyone active, or one role. Delivery is best-effort;
-          members who opt out of announcements are skipped.
-        </p>
-      </div>
+      <PageHeader
+        backHref={`/o/${slug}/settings`}
+        backLabel="Org settings"
+        title="Messages"
+        subtitle={
+          <>
+            Send an email announcement to your members — everyone active, or one role. Delivery is best-effort;
+            members who opt out of announcements are skipped.
+          </>
+        }
+      />
 
       <ComposeClient slug={slug} initialHistory={initialHistory} />
     </div>

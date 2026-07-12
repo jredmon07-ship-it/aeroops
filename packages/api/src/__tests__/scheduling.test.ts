@@ -22,9 +22,6 @@
  *   createTestClient() → applyMigrationSql([0000, 0001, 0002]) → seed → setTestAppRole()
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import * as fc from 'fast-check';
 import type { PGlite } from '@electric-sql/pglite';
@@ -35,6 +32,7 @@ import {
   withOrgContext,
   withPlatformAdminContext,
   seedTwoOrgs,
+  loadMigrationSql,
 } from '@aeroops/db';
 import { appUser, auditLog, reservation, reservationResource } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
@@ -50,53 +48,8 @@ import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
-// ── Path resolution ───────────────────────────────────────────────────────────
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const MIGRATION_SQL = [
-  readFileSync(resolve(__dirname, '../../../db/migrations/0000_loud_prodigy.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0001_auth_credential.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0002_scheduling.sql'), 'utf-8'),
-  // 0003 required: createReservation now probes booking_policy + resource_blackout
-  // (SCHED-2a policy gate runs on every create; absent policy = open booking, Slice-1 preserved).
-  readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'), 'utf-8'),
-  // 0004 required: reservation schema now includes series_id column (ADR-0006 Slice 2b).
-  // The Drizzle INSERT always emits series_id (DEFAULT) so the column must exist.
-  readFileSync(resolve(__dirname, '../../../db/migrations/0004_recurrence.sql'), 'utf-8'),
-  // 0005 required: 0006 references dispatch_ticket(id, org_id) (FK candidate key).
-  readFileSync(resolve(__dirname, '../../../db/migrations/0005_dispatch.sql'), 'utf-8'),
-  // 0006 required: gatedCreateOccurrence's warn-only grounding step (ADR-0008
-  // §2.3) reads aircraft_grounding on the success path; the table must exist.
-  readFileSync(resolve(__dirname, '../../../db/migrations/0006_squawks_grounding.sql'), 'utf-8'),
-  // 0007 required: resource schema now includes fleet columns (make/model/year/
-  // serial_number/home_base_location_id/has_hobbs/has_tach). Drizzle ORM INSERT
-  // emits all columns (with DEFAULT) so they must exist in the test DB.
-  readFileSync(resolve(__dirname, '../../../db/migrations/0007_fleet.sql'), 'utf-8'),
-  // 0008 required: app_user now includes phone/status columns (Slice 6.1).
-  // Drizzle ORM INSERT on app_user emits all columns including phone + status.
-  readFileSync(resolve(__dirname, '../../../db/migrations/0008_people.sql'), 'utf-8'),
-  // 0009 required: dispatch_requirement + dispatch_config tables (Slice 3c / ADR-0009).
-  // openDispatch now queries dispatch_requirement; tables must exist in test DB.
-  readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0010_civil_twilight.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0011_optimizer_run.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0012_training.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0013_work_orders.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0014_availability.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0015_booking_request.sql'),  'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0016_booking_request_convert.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0017_booking_retention.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0018_dispatch_ticket_correction.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0019_billing_records.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0020_demo_reset_state.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0021_qbo_integration.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0022_billing_ledger.sql'), 'utf-8'),
-  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
-  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
-  readFileSync(resolve(__dirname, '../../../db/migrations/0037_logbook_annotation.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0038_stage_check_enforcement.sql'), 'utf-8'),
-];
+// All up migrations through 0038 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0038');
 
 // ── Shared test env ──────────────────────────────────────────────────────────
 
@@ -1504,7 +1457,49 @@ describe('PROPERTY: bulk-rejection — committed booked windows per resource are
    *
    * The half-open convention: [start, end). Window A and B overlap iff
    *   max(A.start, B.start) < min(A.end, B.end)
+   *
+   * PERF/FLAKE FIX: one PGlite + migrations + seed + resources hoisted to
+   * beforeAll (previously rebuilt INSIDE every property iteration, which
+   * timed out under full parallelism). Each iteration resets the mutated
+   * tables (reservation_resource / reservation / audit_log) via TRUNCATE
+   * on the superuser pglite handle — org/user/resource rows are static and
+   * survive, so iterations stay independent.
    */
+  let propEnv: {
+    db: PgliteTestClient;
+    pglite: PGlite;
+    sess: AppSession;
+    orgId: string;
+    resources: string[];
+  };
+
+  beforeAll(async () => {
+    const { db, pglite } = await createTestClient();
+    await applyMigrationSql({ pglite }, MIGRATION_SQL);
+
+    const seed = await seedTwoOrgs(db);
+    const orgId = seed.orgAId;
+    const userId = seed.userAId;
+
+    const sess = makeSession(orgId, userId, 'owner');
+
+    await setTestAppRole({ pglite });
+
+    // Create 2 aircraft resources once — identity rows are never mutated by
+    // the property, only reservation/join/audit rows are (reset per iteration).
+    const resources: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      const r = await createResourceWithDb(db, sess, {
+        kind: 'aircraft',
+        displayName: `N-PBT-${i}`,
+        tailNumber: `NPBT${i}`,
+      });
+      resources.push(r.id);
+    }
+
+    propEnv = { db, pglite, sess, orgId, resources };
+  }, 60_000);
+
   it('for N random bookings, committed booked windows per resource are pairwise non-overlapping', async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -1521,28 +1516,16 @@ describe('PROPERTY: bulk-rejection — committed booked windows per resource are
           { minLength: 3, maxLength: 8 },
         ),
         async (attempts) => {
-          // Create a fresh org + resources for each iteration to avoid cross-iteration state
-          const { db, pglite } = await createTestClient();
-          await applyMigrationSql({ pglite }, MIGRATION_SQL);
+          const { db, pglite, sess, orgId, resources } = propEnv;
 
-          const seed = await seedTwoOrgs(db);
-          const orgId = seed.orgAId;
-          const userId = seed.userAId;
-
-          // Create 2 aircraft resources for this iteration
-          const sess = makeSession(orgId, userId, 'owner');
-
-          await setTestAppRole({ pglite });
-
-          const resources: string[] = [];
-          for (let i = 0; i < 2; i++) {
-            const r = await createResourceWithDb(db, sess, {
-              kind: 'aircraft',
-              displayName: `N-PBT-${i}`,
-              tailNumber: `NPBT${i}`,
-            });
-            resources.push(r.id);
-          }
+          // Reset per-iteration state (superuser bypasses RLS; CASCADE clears
+          // any FK-referencing tables, all empty in this suite). setTestAppRole
+          // left the session as aeroops_app, so toggle back around the TRUNCATE.
+          await pglite.exec('SET ROLE postgres');
+          await pglite.exec(
+            'TRUNCATE TABLE reservation_resource, reservation, audit_log CASCADE',
+          );
+          await pglite.exec('SET ROLE aeroops_app');
 
           const BASE = new Date('2026-06-16T06:00:00Z').getTime();
           const ONE_MIN = 60_000;

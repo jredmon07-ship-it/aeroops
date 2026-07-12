@@ -14,7 +14,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Plus, Pencil, XCircle, Loader2 } from 'lucide-react';
+import { MapPin, Plus, Pencil, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { LocationOption } from '@aeroops/api';
 import { createLocationAction, updateLocationAction } from '../../actions';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface LocationsClientProps {
   locations: LocationOption[];
@@ -59,20 +60,17 @@ export function LocationsClient({ locations, slug, canManage }: LocationsClientP
       )}
 
       {locations.length === 0 ? (
-        <div
-          className="flex flex-col items-center justify-center py-16 text-center space-y-3"
-          role="status"
-        >
-          <MapPin className="h-10 w-10 text-slate-300" aria-hidden="true" />
-          <p className="text-slate-700 font-medium">No locations yet.</p>
-          <p className="text-sm text-slate-400">
-            {canManage
+        <EmptyState
+          icon={MapPin}
+          title="No locations yet."
+          body={
+            canManage
               ? 'Add your base airport and its coordinates to enable accurate day/night scheduling.'
-              : 'No bases have been added yet.'}
-          </p>
-        </div>
+              : 'No bases have been added yet.'
+          }
+        />
       ) : (
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Locations">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -387,13 +385,8 @@ function LocationDialog({ mode, slug, location, open, onOpenChange }: LocationDi
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                  Saving…
-                </>
-              ) : mode === 'create' ? (
+            <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+              {mode === 'create' ? (
                 'Add location'
               ) : (
                 'Save changes'

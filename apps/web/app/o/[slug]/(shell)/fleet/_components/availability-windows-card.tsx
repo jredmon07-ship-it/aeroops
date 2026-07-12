@@ -352,12 +352,8 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />Adding…</>
-              ) : (
-                'Add window'
-              )}
+            <Button type="submit" disabled={submitting} isLoading={submitting}>
+              Add window
             </Button>
           </DialogFooter>
         </form>
@@ -456,7 +452,7 @@ export function AvailabilityWindowsCard({
             Operating hours
           </h2>
           {!loading && !loadError && windows !== null && windows.length > 0 && (
-            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold text-brand-ink">
+            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
               {windows.length}
             </span>
           )}
@@ -485,7 +481,7 @@ export function AvailabilityWindowsCard({
       {/* [VERIFY-AV1-A]: Required by compliance. Do not remove or soften. */}
       <div className="flex items-start gap-1.5 rounded bg-amber-50 border border-amber-200 px-2.5 py-2">
         <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-        <p className="text-[11px] text-amber-800 leading-relaxed">
+        <p className="text-[0.6875rem] text-amber-800 leading-relaxed">
           Operating-hours availability is an operator scheduling rule — it is{' '}
           <strong>NOT</strong> an FAA flight/duty-time, rest, or §117 determination.
         </p>
@@ -534,7 +530,7 @@ export function AvailabilityWindowsCard({
                       {w.range}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-400 font-mono">{w.tz}</span>
+                      <span className="text-[0.6875rem] text-slate-400 font-mono">{w.tz}</span>
                       <button
                         type="button"
                         onClick={() => setConfirmRemove({ id: w.id, label: `${group.label} ${w.range}` })}

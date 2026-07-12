@@ -20,7 +20,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, CalendarDays, Copy, Check, XCircle, Loader2, ShieldAlert } from 'lucide-react';
+import { AlertCircle, CalendarDays, Copy, Check, XCircle, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -135,12 +135,8 @@ export function AircraftCalendarFeedCard({ resourceId }: { resourceId: string })
       )}
 
       {state.phase === 'ready' && state.feed === null && (
-        <Button size="sm" variant="outline" onClick={() => { void handleCreate(); }} disabled={busy}>
-          {busy ? (
-            <><Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />Creating…</>
-          ) : (
-            'Get iCal feed for this aircraft'
-          )}
+        <Button size="sm" variant="outline" onClick={() => { void handleCreate(); }} disabled={busy} isLoading={busy}>
+          Get iCal feed for this aircraft
         </Button>
       )}
 
@@ -171,7 +167,7 @@ export function AircraftCalendarFeedCard({ resourceId }: { resourceId: string })
 
           <div className="flex items-start gap-1.5 rounded bg-amber-50 border border-amber-200 px-2.5 py-2">
             <ShieldAlert className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-            <p className="text-[11px] text-amber-800 leading-relaxed">
+            <p className="text-[0.6875rem] text-amber-800 leading-relaxed">
               This link is private — anyone who has it can see this aircraft&apos;s schedule.
             </p>
           </div>

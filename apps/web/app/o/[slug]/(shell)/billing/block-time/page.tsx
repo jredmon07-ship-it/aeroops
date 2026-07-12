@@ -35,6 +35,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { listBlockPackagesAction, listBillableMembersAction } from './actions';
 import { BlockPackagesClient } from './_components/block-packages-client';
 import { SellBlockClient } from './_components/sell-block-client';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -125,18 +126,22 @@ export default async function BlockTimePage({ params }: BlockTimePageProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Layers className="h-6 w-6 text-slate-400" aria-hidden="true" />
-          <h1 className="text-2xl font-bold text-slate-900">Block time</h1>
-        </div>
-        <Link
-          href={`/o/${slug}/billing`}
-          className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2"
-        >
-          Back to billing
-        </Link>
-      </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Layers className="h-6 w-6 text-slate-400" aria-hidden="true" />
+            Block time
+          </span>
+        }
+        actions={
+          <Link
+            href={`/o/${slug}/billing`}
+            className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2"
+          >
+            Back to billing
+          </Link>
+        }
+      />
       <p className="text-sm text-slate-500">
         Prepaid, discounted hour bundles members buy up front and draw down as they fly. A block
         sale records an operator-recorded credit on the member&apos;s account — the same billing

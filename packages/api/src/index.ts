@@ -1443,7 +1443,6 @@ export {
   QBO_LINE_KINDS,
   QBO_MAPPABLE_LINE_KINDS,
   resolveLineKind,
-  isQboLineKind,
 } from './integrations/qbo/line-kind.js';
 export type { QboLineKind, QboMappableLineKind } from './integrations/qbo/line-kind.js';
 
@@ -1473,7 +1472,6 @@ export type {
 export {
   getQboStatus,
   getQboStatusWithDb,
-  isQboProviderConfigured,
 } from './integrations/qbo/status.js';
 export type {
   QboConnectionStatus,
@@ -1677,7 +1675,6 @@ export type { AutopayOutcome, AutopayResult } from './integrations/stripe/autopa
 
 export {
   createMySetupIntent,
-  createMySetupIntentWithDb,
 } from './portal/create-my-setup-intent.js';
 export type { CreateMySetupIntentResult } from './portal/create-my-setup-intent.js';
 

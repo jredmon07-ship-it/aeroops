@@ -48,8 +48,6 @@ import {
   previewAvailability,
   sendNotification,
   getMetarForAircraft,
-  ForbiddenError,
-  UnauthenticatedError,
 } from '@aeroops/api';
 import type {
   ReservationRow,
@@ -82,36 +80,14 @@ import type {
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
 
-export type AuthErrorResult =
-  | { error: 'forbidden' }
-  | { error: 'unauthenticated' };
+import { mapAuthError, isValidationError } from '@/lib/action-errors-result';
+import type { AuthErrorResult, ValidationErrorResult, ServerErrorResult } from '@/lib/action-errors-result';
 
-export type ValidationErrorResult = {
-  error: 'validation';
-  message: string;
-};
-
-export type ServerErrorResult = { error: 'server'; message?: string };
+export type { AuthErrorResult, ValidationErrorResult, ServerErrorResult };
 
 // Strip the "[scheduling]" / "[resource]" prefix from ValidationError messages.
 function stripPrefix(msg: string): string {
   return msg.replace(/^\[[\w:]+\]\s*/, '');
-}
-
-function mapAuthError(err: unknown): AuthErrorResult | null {
-  if (err instanceof ForbiddenError) return { error: 'forbidden' };
-  if (err instanceof UnauthenticatedError) return { error: 'unauthenticated' };
-  return null;
-}
-
-// ValidationError is not exported from @aeroops/api, so detect by .code property.
-function isValidationError(err: unknown): err is { message: string; code: string } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    (err as { code: unknown }).code === 'VALIDATION'
-  );
 }
 
 // ─── listReservationsAction ───────────────────────────────────────────────────

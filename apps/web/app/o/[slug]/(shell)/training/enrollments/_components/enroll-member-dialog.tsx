@@ -255,15 +255,8 @@ export function EnrollMemberDialog({
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting || loadingMembers}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                    Enrolling…
-                  </>
-                ) : (
-                  'Enroll member'
-                )}
+              <Button type="submit" disabled={isSubmitting || loadingMembers} isLoading={isSubmitting}>
+                Enroll member
               </Button>
             </DialogFooter>
           </form>

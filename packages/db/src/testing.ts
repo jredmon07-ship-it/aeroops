@@ -17,6 +17,9 @@ import { btree_gist } from '@electric-sql/pglite/contrib/btree_gist';
 import * as schema from './schema/index.js';
 import type { PgliteTestClient } from './client.js';
 
+// Shared migration loader (pglite-free module; also re-exported by the barrel).
+export { loadMigrationSql } from './migration-sql.js';
+
 /**
  * Creates a fresh in-memory PGlite Drizzle client.
  * Call `applyMigrationSql(client, sql)` (from client.ts) after creation.

@@ -447,7 +447,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
               {count > 0 && (
                 <span
                   className={[
-                    'inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none nums',
+                    'inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[0.6875rem] font-bold leading-none nums',
                     isActive
                       ? 'bg-brand text-white'
                       : 'bg-slate-200 text-slate-600',
@@ -515,7 +515,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
 
         {/* Populated — table */}
         {!tabLoading && rows.length > 0 && (
-          <div className="rounded-md border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm" aria-label={`${activeStatus} booking requests`}>
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
@@ -726,7 +726,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
       </td>
 
       {/* Requested date */}
-      <td className="px-3 py-3 hidden sm:table-cell text-xs text-slate-600">
+      <td className="px-3 py-3 hidden sm:table-cell text-xs text-slate-600 nums">
         {formatRequestedDate(row.requestedStart, row.requestedEnd)}
       </td>
 
@@ -743,12 +743,12 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
       <td className="px-3 py-3">
         <BookingStatusBadge status={row.status} />
         {terminal && row.handledAt && (
-          <p className="text-[10px] text-slate-400 mt-0.5 nums">
+          <p className="text-[0.6875rem] text-slate-400 mt-0.5 nums">
             {formatRelativeTime(row.handledAt)}
           </p>
         )}
         {row.triageNotes && (
-          <p className="text-[10px] text-slate-500 mt-0.5 truncate max-w-[120px] italic">
+          <p className="text-[0.6875rem] text-slate-500 mt-0.5 truncate max-w-[120px] italic">
             {row.triageNotes}
           </p>
         )}

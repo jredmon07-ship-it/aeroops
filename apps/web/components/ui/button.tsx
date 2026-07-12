@@ -6,6 +6,7 @@
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { Loader2 } from 'lucide-react';
 import { cn } from './utils';
 
 const buttonVariants = cva(
@@ -41,17 +42,49 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  /**
+   * Busy state: shows a centered spinner, disables the button, and sets
+   * aria-busy — while preserving the button's width (the label stays in the
+   * layout, invisible). Ignored when asChild (Slot has no busy semantics).
+   */
+  isLoading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  (
+    { className, variant, size, asChild = false, isLoading = false, disabled, children, ...props },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : 'button';
+    if (asChild || !isLoading) {
+      return (
+        <Comp
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          disabled={disabled}
+          {...props}
+        >
+          {children}
+        </Comp>
+      );
+    }
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+      <button
+        className={cn(buttonVariants({ variant, size, className }), 'relative')}
         ref={ref}
+        disabled
+        aria-busy="true"
         {...props}
-      />
+      >
+        <span
+          className="absolute inset-0 flex items-center justify-center"
+          aria-hidden="true"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </span>
+        {/* Invisible label preserves the button's width while loading. */}
+        <span className="invisible inline-flex items-center gap-2">{children}</span>
+      </button>
     );
   },
 );

@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AutoSchedulerClient } from './_components/auto-scheduler-client';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
@@ -145,20 +146,20 @@ export default async function AutoSchedulerPage({ params }: AutoSchedulerPagePro
   return (
     <div className="space-y-6 max-w-3xl">
       {/* ── Page heading ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Wand2 className="h-6 w-6 text-brand" aria-hidden="true" />
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Auto-scheduler</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Define sessions to schedule, preview the proposed plan, then commit.
-            </p>
-          </div>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/o/${slug}/schedule`}>Back to schedule</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-3">
+            <Wand2 className="h-6 w-6 text-brand" aria-hidden="true" />
+            Auto-scheduler
+          </span>
+        }
+        subtitle="Define sessions to schedule, preview the proposed plan, then commit."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/o/${slug}/schedule`}>Back to schedule</Link>
+          </Button>
+        }
+      />
 
       {/* ── Instructions strip ────────────────────────────────────────────── */}
       <div className="rounded border border-brand/20 bg-brand/5 px-4 py-3 text-sm text-slate-700">

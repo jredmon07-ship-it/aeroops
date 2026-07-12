@@ -81,8 +81,8 @@ function toExportLogView(row: typeof qboExportLog.$inferSelect): QboExportLogVie
   };
 }
 
-/** isQboProviderConfigured — pure env check, no I/O. Exported for the connect route. */
-export function isQboProviderConfigured(): boolean {
+/** isQboProviderConfigured — pure env check, no I/O. Internal to getQboStatus. */
+function isQboProviderConfigured(): boolean {
   return Boolean(process.env['QBO_CLIENT_ID'] && process.env['QBO_CLIENT_SECRET']);
 }
 

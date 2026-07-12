@@ -13,9 +13,6 @@
  *
  * Migrations 0000–0019 (0019 = invoice + rate_schedule tables).
  */
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import {
@@ -23,6 +20,7 @@ import {
   applyMigrationSql,
   setTestAppRole,
   seedTwoOrgs,
+  loadMigrationSql,
 } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 
@@ -38,39 +36,8 @@ import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const MIGRATION_SQL = [
-  '0000_loud_prodigy.sql',
-  '0001_auth_credential.sql',
-  '0002_scheduling.sql',
-  '0003_booking_policies.sql',
-  '0004_recurrence.sql',
-  '0005_dispatch.sql',
-  '0006_squawks_grounding.sql',
-  '0007_fleet.sql',
-  '0008_people.sql',
-  '0009_dispatch_gate.sql',
-  '0010_civil_twilight.sql',
-  '0011_optimizer_run.sql',
-  '0012_training.sql',
-  '0013_work_orders.sql',
-  '0014_availability.sql',
-  '0015_booking_request.sql',
-  '0016_booking_request_convert.sql',
-  '0017_booking_retention.sql',
-  '0018_dispatch_ticket_correction.sql',
-  '0019_billing_records.sql',
-  '0020_demo_reset_state.sql',
-  '0021_qbo_integration.sql',
-  // 0022 adds dispatch_config.minimum_balance_cents (read by openDispatch).
-  '0022_billing_ledger.sql',
-  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
-  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
-  '0037_logbook_annotation.sql',
-  '0038_stage_check_enforcement.sql',
-].map((f) => readFileSync(resolve(__dirname, `../../../db/migrations/${f}`), 'utf-8'));
+// All up migrations through 0038 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0038');
 
 function makeSession(
   orgId: string,

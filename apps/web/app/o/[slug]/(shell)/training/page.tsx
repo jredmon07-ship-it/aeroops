@@ -31,6 +31,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { listCoursesAction } from './actions';
 import { CoursesTable } from './_components/courses-table';
 import { BuildCourseDialog } from './_components/build-course-dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -79,23 +81,16 @@ async function TrainingContent({ slug, canManage }: TrainingContentProps) {
 
   if (courses.length === 0) {
     return (
-      <div
-        className="flex flex-col items-center justify-center py-16 text-center space-y-3"
-        role="status"
-      >
-        <GraduationCap className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-500 font-medium">No courses yet.</p>
-        {canManage ? (
-          <>
-            <p className="text-sm text-slate-400">Create your first course to get started.</p>
-            <BuildCourseDialog slug={slug} />
-          </>
-        ) : (
-          <p className="text-sm text-slate-400">
-            No courses have been created for this organization.
-          </p>
-        )}
-      </div>
+      <EmptyState
+        icon={GraduationCap}
+        title="No courses yet."
+        body={
+          canManage
+            ? 'Create your first course to get started.'
+            : 'No courses have been created for this organization.'
+        }
+        cta={canManage && <BuildCourseDialog slug={slug} />}
+      />
     );
   }
 
@@ -126,10 +121,10 @@ export default async function TrainingPage({ params }: TrainingPageProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Training</h1>
-        {canManage && <BuildCourseDialog slug={slug} />}
-      </div>
+      <PageHeader
+        title="Training"
+        actions={canManage && <BuildCourseDialog slug={slug} />}
+      />
 
       <Suspense fallback={<TrainingListSkeleton />}>
         <TrainingContent slug={slug} canManage={canManage} />

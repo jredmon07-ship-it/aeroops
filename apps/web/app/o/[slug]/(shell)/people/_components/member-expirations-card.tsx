@@ -39,20 +39,20 @@ import type { SerializedMemberExpirationView } from '../actions';
 function ExpirationStatusChip({ status }: { status: SerializedMemberExpirationView['status'] }) {
   if (status === 'expired') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-red-800">
+      <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-800">
         Expired
       </span>
     );
   }
   if (status === 'due_soon') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800">
+      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800">
         Due soon
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
       OK
     </span>
   );

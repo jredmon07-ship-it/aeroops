@@ -22,9 +22,6 @@
  *   - testTimeout: 60_000.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import {
@@ -34,42 +31,17 @@ import {
   seedTwoOrgs,
   seedAuthCredential,
   seedUserWithoutMembership,
+  loadMigrationSql,
 } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 import { hashPassword } from '../auth/hash.js';
 import { verifyLoginAndIssueClaimsWithDb, type MobileClaims } from '../auth/verify-login.js';
 import { signMobileToken, verifyMobileToken, sessionFromMobileClaims } from '../auth/mobile-token.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 // ─── Migration SQL ─────────────────────────────────────────────────────────────
 // Load all migrations so the schema is complete.
-const MIGRATION_SQL = [
-  readFileSync(resolve(__dirname, '../../../db/migrations/0000_loud_prodigy.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0001_auth_credential.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0002_scheduling.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0004_recurrence.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0005_dispatch.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0006_squawks_grounding.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0007_fleet.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0008_people.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0010_civil_twilight.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0011_optimizer_run.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0012_training.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0013_work_orders.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0014_availability.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0015_booking_request.sql'),  'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0016_booking_request_convert.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0017_booking_retention.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0018_dispatch_ticket_correction.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0019_billing_records.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0020_demo_reset_state.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0021_qbo_integration.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0022_billing_ledger.sql'), 'utf-8'),
-];
+// All up migrations through 0022 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0022');
 
 // ─── Test state ────────────────────────────────────────────────────────────────
 let db: PgliteTestClient;

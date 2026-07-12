@@ -119,7 +119,7 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
       <div className="flex items-center gap-2 px-3 py-2">
         <CloudSun className="h-4 w-4 text-slate-400 shrink-0" aria-hidden="true" />
         <span
-          className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${style.chipClass}`}
+          className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${style.chipClass}`}
         >
           {style.label}
         </span>
@@ -151,11 +151,11 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
         )}
       </div>
       {expanded && rawText && (
-        <div className="border-t border-slate-100 px-3 py-1.5 font-mono text-[11px] text-slate-500 break-all">
+        <div className="border-t border-slate-100 px-3 py-1.5 font-mono text-[0.6875rem] text-slate-500 break-all">
           {rawText}
         </div>
       )}
-      <p className="px-3 pb-1.5 text-[10px] text-slate-400">
+      <p className="px-3 pb-1.5 text-[0.6875rem] text-slate-400">
         Advisory only — not a go/no-go or airworthiness determination. The
         pilot in command decides.
       </p>

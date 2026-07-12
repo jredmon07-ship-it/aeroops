@@ -67,9 +67,6 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { sql } from 'drizzle-orm';
 import type { PGlite } from '@electric-sql/pglite';
@@ -82,6 +79,7 @@ import {
   lessonSignature,
   appUser,
   membership,
+  loadMigrationSql,
 } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 import { canonicalLessonRecordSnapshot } from '@aeroops/core';
@@ -100,53 +98,8 @@ import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
-// ── Path resolution ──────────────────────────────────────────────────────────
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
-
-const MIGRATION_FILES = [
-  '0000_loud_prodigy.sql',
-  '0001_auth_credential.sql',
-  '0002_scheduling.sql',
-  '0003_booking_policies.sql',
-  '0004_recurrence.sql',
-  '0005_dispatch.sql',
-  '0006_squawks_grounding.sql',
-  '0007_fleet.sql',
-  '0008_people.sql',
-  '0009_dispatch_gate.sql',
-  '0010_civil_twilight.sql',
-  '0011_optimizer_run.sql',
-  '0012_training.sql',
-  '0013_work_orders.sql',
-  '0014_availability.sql',
-  '0015_booking_request.sql',
-  '0016_booking_request_convert.sql',
-  '0017_booking_retention.sql',
-  '0018_dispatch_ticket_correction.sql',
-  '0019_billing_records.sql',
-  '0020_demo_reset_state.sql',
-  '0021_qbo_integration.sql',
-  '0022_billing_ledger.sql',
-  '0023_stripe_foundation.sql',
-  '0024_payment_methods_autopay.sql',
-  '0025_recurring_dues.sql',
-  '0026_notifications.sql',
-  '0027_data_import.sql',
-  '0028_calendar_feed.sql',
-  '0029_maintenance_due.sql',
-  '0030_documents.sql',
-  '0031_pos_sales.sql',
-  '0032_lesson_signature.sql',
-  // 0038 is ADDITIVE on the 0012 training tables (Slice P2-SC1) — required
-  // because the Drizzle schema now names the new columns on INSERT.
-  '0038_stage_check_enforcement.sql',
-];
-
-const MIGRATION_SQL = MIGRATION_FILES.map((f) =>
-  readFileSync(resolve(__dirname, '../../../db/migrations/', f), 'utf-8'),
-);
+// All up migrations through 0038 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0038');
 
 // ── Shared test env ──────────────────────────────────────────────────────────
 

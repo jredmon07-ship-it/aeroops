@@ -38,6 +38,7 @@ import type {
   PreviewImportActionResult,
   CommitImportActionResult,
 } from '../actions';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const FIELD_LABELS: Record<string, string> = {
   email: 'Email',
@@ -443,7 +444,7 @@ function PreviewTable({ rows }: { kind: ImportKind; rows: SerializedImportRow[] 
 function RowStatusChip({ status, errorDetail }: { status: string; errorDetail: string | null }) {
   if (status === 'pending' || status === 'imported') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         {status === 'imported' ? 'Imported' : 'Will import'}
       </span>
     );
@@ -451,7 +452,7 @@ function RowStatusChip({ status, errorDetail }: { status: string; errorDetail: s
   if (status === 'skipped') {
     return (
       <span
-        className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800"
+        className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800"
         title={errorDetail ?? undefined}
       >
         Duplicate — skipped
@@ -460,7 +461,7 @@ function RowStatusChip({ status, errorDetail }: { status: string; errorDetail: s
   }
   return (
     <span
-      className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-destructive"
+      className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-destructive"
       title={errorDetail ?? undefined}
     >
       Error{errorDetail ? `: ${errorDetail}` : ''}
@@ -541,11 +542,11 @@ function HistorySection({ kind, refreshKey }: { kind: ImportKind; refreshKey: nu
       )}
 
       {state.phase === 'loaded' && state.batches.length === 0 && (
-        <p className="text-sm text-slate-500">No imports yet.</p>
+        <EmptyState icon={History} title="No imports yet." className="py-6" />
       )}
 
       {state.phase === 'loaded' && state.batches.length > 0 && (
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Import history">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -587,27 +588,27 @@ function HistorySection({ kind, refreshKey }: { kind: ImportKind; refreshKey: nu
 function BatchStatusChip({ status, outOfScope }: { status: string; outOfScope: boolean }) {
   if (outOfScope) {
     return (
-      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800">
+      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800">
         Out of scope
       </span>
     );
   }
   if (status === 'committed') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         Committed
       </span>
     );
   }
   if (status === 'previewed') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
         Previewed
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-destructive">
+    <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-destructive">
       {status}
     </span>
   );

@@ -34,6 +34,7 @@ import {
 import { finalizeInvoiceAction, voidInvoiceAction, exportInvoiceToQboAction } from '../actions';
 import type { SerializedInvoiceRow, SerializedInvoiceLineItem } from '../actions';
 import { formatCents } from './format-cents';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface InvoiceDetailClientProps {
   invoice: SerializedInvoiceRow;
@@ -148,20 +149,22 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Invoice</h1>
-          <p className="mt-1 text-sm text-slate-500 font-mono">{invoice.id}</p>
-          <Link
-            href={`/o/${slug}/billing/accounts/${invoice.memberUserId}`}
-            className="mt-1 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
-          >
-            <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
-            View member account
-          </Link>
-        </div>
-        <StatusBadge status={invoice.status} />
-      </div>
+      <PageHeader
+        title="Invoice"
+        subtitle={
+          <>
+            <span className="block font-mono">{invoice.id}</span>
+            <Link
+              href={`/o/${slug}/billing/accounts/${invoice.memberUserId}`}
+              className="mt-1 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+            >
+              <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+              View member account
+            </Link>
+          </>
+        }
+        actions={<StatusBadge status={invoice.status} />}
+      />
 
       {statusError && (
         <Alert variant="destructive" role="alert">
@@ -185,7 +188,7 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
       {/* Line items */}
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Line items</h2>
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Invoice line items">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">

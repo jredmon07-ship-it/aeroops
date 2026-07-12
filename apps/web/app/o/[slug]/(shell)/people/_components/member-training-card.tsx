@@ -21,7 +21,7 @@ import { enrollmentStatusLabel, formatProgress } from '../../training/_component
 function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
         {enrollmentStatusLabel(status)}
       </span>
     );
@@ -29,7 +29,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'completed') {
     return (
       <span
-        className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800"
+        className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800"
         title="Operator content flag — not a regulatory completion [VERIFY-T1-B]"
       >
         {enrollmentStatusLabel(status)}
@@ -38,7 +38,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   }
   if (status === 'withdrawn') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
         {enrollmentStatusLabel(status)}
       </span>
     );

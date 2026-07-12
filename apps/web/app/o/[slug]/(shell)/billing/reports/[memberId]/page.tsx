@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { getMemberStatementAction } from '../actions';
 import type { SerializedStatementLedgerRow } from '../actions';
 import { formatCents } from '../../_components/format-cents';
+import { PageHeader } from '@/components/ui/page-header';
 
 function entryTypeLabel(entryType: string): string {
   switch (entryType) {
@@ -48,20 +49,20 @@ function entryTypeLabel(entryType: string): string {
 function StatusBadge({ status }: { status: 'draft' | 'finalized' | 'void' }) {
   if (status === 'finalized') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         Finalized
       </span>
     );
   }
   if (status === 'void') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
         Void
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800">
+    <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800">
       Draft
     </span>
   );
@@ -120,10 +121,7 @@ async function StatementContent({ slug, memberId }: { slug: string; memberId: st
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{statement.memberName}</h1>
-        <p className="mt-0.5 text-sm text-slate-500">Member statement — staff view.</p>
-      </div>
+      <PageHeader title={statement.memberName} subtitle="Member statement — staff view." />
 
       <div className="rounded-md border border-slate-200 bg-white shadow-xs px-5 py-4 inline-block">
         <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">Current balance</p>
@@ -145,7 +143,7 @@ async function StatementContent({ slug, memberId }: { slug: string; memberId: st
         {statement.invoices.length === 0 ? (
           <p className="text-sm text-slate-400 py-4">No invoices for this member.</p>
         ) : (
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
             <table className="w-full text-sm" aria-label="Invoices">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
@@ -180,7 +178,7 @@ async function StatementContent({ slug, memberId }: { slug: string; memberId: st
         {statement.ledger.length === 0 ? (
           <p className="text-sm text-slate-400 py-4">No ledger activity for this member.</p>
         ) : (
-          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+          <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
             <table className="w-full text-sm" aria-label="Ledger history">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">

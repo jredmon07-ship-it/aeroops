@@ -40,6 +40,7 @@ import { landingPathFor } from '@/lib/nav';
 import { SetupBanner } from './setup-banner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   resolveRangeKey,
   rangeLabelFull,
@@ -62,19 +63,18 @@ const rangeLabel = rangeLabelFull;
 
 // ─── Severity chip (squawk severity) ─────────────────────────────────────────
 
+const SEVERITY_VARIANT: Record<string, 'danger' | 'warning' | 'neutral'> = {
+  grounding: 'danger',
+  major: 'warning',
+  minor: 'neutral',
+};
+
 function SeverityChip({ severity }: { severity: string }) {
-  const variants: Record<string, string> = {
-    grounding:
-      'inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-destructive',
-    major:
-      'inline-flex items-center rounded-sm border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800',
-    minor:
-      'inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-600',
-  };
-  const cls =
-    variants[severity] ??
-    'inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-600';
-  return <span className={cls}>{severity}</span>;
+  return (
+    <StatusBadge variant={SEVERITY_VARIANT[severity] ?? 'neutral'}>
+      {severity}
+    </StatusBadge>
+  );
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -618,17 +618,14 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <div className="flex flex-wrap gap-1.5 items-center">
                           {groundedIdSet.has(row.resourceId) && (
-                            <span
-                              className="inline-flex items-center gap-1 rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-destructive"
-                              aria-label="Grounded"
-                            >
+                            <StatusBadge variant="danger" aria-label="Grounded">
                               Grounded
-                            </span>
+                            </StatusBadge>
                           )}
                           {(squawkCountByResource.get(row.resourceId) ?? 0) > 0 && (
                             <Link
                               href={`/o/${slug}/maintenance/squawks?resourceId=${row.resourceId}`}
-                              className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800 hover:bg-amber-100 transition-colors"
+                              className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 hover:bg-amber-100 transition-colors"
                               aria-label={`${squawkCountByResource.get(row.resourceId)} open squawk${(squawkCountByResource.get(row.resourceId) ?? 0) !== 1 ? 's' : ''} for ${row.tailNumber}`}
                             >
                               {squawkCountByResource.get(row.resourceId)} open squawk{(squawkCountByResource.get(row.resourceId) ?? 0) !== 1 ? 's' : ''}

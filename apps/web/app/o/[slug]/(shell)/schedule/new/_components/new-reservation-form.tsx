@@ -39,6 +39,7 @@ import { AvailabilityIndicator } from './availability-indicator';
 import { WeatherChip } from './weather-chip';
 import { useConflictCheck } from '../_hooks/use-conflict-check';
 import { useSeriesPreview } from '../_hooks/use-series-preview';
+import { toast } from '@/lib/toast-store';
 import { createReservationAction, createSeriesAction, previewTwilightAction, previewAvailabilityAction, getMetarForAircraftAction } from '../../actions';
 import { getGroundingStatusAction } from '../../../maintenance/actions';
 import { toDateInputValue } from '../../_utils/format-time';
@@ -47,6 +48,7 @@ import type { RecurrenceValue, RecurrenceFieldErrors } from './recurrence-contro
 import type { TwilightPreviewState } from './twilight-indicator';
 import type { AvailabilityPreviewState } from './availability-indicator';
 import type { WeatherChipState } from './weather-chip';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface NewReservationFormProps {
   resources: ResourceRow[];
@@ -557,7 +559,8 @@ export function NewReservationForm({
         return;
       }
 
-      // Success — redirect to list with date+start+end for spec §4 copy
+      // Success — toast + redirect to list with date+start+end for spec §4 copy
+      toast.success('Reservation created.');
       router.push(
         `/o/${slug}/schedule?date=${date}&success=1&start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}`,
       );
@@ -614,21 +617,18 @@ export function NewReservationForm({
   // Empty state: no resources to book
   if (noResources) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-        <PlaneTakeoff className="h-12 w-12 text-slate-300" aria-hidden="true" />
-        <div className="space-y-2">
-          <p className="text-slate-700 font-medium">No resources to book yet.</p>
-          <p className="text-sm text-slate-500 max-w-sm">
-            An administrator must add at least one aircraft or instructor before
-            you can create a reservation.
-          </p>
-        </div>
-        {canManageResources && (
-          <Button asChild variant="outline">
-            <Link href={`/o/${slug}/schedule/resources`}>Add a Resource</Link>
-          </Button>
-        )}
-      </div>
+      <EmptyState
+        icon={PlaneTakeoff}
+        title="No resources to book yet."
+        body="An administrator must add at least one aircraft or instructor before you can create a reservation."
+        cta={
+          canManageResources && (
+            <Button asChild variant="outline">
+              <Link href={`/o/${slug}/schedule/resources`}>Add a Resource</Link>
+            </Button>
+          )
+        }
+      />
     );
   }
 
@@ -940,7 +940,7 @@ export function NewReservationForm({
                 role="status"
                 className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm"
               >
-                <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 text-[10px] font-semibold text-destructive leading-5 shrink-0">
+                <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 text-[0.6875rem] font-semibold text-destructive leading-5 shrink-0">
                   Grounded
                 </span>
                 <span className="text-amber-900">

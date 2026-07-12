@@ -33,7 +33,7 @@
 import * as React from 'react';
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { AlertCircle } from 'lucide-react';
+import { Activity, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability } from '@aeroops/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -41,6 +41,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { listActivityAction } from './actions';
 import type { SerializedActivityEntry, SerializedActivityCursor } from './actions';
 import { formatRelativeTime } from '@/lib/activity-utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Permission-denied panel (mirrors dashboard + reports design) ─────────────
 
@@ -209,12 +211,12 @@ async function ActivityContent({ slug, cursor }: ActivityContentProps) {
   // Empty state
   if (entries.length === 0) {
     return (
-      <div className="rounded-md border border-slate-200 bg-slate-50 px-6 py-12 text-center space-y-1">
-        <p className="text-sm font-medium text-slate-700">No activity yet.</p>
-        <p className="text-sm text-slate-500">
-          Actions by your team will appear here.
-        </p>
-      </div>
+      <EmptyState
+        icon={Activity}
+        title="No activity yet."
+        body="Actions by your team will appear here."
+        className="rounded-md border border-slate-200 bg-slate-50 py-12"
+      />
     );
   }
 
@@ -285,14 +287,10 @@ export default async function ActivityPage({
   return (
     <div className="space-y-6">
       {/* ── A. Heading row — OUTSIDE Suspense (always instant) ─────────── */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">
-          Activity
-        </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Recent actions by your team, in reverse chronological order.
-        </p>
-      </div>
+      <PageHeader
+        title="Activity"
+        subtitle="Recent actions by your team, in reverse chronological order."
+      />
 
       {/* ── B+C: ONE Suspense boundary ───────────────────────────────────── */}
       {canView ? (

@@ -18,6 +18,8 @@ import { ResolveSquawkDialog } from './resolve-squawk-dialog';
 import { ReportSquawkDialog } from './report-squawk-dialog';
 import type { SquawkView, ResourceRow } from '@aeroops/api';
 import type { SquawkSeverity, SquawkStatus } from '@aeroops/core';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -40,7 +42,7 @@ function SeverityChip({ severity }: { severity: SquawkSeverity }) {
   const { label, cls } = map[severity];
   return (
     <span
-      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${cls}`}
+      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${cls}`}
     >
       {label}
     </span>
@@ -68,7 +70,7 @@ function StatusChip({ status }: { status: SquawkStatus }) {
   const { label, cls, icon } = map[status];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${cls}`}
+      className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${cls}`}
     >
       {icon}
       {label}
@@ -145,14 +147,16 @@ export function SquawkList({
   return (
     <div className="space-y-4">
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Squawks</h1>
-        {canSquawk && (
-          <Button onClick={() => setReportOpen(true)}>
-            + Report squawk
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Squawks"
+        actions={
+          canSquawk && (
+            <Button onClick={() => setReportOpen(true)}>
+              + Report squawk
+            </Button>
+          )
+        }
+      />
 
       {/* ── Filters ───────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-3">
@@ -195,27 +199,26 @@ export function SquawkList({
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {filtered.length === 0 && (
-        <div
-          className="flex flex-col items-center justify-center py-16 text-center space-y-3"
-          role="status"
-        >
-          <CheckCircle className="h-10 w-10 text-slate-300" aria-hidden="true" />
-          <p className="text-slate-500 font-medium">
-            {squawks.length === 0
+        <EmptyState
+          icon={CheckCircle}
+          title={
+            squawks.length === 0
               ? 'No squawks reported yet.'
-              : 'No squawks match your filters.'}
-          </p>
-          {canSquawk && squawks.length === 0 && (
-            <Button variant="outline" onClick={() => setReportOpen(true)}>
-              Report first squawk
-            </Button>
-          )}
-        </div>
+              : 'No squawks match your filters.'
+          }
+          cta={
+            canSquawk && squawks.length === 0 && (
+              <Button variant="outline" onClick={() => setReportOpen(true)}>
+                Report first squawk
+              </Button>
+            )
+          }
+        />
       )}
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Squawks">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -275,7 +278,7 @@ export function SquawkList({
                   <td className="px-3 py-3 hidden sm:table-cell">
                     <time
                       dateTime={squawk.reportedAt instanceof Date ? squawk.reportedAt.toISOString() : String(squawk.reportedAt)}
-                      className="text-xs text-slate-500"
+                      className="text-xs text-slate-500 nums"
                     >
                       {formatDate(squawk.reportedAt instanceof Date ? squawk.reportedAt : new Date(squawk.reportedAt))}
                     </time>

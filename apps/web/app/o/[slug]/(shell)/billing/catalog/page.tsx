@@ -31,6 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { listProductCatalogItemsAction } from '../pos/actions';
 import { CatalogClient } from './_components/catalog-client';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -90,12 +91,14 @@ export default async function CatalogPage({ params }: CatalogPageProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Package className="h-6 w-6 text-slate-400" aria-hidden="true" />
-          <h1 className="text-2xl font-bold text-slate-900">Catalog</h1>
-        </div>
-      </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Package className="h-6 w-6 text-slate-400" aria-hidden="true" />
+            Catalog
+          </span>
+        }
+      />
       <p className="text-sm text-slate-500">
         Non-flight goods and services (headsets, charts, fuel, merch) sold at the counter.
         Amounts are recorded in cents. Tax is not calculated.

@@ -16,7 +16,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, PlusCircle, Trash2, XCircle, Loader2, AlertTriangle, Flag } from 'lucide-react';
+import { BookOpen, PlusCircle, Trash2, XCircle, AlertTriangle, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,20 +37,21 @@ import {
   setCourseStageCheckEnforcementAction,
 } from '../actions';
 import { courseStatusLabel } from './training-utils';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Course status chip ────────────────────────────────────────────────────────
 
 function CourseStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         {courseStatusLabel(status)}
       </span>
     );
   }
   if (status === 'archived') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
         {courseStatusLabel(status)}
       </span>
     );
@@ -64,7 +65,7 @@ function CourseStatusChip({ status }: { status: string }) {
 function StageLabelChip({ label }: { label: string }) {
   return (
     <span
-      className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-brand-ink"
+      className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-brand-ink"
       title="Operator-defined grouping label (not a Part-141 stage)"
     >
       {label}
@@ -78,7 +79,7 @@ function StageLabelChip({ label }: { label: string }) {
 function StageCheckChip() {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800"
+      className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800"
       title="Operator-designated stage check — not a Part-61/141 stage check of record"
     >
       <Flag className="h-3 w-3" aria-hidden="true" />
@@ -286,15 +287,8 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                    Adding…
-                  </>
-                ) : (
-                  'Add lesson'
-                )}
+              <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+                Add lesson
               </Button>
             </DialogFooter>
           </form>
@@ -409,15 +403,9 @@ function RemoveLessonConfirm({
               variant="destructive"
               onClick={handleConfirm}
               disabled={isSubmitting}
+              isLoading={isSubmitting}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                  Removing…
-                </>
-              ) : (
-                'Remove lesson'
-              )}
+              Remove lesson
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -487,10 +475,9 @@ function LessonStageCheckToggle({
           : `Mark as stage check: ${lessonTitle}`
       }
       title="Operator flag — not a Part-61/141 stage check of record"
+      isLoading={isSubmitting}
     >
-      {isSubmitting ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-      ) : isStageCheck ? (
+      {isStageCheck ? (
         'Unmark stage check'
       ) : (
         'Mark stage check'
@@ -635,30 +622,30 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
         </h2>
 
         {course.lessons.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center py-12 text-center space-y-2 rounded-md border border-dashed border-slate-200"
-            role="status"
-          >
-            <BookOpen className="h-8 w-8 text-slate-300" aria-hidden="true" />
-            <p className="text-sm text-slate-500">No lessons yet.</p>
-            {canManage && (
-              <p className="text-xs text-slate-400">
-                Use{' '}
-                <button
-                  className="text-brand underline underline-offset-2 hover:text-brand-ink"
-                  onClick={() => {
-                    // Trigger the Add Lesson dialog via the header button
-                    // (users can scroll up or we just give a hint)
-                  }}
-                >
-                  Add lesson
-                </button>{' '}
-                above to add the first lesson.
-              </p>
-            )}
-          </div>
+          <EmptyState
+            icon={BookOpen}
+            title="No lessons yet."
+            className="py-12 rounded-md border border-dashed border-slate-200"
+            body={
+              canManage && (
+                <>
+                  Use{' '}
+                  <button
+                    className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                    onClick={() => {
+                      // Trigger the Add Lesson dialog via the header button
+                      // (users can scroll up or we just give a hint)
+                    }}
+                  >
+                    Add lesson
+                  </button>{' '}
+                  above to add the first lesson.
+                </>
+              )
+            }
+          />
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Course lessons">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">

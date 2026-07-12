@@ -30,6 +30,7 @@ import { requireCapability, hasCapability } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { DateNav } from './_components/date-nav';
 import { ReservationList } from './_components/reservation-list';
 import { MonthView } from './_components/month-view';
@@ -233,27 +234,29 @@ export default async function SchedulePage({
   return (
     <div className="space-y-4">
       {/* ── Page heading + primary action ────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-900">Schedule</h1>
-        <div className="flex items-center gap-2">
-          {/* Auto-schedule — shown only with schedule:create_reservation (UI-only; gate in action) */}
-          {canAutoSchedule && (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/o/${slug}/schedule/auto`}>
-                Auto-schedule
-              </Link>
-            </Button>
-          )}
-          {/* + New Reservation — shown only with schedule:create_reservation */}
-          {canCreate && (
-            <Button asChild>
-              <Link href={`/o/${slug}/schedule/new?date=${dateStr}`}>
-                + New Reservation
-              </Link>
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Schedule"
+        actions={
+          <>
+            {/* Auto-schedule — shown only with schedule:create_reservation (UI-only; gate in action) */}
+            {canAutoSchedule && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/o/${slug}/schedule/auto`}>
+                  Auto-schedule
+                </Link>
+              </Button>
+            )}
+            {/* + New Reservation — shown only with schedule:create_reservation */}
+            {canCreate && (
+              <Button asChild>
+                <Link href={`/o/${slug}/schedule/new?date=${dateStr}`}>
+                  + New Reservation
+                </Link>
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* ── Toolbar: DateNav (List only) + List/Month/Board view toggle ──── */}
       <div className="flex flex-wrap items-center gap-3">

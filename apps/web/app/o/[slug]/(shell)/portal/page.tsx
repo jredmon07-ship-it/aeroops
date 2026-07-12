@@ -49,9 +49,11 @@ import { requireCapability } from '@aeroops/api';
 import { ROLE_LABELS } from '@aeroops/core';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SectionHeader } from '@/components/ui/section-header';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
-import { getMyPortalSummaryAction } from './actions';
+import { getMyPortalSummaryAction, getMyBillingAction } from './actions';
 import type { SerializedMyPortalSummary } from './actions';
+import { formatCents } from '../billing/_components/format-cents';
 // Pure display helpers — extracted to a separate file so they can be
 // unit-tested without the Next.js/React imports in this page.
 // Imported for use within this file; the utils file is the canonical export.
@@ -90,15 +92,15 @@ function formatLocalDate(iso: string): string {
 function EnrollmentStatusPill({ status }: { status: string }) {
   const variants: Record<string, string> = {
     active:
-      'inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink',
+      'inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink',
     completed:
-      'inline-flex items-center rounded-sm border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-emerald-800',
+      'inline-flex items-center rounded-sm border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-emerald-800',
     withdrawn:
-      'inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500',
+      'inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500',
   };
   const cls =
     variants[status] ??
-    'inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500';
+    'inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500';
   return (
     <span className={cls}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -112,7 +114,7 @@ function ReservationRoleChip({
   role: 'booker' | 'pilot' | 'booker_and_pilot';
 }) {
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-slate-600">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-slate-600">
       {reservationRoleLabel(role)}
     </span>
   );
@@ -197,14 +199,12 @@ function SectionCard({
   'aria-label'?: string;
 }) {
   return (
-    <section
-      className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden"
-      aria-label={ariaLabel ?? title}
-    >
-      <div className="border-b border-slate-100 px-5 py-3">
-        <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
+    <section aria-label={ariaLabel ?? title}>
+      {/* Design-language eyebrow (the dashboard's section pattern). */}
+      <SectionHeader eyebrow={title} />
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+        {children}
       </div>
-      {children}
     </section>
   );
 }
@@ -415,7 +415,16 @@ interface PortalContentProps {
 }
 
 async function PortalContent({ slug }: PortalContentProps) {
-  const result = await getMyPortalSummaryAction();
+  // Balance is best-effort — any failure just hides the hero metric and falls
+  // back to the plain Billing link (never blocks the portal).
+  const [result, billingResult] = await Promise.all([
+    getMyPortalSummaryAction(),
+    getMyBillingAction().catch(() => null),
+  ]);
+  const balanceCents =
+    billingResult && 'ok' in billingResult && billingResult.ok
+      ? billingResult.billing.balanceCents
+      : null;
 
   if ('error' in result) {
     const message =
@@ -456,14 +465,37 @@ async function PortalContent({ slug }: PortalContentProps) {
         </p>
       </div>
 
-      {/* ── Billing (Slice P0-REV) ────────────────────────────────────────── */}
-      <Link
-        href={`/o/${slug}/portal/billing`}
-        className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-xs hover:border-brand/40 hover:text-brand-ink"
-      >
-        Billing — balance, invoices, and payment methods
-        <span aria-hidden="true">→</span>
-      </Link>
+      {/* ── Billing (Slice P0-REV) — hero balance metric ──────────────────── */}
+      {balanceCents !== null ? (
+        <section aria-label="Account balance">
+          <SectionHeader eyebrow="Account balance" />
+          <Link
+            href={`/o/${slug}/portal/billing`}
+            className="flex items-end justify-between gap-4 rounded-md border border-slate-200 bg-white px-5 py-4 shadow-xs hover:border-brand/40"
+          >
+            <span
+              className={[
+                'nums text-3xl font-bold leading-none',
+                balanceCents < 0 ? 'text-danger' : 'text-slate-900',
+              ].join(' ')}
+            >
+              {formatCents(balanceCents)}
+            </span>
+            <span className="text-sm font-medium text-slate-500">
+              Billing — invoices &amp; payment methods{' '}
+              <span aria-hidden="true">→</span>
+            </span>
+          </Link>
+        </section>
+      ) : (
+        <Link
+          href={`/o/${slug}/portal/billing`}
+          className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-xs hover:border-brand/40 hover:text-brand-ink"
+        >
+          Billing — balance, invoices, and payment methods
+          <span aria-hidden="true">→</span>
+        </Link>
+      )}
 
       {/* ── Block time (Slice B4) ─────────────────────────────────────────── */}
       <Link

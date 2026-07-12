@@ -65,6 +65,7 @@ import {
 } from '../../actions';
 import type { DispatchPreflight } from '../../actions';
 import type { DispatchTicketView, DispatchPilotRow } from '@aeroops/api';
+import { toast } from '@/lib/toast-store';
 
 // ─── Pre-flight helpers (Slice FC-P2) ─────────────────────────────────────────
 
@@ -86,7 +87,7 @@ const PREFLIGHT_CHIP_CLASSES: Record<PreflightTone, string> = {
 function PreflightChip({ tone, children }: { tone: PreflightTone; children: React.ReactNode }) {
   return (
     <span
-      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${PREFLIGHT_CHIP_CLASSES[tone]}`}
+      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${PREFLIGHT_CHIP_CLASSES[tone]}`}
     >
       {children}
     </span>
@@ -381,7 +382,11 @@ export function CheckOutDialog({
 
       // ok:true — dispatch succeeded. In WARN mode the pilot may be missing a
       // required tag (result.eligibilityWarnings); dispatch correctly proceeds
-      // regardless. Surfacing that as a non-blocking toast is a tracked polish item.
+      // regardless — surfaced as a non-blocking warning toast.
+      toast.success('Aircraft checked out — dispatch ticket open.');
+      if (result.eligibilityWarnings && result.eligibilityWarnings.length > 0) {
+        toast.warning(result.eligibilityWarnings.join(' '));
+      }
       onSuccess(result.ticket);
       onOpenChange(false);
     } catch {
@@ -636,7 +641,7 @@ export function CheckOutDialog({
                             </p>
                           ))}
                         {/* [VERIFY-FC-P2-A] — verbatim disclaimer. */}
-                        <p className="text-[10px] leading-4 text-slate-400">
+                        <p className="text-[0.6875rem] leading-4 text-slate-400">
                           Operator-entered reminder dates. Not a medical/currency/legal
                           determination — verifying actual validity remains the
                           operator&apos;s and pilot&apos;s responsibility.

@@ -43,6 +43,11 @@ export async function createTestClient(): Promise<
   return m.createTestClient();
 }
 
+// Shared migration loader for tests/tooling. Statically re-exported on purpose:
+// migration-sql.ts is pglite-FREE (node builtins only), so it cannot leak the
+// WASM module into production consumers the way ./testing.ts would.
+export { loadMigrationSql } from './migration-sql.js';
+
 // Org-context helpers — sanctioned public API only (transaction-scoped wrappers)
 export {
   withOrgContext,

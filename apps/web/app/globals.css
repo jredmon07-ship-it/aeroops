@@ -23,6 +23,12 @@
   --color-border: 214 32% 91%;
   /* Danger / destructive — red-600 */
   --color-danger: 0 72% 51%;
+  /* Success / positive confirmation — green-700 */
+  --color-success: 142 71% 29%;
+  /* Warning / caution — amber-700 */
+  --color-warning: 26 90% 37%;
+  /* Info / neutral attention — sky-700 (distinct from brand azure) */
+  --color-info: 201 96% 32%;
 }
 
 @layer base {

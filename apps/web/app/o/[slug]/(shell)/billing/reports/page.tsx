@@ -36,6 +36,7 @@ import {
   getRevenueReportAction,
 } from './actions';
 import { formatCents } from '../_components/format-cents';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Range selector (revenue only; AR is a point-in-time snapshot) ───────────
 
@@ -134,7 +135,7 @@ async function AccountsReceivableSection({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden">
+    <div className="rounded-md border border-slate-200 bg-white shadow-xs overflow-x-auto">
       <table className="w-full text-sm" aria-label="Accounts receivable, by member">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">
@@ -244,7 +245,7 @@ async function RevenueSection({ range }: { slug: string; range: RangeKey }) {
       {!hasActivity ? (
         <p className="px-5 py-6 text-center text-sm text-slate-400">No billing or payment activity in this period.</p>
       ) : (
-        <div className="overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm" aria-label={`Revenue by period — last ${range}`}>
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -306,20 +307,18 @@ export default async function BillingReportsPage({ params, searchParams }: Repor
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Billing reports</h1>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Accounts receivable and revenue — operational financial reporting, not a tax or audit statement.
-          </p>
-        </div>
-        <Link
-          href={`/o/${slug}/billing`}
-          className="text-sm text-slate-500 hover:text-slate-700 underline-offset-2 hover:underline"
-        >
-          Back to Billing
-        </Link>
-      </div>
+      <PageHeader
+        title="Billing reports"
+        subtitle="Accounts receivable and revenue — operational financial reporting, not a tax or audit statement."
+        actions={
+          <Link
+            href={`/o/${slug}/billing`}
+            className="text-sm text-slate-500 hover:text-slate-700 underline-offset-2 hover:underline"
+          >
+            Back to Billing
+          </Link>
+        }
+      />
 
       <Suspense fallback={<ReportsSkeleton />}>
         <section aria-label="Accounts receivable">

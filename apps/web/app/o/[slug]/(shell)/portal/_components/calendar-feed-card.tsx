@@ -25,7 +25,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, Calendar, Copy, Check, RefreshCw, XCircle, Loader2, ShieldAlert } from 'lucide-react';
+import { AlertCircle, Calendar, Copy, Check, RefreshCw, XCircle, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -186,12 +186,8 @@ export function CalendarFeedCard() {
         )}
 
         {state.phase === 'ready' && state.feed === null && (
-          <Button size="sm" onClick={() => { void handleCreate(); }} disabled={busy}>
-            {busy ? (
-              <><Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />Creating…</>
-            ) : (
-              'Get my calendar link'
-            )}
+          <Button size="sm" onClick={() => { void handleCreate(); }} disabled={busy} isLoading={busy}>
+            Get my calendar link
           </Button>
         )}
 
@@ -223,7 +219,7 @@ export function CalendarFeedCard() {
             {/* Load-bearing privacy warning — not decorative. */}
             <div className="flex items-start gap-1.5 rounded bg-amber-50 border border-amber-200 px-2.5 py-2">
               <ShieldAlert className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-[11px] text-amber-800 leading-relaxed">
+              <p className="text-[0.6875rem] text-amber-800 leading-relaxed">
                 This link is private — anyone who has it can see your schedule. Don&apos;t share it publicly.
                 Revoke or refresh it below if it&apos;s ever exposed.
               </p>

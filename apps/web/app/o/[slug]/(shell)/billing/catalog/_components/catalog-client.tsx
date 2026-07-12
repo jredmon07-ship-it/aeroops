@@ -39,6 +39,7 @@ import {
 } from '../../pos/actions';
 import type { SerializedProductCatalogItem } from '../../pos/actions';
 import { formatCents } from '../../_components/format-cents';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface CatalogClientProps {
   slug: string;
@@ -182,18 +183,20 @@ export function CatalogClient({ slug, initialItems, canManage }: CatalogClientPr
       </div>
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center space-y-3" role="status">
-          <Package className="h-10 w-10 text-slate-300" aria-hidden="true" />
-          <p className="text-slate-700 font-medium">No catalog items yet.</p>
-          {canManage && (
-            <Button size="sm" onClick={openAddDialog}>
-              <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
-              Add item
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={Package}
+          title="No catalog items yet."
+          cta={
+            canManage && (
+              <Button size="sm" onClick={openAddDialog}>
+                <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
+                Add item
+              </Button>
+            )
+          }
+        />
       ) : (
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Product catalog">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -214,9 +217,9 @@ export function CatalogClient({ slug, initialItems, canManage }: CatalogClientPr
                   <td className="px-3 py-3 text-xs text-slate-500 hidden sm:table-cell">{item.category ?? '—'}</td>
                   <td className="px-3 py-3">
                     {item.active ? (
-                      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">Active</span>
+                      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">Active</span>
                     ) : (
-                      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">Inactive</span>
+                      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">Inactive</span>
                     )}
                   </td>
                   {canManage && (

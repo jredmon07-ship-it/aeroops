@@ -22,8 +22,6 @@ import {
   listReservations,
   listAircraft,
   listSquawks,
-  ForbiddenError,
-  UnauthenticatedError,
 } from '@aeroops/api';
 import type {
   OrgDashboardMetrics,
@@ -35,22 +33,10 @@ import type {
 
 // ─── Error shapes (same pattern as fleet/actions.ts) ─────────────────────────
 
-export type AuthErrorResult =
-  | { error: 'forbidden' }
-  | { error: 'unauthenticated' };
+import { mapAuthError, isValidationError } from '@/lib/action-errors-result';
+import type { AuthErrorResult, ValidationErrorResult, ServerErrorResult } from '@/lib/action-errors-result';
 
-export type ValidationErrorResult = {
-  error: 'validation';
-  message: string;
-};
-
-export type ServerErrorResult = { error: 'server'; message?: string };
-
-function mapAuthError(err: unknown): AuthErrorResult | null {
-  if (err instanceof ForbiddenError) return { error: 'forbidden' };
-  if (err instanceof UnauthenticatedError) return { error: 'unauthenticated' };
-  return null;
-}
+export type { AuthErrorResult, ValidationErrorResult, ServerErrorResult };
 
 /**
  * Log an unexpected (non-auth, non-validation) action failure before mapping it
@@ -61,15 +47,6 @@ function mapAuthError(err: unknown): AuthErrorResult | null {
 function logServerError(action: string, err: unknown): void {
   // eslint-disable-next-line no-console
   console.error(`[reporting-actions] ${action} failed:`, err);
-}
-
-function isValidationError(err: unknown): err is { message: string; code: string } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    (err as { code: unknown }).code === 'VALIDATION'
-  );
 }
 
 // ─── Serialized types (Dates → ISO strings) ───────────────────────────────────

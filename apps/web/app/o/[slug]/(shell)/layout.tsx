@@ -36,6 +36,7 @@ import { filterNavForSession, NAV_ITEMS } from '@/lib/nav';
 import { CommandPalette } from './command-palette';
 import { AlertsBell } from './alerts-bell';
 import { FieldStatusBar } from './field-status-bar';
+import { Toaster } from '@/components/ui/toaster';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -196,6 +197,9 @@ export default async function OrgShellLayout({
 
       {/* ── Ops status bar (fixed bottom, every screen) ───────────────────── */}
       <FieldStatusBar status={fieldStatus} />
+
+      {/* ── App-wide toast stack (toast-on-mutation standard) ─────────────── */}
+      <Toaster />
     </div>
   );
 }

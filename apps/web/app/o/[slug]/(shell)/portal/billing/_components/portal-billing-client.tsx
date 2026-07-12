@@ -38,6 +38,8 @@ import {
   setMyAutopayAction,
   payMyInvoiceAction,
 } from '../../actions';
+import { toast } from '@/lib/toast-store';
+import { PageHeader } from '@/components/ui/page-header';
 
 function formatCents(cents: number): string {
   const sign = cents < 0 ? '-' : '';
@@ -107,6 +109,7 @@ export function PortalBillingClient({ initialBilling, stripeConfig }: PortalBill
       }
       setBilling((b) => ({ ...b, paymentMethods: [saveR.paymentMethod, ...b.paymentMethods] }));
       setPmIdInput('');
+      toast.success('Payment method saved.');
     } finally {
       setAddingPm(false);
     }
@@ -130,6 +133,7 @@ export function PortalBillingClient({ initialBilling, stripeConfig }: PortalBill
         return;
       }
       setBilling((b) => ({ ...b, autopay: result.setting }));
+      toast.success(enabled ? 'Auto-pay turned on.' : 'Auto-pay turned off.');
     } finally {
       setAutopayBusy(false);
     }
@@ -165,10 +169,7 @@ export function PortalBillingClient({ initialBilling, stripeConfig }: PortalBill
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Billing</h1>
-        <p className="mt-0.5 text-sm text-slate-500">Your balance, invoices, and payment methods.</p>
-      </div>
+      <PageHeader title="Billing" subtitle="Your balance, invoices, and payment methods." />
 
       {!stripeConfig.configured && (
         <Alert role="status">

@@ -16,47 +16,37 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AlertTriangle, WrenchIcon } from 'lucide-react';
 import type { AircraftListRow } from '@aeroops/api';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 interface FleetTableProps {
   aircraft: AircraftListRow[];
   slug: string;
 }
 
-// ─── Status chip helpers ──────────────────────────────────────────────────────
+// ─── Status chip helpers (design-system StatusBadge) ─────────────────────────
 
 function GroundedChip() {
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-destructive"
-      aria-label="Grounded"
-    >
+    <StatusBadge variant="danger" aria-label="Grounded">
       <AlertTriangle className="h-2.5 w-2.5" aria-hidden="true" />
       Grounded
-    </span>
+    </StatusBadge>
   );
 }
 
 function ActiveChip() {
-  return (
-    <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
-      Active
-    </span>
-  );
+  return <StatusBadge variant="success">Active</StatusBadge>;
 }
 
 function InactiveChip() {
-  return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
-      Inactive
-    </span>
-  );
+  return <StatusBadge variant="neutral">Inactive</StatusBadge>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function FleetTable({ aircraft, slug }: FleetTableProps) {
   return (
-    <div className="rounded-md border border-slate-200 overflow-hidden">
+    <div className="rounded-md border border-slate-200 overflow-x-auto">
       <table className="w-full text-sm" aria-label="Fleet aircraft">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">
@@ -115,7 +105,7 @@ export function FleetTable({ aircraft, slug }: FleetTableProps) {
                   {row.openSquawkCount > 0 && (
                     <Link
                       href={`/o/${slug}/maintenance/squawks?resourceId=${row.id}`}
-                      className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800 hover:bg-amber-100 transition-colors"
+                      className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800 hover:bg-amber-100 transition-colors"
                       aria-label={`${row.openSquawkCount} open squawk${row.openSquawkCount !== 1 ? 's' : ''} for ${row.tailNumber}`}
                     >
                       <WrenchIcon className="h-2.5 w-2.5" aria-hidden="true" />

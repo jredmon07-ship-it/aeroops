@@ -474,15 +474,8 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting || locationsLoading}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                    Saving…
-                  </>
-                ) : (
-                  'Save changes'
-                )}
+              <Button type="submit" disabled={isSubmitting || locationsLoading} isLoading={isSubmitting}>
+                Save changes
               </Button>
             </DialogFooter>
           </form>

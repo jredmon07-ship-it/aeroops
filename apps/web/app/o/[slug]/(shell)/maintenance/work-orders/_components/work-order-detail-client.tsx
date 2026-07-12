@@ -55,7 +55,7 @@ function SeverityChip({ severity }: { severity: string }) {
   const label = severity.charAt(0).toUpperCase() + severity.slice(1);
   return (
     <span
-      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${cls}`}
+      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${cls}`}
     >
       {label}
     </span>
@@ -227,7 +227,7 @@ export function WorkOrderDetailClient({
               <p className="text-sm font-medium text-slate-900">{linkedSquawk.title}</p>
               <SeverityChip severity={linkedSquawk.severity} />
               <span
-                className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${
+                className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${
                   linkedSquawk.status === 'open'
                     ? 'border-brand/30 bg-brand/8 text-brand-ink'
                     : linkedSquawk.status === 'deferred'
@@ -301,7 +301,7 @@ export function WorkOrderDetailClient({
             )}
           </div>
           {/* MANDATORY compliance disclaimer [VERIFY-M1-A/C] */}
-          <p className="text-[10px] text-green-700 italic border-t border-green-200 pt-2">
+          <p className="text-[0.6875rem] text-green-700 italic border-t border-green-200 pt-2">
             This sign-off is an operator/mechanic maintenance record — it is NOT an FAA
             return-to-service or §43.9/§43.11 determination, and the system makes no
             airworthiness determination.

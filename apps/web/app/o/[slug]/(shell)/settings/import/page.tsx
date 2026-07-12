@@ -17,6 +17,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { can } from '@aeroops/core';
 import { ImportClient } from './_components/import-client';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface ImportPageProps {
   params: Promise<{ slug: string }>;
@@ -39,14 +40,16 @@ export default async function DataImportPage({ params }: ImportPageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Import from Flight Circle</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Upload a CSV export from your previous provider&apos;s Reports → Downloads screen (their &ldquo;Users
-          Export&rdquo; for members, or an aircraft list). Review the detected columns and a preview before
-          anything is created — nothing is added to your roster or fleet until you confirm.
-        </p>
-      </div>
+      <PageHeader
+        title="Import from Flight Circle"
+        subtitle={
+          <>
+            Upload a CSV export from your previous provider&apos;s Reports → Downloads screen (their &ldquo;Users
+            Export&rdquo; for members, or an aircraft list). Review the detected columns and a preview before
+            anything is created — nothing is added to your roster or fleet until you confirm.
+          </>
+        }
+      />
 
       <ImportClient slug={slug} canMembers={canMembers} canAircraft={canAircraft} />
     </div>

@@ -29,6 +29,7 @@ import {
   Gauge,
   ArrowLeft,
   CheckCircle,
+  History,
 } from 'lucide-react';
 import { auth } from '@/auth';
 import { requireCapability, hasCapability } from '@aeroops/api';
@@ -50,6 +51,7 @@ import type { SerializedMaintenanceDueView } from '../../maintenance/due-actions
 import { DocumentsCard } from '../../documents-card';
 import type { SerializedAircraftDetail } from '../actions';
 import type { AircraftListRow } from '@aeroops/api';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -113,21 +115,21 @@ function DetailSkeleton() {
 function DispatchStatusChip({ status }: { status: string }) {
   if (status === 'open') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
         Open
       </span>
     );
   }
   if (status === 'closed') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         Closed
       </span>
     );
   }
   if (status === 'voided') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
         Voided
       </span>
     );
@@ -270,7 +272,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
             )}
           </div>
           {!aircraft.active && (
-            <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+            <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
               Inactive
             </span>
           )}
@@ -370,7 +372,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
             <WrenchIcon className="h-4 w-4 text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700">Open Squawks</h2>
             {aircraft.openSquawkCount > 0 && (
-              <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+              <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-amber-800">
                 {aircraft.openSquawkCount}
               </span>
             )}
@@ -413,9 +415,9 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
         </div>
 
         {aircraft.recentDispatch.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">No dispatch history yet.</p>
+          <EmptyState icon={History} title="No dispatch history yet." className="py-6" />
         ) : (
-          <div className="rounded-md border border-slate-100 overflow-hidden">
+          <div className="rounded-md border border-slate-100 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Recent dispatch history">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
@@ -442,7 +444,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
                     key={ticket.id}
                     className="border-b border-slate-100 last:border-0"
                   >
-                    <td className="px-3 py-2 text-xs text-slate-600">
+                    <td className="px-3 py-2 text-xs text-slate-600 nums">
                       {formatDate(ticket.openedAt)}
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-600 hidden sm:table-cell font-mono truncate max-w-[8rem]">
@@ -506,7 +508,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
                     → {formatDateTime(res.endAt)}
                   </span>
                   {res.seriesId && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                    <Badge variant="outline" className="text-[0.6875rem] px-1.5 py-0 h-4">
                       Repeats
                     </Badge>
                   )}

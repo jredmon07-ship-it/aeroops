@@ -27,6 +27,8 @@ import { requireCapability, hasCapability, listResources } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { NewReservationForm } from './_components/new-reservation-form';
 
 // NOTE: The "Back to Schedule" button is rendered inside NewReservationForm
@@ -89,8 +91,9 @@ export default async function NewReservationPage({
   return (
     <div className="space-y-6">
       {/* ── Page heading ──────────────────────────────────────────────────── */}
-      {/* Note: "Back to Schedule" button lives in NewReservationForm for dirty-form guard */}
-      <h1 className="text-2xl font-bold text-slate-900">New Reservation</h1>
+      {/* Note: "Back to Schedule" button lives in NewReservationForm for dirty-form
+          guard — so no backHref here. */}
+      <PageHeader title="New Reservation" />
 
       {/* ── Resource-fetch error notice ────────────────────────────────────── */}
       {resourcesError && (
@@ -103,21 +106,18 @@ export default async function NewReservationPage({
 
       {/* ── First-run empty state — no resources added yet ─────────────────── */}
       {!resourcesError && !hasResources && (
-        <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-          <PlaneTakeoff className="h-12 w-12 text-slate-300" aria-hidden="true" />
-          <div className="space-y-2">
-            <p className="text-slate-700 font-medium">No resources to book yet.</p>
-            <p className="text-sm text-slate-500 max-w-sm">
-              An administrator must add at least one aircraft or instructor before
-              you can create a reservation.
-            </p>
-          </div>
-          {canManageResources && (
-            <Button asChild variant="outline">
-              <Link href={`/o/${slug}/schedule/resources`}>Add a Resource</Link>
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={PlaneTakeoff}
+          title="No resources to book yet."
+          body="An administrator must add at least one aircraft or instructor before you can create a reservation."
+          cta={
+            canManageResources ? (
+              <Button asChild variant="outline">
+                <Link href={`/o/${slug}/schedule/resources`}>Add a Resource</Link>
+              </Button>
+            ) : undefined
+          }
+        />
       )}
 
       {/* ── Booking form — rendered when resources exist ────────────────────── */}

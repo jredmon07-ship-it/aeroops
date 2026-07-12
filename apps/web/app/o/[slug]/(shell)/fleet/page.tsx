@@ -27,6 +27,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { AircraftCursor } from '@aeroops/api';
 import { listAircraftPageAction } from './actions';
 import { FleetTable } from './_components/fleet-table';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Cursor codec (base64url JSON — URL-safe; mirrors activity feed) ───────────
 
@@ -106,23 +108,22 @@ async function FleetContent({ slug, cursor }: FleetContentProps) {
 
   if (aircraft.length === 0) {
     return (
-      <div
-        className="flex flex-col items-center justify-center py-16 text-center space-y-3"
-        role="status"
-      >
-        <Plane className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-500 font-medium">No aircraft yet.</p>
-        <p className="text-sm text-slate-400">
-          Add aircraft in{' '}
-          <Link
-            href={`/o/${slug}/schedule/resources`}
-            className="text-brand underline underline-offset-2 hover:text-brand-ink"
-          >
-            Resources admin
-          </Link>
-          .
-        </p>
-      </div>
+      <EmptyState
+        icon={Plane}
+        title="No aircraft yet."
+        body={
+          <>
+            Add aircraft in{' '}
+            <Link
+              href={`/o/${slug}/schedule/resources`}
+              className="text-brand underline underline-offset-2 hover:text-brand-ink"
+            >
+              Resources admin
+            </Link>
+            .
+          </>
+        }
+      />
     );
   }
 
@@ -171,12 +172,14 @@ export default async function FleetPage({ params, searchParams }: FleetPageProps
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Fleet</h1>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/o/${slug}/fleet/locations`}>Locations &amp; base airports</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Fleet"
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/o/${slug}/fleet/locations`}>Locations &amp; base airports</Link>
+          </Button>
+        }
+      />
       <Suspense fallback={<FleetListSkeleton />}>
         <FleetContent slug={slug} cursor={cursor} />
       </Suspense>

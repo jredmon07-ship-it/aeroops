@@ -10,7 +10,7 @@
 'use client';
 
 import * as React from 'react';
-import { Pencil, XCircle, Loader2 } from 'lucide-react';
+import { Pencil, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -199,15 +199,8 @@ export function EditMemberDialog({ member, onSuccess }: EditMemberDialogProps) {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                    Saving…
-                  </>
-                ) : (
-                  'Save changes'
-                )}
+              <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+                Save changes
               </Button>
             </DialogFooter>
           </form>

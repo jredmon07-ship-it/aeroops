@@ -26,7 +26,12 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { SectionHeader } from '@/components/ui/section-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { listInvoicesAction, listInvoiceableDispatchAction, listRatePickerAction } from './actions';
+import { getAccountsReceivableAction, getRevenueReportAction } from './reports/actions';
 import { formatCents } from './_components/format-cents';
 import { ReadyToInvoiceClient } from './_components/ready-to-invoice-client';
 
@@ -67,13 +72,11 @@ async function InvoiceListContent({ slug }: { slug: string }) {
 
   if (result.invoices.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center space-y-3" role="status">
-        <Receipt className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-700 font-medium">No invoices yet.</p>
-        <p className="text-sm text-slate-400">
-          Generate a draft invoice from a closed dispatch ticket to get started.
-        </p>
-      </div>
+      <EmptyState
+        icon={Receipt}
+        title="No invoices yet."
+        body="Generate a draft invoice from a closed dispatch ticket to get started."
+      />
     );
   }
 
@@ -98,7 +101,7 @@ async function InvoiceListContent({ slug }: { slug: string }) {
             <tr key={inv.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
               <td className="px-3 py-3">
                 <Link href={`/o/${slug}/billing/${inv.id}`} className="flex items-center gap-2">
-                  <StatusBadge status={inv.status} />
+                  <InvoiceStatusBadge status={inv.status} />
                 </Link>
               </td>
               <td className="px-3 py-3 text-right nums">
@@ -165,25 +168,115 @@ function ReadyToInvoiceSkeleton() {
   );
 }
 
-function StatusBadge({ status }: { status: 'draft' | 'finalized' | 'void' }) {
-  if (status === 'finalized') {
-    return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
-        Finalized
-      </span>
-    );
-  }
-  if (status === 'void') {
-    return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
-        Void
-      </span>
-    );
-  }
+const INVOICE_STATUS_META: Record<
+  'draft' | 'finalized' | 'void',
+  { label: string; variant: 'success' | 'warning' | 'neutral' }
+> = {
+  draft: { label: 'Draft', variant: 'warning' },
+  finalized: { label: 'Finalized', variant: 'success' },
+  void: { label: 'Void', variant: 'neutral' },
+};
+
+function InvoiceStatusBadge({ status }: { status: 'draft' | 'finalized' | 'void' }) {
+  const meta = INVOICE_STATUS_META[status];
+  return <StatusBadge variant={meta.variant}>{meta.label}</StatusBadge>;
+}
+
+// ─── Money at a glance (3-metric strip — dashboard snapshot pattern) ──────────
+
+async function BillingSnapshotContent() {
+  // Reuses the EXISTING billing report reads (billing:access-gated inside the
+  // API fns) — no new API. Quietly renders nothing on any failure.
+  const [arResult, revenueResult] = await Promise.all([
+    getAccountsReceivableAction(),
+    getRevenueReportAction('30d'),
+  ]);
+  if (!('ok' in arResult) || !('ok' in revenueResult)) return null;
+
+  const overdueMemberCount = arResult.data.rows.filter(
+    (r) => r.aging.d30 + r.aging.d60 + r.aging.d90 + r.aging.d90plus > 0,
+  ).length;
+  const outstandingCents = arResult.data.totalOutstandingCents;
+  const collectedCents = revenueResult.data.totalCollectedCents;
+
   return (
-    <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800">
-      Draft
-    </span>
+    <section aria-label="Billing snapshot">
+      <SectionHeader eyebrow="As of now" />
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs">
+        <div className="flex divide-x divide-slate-200 max-sm:grid max-sm:grid-cols-1 max-sm:divide-x-0">
+          {/* Tile 1: Outstanding balance */}
+          <div className="flex-1 px-5 py-4">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              Outstanding
+            </p>
+            <p
+              className={[
+                'nums mt-1 text-2xl font-bold leading-none',
+                outstandingCents > 0 ? 'text-slate-900' : 'text-slate-400',
+              ].join(' ')}
+            >
+              {formatCents(outstandingCents)}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {outstandingCents > 0 ? 'owed across all members' : 'nothing owed'}
+            </p>
+          </div>
+
+          {/* Tile 2: Members overdue (past 30 days) */}
+          <div className="flex-1 px-5 py-4">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              Overdue
+            </p>
+            <p
+              className={[
+                'nums mt-1 text-2xl font-bold leading-none',
+                overdueMemberCount > 0 ? 'text-warning' : 'text-slate-400',
+              ].join(' ')}
+            >
+              {overdueMemberCount}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {overdueMemberCount > 0 ? 'members past 30 days' : 'no one past 30 days'}
+            </p>
+          </div>
+
+          {/* Tile 3: Collected — last 30 days */}
+          <div className="flex-1 px-5 py-4">
+            <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500">
+              Collected — 30d
+            </p>
+            <p
+              className={[
+                'nums mt-1 text-2xl font-bold leading-none',
+                collectedCents > 0 ? 'text-slate-900' : 'text-slate-400',
+              ].join(' ')}
+            >
+              {formatCents(collectedCents)}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {collectedCents > 0 ? 'payments received' : 'none received'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BillingSnapshotSkeleton() {
+  return (
+    <div className="animate-pulse" aria-busy="true" aria-label="Loading billing snapshot">
+      <Skeleton className="h-3 w-16 mb-2" />
+      <div className="rounded-md border border-slate-200 bg-white shadow-xs divide-x divide-slate-200 flex">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex-1 px-5 py-4 space-y-2">
+            <Skeleton className="h-2.5 w-20" />
+            <Skeleton className="h-7 w-16" />
+            <Skeleton className="h-2.5 w-24" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -211,17 +304,23 @@ export default async function BillingPage({ params }: BillingPageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Billing</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/o/${slug}/billing/block-time`}>Block time</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/o/${slug}/billing/reports`}>Accounts receivable &amp; revenue</Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Billing"
+        subtitle="Invoices, balances, and money collected."
+        actions={
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/o/${slug}/billing/block-time`}>Block time</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/o/${slug}/billing/reports`}>Accounts receivable &amp; revenue</Link>
+            </Button>
+          </>
+        }
+      />
+      <Suspense fallback={<BillingSnapshotSkeleton />}>
+        <BillingSnapshotContent />
+      </Suspense>
       {canManage && (
         <Suspense fallback={<ReadyToInvoiceSkeleton />}>
           <ReadyToInvoiceContent slug={slug} />

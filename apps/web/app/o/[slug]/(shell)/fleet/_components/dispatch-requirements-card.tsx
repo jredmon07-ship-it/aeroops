@@ -169,12 +169,8 @@ function AddRequirementDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />Adding…</>
-              ) : (
-                'Add requirement'
-              )}
+            <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+              Add requirement
             </Button>
           </DialogFooter>
         </form>
@@ -277,7 +273,7 @@ export function DispatchRequirementsCard({
             Dispatch requirements
           </h2>
           {!loading && !loadError && tags !== null && tags.length > 0 && (
-            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold text-brand-ink">
+            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
               {tags.length}
             </span>
           )}

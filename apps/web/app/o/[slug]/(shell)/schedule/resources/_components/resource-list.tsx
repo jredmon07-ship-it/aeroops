@@ -18,6 +18,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AddResourceDialog } from './add-resource-dialog';
 import { ResourceRowCard } from './resource-row';
 import type { ResourceRow, OrgMemberRow } from '@aeroops/api';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface ResourceListProps {
   resources: ResourceRow[];
@@ -73,10 +75,10 @@ export function ResourceList({ resources: initialResources, orgMembers }: Resour
       </span>
 
       {/* ── Header row: h1 + Add Resource ──────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-900">Resources</h1>
-        <AddResourceDialog orgMembers={orgMembers} onSuccess={handleAddSuccess} />
-      </div>
+      <PageHeader
+        title="Resources"
+        actions={<AddResourceDialog orgMembers={orgMembers} onSuccess={handleAddSuccess} />}
+      />
 
       {/* Success banner after add */}
       {addSuccessVisible && (
@@ -147,10 +149,7 @@ function AircraftSection({ activeAircraft, inactiveAircraft, onDeactivated }: Ai
 
   if (!hasAny) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center space-y-2" aria-label="No aircraft">
-        <PlaneTakeoff className="h-8 w-8 text-slate-300" aria-hidden="true" />
-        <p className="text-sm text-slate-500">No aircraft added yet.</p>
-      </div>
+      <EmptyState icon={PlaneTakeoff} title="No aircraft added yet." className="py-12" />
     );
   }
 
@@ -203,10 +202,7 @@ function InstructorsSection({ activeInstructors, inactiveInstructors, onDeactiva
 
   if (!hasAny) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center space-y-2" aria-label="No instructors">
-        <UserCheck className="h-8 w-8 text-slate-300" aria-hidden="true" />
-        <p className="text-sm text-slate-500">No instructors added yet.</p>
-      </div>
+      <EmptyState icon={UserCheck} title="No instructors added yet." className="py-12" />
     );
   }
 

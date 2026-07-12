@@ -34,6 +34,8 @@ import { listMembersPageAction } from './actions';
 import { MembersTable } from './_components/members-table';
 import { AddMemberDialog } from './_components/add-member-dialog';
 import { ActiveToggle } from './_components/active-toggle';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Cursor codec (base64url JSON — URL-safe; mirrors activity feed) ───────────
 
@@ -118,28 +120,25 @@ async function PeopleContent({ slug, includeInactive, canManage, cursor }: Peopl
 
   if (members.length === 0) {
     return (
-      <div
-        className="flex flex-col items-center justify-center py-16 text-center space-y-3"
-        role="status"
-      >
-        <Users className="h-10 w-10 text-slate-300" aria-hidden="true" />
-        <p className="text-slate-500 font-medium">
-          {includeInactive ? 'No members on this roster.' : 'No active members.'}
-        </p>
-        {!includeInactive && (
-          <p className="text-sm text-slate-400">
-            Try enabling{' '}
-            <Link
-              href={`/o/${slug}/people?includeInactive=1`}
-              className="text-brand underline underline-offset-2 hover:text-brand-ink"
-            >
-              Show inactive
-            </Link>{' '}
-            to see deactivated members.
-          </p>
-        )}
-        {canManage && <AddMemberDialog />}
-      </div>
+      <EmptyState
+        icon={Users}
+        title={includeInactive ? 'No members on this roster.' : 'No active members.'}
+        body={
+          !includeInactive && (
+            <>
+              Try enabling{' '}
+              <Link
+                href={`/o/${slug}/people?includeInactive=1`}
+                className="text-brand underline underline-offset-2 hover:text-brand-ink"
+              >
+                Show inactive
+              </Link>{' '}
+              to see deactivated members.
+            </>
+          )
+        }
+        cta={canManage && <AddMemberDialog />}
+      />
     );
   }
 
@@ -187,13 +186,15 @@ export default async function PeoplePage({ params, searchParams }: PeoplePagePro
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">People</h1>
-        <div className="flex items-center gap-2">
-          <ActiveToggle slug={slug} includeInactive={includeInactive} />
-          {canManage && <AddMemberDialog />}
-        </div>
-      </div>
+      <PageHeader
+        title="People"
+        actions={
+          <>
+            <ActiveToggle slug={slug} includeInactive={includeInactive} />
+            {canManage && <AddMemberDialog />}
+          </>
+        }
+      />
 
       <Suspense fallback={<PeopleListSkeleton />}>
         <PeopleContent

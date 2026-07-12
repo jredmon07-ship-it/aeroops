@@ -79,7 +79,7 @@ function ResourceCell({
           {isGrounded && (
             <span
               title={status?.reason ?? 'Grounded'}
-              className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 py-0 text-[10px] font-semibold text-destructive leading-4"
+              className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 py-0 text-[0.6875rem] font-semibold text-destructive leading-4"
               aria-label={`Grounded: ${status?.reason ?? ''}`}
             >
               Grounded
@@ -87,7 +87,7 @@ function ResourceCell({
           )}
           {squawkCount > 0 && (
             <span
-              className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1 py-0 text-[10px] font-medium text-slate-600 leading-4 nums"
+              className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1 py-0 text-[0.6875rem] font-medium text-slate-600 leading-4 nums"
               aria-label={`${squawkCount} open squawk${squawkCount !== 1 ? 's' : ''}`}
             >
               {squawkCount} sqwk
@@ -99,7 +99,7 @@ function ResourceCell({
               <button
                 type="button"
                 onClick={() => onReleaseClick(resource)}
-                className="text-[10px] text-slate-500 hover:text-slate-800 underline leading-4"
+                className="text-[0.6875rem] text-slate-500 hover:text-slate-800 underline leading-4"
                 aria-label={`Release ${resource.tailNumber ?? resource.displayName}`}
               >
                 Release
@@ -108,7 +108,7 @@ function ResourceCell({
               <button
                 type="button"
                 onClick={() => onGroundClick(resource)}
-                className="text-[10px] text-destructive hover:text-destructive/80 underline leading-4"
+                className="text-[0.6875rem] text-destructive hover:text-destructive/80 underline leading-4"
                 aria-label={`Ground ${resource.tailNumber ?? resource.displayName}`}
               >
                 Ground

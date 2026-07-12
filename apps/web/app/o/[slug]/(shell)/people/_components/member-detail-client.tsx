@@ -30,13 +30,13 @@ import { TagEditor } from './tag-editor';
 function StatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         Active
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
       Inactive
     </span>
   );
@@ -47,7 +47,7 @@ function StatusChip({ status }: { status: string }) {
 function RoleBadge({ role }: { role: string }) {
   const label = ROLE_LABELS[role as MembershipRole] ?? role;
   return (
-    <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
+    <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
       {label}
     </span>
   );

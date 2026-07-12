@@ -72,6 +72,7 @@ import {
   withOrgContext,
   withPlatformAdminContext,
   seedTwoOrgs,
+  loadMigrationSql,
 } from '@aeroops/db';
 import { auditLog, bookingRequest } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
@@ -86,36 +87,11 @@ import {
   ForbiddenError,
 } from '../index.js';
 
-// ── Path resolution ───────────────────────────────────────────────────────────
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 
-const MIGRATION_SQL = [
-  readFileSync(resolve(__dirname, '../../../db/migrations/0000_loud_prodigy.sql'),      'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0001_auth_credential.sql'),   'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0002_scheduling.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0003_booking_policies.sql'),  'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0004_recurrence.sql'),        'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0005_dispatch.sql'),          'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0006_squawks_grounding.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0007_fleet.sql'),             'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0008_people.sql'),            'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0009_dispatch_gate.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0010_civil_twilight.sql'),    'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0011_optimizer_run.sql'),     'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0012_training.sql'),          'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0013_work_orders.sql'),       'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0014_availability.sql'),      'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0015_booking_request.sql'),   'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0016_booking_request_convert.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0017_booking_retention.sql'),       'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0018_dispatch_ticket_correction.sql'),       'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0019_billing_records.sql'),       'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0020_demo_reset_state.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0021_qbo_integration.sql'), 'utf-8'),
-  readFileSync(resolve(__dirname, '../../../db/migrations/0022_billing_ledger.sql'), 'utf-8'),
-];
+// All up migrations through 0022 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0022');
 
 const DOWN_0017 = readFileSync(
   resolve(__dirname, '../../../db/migrations/0017_booking_retention.down.sql'),
@@ -1078,6 +1054,25 @@ describe('T-ISO — Tenant isolation under enforced RLS', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('PROP — Property test: deleted set exactly matches predicate', () => {
+  // PERF/FLAKE FIX: one PGlite + migrations + seed hoisted to beforeAll
+  // (previously rebuilt INSIDE every property iteration). Each iteration
+  // resets the mutated tables (booking_request / dispatch_config / audit_log)
+  // via TRUNCATE on the superuser pglite handle — org/user rows are static
+  // and survive, so iterations stay independent.
+  let propEnv: {
+    dbProp: PgliteTestClient;
+    pgProp: PGlite;
+    seed: Awaited<ReturnType<typeof seedTwoOrgs>>;
+  };
+
+  beforeAll(async () => {
+    const { pglite: pgProp, db: dbProp } = await createTestClient();
+    await applyMigrationSql({ pglite: pgProp }, MIGRATION_SQL);
+    const seed = await seedTwoOrgs(dbProp);
+    await setTestAppRole({ pglite: pgProp });
+    propEnv = { dbProp, pgProp, seed };
+  }, 60_000);
+
   it('PROP-1: deleted rows == { created_at < cutoff AND status IN eligible }; never another org', async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -1086,10 +1081,15 @@ describe('PROP — Property test: deleted set exactly matches predicate', () => 
         // Whether to include converted.
         fc.boolean(),
         async (retentionDays, includesConverted) => {
-          const { pglite: pgProp, db: dbProp } = await createTestClient();
-          await applyMigrationSql({ pglite: pgProp }, MIGRATION_SQL);
-          const seed = await seedTwoOrgs(dbProp);
-          await setTestAppRole({ pglite: pgProp });
+          const { dbProp, pgProp, seed } = propEnv;
+
+          // Reset per-iteration state (superuser bypasses RLS; setTestAppRole
+          // left the session as aeroops_app, so toggle back around the TRUNCATE).
+          await pgProp.exec('SET ROLE postgres');
+          await pgProp.exec(
+            'TRUNCATE TABLE booking_request, dispatch_config, audit_log CASCADE',
+          );
+          await pgProp.exec('SET ROLE aeroops_app');
 
           const sessionA = makeSession('owner', seed.orgAId, seed.userAId);
           await setBookingRetentionWithDb(dbProp, sessionA, {

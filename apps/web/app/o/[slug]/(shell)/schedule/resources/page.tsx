@@ -34,6 +34,7 @@ import { listResourcesAction } from '../actions';
 import { listOrgMembersAction } from '../actions';
 import { ResourceList, ResourceListSkeleton } from './_components/resource-list';
 import type { ResourceRow, OrgMemberRow } from '@aeroops/api';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface ResourcesPageProps {
   params: Promise<{ slug: string }>;
@@ -88,9 +89,7 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
   if (fetchError) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Resources</h1>
-        </div>
+        <PageHeader title="Resources" />
         <Alert variant="destructive" role="alert">
           <AlertDescription>
             Could not load resources. Try refreshing the page.

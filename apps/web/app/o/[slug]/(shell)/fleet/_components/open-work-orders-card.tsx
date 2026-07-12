@@ -28,7 +28,7 @@ function StatusChip({ status }: { status: string }) {
   const conf = map[status] ?? { label: status, cls: 'border-slate-200 bg-slate-50 text-slate-500' };
   return (
     <span
-      className={`inline-flex items-center rounded-sm border px-1 py-0.5 text-[10px] font-semibold leading-4 ${conf.cls}`}
+      className={`inline-flex items-center rounded-sm border px-1 py-0.5 text-[0.6875rem] font-semibold leading-4 ${conf.cls}`}
     >
       {conf.label}
     </span>
@@ -73,7 +73,7 @@ export function OpenWorkOrdersCard({
             <Wrench className="h-4 w-4 text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700">Open Work Orders</h2>
             {displayCount > 0 && (
-              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold text-brand-ink">
+              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
                 {displayCount}
               </span>
             )}
@@ -113,7 +113,7 @@ export function OpenWorkOrdersCard({
                     <StatusChip status={wo.status} />
                     {wo.squawkId && (
                       <span
-                        className="inline-flex items-center gap-0.5 text-[10px] text-amber-700"
+                        className="inline-flex items-center gap-0.5 text-[0.6875rem] text-amber-700"
                         title="Linked to a squawk"
                       >
                         <AlertTriangle className="h-3 w-3" aria-hidden="true" />

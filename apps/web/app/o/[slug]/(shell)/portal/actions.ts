@@ -47,8 +47,6 @@ import {
   getMyPilotLog,
   exportMyPilotLogCsv,
   annotateFlight,
-  ForbiddenError,
-  UnauthenticatedError,
 } from '@aeroops/api';
 import type {
   MyPortalSummary,
@@ -67,17 +65,10 @@ import type {
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
 
-export type AuthErrorResult =
-  | { error: 'forbidden' }
-  | { error: 'unauthenticated' };
+import { mapAuthError, isValidationError } from '@/lib/action-errors-result';
+import type { AuthErrorResult, ValidationErrorResult, ServerErrorResult } from '@/lib/action-errors-result';
 
-export type ServerErrorResult = { error: 'server'; message?: string };
-
-function mapAuthError(err: unknown): AuthErrorResult | null {
-  if (err instanceof ForbiddenError) return { error: 'forbidden' };
-  if (err instanceof UnauthenticatedError) return { error: 'unauthenticated' };
-  return null;
-}
+export type { AuthErrorResult, ValidationErrorResult, ServerErrorResult };
 
 // ─── Serialized types (Dates → ISO strings) ────────────────────────────────────
 
@@ -448,17 +439,6 @@ export async function payMyInvoiceAction(invoiceId: string): Promise<PayMyInvoic
 // bearer secret — this file never logs it, only passes it through to the
 // client component that renders the copyable URL.
 // ════════════════════════════════════════════════════════════════════════════════
-
-function isValidationError(err: unknown): err is { message: string; code: string } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    (err as { code: unknown }).code === 'VALIDATION'
-  );
-}
-
-export type ValidationErrorResult = { error: 'validation'; message: string };
 
 /** Serialized CalendarFeedView — Dates replaced with ISO strings. */
 export interface SerializedCalendarFeedView {

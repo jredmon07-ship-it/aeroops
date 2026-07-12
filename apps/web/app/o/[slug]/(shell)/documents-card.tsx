@@ -27,7 +27,6 @@ import {
   Upload,
   Download,
   Trash2,
-  Loader2,
   AlertCircle,
   FileWarning,
 } from 'lucide-react';
@@ -64,6 +63,7 @@ import {
 } from './documents-actions';
 import type { SerializedDocumentView } from './documents-actions';
 import type { DocumentOwnerType } from '@aeroops/api';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -229,12 +229,8 @@ function UploadDialog({ open, onOpenChange, ownerType, ownerId, onSuccess }: Upl
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isUploading}>
-              {isUploading ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />Uploading…</>
-              ) : (
-                'Upload'
-              )}
+            <Button type="submit" disabled={isUploading} isLoading={isUploading}>
+              Upload
             </Button>
           </DialogFooter>
         </form>
@@ -248,7 +244,7 @@ function UploadDialog({ open, onOpenChange, ownerType, ownerId, onSuccess }: Upl
 function StatusChip({ status }: { status: 'pending' | 'stored' }) {
   if (status === 'pending') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800">
+      <span className="inline-flex items-center rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-amber-800">
         Uploading…
       </span>
     );
@@ -362,7 +358,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
             <FileText className="h-4 w-4 text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700">Documents</h2>
             {!loading && !loadError && documents !== null && documents.length > 0 && (
-              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold text-brand-ink">
+              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
                 {documents.length}
               </span>
             )}
@@ -376,7 +372,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
         </div>
 
         {/* [VERIFY-P1.6-A] operator-data framing — verbatim disclaimer */}
-        <p className="text-[11px] text-slate-400">
+        <p className="text-[0.6875rem] text-slate-400">
           Files are stored as uploaded — never scanned, parsed, or interpreted. Category
           labels are free-text tags the operator sets, not a verified classification.
         </p>
@@ -411,7 +407,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
 
         {/* ── Empty state ───────────────────────────────────────────────────── */}
         {!loading && !loadError && documents !== null && documents.length === 0 && (
-          <p className="text-sm text-slate-400 italic">No documents uploaded yet.</p>
+          <EmptyState icon={FileText} title="No documents uploaded yet." className="py-6" />
         )}
 
         {/* ── Document list ───────────────────────────────────────────────── */}
@@ -426,7 +422,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-sm font-medium text-slate-800 truncate">{doc.filename}</span>
                     {doc.category && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                      <Badge variant="outline" className="text-[0.6875rem] px-1.5 py-0 h-4">
                         {doc.category}
                       </Badge>
                     )}
@@ -448,12 +444,9 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
                     onClick={() => handleDownload(doc)}
                     disabled={downloadingIds.has(doc.id) || doc.status !== 'stored'}
                     aria-label={`Download ${doc.filename}`}
+                    isLoading={downloadingIds.has(doc.id)}
                   >
-                    {downloadingIds.has(doc.id) ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Download className="h-4 w-4" aria-hidden="true" />
-                    )}
+                    <Download className="h-4 w-4" aria-hidden="true" />
                   </Button>
                   {canManage && (
                     <Button

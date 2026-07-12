@@ -298,7 +298,7 @@ export function PosClient({ slug, members, catalogItems }: PosClientProps) {
           <p>Add a line to start a sale.</p>
         </div>
       ) : (
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Sale lines">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">

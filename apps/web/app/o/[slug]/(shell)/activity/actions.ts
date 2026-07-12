@@ -15,24 +15,15 @@
 import { auth } from '@/auth';
 import {
   listActivity,
-  ForbiddenError,
-  UnauthenticatedError,
 } from '@aeroops/api';
 import type { ListActivityOptions } from '@aeroops/api';
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
 
-export type AuthErrorResult =
-  | { error: 'forbidden' }
-  | { error: 'unauthenticated' };
+import { mapAuthError } from '@/lib/action-errors-result';
+import type { AuthErrorResult, ServerErrorResult } from '@/lib/action-errors-result';
 
-export type ServerErrorResult = { error: 'server'; message?: string };
-
-function mapAuthError(err: unknown): AuthErrorResult | null {
-  if (err instanceof ForbiddenError) return { error: 'forbidden' };
-  if (err instanceof UnauthenticatedError) return { error: 'unauthenticated' };
-  return null;
-}
+export type { AuthErrorResult, ServerErrorResult };
 
 // ─── Serialized types (Dates → ISO strings) ───────────────────────────────────
 

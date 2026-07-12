@@ -109,7 +109,7 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
             <tbody>
               {entries.map((e) => (
                 <tr key={e.ticketId} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2 text-xs text-slate-600">{formatDate(e.date)}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 nums">{formatDate(e.date)}</td>
                   <td className="px-3 py-2 text-sm font-medium text-slate-800">{e.tail}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 hidden sm:table-cell whitespace-nowrap">
                     {e.category || e.aircraftClass

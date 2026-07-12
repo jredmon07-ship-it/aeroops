@@ -38,6 +38,8 @@ import type { SerializedMaintenanceDueView, SerializedMaintenanceItemView } from
 import { computeMaintenanceProgress } from '@/lib/maintenance-progress';
 import type { ResourceRow } from '@aeroops/api';
 import type { MaintenanceDueStatus } from '@aeroops/core';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -78,7 +80,7 @@ function StatusChip({ status }: { status: MaintenanceDueStatus }) {
   };
   const { label, cls, icon } = map[status];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${cls}`}>
+    <span className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${cls}`}>
       {icon}
       {label}
     </span>
@@ -135,7 +137,7 @@ function RemainingBar({ item }: { item: SerializedMaintenanceDueView }) {
           </span>
         )}
       </div>
-      <p className="text-[10px] text-slate-500 nums">{remainingText}</p>
+      <p className="text-[0.6875rem] text-slate-500 nums">{remainingText}</p>
     </div>
   );
 }
@@ -298,23 +300,21 @@ export function MaintenanceDueList({
   return (
     <div className="space-y-4">
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Maintenance due</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {overdueCount} overdue · {dueSoonCount} due soon
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {canManage && (
-            <Button variant="outline" size="sm" onClick={handleNotify} disabled={notifyState === 'sending'}>
-              <Mail className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-              {notifyState === 'sending' ? 'Sending…' : 'Notify owners/managers'}
-            </Button>
-          )}
-          {canManage && <Button onClick={() => setCreateOpen(true)}>+ Add item</Button>}
-        </div>
-      </div>
+      <PageHeader
+        title="Maintenance due"
+        subtitle={<>{overdueCount} overdue · {dueSoonCount} due soon</>}
+        actions={
+          <>
+            {canManage && (
+              <Button variant="outline" size="sm" onClick={handleNotify} disabled={notifyState === 'sending'}>
+                <Mail className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                {notifyState === 'sending' ? 'Sending…' : 'Notify owners/managers'}
+              </Button>
+            )}
+            {canManage && <Button onClick={() => setCreateOpen(true)}>+ Add item</Button>}
+          </>
+        }
+      />
 
       {notifyMessage && (
         <p
@@ -397,7 +397,7 @@ export function MaintenanceDueList({
           <Button variant="outline" size="sm" onClick={handleSeedCommon} disabled={seedState === 'seeding'}>
             {seedState === 'seeding' ? 'Adding…' : 'Add common reminders'}
           </Button>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[0.6875rem] text-slate-400">
             Adds 50 Hour Oil Change, 100 Hour Inspection, Annual Inspection, ELT Battery,
             Transponder Check and Pitot/Static Check as plain operator reminder items — each can be
             edited or deactivated individually.
@@ -412,22 +412,26 @@ export function MaintenanceDueList({
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center space-y-3" role="status">
-          <CheckCircle className="h-10 w-10 text-slate-300" aria-hidden="true" />
-          <p className="text-slate-500 font-medium">
-            {items.length === 0 ? 'No maintenance items tracked yet.' : 'No items match your filters.'}
-          </p>
-          {canManage && items.length === 0 && (
-            <Button variant="outline" onClick={() => setCreateOpen(true)}>
-              Add first item
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={CheckCircle}
+          title={
+            items.length === 0
+              ? 'No maintenance items tracked yet.'
+              : 'No items match your filters.'
+          }
+          cta={
+            canManage && items.length === 0 && (
+              <Button variant="outline" onClick={() => setCreateOpen(true)}>
+                Add first item
+              </Button>
+            )
+          }
+        />
       )}
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Maintenance due items">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -469,7 +473,7 @@ export function MaintenanceDueList({
                     <StatusChip status={item.status} />
                   </td>
                   <td className="px-3 py-3 hidden sm:table-cell">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-500 nums">
                       {item.trackBy === 'hours'
                         ? `${item.dueValueHours ?? '—'} ${item.meterBasis ?? ''} hrs`
                         : item.dueDate ?? '—'}

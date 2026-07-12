@@ -31,6 +31,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getMemberBlockSummaryAction } from '../actions';
 import { formatCents } from '../../_components/format-cents';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 function SummarySkeleton() {
   return (
@@ -74,10 +76,7 @@ async function SummaryContent({ slug, memberId }: SummaryContentProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{summary.memberName}</h1>
-        <p className="text-sm text-slate-500">Block-time summary</p>
-      </div>
+      <PageHeader title={summary.memberName} subtitle="Block-time summary" />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
         <div className="rounded-md border border-slate-200 p-4">
@@ -106,12 +105,9 @@ async function SummaryContent({ slug, memberId }: SummaryContentProps) {
       <div>
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Purchase history</h2>
         {summary.purchases.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center space-y-2" role="status">
-            <Layers className="h-8 w-8 text-slate-300" aria-hidden="true" />
-            <p className="text-slate-700 font-medium">No blocks purchased yet.</p>
-          </div>
+          <EmptyState icon={Layers} title="No blocks purchased yet." className="py-12" />
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Block purchase history">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">

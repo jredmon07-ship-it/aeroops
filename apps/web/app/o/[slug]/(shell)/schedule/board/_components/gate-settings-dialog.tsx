@@ -376,7 +376,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                 {/* [VERIFY-4a-A]: required copy; do not remove or soften.          */}
                 <div className="flex items-start gap-1.5 rounded bg-amber-50 border border-amber-200 px-2.5 py-2">
                   <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                  <p className="text-[0.6875rem] text-amber-800 leading-relaxed">
                     This is an operator scheduling rule based on astronomical civil-twilight times.
                     It is <strong>NOT</strong> an FAA night-currency or §61.57 determination.
                     &ldquo;Night-qualified&rdquo; is a label you assign; the system attaches no
@@ -463,7 +463,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                 {/* [VERIFY-AV1-A]: required copy; do not remove or soften. */}
                 <div className="flex items-start gap-1.5 rounded bg-amber-50 border border-amber-200 px-2.5 py-2">
                   <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                  <p className="text-[0.6875rem] text-amber-800 leading-relaxed">
                     Operating-hours availability is an operator scheduling rule — it is{' '}
                     <strong>NOT</strong> an FAA flight/duty-time, rest, or §117 determination.
                   </p>
@@ -495,7 +495,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                     <div className="w-9 h-5 rounded-full bg-slate-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
                   </label>
                 </div>
-                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                <p className="text-[0.6875rem] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
                   Preview only — this toggle has no operational effect in Phase 1.
                 </p>
               </div>
@@ -529,12 +529,9 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                 <Button
                   type="submit"
                   disabled={saving || loading || config === null}
+                  isLoading={saving}
                 >
-                  {saving ? (
-                    <><Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />Saving…</>
-                  ) : (
-                    'Save settings'
-                  )}
+                  Save settings
                 </Button>
               </DialogFooter>
             </form>

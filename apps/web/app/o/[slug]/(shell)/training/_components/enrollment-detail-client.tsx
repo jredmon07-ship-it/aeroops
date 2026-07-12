@@ -55,13 +55,14 @@ import {
   formatDateTime,
   formatDate,
 } from './training-utils';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Status chip ───────────────────────────────────────────────────────────────
 
 function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
         {enrollmentStatusLabel(status)}
       </span>
     );
@@ -69,7 +70,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'completed') {
     return (
       <span
-        className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800"
+        className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800"
         title="Operator content flag — not a regulatory completion [VERIFY-T1-B]"
       >
         {enrollmentStatusLabel(status)}
@@ -78,7 +79,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
   }
   if (status === 'withdrawn') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
         {enrollmentStatusLabel(status)}
       </span>
     );
@@ -440,15 +441,8 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting || loadingMembers}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                    Recording…
-                  </>
-                ) : (
-                  'Record lesson'
-                )}
+              <Button type="submit" disabled={isSubmitting || loadingMembers} isLoading={isSubmitting}>
+                Record lesson
               </Button>
             </DialogFooter>
           </form>
@@ -598,15 +592,9 @@ function VoidRecordDialog({ record, onSuccess }: VoidRecordDialogProps) {
               variant="destructive"
               onClick={handleConfirm}
               disabled={isSubmitting}
+              isLoading={isSubmitting}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                  Voiding…
-                </>
-              ) : (
-                'Void record'
-              )}
+              Void record
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -776,15 +764,8 @@ function SignLessonDialog({ lessonRecordId, onSuccess }: SignLessonDialogProps) 
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                    Signing…
-                  </>
-                ) : (
-                  'Sign record'
-                )}
+              <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+                Sign record
               </Button>
             </DialogFooter>
           </form>
@@ -932,15 +913,8 @@ function VoidSignatureDialog({ signatureId, onSuccess }: VoidSignatureDialogProp
                 Cancel
               </Button>
             </DialogClose>
-            <Button variant="destructive" onClick={handleConfirm} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                  Voiding…
-                </>
-              ) : (
-                'Void signature'
-              )}
+            <Button variant="destructive" onClick={handleConfirm} disabled={isSubmitting} isLoading={isSubmitting}>
+              Void signature
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1033,7 +1007,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
         <div className="space-y-0.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span
-              className="inline-flex items-center gap-1 rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-700"
+              className="inline-flex items-center gap-1 rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-700"
               title="Operator/instructor attestation — not an FAA-recognized signature. [VERIFY-P2-A]"
             >
               <ShieldCheck className="h-3 w-3" aria-hidden="true" />
@@ -1047,7 +1021,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
             {active.signerName} ({active.roleAtSigning}) · {formatDateTime(active.signedAt)}
           </p>
           <p
-            className="nums text-[10px] text-slate-300 truncate max-w-[220px]"
+            className="nums text-[0.6875rem] text-slate-300 truncate max-w-[220px]"
             title="Tamper-evidence digest — not an FAA signature. [VERIFY-P2-A]"
           >
             {active.contentHash.slice(0, 16)}…
@@ -1061,7 +1035,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
             <span className="line-through text-xs text-slate-400">
               {voidedOriginal.signerName} ({voidedOriginal.roleAtSigning})
             </span>
-            <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-red-700">
+            <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700">
               Voided
             </span>
           </div>
@@ -1168,12 +1142,9 @@ function StatusControls({ enrollmentId, status, onSuccess }: StatusControlsProps
                 onClick={() => handleTransition('completed')}
                 disabled={isCompleting}
                 className="bg-green-700 hover:bg-green-800 text-white"
+                isLoading={isCompleting}
               >
-                {isCompleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  'Confirm complete'
-                )}
+                Confirm complete
               </Button>
             </div>
           </AlertDescription>
@@ -1199,12 +1170,9 @@ function StatusControls({ enrollmentId, status, onSuccess }: StatusControlsProps
                 variant="destructive"
                 onClick={() => handleTransition('withdrawn')}
                 disabled={isWithdrawing}
+                isLoading={isWithdrawing}
               >
-                {isWithdrawing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  'Confirm withdraw'
-                )}
+                Confirm withdraw
               </Button>
             </div>
           </AlertDescription>
@@ -1333,7 +1301,7 @@ export function EnrollmentDetailClient({
             <p className="nums text-xs text-slate-400 mt-0.5">0 / 0 — 0%</p>
           </div>
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Lesson checklist">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
@@ -1374,7 +1342,7 @@ export function EnrollmentDetailClient({
                           </span>
                           {/* [VERIFY-T1-G]: stage_label = FREE-TEXT grouping */}
                           {lp.stageLabel && (
-                            <span className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-brand-ink">
+                            <span className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-brand-ink">
                               {lp.stageLabel}
                             </span>
                           )}
@@ -1431,9 +1399,9 @@ export function EnrollmentDetailClient({
         <p className="text-xs text-slate-400">{ESIGN_DISCLAIMER_SHORT}</p>
 
         {enrollment.records.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">No records yet.</p>
+          <EmptyState icon={ClipboardList} title="No records yet." className="py-6" />
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Lesson record log">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
@@ -1503,18 +1471,18 @@ export function EnrollmentDetailClient({
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1">
                           {isVoided ? (
-                            <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-red-700">
+                            <span className="inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700">
                               Voided
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-700">
+                            <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-700">
                               Recorded
                             </span>
                           )}
                           {/* Slice P2-SC1: instructor-stated stage-check outcome — NOT a computed verdict */}
                           {record.stageCheckPassed !== null && (
                             <span
-                              className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${
+                              className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${
                                 record.stageCheckPassed
                                   ? 'border-amber-200 bg-amber-50 text-amber-800'
                                   : 'border-red-200 bg-red-50 text-red-700'

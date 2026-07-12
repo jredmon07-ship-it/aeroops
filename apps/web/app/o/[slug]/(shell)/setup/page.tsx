@@ -32,6 +32,7 @@ import type { OnboardingStatus, OnboardingStepKey } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface SetupPageProps {
   params: Promise<{ slug: string }>;
@@ -263,13 +264,15 @@ export default async function SetupPage({ params }: SetupPageProps) {
   return (
     <div className="max-w-3xl space-y-6">
       {/* ── Heading ─────────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Set up your operation</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          A short checklist to get your flight operation running. Start with the essentials —
-          add optional depth whenever you&apos;re ready.
-        </p>
-      </div>
+      <PageHeader
+        title="Set up your operation"
+        subtitle={
+          <>
+            A short checklist to get your flight operation running. Start with the essentials —
+            add optional depth whenever you&apos;re ready.
+          </>
+        }
+      />
 
       {/* ── Progress summary ────────────────────────────────────────────────── */}
       <Card>

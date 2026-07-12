@@ -25,7 +25,7 @@ import * as React from 'react';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, BookOpen } from 'lucide-react';
 import { auth } from '@/auth';
 import { requireCapability } from '@aeroops/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -35,6 +35,8 @@ import { getMyPilotLogAction, exportMyPilotLogCsvAction } from '../actions';
 import type { SerializedPilotLog } from '@/lib/serialize-pilot-log';
 import { DownloadCsvButton } from './_components/download-csv-button';
 import { AnnotateFlightDialog } from './_components/annotate-flight-dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -86,9 +88,7 @@ function LogbookDisclaimer() {
 function LogbookTable({ log }: { log: SerializedPilotLog }) {
   if (log.entries.length === 0) {
     return (
-      <div className="px-5 py-10 text-center">
-        <p className="text-sm text-slate-400">No logged flights yet.</p>
-      </div>
+      <EmptyState icon={BookOpen} title="No logged flights yet." className="py-10" />
     );
   }
 
@@ -116,7 +116,7 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
         <tbody>
           {log.entries.map((e) => (
             <tr key={e.ticketId} className="border-b border-slate-100 last:border-0">
-              <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">{formatLocalDate(e.date)}</td>
+              <td className="px-3 py-2 text-xs text-slate-600 nums whitespace-nowrap">{formatLocalDate(e.date)}</td>
               <td className="px-3 py-2 text-sm font-medium text-slate-900 whitespace-nowrap">{e.tail}</td>
               <td className="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">
                 {e.make || e.model ? [e.make, e.model].filter(Boolean).join(' ') : <span className="text-slate-400">—</span>}
@@ -221,13 +221,11 @@ async function LogbookContent({ slug }: LogbookContentProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Logbook</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Your flight history from dispatch records.</p>
-        </div>
-        <DownloadCsvButton action={exportMyPilotLogCsvAction} />
-      </div>
+      <PageHeader
+        title="Logbook"
+        subtitle="Your flight history from dispatch records."
+        actions={<DownloadCsvButton action={exportMyPilotLogCsvAction} />}
+      />
 
       <section
         className="rounded-md border border-slate-200 bg-white shadow-xs overflow-hidden"

@@ -29,7 +29,7 @@
 'use client';
 
 import * as React from 'react';
-import { Settings2, Loader2, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Settings2, Plus, Trash2, AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -735,15 +735,9 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
                 type="submit"
                 form="booking-rules-form"
                 disabled={saving}
+                isLoading={saving}
               >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    Saving…
-                  </>
-                ) : (
-                  'Save booking rules'
-                )}
+                Save booking rules
               </Button>
             </div>
           </DialogFooter>
@@ -907,18 +901,11 @@ function AddBlackoutForm({ value, onChange, onSubmit, error, submitting }: AddBl
           size="sm"
           disabled={submitting}
           className="w-full sm:w-auto"
+          isLoading={submitting}
         >
-          {submitting ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-              Adding…
-            </>
-          ) : (
-            <>
-              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               Add blackout
-            </>
-          )}
+            
         </Button>
       </form>
     </div>

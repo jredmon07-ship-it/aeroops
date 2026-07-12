@@ -44,7 +44,7 @@ export function WorkOrderStatusBadge({ status, className = '' }: WorkOrderStatus
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-4 ${config.cls} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${config.cls} ${className}`}
     >
       {config.icon}
       {config.label}

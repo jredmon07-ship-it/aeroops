@@ -15,9 +15,8 @@
  *   - NEVER stores raw card/bank data.
  *   - not_configured typed refusal on a StubStripeClient — never a crash.
  *
- * TWO CALLING FORMS:
- *   createMySetupIntent(session)          — app code.
- *   createMySetupIntentWithDb(db, session, client?) — tests.
+ * CALLING FORM:
+ *   createMySetupIntent(session, client?) — app code (client injectable for tests).
  */
 import { auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
@@ -85,13 +84,5 @@ export async function createMySetupIntent(
   client?: StripeClient,
 ): Promise<CreateMySetupIntentResult> {
   const db = await getDb();
-  return _createMySetupIntentImpl(db, session, client);
-}
-
-export async function createMySetupIntentWithDb(
-  db: AnyDb,
-  session: AppSession | null | undefined,
-  client?: StripeClient,
-): Promise<CreateMySetupIntentResult> {
   return _createMySetupIntentImpl(db, session, client);
 }

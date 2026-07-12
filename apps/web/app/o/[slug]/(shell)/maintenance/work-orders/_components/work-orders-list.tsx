@@ -19,6 +19,8 @@ import { OpenWorkOrderDialog } from './open-work-order-dialog';
 import { formatDate } from './work-order-utils';
 import type { SerializedWorkOrderView } from '../actions';
 import type { AircraftListRow } from '@aeroops/api';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -78,14 +80,16 @@ export function WorkOrdersList({
   return (
     <div className="space-y-4">
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">Work Orders</h1>
-        {canWorkOrder && (
-          <Button onClick={() => setOpenDialogOpen(true)}>
-            + Open work order
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Work Orders"
+        actions={
+          canWorkOrder && (
+            <Button onClick={() => setOpenDialogOpen(true)}>
+              + Open work order
+            </Button>
+          )
+        }
+      />
 
       {/* ── Filters ───────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-3">
@@ -129,27 +133,26 @@ export function WorkOrdersList({
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {filtered.length === 0 && (
-        <div
-          className="flex flex-col items-center justify-center py-16 text-center space-y-3"
-          role="status"
-        >
-          <Wrench className="h-10 w-10 text-slate-300" aria-hidden="true" />
-          <p className="text-slate-500 font-medium">
-            {workOrders.length === 0
+        <EmptyState
+          icon={Wrench}
+          title={
+            workOrders.length === 0
               ? 'No work orders yet.'
-              : 'No work orders match your filters.'}
-          </p>
-          {canWorkOrder && workOrders.length === 0 && (
-            <Button variant="outline" onClick={() => setOpenDialogOpen(true)}>
-              Open first work order
-            </Button>
-          )}
-        </div>
+              : 'No work orders match your filters.'
+          }
+          cta={
+            canWorkOrder && workOrders.length === 0 && (
+              <Button variant="outline" onClick={() => setOpenDialogOpen(true)}>
+                Open first work order
+              </Button>
+            )
+          }
+        />
       )}
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Work orders">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -223,7 +226,7 @@ export function WorkOrdersList({
                       <span className="text-xs text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-xs text-slate-500 hidden sm:table-cell">
+                  <td className="px-3 py-3 text-xs text-slate-500 nums hidden sm:table-cell">
                     {formatDate(wo.openedAt)}
                   </td>
                 </tr>

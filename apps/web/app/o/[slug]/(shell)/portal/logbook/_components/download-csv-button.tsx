@@ -8,7 +8,7 @@
 'use client';
 
 import * as React from 'react';
-import { Download, Loader2, AlertCircle } from 'lucide-react';
+import { Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export interface DownloadCsvAction {
@@ -58,18 +58,10 @@ export function DownloadCsvButton({ action, label = 'Download CSV' }: DownloadCs
 
   return (
     <div className="space-y-1.5">
-      <Button size="sm" variant="outline" onClick={handleClick} disabled={pending}>
-        {pending ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />
-            Exporting…
-          </>
-        ) : (
-          <>
-            <Download className="h-4 w-4 mr-1" aria-hidden="true" />
+      <Button size="sm" variant="outline" onClick={handleClick} disabled={pending} isLoading={pending}>
+                    <Download className="h-4 w-4 mr-1" aria-hidden="true" />
             {label}
-          </>
-        )}
+          
       </Button>
       {error && (
         <p role="alert" className="flex items-center gap-1 text-xs text-destructive">

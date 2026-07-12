@@ -16,9 +16,6 @@
  *
  * Migrations 0000–0010 (0010 adds location.latitude/longitude + paired CHECK).
  */
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import {
@@ -28,6 +25,7 @@ import {
   withOrgContext,
   seedTwoOrgs,
   auditLog,
+  loadMigrationSql,
 } from '@aeroops/db';
 import { eq, and } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
@@ -42,22 +40,8 @@ import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 import { can } from '@aeroops/core';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const MIGRATION_SQL = [
-  '0000_loud_prodigy.sql',
-  '0001_auth_credential.sql',
-  '0002_scheduling.sql',
-  '0003_booking_policies.sql',
-  '0004_recurrence.sql',
-  '0005_dispatch.sql',
-  '0006_squawks_grounding.sql',
-  '0007_fleet.sql',
-  '0008_people.sql',
-  '0009_dispatch_gate.sql',
-  '0010_civil_twilight.sql',
-].map((f) => readFileSync(resolve(__dirname, `../../../db/migrations/${f}`), 'utf-8'));
+// All up migrations through 0010 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0010');
 
 function makeSession(
   orgId: string,

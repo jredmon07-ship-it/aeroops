@@ -188,15 +188,10 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
               </p>
             )}
           </div>
-          <Button type="submit" size="sm" variant="outline" disabled={isAdding}>
-            {isAdding ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
+          <Button type="submit" size="sm" variant="outline" disabled={isAdding} isLoading={isAdding}>
+                            <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
                 Add
-              </>
-            )}
+              
           </Button>
         </form>
       )}

@@ -16,7 +16,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, PlusCircle } from 'lucide-react';
+import { AlertCircle, PlusCircle, ScrollText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +41,9 @@ import {
 import type { SerializedLedgerEntry } from '../../actions';
 import { formatCents } from '../../_components/format-cents';
 import type { MemberBillingProfile } from '@aeroops/api';
+import { toast } from '@/lib/toast-store';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface AccountDetailClientProps {
   memberId: string;
@@ -226,6 +229,7 @@ export function AccountDetailClient({
       }
       setBalanceCents(result.balanceCentsAfter);
       await refreshEntries();
+      toast.success('Payment recorded.');
       setDialogOpen(false);
       setAmountInput('');
       setMethodNote('');
@@ -263,6 +267,7 @@ export function AccountDetailClient({
       }
       setBalanceCents(result.balanceCentsAfter);
       await refreshEntries();
+      toast.success('Credit memo issued.');
       setCreditDialogOpen(false);
       setCreditAmountInput('');
       setCreditMemoInput('');
@@ -304,6 +309,7 @@ export function AccountDetailClient({
       }
       setBalanceCents(result.balanceCentsAfter);
       await refreshEntries();
+      toast.success('Adjustment recorded.');
       setAdjDialogOpen(false);
       setAdjAmountInput('');
       setAdjDirection('debit');
@@ -315,26 +321,26 @@ export function AccountDetailClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Account</h1>
-          <p className="mt-1 text-sm text-slate-500 font-mono">{memberId}</p>
-        </div>
-        {canManage && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={() => setCreditDialogOpen(true)}>
-              Issue credit memo
-            </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setAdjDialogOpen(true)}>
-              Record adjustment
-            </Button>
-            <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
-              <PlusCircle className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-              Record payment
-            </Button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Account"
+        subtitle={<span className="font-mono">{memberId}</span>}
+        actions={
+          canManage && (
+            <>
+              <Button type="button" size="sm" variant="outline" onClick={() => setCreditDialogOpen(true)}>
+                Issue credit memo
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setAdjDialogOpen(true)}>
+                Record adjustment
+              </Button>
+              <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
+                <PlusCircle className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                Record payment
+              </Button>
+            </>
+          )
+        }
+      />
 
       {/* Balance card */}
       <div className="rounded-md border border-slate-200 px-4 py-3 max-w-sm space-y-1">
@@ -359,11 +365,9 @@ export function AccountDetailClient({
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Ledger history</h2>
         {entries.length === 0 ? (
-          <p className="text-sm text-slate-400 py-6 text-center" role="status">
-            No ledger activity yet.
-          </p>
+          <EmptyState icon={ScrollText} title="No ledger activity yet." className="py-6" />
         ) : (
-          <div className="rounded-md border border-slate-200 overflow-hidden">
+          <div className="rounded-md border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm" aria-label="Ledger entries">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">

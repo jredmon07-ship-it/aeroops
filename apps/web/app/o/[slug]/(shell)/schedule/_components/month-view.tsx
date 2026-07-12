@@ -140,7 +140,7 @@ function ReservationChip({
     <Link
       href={boardHref}
       aria-label={ariaLabel}
-      className={`block truncate rounded-sm border px-1 py-0.5 text-[11px] leading-4 font-medium ${colorClass}`}
+      className={`block truncate rounded-sm border px-1 py-0.5 text-[0.6875rem] leading-4 font-medium ${colorClass}`}
     >
       <span className="font-mono">{time}</span> {resourceLabel}
       {bookedByShort ? <span className="font-normal"> · {bookedByShort}</span> : null}
@@ -276,7 +276,7 @@ export function MonthView({
           <Link
             href={`${boardPath}?date=${cell.iso}`}
             aria-label={`${overflow} more reservation${overflow === 1 ? '' : 's'} on ${dayLabel} — open day board`}
-            className="block truncate rounded-sm px-1 py-0.5 text-[11px] leading-4 font-medium text-brand hover:underline"
+            className="block truncate rounded-sm px-1 py-0.5 text-[0.6875rem] leading-4 font-medium text-brand hover:underline"
           >
             +{overflow} more
           </Link>

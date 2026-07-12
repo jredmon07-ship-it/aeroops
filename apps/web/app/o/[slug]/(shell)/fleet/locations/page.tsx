@@ -19,7 +19,7 @@ import * as React from 'react';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { MapPin, AlertCircle, ArrowLeft } from 'lucide-react';
+import { MapPin, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
 import { requireCapability, hasCapability } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { listLocationsAction } from '../actions';
 import { LocationsClient } from './_components/locations-client';
+import { PageHeader } from '@/components/ui/page-header';
 
 function LocationsSkeleton() {
   return (
@@ -84,23 +85,22 @@ export default async function LocationsPage({ params }: LocationsPageProps) {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <Link
-          href={`/o/${slug}/fleet`}
-          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          Fleet
-        </Link>
-        <div className="flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-brand" aria-hidden="true" />
-          <h1 className="text-2xl font-bold text-slate-900">Locations</h1>
-        </div>
-        <p className="text-sm text-slate-500">
-          Your bases and airports. Coordinates enable accurate day/night scheduling —
-          operator data, not an FAA determination.
-        </p>
-      </div>
+      <PageHeader
+        backHref={`/o/${slug}/fleet`}
+        backLabel="Fleet"
+        title={
+          <span className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-brand" aria-hidden="true" />
+            Locations
+          </span>
+        }
+        subtitle={
+          <>
+            Your bases and airports. Coordinates enable accurate day/night scheduling —
+            operator data, not an FAA determination.
+          </>
+        }
+      />
       <Suspense fallback={<LocationsSkeleton />}>
         <LocationsContent slug={slug} canManage={canManage} />
       </Suspense>

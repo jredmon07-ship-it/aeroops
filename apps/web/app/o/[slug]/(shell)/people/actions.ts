@@ -39,8 +39,6 @@ import {
   addMemberExpiration,
   deactivateMemberExpiration,
   listMemberExpirations,
-  ForbiddenError,
-  UnauthenticatedError,
 } from '@aeroops/api';
 import type {
   OrgMemberListRow,
@@ -126,31 +124,10 @@ export interface SerializedMemberDetail {
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
 
-export type AuthErrorResult =
-  | { error: 'forbidden' }
-  | { error: 'unauthenticated' };
+import { mapAuthError, isValidationError } from '@/lib/action-errors-result';
+import type { AuthErrorResult, ValidationErrorResult, ServerErrorResult } from '@/lib/action-errors-result';
 
-export type ValidationErrorResult = {
-  error: 'validation';
-  message: string;
-};
-
-export type ServerErrorResult = { error: 'server'; message?: string };
-
-function mapAuthError(err: unknown): AuthErrorResult | null {
-  if (err instanceof ForbiddenError) return { error: 'forbidden' };
-  if (err instanceof UnauthenticatedError) return { error: 'unauthenticated' };
-  return null;
-}
-
-function isValidationError(err: unknown): err is { message: string; code: string } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    (err as { code: unknown }).code === 'VALIDATION'
-  );
-}
+export type { AuthErrorResult, ValidationErrorResult, ServerErrorResult };
 
 // ─── Date serialization helpers ────────────────────────────────────────────────
 function serializeTag(t: MemberTagView): SerializedMemberTagView {
@@ -422,7 +399,6 @@ export async function addMemberAction(
 // Gated on people:access (getPilotLogAction) inside the @aeroops/api command.
 // A cross-org / non-member userId → { ok:false, reason:'not_found' }.
 // ════════════════════════════════════════════════════════════════════════════════
-
 
 export interface PilotLogDateBounds {
   from?: string;

@@ -113,6 +113,11 @@ async function loadRetentionConfig(
 /**
  * purgeExpiredBookingRequestsForOrg — internal helper used by the devops CLI script.
  *
+ * DELIBERATE SEAM — do NOT remove as "dead code": the only caller is
+ * packages/db/scripts/purge-booking-requests.mjs (the retention cron script),
+ * which dynamic-imports it from the @aeroops/api barrel, so no static
+ * call-site exists inside apps/ or packages/ TypeScript source.
+ *
  * Wraps withOrgContext(db, orgId) — the org context sets the RLS GUC so the
  * DELETE policy (booking_request_delete USING org_id=current_org_id) is the
  * structural backstop. org_id is NOT in the WHERE clause on purpose.

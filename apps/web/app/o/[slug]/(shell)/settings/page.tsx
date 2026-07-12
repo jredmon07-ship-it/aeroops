@@ -29,6 +29,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { QboSettingsCard } from './_components/qbo-settings-card';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface OrgSettingsPageProps {
   params: Promise<{ slug: string }>;
@@ -67,13 +68,15 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
   return (
     <div className="space-y-6">
       {/* ── Page heading ──────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Org settings</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          View your organization&apos;s details. Editing will be available in a
-          later phase.
-        </p>
-      </div>
+      <PageHeader
+        title="Org settings"
+        subtitle={
+          <>
+            View your organization&apos;s details. Editing will be available in a
+            later phase.
+          </>
+        }
+      />
 
       {/* ── Guided setup entry point ───────────────────────────────────────── */}
       <Card className="max-w-2xl">

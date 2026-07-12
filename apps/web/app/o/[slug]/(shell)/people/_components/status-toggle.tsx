@@ -9,7 +9,7 @@
 'use client';
 
 import * as React from 'react';
-import { UserX, UserCheck, XCircle, Loader2 } from 'lucide-react';
+import { UserX, UserCheck, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -148,13 +148,9 @@ export function StatusToggle({ member, onSuccess }: StatusToggleProps) {
               variant={isActive ? 'destructive' : 'default'}
               disabled={isSubmitting}
               onClick={handleConfirm}
+              isLoading={isSubmitting}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                  {isActive ? 'Deactivating…' : 'Reactivating…'}
-                </>
-              ) : isActive ? (
+              {isActive ? (
                 'Yes, deactivate'
               ) : (
                 'Yes, reactivate'

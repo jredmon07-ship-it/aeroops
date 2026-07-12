@@ -102,21 +102,21 @@ function DetailSkeleton() {
 function DispatchStatusChip({ status }: { status: string }) {
   if (status === 'open') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-brand-ink">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
         Open
       </span>
     );
   }
   if (status === 'closed') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         Closed
       </span>
     );
   }
   if (status === 'voided') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
         Voided
       </span>
     );
@@ -200,7 +200,7 @@ function StaticDispatchCard({ member }: { member: SerializedMemberDetail }) {
       {member.recentDispatch.length === 0 ? (
         <p className="text-sm text-slate-400 italic">No dispatch history as pilot.</p>
       ) : (
-        <div className="rounded-md border border-slate-100 overflow-hidden">
+        <div className="rounded-md border border-slate-100 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Recent dispatch as pilot">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
@@ -221,7 +221,7 @@ function StaticDispatchCard({ member }: { member: SerializedMemberDetail }) {
             <tbody>
               {member.recentDispatch.map((ticket) => (
                 <tr key={ticket.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-2 text-xs text-slate-600">{formatDate(ticket.openedAt)}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 nums">{formatDate(ticket.openedAt)}</td>
                   <td className="px-3 py-2 text-right hidden sm:table-cell">
                     <span className="nums text-xs text-slate-700">
                       {ticket.hobbsOut.toFixed(1)}

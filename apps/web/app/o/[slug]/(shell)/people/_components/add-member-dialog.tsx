@@ -13,7 +13,7 @@
 'use client';
 
 import * as React from 'react';
-import { UserPlus, XCircle, Loader2, Info } from 'lucide-react';
+import { UserPlus, XCircle, Info } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -257,15 +257,8 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                    Adding…
-                  </>
-                ) : (
-                  'Add member'
-                )}
+              <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+                Add member
               </Button>
             </DialogFooter>
           </form>

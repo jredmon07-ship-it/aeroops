@@ -34,6 +34,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SeriesRuleSummary } from './_components/series-rule-summary';
 import { SeriesOccurrenceList } from './_components/series-occurrence-list';
 import { listSeriesOccurrencesAction } from '../../actions';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -130,12 +131,14 @@ export default async function SeriesPage({ params }: SeriesPageProps) {
   return (
     <div className="space-y-4">
       {/* ── Page heading ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-900">Series Occurrences</h1>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/o/${slug}/schedule`}>Back to Schedule</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Series Occurrences"
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/o/${slug}/schedule`}>Back to Schedule</Link>
+          </Button>
+        }
+      />
 
       {/* ── Series content under Suspense ─────────────────────────────────── */}
       <Suspense fallback={<SeriesSkeleton />}>

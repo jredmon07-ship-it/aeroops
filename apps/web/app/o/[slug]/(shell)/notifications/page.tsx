@@ -19,6 +19,7 @@ import { auth } from '@/auth';
 import { requireCapability } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { NotificationPrefsCard } from './_components/notification-prefs-card';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface NotificationsPageProps {
   params: Promise<{ slug: string }>;
@@ -47,14 +48,10 @@ export default async function NotificationsPage({ params }: NotificationsPagePro
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">
-          Notification settings
-        </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Control which events send you an email.
-        </p>
-      </div>
+      <PageHeader
+        title="Notification settings"
+        subtitle="Control which events send you an email."
+      />
 
       <div className="max-w-2xl">
         <NotificationPrefsCard />

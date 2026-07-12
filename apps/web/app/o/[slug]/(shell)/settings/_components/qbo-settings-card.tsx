@@ -35,6 +35,7 @@ import {
   disconnectQboAction,
 } from '../actions';
 import type { SerializedQboStatus } from '../actions';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const LINE_KIND_LABELS: Record<QboLineKind, string> = {
   wet_hourly: 'Aircraft rental (wet hourly)',
@@ -193,20 +194,20 @@ export function QboSettingsCard({ slug }: QboSettingsCardProps) {
 function StatusChip({ status }: { status: 'connected' | 'disconnected' | 'error' }) {
   if (status === 'connected') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
         Connected
       </span>
     );
   }
   if (status === 'error') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-destructive">
+      <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-destructive">
         Error
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+    <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
       Not connected
     </span>
   );
@@ -294,7 +295,7 @@ function AccountMappingEditor({ slug, mapping, onChanged }: AccountMappingEditor
         </Alert>
       )}
 
-      <div className="rounded-md border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 overflow-x-auto">
         <table className="w-full text-sm" aria-label="QuickBooks account mapping">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
@@ -417,9 +418,9 @@ function ExportLogTable({ exports }: { exports: SerializedQboStatus['recentExpor
     <div className="space-y-2">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recent export activity</h3>
       {exports.length === 0 ? (
-        <p className="text-sm text-slate-500">No exports yet.</p>
+        <EmptyState icon={RefreshCw} title="No exports yet." className="py-6" />
       ) : (
-        <div className="rounded-md border border-slate-200 overflow-hidden">
+        <div className="rounded-md border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm" aria-label="QuickBooks export log">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -443,17 +444,17 @@ function ExportLogTable({ exports }: { exports: SerializedQboStatus['recentExpor
                   <td className="px-3 py-2 capitalize text-slate-700">{row.entityType}</td>
                   <td className="px-3 py-2">
                     {row.status === 'exported' && (
-                      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-green-800">
+                      <span className="inline-flex items-center rounded-sm border border-green-200 bg-green-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-green-800">
                         Exported
                       </span>
                     )}
                     {row.status === 'error' && (
-                      <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-destructive">
+                      <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-destructive">
                         Error
                       </span>
                     )}
                     {row.status === 'pending' && (
-                      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-500">
+                      <span className="inline-flex items-center rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500">
                         Pending
                       </span>
                     )}

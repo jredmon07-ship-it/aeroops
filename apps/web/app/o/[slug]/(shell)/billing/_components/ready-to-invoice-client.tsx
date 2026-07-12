@@ -16,7 +16,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, XCircle, Receipt } from 'lucide-react';
+import { XCircle, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCents } from './format-cents';
@@ -121,7 +121,7 @@ export function ReadyToInvoiceClient({ slug, rows, rates }: ReadyToInvoiceClient
           </AlertDescription>
         </Alert>
       )}
-      <div className="rounded-md border border-slate-200 overflow-hidden">
+      <div className="rounded-md border border-slate-200 overflow-x-auto">
         <table className="w-full text-sm" aria-label="Flights ready to invoice">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
@@ -174,18 +174,11 @@ export function ReadyToInvoiceClient({ slug, rows, rates }: ReadyToInvoiceClient
                         size="sm"
                         disabled={busy || noRates}
                         onClick={() => handleGenerate(row)}
+                        isLoading={busy}
                       >
-                        {busy ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                            Generating…
-                          </>
-                        ) : (
-                          <>
-                            <Receipt className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                                                    <Receipt className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
                             Generate
-                          </>
-                        )}
+                          
                       </Button>
                     </td>
                   </tr>

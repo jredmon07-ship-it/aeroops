@@ -10,7 +10,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { PlusCircle, XCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -176,15 +176,8 @@ export function BuildCourseDialog({ slug }: BuildCourseDialogProps) {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" aria-hidden="true" />
-                    Creating…
-                  </>
-                ) : (
-                  'Create course'
-                )}
+              <Button type="submit" disabled={isSubmitting} isLoading={isSubmitting}>
+                Create course
               </Button>
             </DialogFooter>
           </form>

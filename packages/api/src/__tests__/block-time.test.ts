@@ -21,9 +21,6 @@
  *     total exactly Σ(amountCents) (integer-cents property, smoke)
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import {
@@ -37,6 +34,7 @@ import {
   ledgerEntry,
   appUser,
   membership,
+  loadMigrationSql,
 } from '@aeroops/db';
 import { eq, and, sql } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
@@ -63,55 +61,8 @@ import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
-// ── Path resolution ───────────────────────────────────────────────────────────
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-function migrationSql(name: string): string {
-  return readFileSync(resolve(__dirname, `../../../db/migrations/${name}`), 'utf-8');
-}
-
-const MIGRATION_SQL = [
-  migrationSql('0000_loud_prodigy.sql'),
-  migrationSql('0001_auth_credential.sql'),
-  migrationSql('0002_scheduling.sql'),
-  migrationSql('0003_booking_policies.sql'),
-  migrationSql('0004_recurrence.sql'),
-  migrationSql('0005_dispatch.sql'),
-  migrationSql('0006_squawks_grounding.sql'),
-  migrationSql('0007_fleet.sql'),
-  migrationSql('0008_people.sql'),
-  migrationSql('0009_dispatch_gate.sql'),
-  migrationSql('0010_civil_twilight.sql'),
-  migrationSql('0011_optimizer_run.sql'),
-  migrationSql('0012_training.sql'),
-  migrationSql('0013_work_orders.sql'),
-  migrationSql('0014_availability.sql'),
-  migrationSql('0015_booking_request.sql'),
-  migrationSql('0016_booking_request_convert.sql'),
-  migrationSql('0017_booking_retention.sql'),
-  migrationSql('0018_dispatch_ticket_correction.sql'),
-  migrationSql('0019_billing_records.sql'),
-  migrationSql('0020_demo_reset_state.sql'),
-  migrationSql('0021_qbo_integration.sql'),
-  migrationSql('0022_billing_ledger.sql'),
-  migrationSql('0023_stripe_foundation.sql'),
-  migrationSql('0024_payment_methods_autopay.sql'),
-  migrationSql('0025_recurring_dues.sql'),
-  migrationSql('0026_notifications.sql'),
-  migrationSql('0027_data_import.sql'),
-  migrationSql('0028_calendar_feed.sql'),
-  migrationSql('0029_maintenance_due.sql'),
-  migrationSql('0030_documents.sql'),
-  migrationSql('0031_pos_sales.sql'),
-  migrationSql('0032_lesson_signature.sql'),
-  migrationSql('0033_mobile_session.sql'),
-  migrationSql('0034_block_time.sql'),
-  // 0037 required: resource now includes category/aircraft_class (Slice P2-LOG2).
-  // Drizzle ORM INSERT on resource emits all columns, so the columns must exist.
-  migrationSql('0037_logbook_annotation.sql'),
-  migrationSql('0038_stage_check_enforcement.sql'),
-];
+// All up migrations through 0038 (shared loader — replaces the old hand list).
+const MIGRATION_SQL = loadMigrationSql('0038');
 
 // ── Shared test environment ───────────────────────────────────────────────────
 

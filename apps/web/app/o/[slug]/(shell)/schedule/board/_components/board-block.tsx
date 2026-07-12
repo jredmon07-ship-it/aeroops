@@ -233,14 +233,14 @@ export function BoardBlock({
 
         {/* Partner resource line (hidden on narrow blocks) */}
         {!isNarrow && partnerNames && (
-          <span className="text-[10px] text-white/80 leading-tight truncate">
+          <span className="text-[0.6875rem] text-white/80 leading-tight truncate">
             {partnerNames}
           </span>
         )}
 
         {/* Series pill */}
         {!isNarrow && block.reservation.seriesId && (
-          <span className="inline-flex items-center gap-0.5 text-[10px] text-white/90 mt-0.5">
+          <span className="inline-flex items-center gap-0.5 text-[0.6875rem] text-white/90 mt-0.5">
             <span aria-hidden="true">⟳</span> Series
           </span>
         )}
@@ -259,7 +259,7 @@ export function BoardBlock({
               }
             }}
             disabled={isSubmitting}
-            className="mt-0.5 self-start inline-flex items-center rounded px-1 py-0.5 text-[9px] font-medium bg-white/15 hover:bg-white/25 text-white/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
+            className="mt-0.5 self-start inline-flex items-center rounded px-1 py-0.5 text-[0.6875rem] font-medium bg-white/15 hover:bg-white/25 text-white/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
             aria-label={`Move reservation ${formatTimeRange(block.startAt, block.endAt)}`}
             aria-describedby="board-move-hint"
           >
@@ -282,7 +282,7 @@ export function BoardBlock({
                 e.stopPropagation();
                 onCheckOut(block);
               }}
-              className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold bg-white/20 hover:bg-white/30 text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
+              className="inline-flex items-center rounded px-1 py-0.5 text-[0.6875rem] font-semibold bg-white/20 hover:bg-white/30 text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
               aria-label="Check out aircraft"
             >
               Check out
@@ -291,7 +291,7 @@ export function BoardBlock({
 
           {/* ── none → badge (viewer, no action) ─────────────────────── */}
           {dispatchStatus === null && !canDispatch && (
-            <span className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-medium bg-white/15 text-white/70 leading-none">
+            <span className="inline-flex items-center rounded px-1 py-0.5 text-[0.6875rem] font-medium bg-white/15 text-white/70 leading-none">
               Not checked out
             </span>
           )}
@@ -299,11 +299,11 @@ export function BoardBlock({
           {/* ── open → badge + Check in + Void ────────────────────────── */}
           {dispatchStatus === 'open' && ticketForThisResource && (
             <>
-              <span className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold bg-amber-400/90 text-amber-900 leading-none">
+              <span className="inline-flex items-center rounded px-1 py-0.5 text-[0.6875rem] font-semibold bg-amber-400/90 text-amber-900 leading-none">
                 Checked out
               </span>
               {!isNarrow && (
-                <span className="text-[9px] text-white/70 leading-none truncate">
+                <span className="text-[0.6875rem] text-white/70 leading-none truncate">
                   Hobbs {ticketForThisResource.hobbsOut.toFixed(1)}
                 </span>
               )}
@@ -315,7 +315,7 @@ export function BoardBlock({
                       e.stopPropagation();
                       onCheckIn(block, ticketForThisResource);
                     }}
-                    className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold bg-white/20 hover:bg-white/30 text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
+                    className="inline-flex items-center rounded px-1 py-0.5 text-[0.6875rem] font-semibold bg-white/20 hover:bg-white/30 text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
                     aria-label="Check in aircraft"
                   >
                     Check in
@@ -326,7 +326,7 @@ export function BoardBlock({
                       e.stopPropagation();
                       onVoid(block, ticketForThisResource);
                     }}
-                    className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold bg-red-500/60 hover:bg-red-500/80 text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
+                    className="inline-flex items-center rounded px-1 py-0.5 text-[0.6875rem] font-semibold bg-red-500/60 hover:bg-red-500/80 text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
                     aria-label="Void check-out"
                   >
                     Void
@@ -339,11 +339,11 @@ export function BoardBlock({
           {/* ── closed → read-only summary ─────────────────────────────── */}
           {dispatchStatus === 'closed' && ticketForThisResource && (
             <>
-              <span className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold bg-emerald-400/80 text-emerald-900 leading-none">
+              <span className="inline-flex items-center rounded px-1 py-0.5 text-[0.6875rem] font-semibold bg-emerald-400/80 text-emerald-900 leading-none">
                 Checked in
               </span>
               {ticketForThisResource.flightTimeHours !== null && (
-                <span className="text-[9px] text-white/70 leading-none">
+                <span className="text-[0.6875rem] text-white/70 leading-none">
                   {ticketForThisResource.flightTimeHours.toFixed(1)} hr
                 </span>
               )}

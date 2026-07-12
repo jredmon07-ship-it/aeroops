@@ -36,6 +36,7 @@ import { auth } from '@/auth';
 import { hasCapability } from '@aeroops/api';
 import { HELP_CATEGORIES, HELP_ARTICLES } from '@/lib/help-articles';
 import { HelpSearch } from './_components/help-search';
+import { PageHeader } from '@/components/ui/page-header';
 
 // ─── Permission-denied panel (mirrors activity/reports design) ───────────────
 
@@ -67,15 +68,15 @@ export default async function HelpPage({ params }: HelpPageProps) {
   return (
     <div className="space-y-6">
       {/* ── A. Heading — always instant (static content) ─────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tightish text-slate-900">
-          Help
-        </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          How-to articles for the features you use every day, written from how
-          AeroOps actually works.
-        </p>
-      </div>
+      <PageHeader
+        title="Help"
+        subtitle={
+          <>
+            How-to articles for the features you use every day, written from how
+            AeroOps actually works.
+          </>
+        }
+      />
 
       {/* ── B. Search + categorized index, or permission-denied ───────── */}
       {canView ? (

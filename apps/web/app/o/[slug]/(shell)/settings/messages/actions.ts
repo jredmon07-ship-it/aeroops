@@ -20,33 +20,14 @@ import {
   sendMemberMessage,
   previewMemberMessageRecipients,
   listMemberMessages,
-  ForbiddenError,
-  UnauthenticatedError,
 } from '@aeroops/api';
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
 
-export type AuthErrorResult = { error: 'forbidden' } | { error: 'unauthenticated' };
-export type ServerErrorResult = { error: 'server'; message?: string };
+import { mapAuthError, mapActionError } from '@/lib/action-errors-result';
+import type { AuthErrorResult, ServerErrorResult } from '@/lib/action-errors-result';
 
-function mapAuthError(err: unknown): AuthErrorResult | null {
-  if (err instanceof ForbiddenError) return { error: 'forbidden' };
-  if (err instanceof UnauthenticatedError) return { error: 'unauthenticated' };
-  return null;
-}
-
-function mapValidationError(err: unknown): { error: 'validation'; message: string } | null {
-  if (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    (err as { code: unknown }).code === 'VALIDATION' &&
-    err instanceof Error
-  ) {
-    return { error: 'validation', message: err.message };
-  }
-  return null;
-}
+export type { AuthErrorResult, ServerErrorResult };
 
 // ─── Input shapes ──────────────────────────────────────────────────────────────
 
@@ -71,10 +52,8 @@ export async function previewMemberMessageRecipientsAction(
     const result = await previewMemberMessageRecipients(session, input);
     return { ok: true, recipientCount: result.recipientCount };
   } catch (err) {
-    const authErr = mapAuthError(err);
-    if (authErr) return authErr;
-    const valErr = mapValidationError(err);
-    if (valErr) return valErr;
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
     return { error: 'server' };
   }
 }
@@ -103,10 +82,8 @@ export async function sendMemberMessageAction(
       failedCount: result.failedCount,
     };
   } catch (err) {
-    const authErr = mapAuthError(err);
-    if (authErr) return authErr;
-    const valErr = mapValidationError(err);
-    if (valErr) return valErr;
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
     return { error: 'server' };
   }
 }

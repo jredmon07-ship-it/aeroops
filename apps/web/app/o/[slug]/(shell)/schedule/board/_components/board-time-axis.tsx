@@ -33,7 +33,7 @@ export function BoardTimeAxis() {
           style={{ left: h * HOUR_WIDTH_PX }}
         >
           {/* Hour label */}
-          <span className="text-[10px] text-slate-400 font-medium pl-1 leading-tight pt-0.5">
+          <span className="text-[0.6875rem] text-slate-400 font-medium pl-1 leading-tight pt-0.5">
             {hourLabel(h)}
           </span>
           {/* Hour tick mark */}
