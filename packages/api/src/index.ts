@@ -1906,6 +1906,12 @@ export {
   setDuesScheduleActive,
   setDuesScheduleActiveWithDb,
 } from './billing/dues-schedule-commands.js';
+
+// ─── Recurring billing hub — org-level dues/tuition list + bulk apply (0050) ──
+export { listOrgDuesSchedules, listOrgDuesSchedulesWithDb } from './billing/list-org-dues-schedules.js';
+export type { OrgDuesScheduleRow, ListOrgDuesSchedulesResult } from './billing/list-org-dues-schedules.js';
+export { applyStandardDuesSchedule, applyStandardDuesScheduleWithDb } from './billing/apply-standard-dues.js';
+export type { ApplyStandardDuesInput, ApplyStandardDuesResult } from './billing/apply-standard-dues.js';
 export type {
   DuesScheduleView,
   CreateDuesScheduleInput,
