@@ -43,3 +43,6 @@ apps/mobile/.expo/
 apps/mobile/ios/
 apps/mobile/android/
 .vercel
+
+# Local-only working notes
+gtm/
