@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   isDuesScheduleDue,
   duesChargesPerYear,
+  duesMonthlyEquivalentCents,
   recurringChargeNoun,
   DUES_CADENCES,
   duesMonthName,
@@ -68,6 +69,15 @@ describe('recurringChargeNoun', () => {
   it('a school shows Tuition, a club shows Dues', () => {
     expect(recurringChargeNoun('school')).toBe('Tuition');
     expect(recurringChargeNoun('club')).toBe('Dues');
+  });
+});
+
+describe('duesMonthlyEquivalentCents', () => {
+  it('normalizes each cadence to a monthly-equivalent in cents', () => {
+    expect(duesMonthlyEquivalentCents('monthly', 13000)).toBe(13000);
+    expect(duesMonthlyEquivalentCents('annual', 60000)).toBe(5000); // $600/yr -> $50/mo
+    expect(duesMonthlyEquivalentCents('quarterly', 15000)).toBe(5000); // $150/qtr -> $50/mo
+    expect(duesMonthlyEquivalentCents('semiannual', 30000)).toBe(5000); // $300/6mo -> $50/mo
   });
 });
 

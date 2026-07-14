@@ -40,6 +40,7 @@ import {
   DUES_CADENCES,
   DUES_CADENCE_META,
   duesChargesPerYear,
+  duesMonthlyEquivalentCents,
   DUES_MONTH_NAMES,
   duesCadenceLabel,
 } from '@aeroops/core';
@@ -189,6 +190,29 @@ export function RecurringBillingClient({
           }
         />
       ) : (
+        <>
+        {/* Recurring-revenue summary: the monthly-equivalent of every active
+            schedule (a $600/yr membership counts as $50/mo), plus the annualized
+            figure. Operational estimate, not a billing statement. */}
+        {(() => {
+          const monthlyCents = schedules.reduce(
+            (sum, s) => sum + duesMonthlyEquivalentCents(s.cadence, s.amountCents),
+            0,
+          );
+          return (
+            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 py-3 flex flex-wrap items-baseline gap-x-6 gap-y-1">
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                {schedules.length} active schedule{schedules.length === 1 ? '' : 's'}
+              </span>
+              <span className="text-sm text-slate-700 dark:text-slate-200">
+                <span className="font-semibold nums">{formatCents(monthlyCents)}</span> / month recurring
+              </span>
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                about <span className="nums">{formatCents(monthlyCents * 12)}</span> / year
+              </span>
+            </div>
+          );
+        })()}
         <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
           <table className="w-full text-sm" aria-label={`Recurring ${chargeNoun.toLowerCase()} schedules`}>
             <thead>
@@ -227,6 +251,7 @@ export function RecurringBillingClient({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Bulk apply a standard schedule dialog */}

@@ -442,6 +442,7 @@ export {
   isDuesCadence,
   isDuesScheduleDue,
   duesChargesPerYear,
+  duesMonthlyEquivalentCents,
   DUES_CADENCE_META,
   recurringChargeNoun,
   DUES_MONTH_NAMES,

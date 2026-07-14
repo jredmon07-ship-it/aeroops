@@ -59,6 +59,16 @@ export function duesChargesPerYear(cadence: DuesCadence): number {
   return 12 / CADENCE_INTERVAL_MONTHS[cadence];
 }
 
+/**
+ * The monthly-equivalent (MRR contribution) of one schedule, in integer cents:
+ * a $600/year membership contributes $50/month, a $130/month dues line
+ * contributes $130. Rounded to the nearest cent. Sum across active schedules
+ * for the operator's recurring-revenue figure.
+ */
+export function duesMonthlyEquivalentCents(cadence: DuesCadence, amountCents: number): number {
+  return Math.round((amountCents * duesChargesPerYear(cadence)) / 12);
+}
+
 /** Display metadata for the cadence picker + labels. */
 export const DUES_CADENCE_META: Record<DuesCadence, { label: string; per: string }> = {
   monthly: { label: 'Monthly', per: 'per month' },
