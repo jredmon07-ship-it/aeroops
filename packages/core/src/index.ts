@@ -430,3 +430,19 @@ export {
   deriveSlugCandidate,
   isValidSlug,
 } from './signup.js';
+
+// ─── Dues/tuition cadence — pure helpers (migration 0050) ─────────────────────
+// isDuesScheduleDue: is a schedule of a given cadence due in a calendar month
+//   (monthly always; quarterly/semiannual/annual anchored to a month). Keeps
+//   the generation engine's per-month run model — monthly is byte-identical.
+// recurringChargeNoun: 'Tuition' for a school, 'Dues' for a club (operating
+//   mode drives the label; one engine).
+export {
+  DUES_CADENCES,
+  isDuesCadence,
+  isDuesScheduleDue,
+  duesChargesPerYear,
+  DUES_CADENCE_META,
+  recurringChargeNoun,
+} from './dues.js';
+export type { DuesCadence } from './dues.js';

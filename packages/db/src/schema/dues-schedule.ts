@@ -65,6 +65,11 @@ export const duesSchedule = pgTable(
     // dues_schedule_day_of_month_check: BETWEEN 1 AND 28. Informational only.
     dayOfMonth: integer('day_of_month').notNull(),
 
+    // Migration 0050: the month (1-12) a non-monthly cadence anchors on; NULL
+    // for monthly. Reads are graceful-absence-guarded (billing/dues-internal.ts)
+    // so pre-0050 databases, which lack this column, never break.
+    anchorMonth: integer('anchor_month'),
+
     active: boolean('active').notNull().default(true),
 
     memo: text('memo'),

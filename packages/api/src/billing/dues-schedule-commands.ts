@@ -20,14 +20,19 @@
  *   fnWithDb(db, session, input) — tests.
  */
 import { z } from 'zod';
-import { eq, and } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
 import { membership, duesSchedule, auditLog } from '@aeroops/db';
-import type { AnyDb, DuesScheduleSelect } from '@aeroops/db';
+import type { AnyDb } from '@aeroops/db';
+import { DUES_CADENCES } from '@aeroops/core';
+import type { DuesCadence } from '@aeroops/core';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
+import { extractRows } from '../db-rows.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
+import { duesScheduleHasAnchorMonthColumn } from './dues-internal.js';
+import type { DuesScheduleRow } from './dues-internal.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -37,19 +42,22 @@ export interface DuesScheduleView {
   id: string;
   userId: string;
   amountCents: number;
-  cadence: 'monthly';
+  cadence: DuesCadence;
+  /** 1–12, the month a non-monthly cadence anchors on; null for monthly. */
+  anchorMonth: number | null;
   dayOfMonth: number;
   active: boolean;
   memo: string | null;
   createdAt: Date;
 }
 
-function toDuesScheduleView(row: DuesScheduleSelect): DuesScheduleView {
+function toDuesScheduleView(row: DuesScheduleRow): DuesScheduleView {
   return {
     id: row.id,
     userId: row.userId,
     amountCents: row.amountCents,
-    cadence: row.cadence as 'monthly',
+    cadence: (DUES_CADENCES as readonly string[]).includes(row.cadence) ? (row.cadence as DuesCadence) : 'monthly',
+    anchorMonth: row.anchorMonth,
     dayOfMonth: row.dayOfMonth,
     active: row.active,
     memo: row.memo,
@@ -59,18 +67,27 @@ function toDuesScheduleView(row: DuesScheduleSelect): DuesScheduleView {
 
 // ─── createDuesSchedule ────────────────────────────────────────────────────────
 
-const createDuesScheduleInputSchema = z.object({
-  memberUserId: z.string().regex(UUID_RE, { message: 'memberUserId must be a UUID' }),
-  amountCents: z.number().int({ message: 'amountCents must be an integer' }).positive({ message: 'amountCents must be > 0' }),
-  dayOfMonth: z.number().int().min(1).max(28),
-  memo: z.string().trim().min(1).max(500).optional(),
-});
+const createDuesScheduleInputSchema = z
+  .object({
+    memberUserId: z.string().regex(UUID_RE, { message: 'memberUserId must be a UUID' }),
+    amountCents: z.number().int({ message: 'amountCents must be an integer' }).positive({ message: 'amountCents must be > 0' }),
+    dayOfMonth: z.number().int().min(1).max(28),
+    cadence: z.enum(['monthly', 'quarterly', 'semiannual', 'annual']).default('monthly'),
+    /** Required for a non-monthly cadence; ignored for monthly. */
+    anchorMonth: z.number().int().min(1).max(12).optional(),
+    memo: z.string().trim().min(1).max(500).optional(),
+  })
+  .refine((v) => v.cadence === 'monthly' || v.anchorMonth !== undefined, {
+    message: 'anchorMonth is required for a non-monthly cadence',
+    path: ['anchorMonth'],
+  });
 
 export type CreateDuesScheduleInput = z.infer<typeof createDuesScheduleInputSchema>;
 
 export type CreateDuesScheduleResult =
   | { ok: true; schedule: DuesScheduleView }
-  | { ok: false; reason: 'member_not_found' };
+  | { ok: false; reason: 'member_not_found' }
+  | { ok: false; reason: 'cadence_not_available' };
 
 async function _createDuesScheduleImpl(
   db: AnyDb,
@@ -84,7 +101,9 @@ async function _createDuesScheduleImpl(
     const first = parsed.error.issues[0];
     throw new ValidationError(`[billing] invalid createDuesSchedule input: ${first?.message ?? 'unknown'}`);
   }
-  const { memberUserId, amountCents, dayOfMonth, memo } = parsed.data;
+  const { memberUserId, amountCents, dayOfMonth, cadence, memo } = parsed.data;
+  // Monthly ignores the anchor (it bills every period); non-monthly requires it.
+  const anchorMonth = cadence === 'monthly' ? null : (parsed.data.anchorMonth ?? null);
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
     const memberRows = await tx
@@ -96,33 +115,56 @@ async function _createDuesScheduleImpl(
       return { ok: false, reason: 'member_not_found' } as const;
     }
 
-    const inserted = await tx
-      .insert(duesSchedule)
-      .values({
-        orgId: sess.orgId,
-        userId: memberUserId,
-        amountCents,
-        cadence: 'monthly',
-        dayOfMonth,
-        active: true,
-        memo: memo ?? null,
-        createdBy: sess.userId,
-      })
-      .returning();
+    // GRACEFUL ABSENCE: a non-monthly cadence needs migration 0050's anchor_month
+    // column + widened CHECK. Without it, only monthly is available.
+    const hasAnchor = await duesScheduleHasAnchorMonthColumn(tx);
+    if (cadence !== 'monthly' && !hasAnchor) {
+      return { ok: false, reason: 'cadence_not_available' } as const;
+    }
 
-    const row = inserted[0];
-    if (!row) throw new Error('[billing] createDuesSchedule: INSERT returned no rows');
+    // Insert + read back through explicit columns so the RETURNING projection
+    // never references anchor_month on a pre-0050 DB.
+    const insertedId = extractRows<{ id: string }>(
+      hasAnchor
+        ? await tx.execute(sql`
+            INSERT INTO "dues_schedule"
+              ("org_id","user_id","amount_cents","cadence","anchor_month","day_of_month","active","memo","created_by")
+            VALUES (${sess.orgId}::uuid, ${memberUserId}::uuid, ${amountCents}, ${cadence}, ${anchorMonth},
+                    ${dayOfMonth}, true, ${memo ?? null}, ${sess.userId}::uuid)
+            RETURNING "id"
+          `)
+        : await tx.execute(sql`
+            INSERT INTO "dues_schedule"
+              ("org_id","user_id","amount_cents","cadence","day_of_month","active","memo","created_by")
+            VALUES (${sess.orgId}::uuid, ${memberUserId}::uuid, ${amountCents}, ${cadence},
+                    ${dayOfMonth}, true, ${memo ?? null}, ${sess.userId}::uuid)
+            RETURNING "id"
+          `),
+    );
+    const id = insertedId[0]?.id;
+    if (!id) throw new Error('[billing] createDuesSchedule: INSERT returned no rows');
 
     await tx.insert(auditLog).values({
       orgId: sess.orgId,
       actorUserId: sess.userId,
       action: 'billing.dues_schedule_created',
       entityType: 'dues_schedule',
-      entityId: row.id,
-      metadata: { memberUserId, amountCents, dayOfMonth },
+      entityId: id,
+      metadata: { memberUserId, amountCents, dayOfMonth, cadence, anchorMonth },
     });
 
-    return { ok: true, schedule: toDuesScheduleView(row) } as const;
+    const view: DuesScheduleView = {
+      id,
+      userId: memberUserId,
+      amountCents,
+      cadence,
+      anchorMonth,
+      dayOfMonth,
+      active: true,
+      memo: memo ?? null,
+      createdAt: new Date(),
+    };
+    return { ok: true, schedule: view } as const;
   });
 }
 
@@ -170,13 +212,29 @@ async function _setDuesScheduleActiveImpl(
   const { scheduleId, active } = parsed.data;
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
-    const updated = await tx
-      .update(duesSchedule)
-      .set({ active, updatedAt: new Date() })
-      .where(eq(duesSchedule.id, scheduleId))
-      .returning();
-
-    const row = updated[0];
+    const hasAnchor = await duesScheduleHasAnchorMonthColumn(tx);
+    // Explicit RETURNING columns (+ anchor_month only when it exists) so this
+    // never projects a missing column on a pre-0050 DB.
+    const anchorSelect = hasAnchor ? sql`, "anchor_month"` : sql``;
+    const rows = extractRows<{
+      id: string;
+      user_id: string;
+      amount_cents: number;
+      cadence: string;
+      day_of_month: number;
+      active: boolean;
+      memo: string | null;
+      created_at: string;
+      anchor_month?: number | null;
+    }>(
+      await tx.execute(sql`
+        UPDATE "dues_schedule"
+        SET "active" = ${active}, "updated_at" = NOW()
+        WHERE "id" = ${scheduleId}::uuid
+        RETURNING "id","user_id","amount_cents","cadence","day_of_month","active","memo","created_at"${anchorSelect}
+      `),
+    );
+    const row = rows[0];
     if (!row) {
       return { ok: false, reason: 'not_found' } as const;
     }
@@ -190,7 +248,18 @@ async function _setDuesScheduleActiveImpl(
       metadata: { active },
     });
 
-    return { ok: true, schedule: toDuesScheduleView(row) } as const;
+    const normalized: DuesScheduleRow = {
+      id: row.id,
+      userId: row.user_id,
+      amountCents: row.amount_cents,
+      cadence: row.cadence,
+      dayOfMonth: row.day_of_month,
+      active: row.active,
+      memo: row.memo,
+      anchorMonth: row.anchor_month ?? null,
+      createdAt: row.created_at,
+    };
+    return { ok: true, schedule: toDuesScheduleView(normalized) } as const;
   });
 }
 

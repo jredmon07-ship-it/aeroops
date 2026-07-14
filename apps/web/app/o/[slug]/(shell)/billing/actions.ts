@@ -488,6 +488,7 @@ export async function getMemberBillingProfileAction(memberUserId: string): Promi
 export type CreateDuesScheduleActionResult =
   | { ok: true }
   | { ok: false; reason: 'member_not_found' }
+  | { ok: false; reason: 'cadence_not_available' }
   | { error: 'validation'; message: string }
   | AuthErrorResult
   | ServerErrorResult;
@@ -498,10 +499,19 @@ export async function createDuesScheduleAction(
   dayOfMonth: number,
   memo: string | undefined,
   slug: string,
+  cadence: 'monthly' | 'quarterly' | 'semiannual' | 'annual' = 'monthly',
+  anchorMonth?: number,
 ): Promise<CreateDuesScheduleActionResult> {
   const session = await auth();
   try {
-    const result = await createDuesSchedule(session, { memberUserId, amountCents, dayOfMonth, memo });
+    const result = await createDuesSchedule(session, {
+      memberUserId,
+      amountCents,
+      dayOfMonth,
+      memo,
+      cadence,
+      ...(anchorMonth !== undefined ? { anchorMonth } : {}),
+    });
     if (!result.ok) return result;
     revalidatePath(`/o/${slug}/billing/accounts/${memberUserId}`);
     return { ok: true };

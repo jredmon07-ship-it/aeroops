@@ -20,8 +20,9 @@
  */
 import { z } from 'zod';
 import { eq, and, desc } from 'drizzle-orm';
-import { membership, autopaySetting, stripePaymentMethod, duesSchedule } from '@aeroops/db';
+import { membership, autopaySetting, stripePaymentMethod } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
+import { loadMemberActiveDuesSchedules } from './dues-internal.js';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
@@ -100,11 +101,9 @@ async function _getMemberBillingProfileImpl(
       }
     }
 
-    const scheduleRows = await tx
-      .select()
-      .from(duesSchedule)
-      .where(and(eq(duesSchedule.userId, memberUserId), eq(duesSchedule.active, true)))
-      .orderBy(desc(duesSchedule.createdAt));
+    // Graceful-absence loader (migration 0050): reads cadence + anchor_month
+    // when present, treats every schedule as monthly on a pre-0050 DB.
+    const scheduleRows = await loadMemberActiveDuesSchedules(tx as AnyDb, memberUserId);
 
     return {
       ok: true,

@@ -42,14 +42,15 @@
  *   generateDuesInvoicesWithDb(db, session, input) — tests.
  */
 import { z } from 'zod';
-import { eq, and } from 'drizzle-orm';
-import { duesSchedule, duesRun, invoice, invoiceLineItem, auditLog } from '@aeroops/db';
+import { duesRun, invoice, invoiceLineItem, auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
+import { isDuesScheduleDue, isDuesCadence } from '@aeroops/core';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
+import { loadActiveDuesSchedules } from './dues-internal.js';
 
 const PERIOD_KEY_RE = /^\d{4}-\d{2}$/;
 
@@ -75,7 +76,7 @@ export interface GenerateDuesInvoicesCreated {
 
 export interface GenerateDuesInvoicesSkipped {
   scheduleId: string;
-  reason: 'already_run';
+  reason: 'already_run' | 'not_due_this_period';
 }
 
 export interface GenerateDuesInvoicesResult {
@@ -105,16 +106,27 @@ async function _generateDuesInvoicesImpl(
   }
   const { periodKey } = parsed.data;
 
+  // The calendar month (1–12) this run bills for, parsed from "YYYY-MM".
+  const runMonth = Number(periodKey.slice(5, 7));
+
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
-    const schedules = await tx
-      .select()
-      .from(duesSchedule)
-      .where(and(eq(duesSchedule.orgId, sess.orgId), eq(duesSchedule.active, true)));
+    // Graceful-absence loader: pre-0050 every schedule reads as monthly (anchor
+    // null), so the cadence gate below is a no-op and behavior is unchanged.
+    const schedules = await loadActiveDuesSchedules(tx, sess.orgId);
 
     const created: GenerateDuesInvoicesCreated[] = [];
     const skipped: GenerateDuesInvoicesSkipped[] = [];
 
     for (const schedule of schedules) {
+      // Cadence gate: only bill a schedule in a month it is actually due.
+      // Monthly is always due, so monthly schedules are byte-identical to the
+      // pre-cadence engine. An unrecognized cadence is treated as monthly
+      // (fail-safe toward the prior behavior).
+      const cadence = isDuesCadence(schedule.cadence) ? schedule.cadence : 'monthly';
+      if (!isDuesScheduleDue(cadence, schedule.anchorMonth, runMonth)) {
+        skipped.push({ scheduleId: schedule.id, reason: 'not_due_this_period' });
+        continue;
+      }
       try {
         const createdInvoiceId = await (tx as AnyDb).transaction(async (sp: AnyDb) => {
           // 1. INSERT the DRAFT invoice — INTEGER CENTS, no float math.
