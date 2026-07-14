@@ -27,6 +27,7 @@ import type { PgliteTestClient } from '@aeroops/db';
 
 import { createDuesScheduleWithDb } from '../billing/dues-schedule-commands.js';
 import { generateDuesInvoicesWithDb } from '../billing/generate-dues-invoices.js';
+import { getMyBillingWithDb } from '../portal/get-my-billing.js';
 import type { AppSession } from '../auth/types.js';
 
 const MIGRATION_SQL_0050 = loadMigrationSql('0050');
@@ -132,6 +133,27 @@ describe('dues cadence (migration 0050 applied)', () => {
       const res = await generateDuesInvoicesWithDb(env.db, sess, { periodKey: period });
       expect(res.created.some((c) => c.scheduleId === id)).toBe(true);
     }
+  });
+
+  it('a member sees their OWN recurring dues in the portal, self-scoped', async () => {
+    const owner = makeSession(env.orgAId, env.userAId);
+    const alice = await seedMember(env.db, env.orgAId);
+    const bob = await seedMember(env.db, env.orgAId);
+    await createDuesScheduleWithDb(env.db, owner, { memberUserId: alice, amountCents: 13000, dayOfMonth: 1, memo: 'Monthly dues' });
+    await createDuesScheduleWithDb(env.db, owner, {
+      memberUserId: alice, amountCents: 60000, dayOfMonth: 1, cadence: 'annual', anchorMonth: 7, memo: 'Annual membership',
+    });
+
+    // Alice (renter, portal:access) sees BOTH her schedules.
+    const aliceView = await getMyBillingWithDb(env.db, makeSession(env.orgAId, alice, 'renter'));
+    expect(aliceView.duesSchedules).toHaveLength(2);
+    const cadences = aliceView.duesSchedules.map((d) => d.cadence).sort();
+    expect(cadences).toEqual(['annual', 'monthly']);
+    expect(aliceView.duesSchedules.find((d) => d.cadence === 'annual')?.anchorMonth).toBe(7);
+
+    // Bob (a different member) sees NONE of Alice's schedules.
+    const bobView = await getMyBillingWithDb(env.db, makeSession(env.orgAId, bob, 'renter'));
+    expect(bobView.duesSchedules).toHaveLength(0);
   });
 
   it('rejects a period key with an out-of-range month', async () => {

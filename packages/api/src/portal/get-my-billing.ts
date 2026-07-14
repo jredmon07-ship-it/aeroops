@@ -22,23 +22,42 @@
 import { eq, and, or, desc } from 'drizzle-orm';
 import { invoice, stripePaymentMethod, autopaySetting } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
-import { computeBalance } from '@aeroops/core';
+import { computeBalance, DUES_CADENCES } from '@aeroops/core';
+import type { DuesCadence } from '@aeroops/core';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { findBillingAccountTx, loadLedgerEntryAmountsTx } from '../billing/ledger-internal.js';
 import { loadFeePassingEnabled } from '../billing/fee-passing-internal.js';
+import { loadMemberActiveDuesSchedules } from '../billing/dues-internal.js';
 import { toInvoiceView } from '../billing/list-invoices.js';
 import type { InvoiceView } from '../billing/list-invoices.js';
 import type { SavedPaymentMethodView } from './save-payment-method.js';
 import type { AutopaySettingView } from './set-autopay.js';
+
+/** A member's own active recurring dues/tuition line (DISPLAY only). */
+export interface MyDuesScheduleView {
+  id: string;
+  amountCents: number;
+  cadence: DuesCadence;
+  anchorMonth: number | null;
+  dayOfMonth: number;
+  memo: string | null;
+}
 
 export interface MyBillingView {
   balanceCents: number;
   invoices: InvoiceView[];
   paymentMethods: SavedPaymentMethodView[];
   autopay: AutopaySettingView;
+  /**
+   * The member's OWN active recurring dues/tuition schedules, so they can see
+   * what they are signed up to pay (e.g. "$130/month" + "$600/year"). DISPLAY
+   * only, self-scoped. Empty when the member has none or migration 0050 is
+   * unapplied (the loader degrades gracefully).
+   */
+  duesSchedules: MyDuesScheduleView[];
   /**
    * Whether the operator passes the ACH processing fee (1%, max $15) through to
    * the member at checkout. When true, the portal shows a fee line and quotes
@@ -84,6 +103,17 @@ async function _getMyBillingImpl(
       .limit(1);
     const autopayRow = autopayRows[0];
 
+    // The member's OWN active recurring dues/tuition (self-scoped, graceful).
+    const duesRows = await loadMemberActiveDuesSchedules(tx, sess.userId);
+    const duesSchedules: MyDuesScheduleView[] = duesRows.map((r) => ({
+      id: r.id,
+      amountCents: r.amountCents,
+      cadence: (DUES_CADENCES as readonly string[]).includes(r.cadence) ? (r.cadence as DuesCadence) : 'monthly',
+      anchorMonth: r.anchorMonth,
+      dayOfMonth: r.dayOfMonth,
+      memo: r.memo,
+    }));
+
     return {
       balanceCents,
       invoices: invoiceRows.map(toInvoiceView),
@@ -98,6 +128,7 @@ async function _getMyBillingImpl(
         enabled: autopayRow?.enabled ?? false,
         defaultPaymentMethodId: autopayRow?.defaultPaymentMethodId ?? null,
       },
+      duesSchedules,
       feePassingEnabled,
     };
   });

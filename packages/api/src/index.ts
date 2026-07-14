@@ -1864,7 +1864,7 @@ export {
   getMyBilling,
   getMyBillingWithDb,
 } from './portal/get-my-billing.js';
-export type { MyBillingView } from './portal/get-my-billing.js';
+export type { MyBillingView, MyDuesScheduleView } from './portal/get-my-billing.js';
 
 // ─── Fee-passing + pay-full-balance (migration 0045, staged NOT applied) ─────
 // FEE-PASSING (default OFF → byte-identical): per-org toggle
