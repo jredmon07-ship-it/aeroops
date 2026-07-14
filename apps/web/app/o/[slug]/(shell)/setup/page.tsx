@@ -269,7 +269,7 @@ export default async function SetupPage({ params }: SetupPageProps) {
         title="Set up your operation"
         subtitle={
           <>
-            A short checklist to get your flight operation running. Start with the essentials —
+            A short checklist to get your flight operation running. Start with the essentials, then
             add optional depth whenever you&apos;re ready.
           </>
         }
