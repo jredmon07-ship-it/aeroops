@@ -134,6 +134,12 @@ describe('dues cadence (migration 0050 applied)', () => {
     }
   });
 
+  it('rejects a period key with an out-of-range month', async () => {
+    const sess = makeSession(env.orgAId, env.userAId);
+    await expect(generateDuesInvoicesWithDb(env.db, sess, { periodKey: '2026-13' })).rejects.toThrow();
+    await expect(generateDuesInvoicesWithDb(env.db, sess, { periodKey: '2026-00' })).rejects.toThrow();
+  });
+
   it('rejects a non-monthly cadence with no anchor (validation)', async () => {
     const sess = makeSession(env.orgAId, env.userAId);
     const member = await seedMember(env.db, env.orgAId);

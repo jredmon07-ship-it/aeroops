@@ -52,10 +52,12 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { loadActiveDuesSchedules } from './dues-internal.js';
 
-const PERIOD_KEY_RE = /^\d{4}-\d{2}$/;
+// YYYY-MM with the month bounded to 01-12 (the loose /\d{2}/ would admit 2026-13
+// and feed a bogus month into the cadence due-check for a non-monthly schedule).
+const PERIOD_KEY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 const generateDuesInvoicesInputSchema = z.object({
-  periodKey: z.string().regex(PERIOD_KEY_RE, { message: 'periodKey must be "YYYY-MM"' }),
+  periodKey: z.string().regex(PERIOD_KEY_RE, { message: 'periodKey must be "YYYY-MM" with month 01-12' }),
 });
 
 export type GenerateDuesInvoicesInput = z.infer<typeof generateDuesInvoicesInputSchema>;

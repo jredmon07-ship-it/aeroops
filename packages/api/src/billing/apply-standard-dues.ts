@@ -8,8 +8,12 @@
  * unchanged paths.
  *
  * IDEMPOTENT-SAFE: a member who already has an active dues_schedule is SKIPPED,
- * so re-running never double-assigns. Members can still have their schedule
- * customized or removed individually afterward.
+ * so re-running never double-assigns. A per-org advisory lock serializes
+ * concurrent bulk-applies so even a double-click / two-admin race cannot
+ * duplicate. Members can still have their schedule customized or removed
+ * individually afterward, and a member may legitimately hold multiple schedules
+ * (e.g. monthly dues + an annual membership) — this guards only the
+ * duplicate-from-the-same-bulk-tool case, never that intended combination.
  *
  * GUARANTEES:
  *   - requireCapability('billing:manage') FIRST.
@@ -71,6 +75,17 @@ async function _impl(
   const anchorMonth = cadence === 'monthly' ? null : (parsed.data.anchorMonth ?? null);
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
+    // Serialize concurrent bulk-applies for THIS org (advisory xact lock). The
+    // "members with no active schedule" check-then-insert below is otherwise
+    // racy: two simultaneous bulk-applies (a double-click, two admins, a retry)
+    // could both see member X as uncovered and both insert, leaving X with two
+    // active schedules and billed twice every period forever. The lock makes the
+    // loser block until the winner commits, then re-read the now-covered roster
+    // and add nothing. A member legitimately having MULTIPLE schedules (e.g.
+    // monthly dues + an annual membership) stays fully supported — this guards
+    // only the duplicate-from-the-same-bulk-tool case. Released at commit.
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${sess.orgId} || ':dues_bulk_apply', 0))`);
+
     const hasAnchor = await duesScheduleHasAnchorMonthColumn(tx);
     if (cadence !== 'monthly' && !hasAnchor) {
       return { ok: false, reason: 'cadence_not_available' } as const;
