@@ -121,7 +121,7 @@ export const OPERATING_MODE_META: Record<OperatingMode, { label: string; descrip
     club: {
       label: 'Small flying club',
       description:
-        'A leaner setup for member-owned clubs: scheduling, squawks, dues, and the member portal — without instruction records or a public booking inbox. Turn any module back on whenever you need it.',
+        'A leaner setup for member-owned clubs: scheduling, squawks, dues, and the member portal, without instruction records or a public booking inbox. Turn any module back on whenever you need it.',
     },
   });
 

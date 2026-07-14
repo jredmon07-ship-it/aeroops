@@ -64,6 +64,7 @@ import type { QboLineItemInput } from './map-invoice.js';
 import { resolveLineKind } from './line-kind.js';
 import { loadQboAccountMap } from './account-mapping.js';
 import { ensureFreshAccessToken } from './token.js';
+import { lockQboEntityForPush } from './qbo-sync-internal.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -114,6 +115,14 @@ async function _exportInvoiceToQboImpl(
     if (invoiceRow.status !== 'finalized') {
       return { ok: false, reason: 'not_finalized' } as const;
     }
+
+    // 3b. Serialize concurrent exports of THIS invoice (advisory xact lock) so a
+    //     racing caller (the finalize auto-export hook vs. the manual Export
+    //     button, or two Sync clicks) blocks here, then reads the winner's
+    //     committed 'exported' row at step 4 and returns already-exported —
+    //     instead of a duplicate QuickBooks Invoice being created. Uncontended
+    //     in the single-caller case, so the existing behavior is unchanged.
+    await lockQboEntityForPush(tx, sess.orgId, 'invoice', invoiceId);
 
     // 4. Idempotency check — an 'exported' row already exists → return it, no re-push.
     const existingExport = await tx

@@ -118,12 +118,15 @@ async function main(): Promise<void> {
   const db = drizzle(pgClient, { schema }) as unknown as AnyDb;
 
   try {
-    // Idempotency check: refuse if the demo org already exists.
+    // Idempotency check: refuse if EITHER demo org already exists. seedDemo
+    // creates both 'alpha' and 'buckeye', so a DB carrying either one would
+    // collide on re-seed.
     const existing = await pgClient<{ slug: string }[]>`
-      SELECT slug FROM org WHERE slug = ${DEMO_SLUG} LIMIT 1
+      SELECT slug FROM org WHERE slug IN (${DEMO_SLUG}, ${DEMO_SLUG_BUCKEYE})
     `;
     if (existing.length > 0) {
-      console.error(`  ERROR: org with slug "${DEMO_SLUG}" already exists.`);
+      const found = existing.map((r) => r.slug).join(', ');
+      console.error(`  ERROR: demo org(s) already exist: ${found}.`);
       console.error('  The demo seed is not idempotent. To re-seed:');
       console.error('    DROP the database and re-provision, then re-run migrations + seed.');
       console.error('');

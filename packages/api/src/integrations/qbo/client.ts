@@ -50,6 +50,15 @@ function getMinorVersion(): string {
   return process.env['QBO_MINOR_VERSION'] || DEFAULT_QBO_MINOR_VERSION;
 }
 
+/**
+ * Hard ceiling on every QBO HTTP round trip. Without it a hung QBO connection
+ * (stall, not error) would pin the caller's DB transaction open and, on the
+ * Stripe-webhook auto-sync path, hold the webhook ack past Stripe's delivery
+ * timeout. AbortSignal.timeout (Node 20+) rejects the fetch with a TimeoutError,
+ * which every QBO caller already converts to a typed provider_error refusal.
+ */
+const QBO_FETCH_TIMEOUT_MS = 15_000;
+
 // ─── Base URLs ────────────────────────────────────────────────────────────────
 
 const QBO_SANDBOX_API_BASE = 'https://sandbox-quickbooks.api.intuit.com';
@@ -251,6 +260,7 @@ export class RealQboClient implements QboClient {
           Accept: 'application/json',
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(QBO_FETCH_TIMEOUT_MS),
       },
     );
 
@@ -280,6 +290,7 @@ export class RealQboClient implements QboClient {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(QBO_FETCH_TIMEOUT_MS),
       },
     );
 
@@ -309,6 +320,7 @@ export class RealQboClient implements QboClient {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(QBO_FETCH_TIMEOUT_MS),
       },
     );
 
@@ -333,6 +345,7 @@ export class RealQboClient implements QboClient {
         Accept: 'application/json',
       },
       body: params.toString(),
+      signal: AbortSignal.timeout(QBO_FETCH_TIMEOUT_MS),
     });
 
     if (!res.ok) {

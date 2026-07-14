@@ -64,7 +64,11 @@ import { getQboClient, QboNotConfiguredError } from './client.js';
 import type { QboClient, QboRequestContext } from './client.js';
 import { centsToQboAmount } from './map-invoice.js';
 import { ensureFreshAccessToken } from './token.js';
-import { qboConnectionHasAutoExportColumn, loadQboAutoExportEnabled } from './qbo-sync-internal.js';
+import {
+  qboConnectionHasAutoExportColumn,
+  loadQboAutoExportEnabled,
+  lockQboEntityForPush,
+} from './qbo-sync-internal.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -130,6 +134,12 @@ async function _syncPaymentCoreTx(
     if (!(await qboConnectionHasAutoExportColumn(tx))) {
       return { ok: false, reason: 'not_available' } as const;
     }
+
+    // 3b. Serialize concurrent syncs of THIS payment (advisory xact lock) so
+    //     the loser of a race blocks here, then reads the winner's committed
+    //     'exported' row at step 5 and returns already-synced — instead of a
+    //     second ReceivePayment being pushed to QuickBooks.
+    await lockQboEntityForPush(tx, orgId, 'payment', ledgerEntryId);
 
     // 4. Load the payment ledger entry (RLS-scoped to this org).
     const entryRows = await tx

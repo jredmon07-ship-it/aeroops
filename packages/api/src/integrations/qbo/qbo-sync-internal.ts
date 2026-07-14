@@ -46,6 +46,37 @@ export async function qboConnectionHasAutoExportColumn(tx: AnyDb): Promise<boole
 }
 
 /**
+ * lockQboEntityForPush — take a TRANSACTION-level advisory lock keyed on
+ * (orgId, entityType, entityId) so two concurrent pushes of the SAME entity
+ * serialize instead of both hitting the provider.
+ *
+ * WHY: the idempotency guard in export-invoice/sync-payment is check-then-push-
+ * then-log. The partial UNIQUE index on qbo_export_log only prevents a duplicate
+ * 'exported' ROW, NOT a duplicate remote transaction — two racers (two Sync
+ * clicks, or webhook-vs-backfill) can both pass the check before either commits
+ * and both POST to QuickBooks, overstating the operator's books. Acquiring this
+ * lock BEFORE the idempotency SELECT means the loser blocks until the winner
+ * commits, then re-reads the now-present 'exported' row and returns
+ * already-synced WITHOUT a second push. pg_advisory_xact_lock releases
+ * automatically at commit/rollback (no manual unlock, no leak on error).
+ *
+ * hashtextextended collisions merely serialize two unrelated entities on rare
+ * occasions — harmless. Must be called INSIDE the caller's org-scoped tx.
+ */
+export async function lockQboEntityForPush(
+  tx: AnyDb,
+  orgId: string,
+  entityType: 'invoice' | 'payment' | 'customer',
+  entityId: string,
+): Promise<void> {
+  await tx.execute(sql`
+    SELECT pg_advisory_xact_lock(
+      hashtextextended(${orgId} || ':' || ${entityType} || ':' || ${entityId}, 0)
+    )
+  `);
+}
+
+/**
  * loadQboAutoExportEnabled — the org's auto-export-finalized-invoices setting,
  * read within an already-set org context (RLS-scoped by tx). Returns false
  * (auto-sync OFF) when the column is absent (0046 unapplied) OR no

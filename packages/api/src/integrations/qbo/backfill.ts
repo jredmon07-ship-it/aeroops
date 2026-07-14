@@ -204,10 +204,15 @@ async function _backfillQboExportsImpl(
   let exported = 0;
   let failed = 0;
   for (const invoiceId of candidateIds) {
-    const result = await exportInvoiceToQboWithDb(db, session, { invoiceId }, client);
-    if (result.ok) {
-      exported += 1;
-    } else {
+    // Each item is isolated: a THROW (e.g. a lost idempotency race aborting the
+    // item's own tx) counts as a failure and the batch continues — honoring the
+    // "one item failing never aborts the batch" guarantee even for throws, not
+    // just typed refusals.
+    try {
+      const result = await exportInvoiceToQboWithDb(db, session, { invoiceId }, client);
+      if (result.ok) exported += 1;
+      else failed += 1;
+    } catch {
       failed += 1;
     }
   }
@@ -250,10 +255,11 @@ async function _backfillQboExportsImpl(
   let paymentsExported = 0;
   let paymentsFailed = 0;
   for (const ledgerEntryId of paymentCandidateIds) {
-    const result = await syncPaymentToQboWithDb(db, session, { ledgerEntryId }, client);
-    if (result.ok) {
-      paymentsExported += 1;
-    } else {
+    try {
+      const result = await syncPaymentToQboWithDb(db, session, { ledgerEntryId }, client);
+      if (result.ok) paymentsExported += 1;
+      else paymentsFailed += 1;
+    } catch {
       paymentsFailed += 1;
     }
   }

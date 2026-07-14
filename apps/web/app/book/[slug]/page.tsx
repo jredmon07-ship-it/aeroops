@@ -20,7 +20,7 @@
  *   - Centered card on the brand background gradient, matching the login page.
  *   - NO app nav, NO sidebar, NO user session UI.
  */
-import { resolveOrgForPage } from '@/lib/org';
+import { resolveBookingPageAvailability } from '@aeroops/api';
 import {
   Card,
   CardContent,
@@ -61,14 +61,16 @@ function UnavailableCard() {
 
 export default async function BookPage({ params }: BookPageProps) {
   const { slug } = await params;
-  const org = await resolveOrgForPage(slug);
+  // Single merged gate: unknown slug, suspended org, OR booking module off all
+  // collapse to available:false (no enumeration). Agrees with the submit gate.
+  const availability = await resolveBookingPageAvailability(slug);
 
-  // ── Unknown org OR suspended/inactive org → ONE neutral card (no enumeration) ──
-  if (!org || org.status !== 'active') {
+  if (!availability.available || !availability.orgName) {
     return <UnavailableCard />;
   }
+  const orgName = availability.orgName;
 
-  // ── Active org → render the booking-request form ──────────────────────────
+  // ── Active org with booking on → render the booking-request form ──────────
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       {/* No role="main" on the wrapper — <main> is already the landmark. */}
@@ -76,14 +78,14 @@ export default async function BookPage({ params }: BookPageProps) {
         <Card>
           <CardHeader className="text-center">
             <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-              {org.name}
+              {orgName}
             </h1>
             <CardDescription>
               Submit a booking request and we&apos;ll be in touch to confirm.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <BookRequestForm slug={slug} orgName={org.name} />
+            <BookRequestForm slug={slug} orgName={orgName} />
           </CardContent>
         </Card>
       </div>

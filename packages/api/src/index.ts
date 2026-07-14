@@ -1189,6 +1189,14 @@ export {
   submitBookingRequestWithDb,
 } from './booking/submit-booking-request.js';
 export type { SubmitBookingRequestResult } from './booking/submit-booking-request.js';
+// The public /book/[slug] PAGE render gate — agrees with the submit gate so the
+// form is offered only when the org is active AND its booking module is on.
+// Anti-enumeration: every not-available reason collapses to available:false.
+export {
+  resolveBookingPageAvailability,
+  resolveBookingPageAvailabilityWithDb,
+} from './booking/booking-page-availability.js';
+export type { BookingPageAvailability } from './booking/booking-page-availability.js';
 
 // ─── Slice PB-LR.B — CAPTCHA verification seam ───────────────────────────────
 // CaptchaVerifier: the interface for test injection and custom adapters.

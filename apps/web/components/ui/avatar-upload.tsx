@@ -73,6 +73,12 @@ function downscaleToDataUrl(file: File): Promise<string> {
         reject(new Error('canvas 2d context unavailable'));
         return;
       }
+      // Fill white FIRST so a transparent PNG does not composite to black when
+      // the encoder is a non-alpha format (JPEG, and WEBP on the Safari
+      // fallback). A transparent avatar reads as a solid white circle, not a
+      // black one.
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
 
       let dataUrl = canvas.toDataURL('image/webp', ENCODE_QUALITY);

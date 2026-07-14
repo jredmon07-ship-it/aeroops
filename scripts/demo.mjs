@@ -62,6 +62,33 @@ const child = spawn('pnpm', ['--filter', '@aeroops/web', 'dev', '--port', PORT],
   stdio: 'inherit',
 });
 
+// WARM-UP: the very first request pays for the PGlite bootstrap + dual-org
+// seed (~10s) inside the request, and Next dev's first compile can trip a
+// harmless one-off worker error on that same request. Firing throwaway
+// warm-up fetches here means the first HUMAN click always lands on a warm,
+// fully-seeded server. Best-effort: any failure is retried, never fatal.
+async function warmUp() {
+  const urls = [
+    `http://localhost:${PORT}/o/alpha/login`,
+    `http://localhost:${PORT}/o/buckeye/login`,
+  ];
+  for (const url of urls) {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      try {
+        const res = await fetch(url, { redirect: 'manual' });
+        if (res.status < 500) break;
+      } catch {
+        // Server not accepting connections yet — retry.
+      }
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+  }
+  console.log('');
+  console.log('  ✓ Demo is warm — both orgs seeded and ready to click.');
+  console.log('');
+}
+setTimeout(() => void warmUp(), 3000);
+
 child.on('exit', (code) => process.exit(code ?? 0));
 process.on('SIGINT', () => child.kill('SIGINT'));
 process.on('SIGTERM', () => child.kill('SIGTERM'));
