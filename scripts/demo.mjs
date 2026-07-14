@@ -46,11 +46,11 @@ console.log('    dispatch@alpha.aero   — dispatcher');
 console.log('    cfi@alpha.aero        — instructor');
 console.log('    student@alpha.aero    — student (read-only feel)');
 console.log('');
-console.log(`  Buckeye Flying Club (small club):  http://localhost:${PORT}/o/buckeye/login`);
+console.log(`  Bravo Flying Club (small club):  http://localhost:${PORT}/o/bravo/login`);
 console.log('  Logins (password: demo1234):');
-console.log('    owner@buckeye.aero    — club president (owner)');
-console.log('    admin@buckeye.aero    — scheduler (manager)');
-console.log('    member@buckeye.aero   — member (renter)');
+console.log('    owner@bravo.aero    — club president (owner)');
+console.log('    admin@bravo.aero    — scheduler (manager)');
+console.log('    member@bravo.aero   — member (renter)');
 console.log('');
 console.log('  See DEMO.md for the click-through.');
 console.log('  ─────────────────────────────────────────────');
@@ -70,7 +70,7 @@ const child = spawn('pnpm', ['--filter', '@aeroops/web', 'dev', '--port', PORT],
 async function warmUp() {
   const urls = [
     `http://localhost:${PORT}/o/alpha/login`,
-    `http://localhost:${PORT}/o/buckeye/login`,
+    `http://localhost:${PORT}/o/bravo/login`,
   ];
   for (const url of urls) {
     for (let attempt = 0; attempt < 20; attempt++) {

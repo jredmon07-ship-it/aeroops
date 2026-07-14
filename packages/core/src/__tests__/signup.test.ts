@@ -8,7 +8,7 @@ import {
 
 describe('deriveSlugBase', () => {
   it('lowercases, hyphenates, and trims', () => {
-    expect(deriveSlugBase('Buckeye Flying Club!')).toBe('buckeye-flying-club');
+    expect(deriveSlugBase('Bravo Flying Club!')).toBe('bravo-flying-club');
     expect(deriveSlugBase('  A & B  ')).toBe('a-b');
     expect(deriveSlugBase('Skyline   Aero...')).toBe('skyline-aero');
   });
@@ -57,7 +57,7 @@ describe('deriveSlugCandidate', () => {
 
 describe('isValidSlug', () => {
   it('accepts well-formed slugs and rejects malformed/reserved ones', () => {
-    expect(isValidSlug('buckeye-flying-club')).toBe(true);
+    expect(isValidSlug('bravo-flying-club')).toBe(true);
     expect(isValidSlug('ab')).toBe(false); // too short
     expect(isValidSlug('-lead')).toBe(false);
     expect(isValidSlug('trail-')).toBe(false);

@@ -27,8 +27,8 @@
  * ║             weekly series, squawks, grounded Cirrus, dispatch gate,      ║
  * ║             civil-twilight config                                        ║
  * ║                                                                          ║
- * ║    org:     Buckeye Flying Club — small-club counter-example (slug:     ║
- * ║             buckeye; club operating mode when migration 0047 is         ║
+ * ║    org:     Bravo Flying Club — small-club counter-example (slug:     ║
+ * ║             bravo; club operating mode when migration 0047 is         ║
  * ║             applied — training/booking/auto-schedule off)                ║
  * ║    users:   3 (owner / manager / renter, each with password credential) ║
  * ║    fleet:   N735BW / N2189K                                              ║
@@ -38,7 +38,7 @@
  * ║  Logins (password: demo1234) — see DEMO.md for the full click-through:  ║
  * ║    owner@alpha.aero  /  manager@alpha.aero  /  dispatch@alpha.aero       ║
  * ║    cfi@alpha.aero    /  student@alpha.aero                               ║
- * ║    owner@buckeye.aero  /  admin@buckeye.aero  /  member@buckeye.aero    ║
+ * ║    owner@bravo.aero  /  admin@bravo.aero  /  member@bravo.aero    ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  *
  * Usage:
@@ -46,7 +46,7 @@
  *
  * Prerequisites:
  *   1. All migrations applied (pnpm db:migrate:apply).
- *   2. Target DB is empty — no existing org with slug "alpha" OR "buckeye".
+ *   2. Target DB is empty — no existing org with slug "alpha" OR "bravo".
  *   3. DATABASE_URL is the owner/DDL role (not aeroops_app).
  *
  * After seeding, configure the running app with the aeroops_app DATABASE_URL
@@ -59,10 +59,10 @@ import * as schema from '@aeroops/db';
 import {
   seedDemo,
   DEMO_LOGINS,
-  DEMO_LOGINS_BUCKEYE,
+  DEMO_LOGINS_BRAVO,
   DEMO_PASSWORD,
   DEMO_SLUG,
-  DEMO_SLUG_BUCKEYE,
+  DEMO_SLUG_BRAVO,
 } from '../src/demo/seed.js';
 import type { AnyDb } from '@aeroops/db';
 
@@ -119,10 +119,10 @@ async function main(): Promise<void> {
 
   try {
     // Idempotency check: refuse if EITHER demo org already exists. seedDemo
-    // creates both 'alpha' and 'buckeye', so a DB carrying either one would
+    // creates both 'alpha' and 'bravo', so a DB carrying either one would
     // collide on re-seed.
     const existing = await pgClient<{ slug: string }[]>`
-      SELECT slug FROM org WHERE slug IN (${DEMO_SLUG}, ${DEMO_SLUG_BUCKEYE})
+      SELECT slug FROM org WHERE slug IN (${DEMO_SLUG}, ${DEMO_SLUG_BRAVO})
     `;
     if (existing.length > 0) {
       const found = existing.map((r) => r.slug).join(', ');

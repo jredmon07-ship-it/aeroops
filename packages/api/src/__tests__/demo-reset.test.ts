@@ -35,7 +35,7 @@ import { createTestClient, applyMigrationSql } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 import type { PGlite } from '@electric-sql/pglite';
 
-import { seedDemo, DEMO_SLUG, DEMO_SLUG_BUCKEYE, DEMO_PASSWORD } from '../demo/seed.js';
+import { seedDemo, DEMO_SLUG, DEMO_SLUG_BRAVO, DEMO_PASSWORD } from '../demo/seed.js';
 import {
   resetDemoTenantWithDb,
   maybeResetDemoTenant,
@@ -273,9 +273,9 @@ describe('demo reset-on-open — works under a NON-superuser role bound by FORCE
   });
 });
 
-// ─── Buckeye Flying Club — the second demo org (small club, club mode) ────────
+// ─── Bravo Flying Club — the second demo org (small club, club mode) ────────
 
-describe('demo seed — Buckeye Flying Club (second demo org)', () => {
+describe('demo seed — Bravo Flying Club (second demo org)', () => {
   let db: PgliteTestClient;
   let pglite: PGlite;
 
@@ -293,22 +293,22 @@ describe('demo seed — Buckeye Flying Club (second demo org)', () => {
     const rows = extractRows<{ slug: string; n: number }>(
       await db.execute(sql`
         select slug, count(*)::int as n from org
-        where slug in (${DEMO_SLUG}, ${DEMO_SLUG_BUCKEYE})
+        where slug in (${DEMO_SLUG}, ${DEMO_SLUG_BRAVO})
         group by slug order by slug
       `),
     );
     expect(rows).toEqual([
       { slug: DEMO_SLUG, n: 1 },
-      { slug: DEMO_SLUG_BUCKEYE, n: 1 },
+      { slug: DEMO_SLUG_BRAVO, n: 1 },
     ]);
   });
 
-  it('buckeye has exactly 2 aircraft and the 3 demo logins with the right roles', async () => {
+  it('bravo has exactly 2 aircraft and the 3 demo logins with the right roles', async () => {
     const aircraft = extractRows<{ n: number }>(
       await db.execute(sql`
         select count(*)::int as n
         from resource r join org o on o.id = r.org_id
-        where o.slug = ${DEMO_SLUG_BUCKEYE} and r.kind = 'aircraft'
+        where o.slug = ${DEMO_SLUG_BRAVO} and r.kind = 'aircraft'
       `),
     );
     expect(aircraft[0]?.n).toBe(2);
@@ -319,18 +319,18 @@ describe('demo seed — Buckeye Flying Club (second demo org)', () => {
         from app_user u
         join membership m on m.user_id = u.id and m.org_id = u.org_id
         join org o on o.id = u.org_id
-        where o.slug = ${DEMO_SLUG_BUCKEYE}
+        where o.slug = ${DEMO_SLUG_BRAVO}
         order by u.email
       `),
     );
     expect(users).toEqual([
-      { email: 'admin@buckeye.aero', role: 'manager' },
-      { email: 'member@buckeye.aero', role: 'renter' },
-      { email: 'owner@buckeye.aero', role: 'owner' },
+      { email: 'admin@bravo.aero', role: 'manager' },
+      { email: 'member@bravo.aero', role: 'renter' },
+      { email: 'owner@bravo.aero', role: 'owner' },
     ]);
   });
 
-  it('buckeye is in CLUB mode with training/booking/auto-schedule off (0047 applied here)', async () => {
+  it('bravo is in CLUB mode with training/booking/auto-schedule off (0047 applied here)', async () => {
     const rows = extractRows<{
       operating_mode: string;
       module_training: boolean;
@@ -344,7 +344,7 @@ describe('demo seed — Buckeye Flying Club (second demo org)', () => {
         select f.operating_mode, f.module_training, f.module_booking,
                f.module_auto_schedule, f.module_billing, f.module_maintenance, f.module_portal
         from org_feature_config f join org o on o.id = f.org_id
-        where o.slug = ${DEMO_SLUG_BUCKEYE}
+        where o.slug = ${DEMO_SLUG_BRAVO}
       `),
     );
     expect(rows).toHaveLength(1);
@@ -359,22 +359,22 @@ describe('demo seed — Buckeye Flying Club (second demo org)', () => {
     });
   });
 
-  it('buckeye demo users carry seeded avatars (0048 applied here)', async () => {
+  it('bravo demo users carry seeded avatars (0048 applied here)', async () => {
     const rows = extractRows<{ n: number }>(
       await db.execute(sql`
         select count(*)::int as n
         from app_user u join org o on o.id = u.org_id
-        where o.slug = ${DEMO_SLUG_BUCKEYE}
+        where o.slug = ${DEMO_SLUG_BRAVO}
           and u.avatar_data like 'data:image/png;base64,%'
       `),
     );
     expect(rows[0]?.n).toBe(3);
   });
 
-  it('all three buckeye credentials authenticate with the shared demo password', async () => {
-    for (const email of ['owner@buckeye.aero', 'admin@buckeye.aero', 'member@buckeye.aero']) {
+  it('all three bravo credentials authenticate with the shared demo password', async () => {
+    for (const email of ['owner@bravo.aero', 'admin@bravo.aero', 'member@bravo.aero']) {
       const claims = await verifyLoginAndIssueClaimsWithDb(db, {
-        slug: DEMO_SLUG_BUCKEYE,
+        slug: DEMO_SLUG_BRAVO,
         email,
         password: DEMO_PASSWORD,
       });
@@ -382,19 +382,19 @@ describe('demo seed — Buckeye Flying Club (second demo org)', () => {
     }
   });
 
-  it("resetting 'buckeye' is allowlisted and rebuilds BOTH demo orgs exactly once", async () => {
-    const r = await resetDemoTenantWithDb(db, DEMO_SLUG_BUCKEYE);
+  it("resetting 'bravo' is allowlisted and rebuilds BOTH demo orgs exactly once", async () => {
+    const r = await resetDemoTenantWithDb(db, DEMO_SLUG_BRAVO);
     expect(r.reset).toBe(true);
     const rows = extractRows<{ slug: string; n: number }>(
       await db.execute(sql`
         select slug, count(*)::int as n from org
-        where slug in (${DEMO_SLUG}, ${DEMO_SLUG_BUCKEYE})
+        where slug in (${DEMO_SLUG}, ${DEMO_SLUG_BRAVO})
         group by slug order by slug
       `),
     );
     expect(rows).toEqual([
       { slug: DEMO_SLUG, n: 1 },
-      { slug: DEMO_SLUG_BUCKEYE, n: 1 },
+      { slug: DEMO_SLUG_BRAVO, n: 1 },
     ]);
   });
 });

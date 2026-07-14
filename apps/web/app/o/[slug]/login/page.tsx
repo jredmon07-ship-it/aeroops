@@ -43,10 +43,10 @@ interface DemoLoginEntry {
  */
 const DEMO_ORG_LOGINS: Record<string, DemoLoginEntry[]> = {
   alpha: [{ email: 'owner@alpha.aero', label: 'Owner' }],
-  buckeye: [
-    { email: 'owner@buckeye.aero', label: 'Owner' },
-    { email: 'admin@buckeye.aero', label: 'Admin' },
-    { email: 'member@buckeye.aero', label: 'Member' },
+  bravo: [
+    { email: 'owner@bravo.aero', label: 'Owner' },
+    { email: 'admin@bravo.aero', label: 'Admin' },
+    { email: 'member@bravo.aero', label: 'Member' },
   ],
 };
 
@@ -103,7 +103,7 @@ export default async function LoginPage({ params }: LoginPageProps) {
   }
 
   // ── Active org — render the login form ──────────────────────────────────
-  // The hosted demo orgs (slugs 'alpha' and 'buckeye', both seeded by
+  // The hosted demo orgs (slugs 'alpha' and 'bravo', both seeded by
   // db:seed:demo) show their shared credentials right on the sign-in card.
   // Real operators' login pages never render this block (see DEMO_ORG_LOGINS).
   const demoLogins = DEMO_ORG_LOGINS[slug];

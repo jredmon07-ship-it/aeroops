@@ -34,7 +34,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'settings',
   'demo',
   'alpha',
-  'buckeye',
+  'bravo',
   'www',
   'app',
   'health',
@@ -56,7 +56,7 @@ export const SLUG_MAX_LENGTH = 40;
  * too short after sanitization). The caller appends a numeric suffix on DB
  * collision (deriveSlugCandidate).
  *
- *   "Buckeye Flying Club!" → "buckeye-flying-club"
+ *   "Bravo Flying Club!" → "bravo-flying-club"
  *   "  A & B  "            → "a-b"
  *   "!!!"                  → null
  *   "API"                 → null (reserved)

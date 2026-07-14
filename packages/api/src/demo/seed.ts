@@ -15,7 +15,7 @@
  *      - one CLOSED dispatch ticket (flown earlier today, Hobbs/tach recorded)
  *        and one OPEN dispatch ticket (aircraft currently checked out).
  *
- *   2. "Buckeye Flying Club" (slug `buckeye`) — a SMALL CLUB counter-example:
+ *   2. "Bravo Flying Club" (slug `bravo`) — a SMALL CLUB counter-example:
  *      - three logins (owner / admin / member), two aircraft, one location.
  *      - a modest slice of life: a couple of upcoming member reservations, one
  *        flown+closed dispatch ticket, one open low-severity squawk, a booking
@@ -82,8 +82,8 @@ import { appUserHasAvatarColumn } from '../people/avatar.js';
 
 /** The org address used in the URL: /o/alpha/login */
 export const DEMO_SLUG = 'alpha';
-/** The small-club org address used in the URL: /o/buckeye/login */
-export const DEMO_SLUG_BUCKEYE = 'buckeye';
+/** The small-club org address used in the URL: /o/bravo/login */
+export const DEMO_SLUG_BRAVO = 'bravo';
 /** Shared password for every demo login (printed in the runbook). */
 export const DEMO_PASSWORD = 'demo1234';
 
@@ -103,11 +103,11 @@ export const DEMO_LOGINS: DemoLogin[] = [
   { email: 'student@alpha.aero', fullName: 'Sam Student', role: 'student', phone: '(614) 555-0105' },
 ];
 
-/** The three Buckeye Flying Club demo logins (owner / admin / member). */
-export const DEMO_LOGINS_BUCKEYE: DemoLogin[] = [
-  { email: 'owner@buckeye.aero', fullName: 'Jordan Club-President', role: 'owner', phone: '(614) 555-0201' },
-  { email: 'admin@buckeye.aero', fullName: 'Casey Scheduler', role: 'manager', phone: '(614) 555-0202' },
-  { email: 'member@buckeye.aero', fullName: 'Riley Member', role: 'renter', phone: '(614) 555-0203' },
+/** The three Bravo Flying Club demo logins (owner / admin / member). */
+export const DEMO_LOGINS_BRAVO: DemoLogin[] = [
+  { email: 'owner@bravo.aero', fullName: 'Jordan Club-President', role: 'owner', phone: '(614) 555-0201' },
+  { email: 'admin@bravo.aero', fullName: 'Casey Scheduler', role: 'manager', phone: '(614) 555-0202' },
+  { email: 'member@bravo.aero', fullName: 'Riley Member', role: 'renter', phone: '(614) 555-0203' },
 ];
 
 /**
@@ -272,7 +272,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     }
 
     // Home base — the operator's airport (Fleet home-base FK target). Coordinates
-    // (KOSU / OSU Don Scott Field, WGS84) drive the Slice 4a civil-twilight calc.
+    // (KOSU / OSU Bravo Field, WGS84) drive the Slice 4a civil-twilight calc.
     const [base] = await tx
       .insert(location)
       .values({
@@ -617,21 +617,21 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     }
   }
 
-  // ── 9. Second org — "Buckeye Flying Club" (small club, slug `buckeye`) ──
-  await seedBuckeyeClub(db);
+  // ── 9. Second org — "Bravo Flying Club" (small club, slug `bravo`) ──
+  await seedBravoClub(db);
 }
 
 /**
- * seedBuckeyeClub — the small-club counter-example org, built through the
+ * seedBravoClub — the small-club counter-example org, built through the
  * SAME real write paths as Alpha above. Called once from seedDemo() so every
  * runner (bootstrap, reset, the real-Postgres script) gets both orgs for free.
  */
-async function seedBuckeyeClub(db: AnyDb): Promise<void> {
+async function seedBravoClub(db: AnyDb): Promise<void> {
   // ── Control-plane: org + plan + active subscription ──────────────────────
   const orgRow = await withPlatformAdminContext(db, async (tx) => {
     const [o] = await tx
       .insert(org)
-      .values({ name: 'Buckeye Flying Club', slug: DEMO_SLUG_BUCKEYE, status: 'active' })
+      .values({ name: 'Bravo Flying Club', slug: DEMO_SLUG_BRAVO, status: 'active' })
       .returning();
     // Idempotent on the (global, non-org-scoped) plan — shared with Alpha.
     const [p] = await tx
@@ -652,7 +652,7 @@ async function seedBuckeyeClub(db: AnyDb): Promise<void> {
 
   const ids = await withOrgContext(db, orgId, async (tx) => {
     const userIdByEmail = new Map<string, string>();
-    for (const login of DEMO_LOGINS_BUCKEYE) {
+    for (const login of DEMO_LOGINS_BRAVO) {
       const [u] = await tx
         .insert(appUser)
         .values({ orgId, email: login.email, fullName: login.fullName, phone: login.phone })
@@ -668,9 +668,9 @@ async function seedBuckeyeClub(db: AnyDb): Promise<void> {
       userIdByEmail.set(login.email, u!.id);
     }
 
-    const ownerUserId = userIdByEmail.get('owner@buckeye.aero')!;
-    const adminUserId = userIdByEmail.get('admin@buckeye.aero')!;
-    const memberUserId = userIdByEmail.get('member@buckeye.aero')!;
+    const ownerUserId = userIdByEmail.get('owner@bravo.aero')!;
+    const adminUserId = userIdByEmail.get('admin@bravo.aero')!;
+    const memberUserId = userIdByEmail.get('member@bravo.aero')!;
 
     // CLUB OPERATING MODE (migration 0047, GRACEFUL ABSENCE — no-ops pre-0047).
     // Training / public booking / auto-scheduler off; everything else on.
@@ -681,12 +681,12 @@ async function seedBuckeyeClub(db: AnyDb): Promise<void> {
     await maybeSetAvatar(tx, orgId, adminUserId, AVATAR_ORANGE);
     await maybeSetAvatar(tx, orgId, memberUserId, AVATAR_CYAN);
 
-    // Home base — Don Scott Field (KOSU), the same field Alpha uses.
+    // Home base — Bravo Field (KOSU), the same field Alpha uses.
     const [base] = await tx
       .insert(location)
       .values({
         orgId,
-        name: 'Don Scott Field',
+        name: 'Bravo Field',
         icao: 'KOSU',
         latitude: '40.07980',
         longitude: '-83.07300',
@@ -725,10 +725,10 @@ async function seedBuckeyeClub(db: AnyDb): Promise<void> {
   // Owner session drives the real write paths below (full capabilities),
   // same pattern as Alpha.
   const ownerSession: AppSession = {
-    user: { email: 'owner@buckeye.aero' },
+    user: { email: 'owner@bravo.aero' },
     userId: ids.ownerId,
     orgId,
-    slug: DEMO_SLUG_BUCKEYE,
+    slug: DEMO_SLUG_BRAVO,
     role: 'owner',
   };
 
@@ -786,13 +786,13 @@ async function seedBuckeyeClub(db: AnyDb): Promise<void> {
     tachOut: 850.1,
     notes: 'Pre-flight complete',
   });
-  if (!opened.ok) throw new Error(`[demo] buckeye open dispatch failed: ${opened.reason}`);
+  if (!opened.ok) throw new Error(`[demo] bravo open dispatch failed: ${opened.reason}`);
   const closed = await closeDispatchWithDb(db, ownerSession, {
     ticketId: opened.ticket.id,
     hobbsIn: 891.6,
     tachIn: 851.2,
   });
-  if (!closed.ok) throw new Error(`[demo] buckeye close dispatch failed: ${closed.reason}`);
+  if (!closed.ok) throw new Error(`[demo] bravo close dispatch failed: ${closed.reason}`);
 
   // ── Squawk — open, low severity, on the Warrior (no grounding) ───────────
   const squawk = await reportSquawkWithDb(db, ownerSession, {
@@ -802,7 +802,7 @@ async function seedBuckeyeClub(db: AnyDb): Promise<void> {
     severity: 'low',
   });
   if (!squawk.ok) {
-    throw new Error('[demo] buckeye report squawk failed — seed cannot continue.');
+    throw new Error('[demo] bravo report squawk failed — seed cannot continue.');
   }
 }
 

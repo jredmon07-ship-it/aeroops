@@ -12,7 +12,7 @@
  * recreated by the seed, so the just-submitted login still succeeds against
  * the fresh org.
  *
- * TWO DEMO ORGS, ONE SEED CALL: seedDemo() creates BOTH "alpha" and "buckeye"
+ * TWO DEMO ORGS, ONE SEED CALL: seedDemo() creates BOTH "alpha" and "bravo"
  * in a single call (see demo/seed.ts) — there is no way to seed just one. A
  * reset therefore always wipes every allowlisted slug's org row and re-seeds
  * once, regardless of which slug's login triggered it, so the two orgs never
@@ -52,7 +52,7 @@ import { seedDemo } from './seed.js';
  * A reset always wipes + rebuilds EVERY slug in this list together (see the
  * module doc comment) — seedDemo() seeds both orgs in one call.
  */
-export const DEMO_RESET_ALLOWLIST = ['alpha', 'buckeye'] as const;
+export const DEMO_RESET_ALLOWLIST = ['alpha', 'bravo'] as const;
 
 /** Minimum time between resets of the same tenant (throttle window). */
 export const RESET_INTERVAL_MS = 60_000;
