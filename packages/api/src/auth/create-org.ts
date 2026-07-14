@@ -47,6 +47,7 @@ import { getDb } from '../db.js';
 import { hashPassword } from './hash.js';
 import { isUniqueViolation } from '../dispatch/internal.js';
 import { ValidationError } from '../scheduling/internal.js';
+import { extractRows } from '../db-rows.js';
 
 /** Max slug candidates to try before giving up (base + 24 numeric suffixes). */
 const MAX_SLUG_ATTEMPTS = 25;
@@ -156,10 +157,9 @@ async function _createOrgWithOwnerImpl(
 
 /** Catalog-only probe — true iff migration 0049's terms_acceptance table exists. */
 async function termsAcceptanceTableExists(tx: AnyDb): Promise<boolean> {
-  const res = await tx.execute(sql`SELECT to_regclass('terms_acceptance')::text AS reg`);
-  const rows = (Array.isArray(res) ? res : ((res as { rows?: unknown[] }).rows ?? [])) as Array<{
-    reg: string | null;
-  }>;
+  const rows = extractRows<{ reg: string | null }>(
+    await tx.execute(sql`SELECT to_regclass('terms_acceptance')::text AS reg`),
+  );
   return Boolean(rows[0]?.reg);
 }
 
