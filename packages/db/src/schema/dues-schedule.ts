@@ -2,10 +2,11 @@
  * dues_schedule — an operator-configured recurring-dues line for one member
  * (Slice P0-REV, migration 0025).
  *
- * amount_cents = INTEGER CENTS, never a float. cadence is constrained to
- * 'monthly' only in this slice (forward seam for other cadences). day_of_month
- * is bounded 1–28 (avoids short-month drift) and is informational/planning
- * metadata only — this table does not itself schedule anything (no cron;
+ * amount_cents = INTEGER CENTS, never a float. cadence is one of monthly /
+ * quarterly / semiannual / annual (widened from monthly-only by migration 0050);
+ * a non-monthly cadence carries anchor_month (1–12, the month its cycle bills).
+ * day_of_month is bounded 1–28 (avoids short-month drift) and is
+ * informational/planning metadata only — this table does not itself schedule anything (no cron;
  * generation is triggered by generateDuesInvoices, called manually via
  * runDuesForPeriodAction or later founder-infra cron).
  *
@@ -28,7 +29,9 @@
  *
  * ── CHECKs ────────────────────────────────────────────────────────────────────
  * dues_schedule_amount_positive_check: amount_cents > 0
- * dues_schedule_cadence_check: cadence IN ('monthly')
+ * dues_schedule_cadence_check: cadence IN ('monthly','quarterly','semiannual','annual') (migration 0050)
+ * dues_schedule_anchor_month_range_check: anchor_month IS NULL OR 1..12 (migration 0050)
+ * dues_schedule_anchor_required_check: cadence = 'monthly' OR anchor_month IS NOT NULL (migration 0050)
  * dues_schedule_day_of_month_check: day_of_month BETWEEN 1 AND 28
  */
 import {
@@ -59,7 +62,7 @@ export const duesSchedule = pgTable(
     // INTEGER CENTS, never a float.
     amountCents: integer('amount_cents').notNull(),
 
-    // dues_schedule_cadence_check: only 'monthly' in this slice.
+    // dues_schedule_cadence_check: monthly|quarterly|semiannual|annual (migration 0050).
     cadence: text('cadence').notNull().default('monthly'),
 
     // dues_schedule_day_of_month_check: BETWEEN 1 AND 28. Informational only.
