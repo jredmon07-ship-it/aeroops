@@ -35,12 +35,17 @@ import { finalizeInvoiceAction, voidInvoiceAction, exportInvoiceToQboAction } fr
 import type { SerializedInvoiceRow, SerializedInvoiceLineItem } from '../actions';
 import { formatCents } from './format-cents';
 import { PageHeader } from '@/components/ui/page-header';
+import { QboExportBadge } from './qbo-export-badge';
+import type { QboInvoiceExportStatus } from './qbo-export-badge';
 
 interface InvoiceDetailClientProps {
   invoice: SerializedInvoiceRow;
   lineItems: SerializedInvoiceLineItem[];
   slug: string;
   canManage: boolean;
+  /** Persisted QBO export state for this invoice (from qbo_export_log). */
+  initialQboStatus?: QboInvoiceExportStatus;
+  initialQboId?: string | null;
 }
 
 type ExportState =
@@ -78,7 +83,14 @@ function exportRefusalMessage(
   }
 }
 
-export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, canManage }: InvoiceDetailClientProps) {
+export function InvoiceDetailClient({
+  invoice: initialInvoice,
+  lineItems,
+  slug,
+  canManage,
+  initialQboStatus = 'not_exported',
+  initialQboId = null,
+}: InvoiceDetailClientProps) {
   const [invoice, setInvoice] = React.useState(initialInvoice);
   const [busy, setBusy] = React.useState<'finalize' | 'void' | null>(null);
   const [statusError, setStatusError] = React.useState<string | null>(null);
@@ -243,10 +255,25 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
         </div>
       )}
 
-      {/* Export to QuickBooks (Slice QB1) — finalized invoices only */}
-      {canManage && invoice.status === 'finalized' && (
+      {/* Export to QuickBooks (Slice QB1 + QBO-SYNC status badge) — finalized only */}
+      {canManage && invoice.status === 'finalized' && (() => {
+        // Effective QBO state: a fresh action result wins over the persisted
+        // (initial) state; otherwise show what qbo_export_log recorded.
+        const effectiveStatus: QboInvoiceExportStatus =
+          exportState.phase === 'success' ? 'exported'
+          : exportState.phase === 'error' ? 'failed'
+          : initialQboStatus;
+        const buttonLabel =
+          exportState.phase === 'exporting' ? 'Exporting…'
+          : effectiveStatus === 'exported' ? 'Re-export to QuickBooks'
+          : effectiveStatus === 'failed' ? 'Retry export'
+          : 'Export to QuickBooks';
+        return (
         <div className="rounded-md border border-slate-200 dark:border-slate-800 px-4 py-3 space-y-2 max-w-md">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">QuickBooks</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">QuickBooks</h2>
+            <QboExportBadge status={effectiveStatus} />
+          </div>
           <Button
             type="button"
             size="sm"
@@ -256,8 +283,14 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
             aria-busy={exportState.phase === 'exporting'}
           >
             <UploadCloud className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            {exportState.phase === 'exporting' ? 'Exporting…' : 'Export to QuickBooks'}
+            {buttonLabel}
           </Button>
+          {exportState.phase === 'idle' && initialQboStatus === 'exported' && initialQboId && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">Exported (QuickBooks invoice {initialQboId}).</p>
+          )}
+          {exportState.phase === 'idle' && initialQboStatus === 'failed' && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">A previous export failed. Retry when ready.</p>
+          )}
           {exportState.phase === 'success' && (
             <p className="text-sm text-green-700 dark:text-green-300" role="status">
               {exportState.alreadyExported
@@ -272,7 +305,8 @@ export function InvoiceDetailClient({ invoice: initialInvoice, lineItems, slug, 
             </Alert>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Void confirmation dialog */}
       <Dialog open={voidDialogOpen} onOpenChange={(o) => { if (!busy) setVoidDialogOpen(o); }}>

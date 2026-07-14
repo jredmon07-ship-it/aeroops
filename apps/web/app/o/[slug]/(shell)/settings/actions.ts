@@ -27,6 +27,9 @@ import {
   setQboAccountMapping,
   deleteQboAccountMapping,
   disconnectQbo,
+  getQboAutoExport,
+  setQboAutoExport,
+  backfillQboExports,
   getFeePassing,
   setFeePassing,
 } from '@aeroops/api';
@@ -50,7 +53,7 @@ export interface SerializedQboConnection {
 
 export interface SerializedQboExportLog {
   id: string;
-  entityType: 'invoice' | 'customer';
+  entityType: 'invoice' | 'customer' | 'payment';
   entityId: string;
   qboId: string | null;
   status: 'pending' | 'exported' | 'error';
@@ -187,6 +190,86 @@ export async function disconnectQboAction(slug: string): Promise<DisconnectQboAc
     const result = await disconnectQbo(session);
     revalidatePath(`/o/${slug}/settings`);
     return result;
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── QBO auto-sync toggle + backfill (Slice QBO-SYNC, migration 0046) ─────────
+//
+// getQboAutoExport: billing:access. setQboAutoExport: org:manage_settings.
+// backfillQboExports: billing:manage. All enforced inside @aeroops/api. When
+// migration 0046 is unapplied the read returns available:false and the setter
+// returns not_available — the card renders a disabled "upcoming update" state.
+// This is a bookkeeping EXPORT toggle — NO money moves.
+
+export interface SerializedQboAutoExport {
+  autoExportInvoices: boolean;
+  available: boolean;
+}
+
+export type GetQboAutoExportActionResult =
+  | { ok: true; setting: SerializedQboAutoExport }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function getQboAutoExportAction(): Promise<GetQboAutoExportActionResult> {
+  const session = await auth();
+  try {
+    const setting = await getQboAutoExport(session);
+    return { ok: true, setting };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export type SetQboAutoExportActionResult =
+  | { ok: true; autoExportInvoices: boolean }
+  | { ok: false; reason: 'not_available' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function setQboAutoExportAction(
+  slug: string,
+  autoExportInvoices: boolean,
+): Promise<SetQboAutoExportActionResult> {
+  const session = await auth();
+  try {
+    const result = await setQboAutoExport(session, { autoExportInvoices });
+    revalidatePath(`/o/${slug}/settings`);
+    return result;
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+export type BackfillQboExportsActionResult =
+  | {
+      ok: true;
+      exported: number;
+      failed: number;
+      remaining: number;
+      paymentsExported: number;
+      paymentsFailed: number;
+      paymentsRemaining: number;
+    }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function backfillQboExportsAction(slug: string): Promise<BackfillQboExportsActionResult> {
+  const session = await auth();
+  try {
+    const result = await backfillQboExports(session);
+    revalidatePath(`/o/${slug}/settings`);
+    return { ok: true, ...result };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

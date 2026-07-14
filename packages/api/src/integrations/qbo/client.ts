@@ -123,6 +123,23 @@ export interface QboCreateCustomerInput {
   email?: string;
 }
 
+/**
+ * The QBO Payment (ReceivePayment) create request body. Records that a member
+ * paid an already-exported QBO Invoice — a bookkeeping SYNC of an existing
+ * AeroOps 'payment' ledger credit, NOT a charge. See sync-payment.ts (the
+ * command that builds this from a payment ledger_entry). Amount is a QBO JSON
+ * number derived from integer cents via the pure centsToQboAmount helper.
+ */
+export interface QboPaymentPayload {
+  TotalAmt: number;
+  CustomerRef: { value: string; name?: string };
+  Line: Array<{
+    Amount: number;
+    LinkedTxn: Array<{ TxnId: string; TxnType: 'Invoice' }>;
+  }>;
+  PrivateNote: string;
+}
+
 /** Per-request connection context — realm + a live (already-refreshed) access token. */
 export interface QboRequestContext {
   realmId: string;
@@ -160,6 +177,16 @@ export interface QboClient {
     ctx: QboRequestContext,
   ): Promise<{ qboInvoiceId: string }>;
 
+  /**
+   * POST /v3/company/{realmId}/payment. Records a ReceivePayment against an
+   * already-exported QBO Invoice. Returns the new QBO Payment id. This is a
+   * bookkeeping SYNC of an existing payment record — it NEVER moves money.
+   */
+  createPayment(
+    payload: QboPaymentPayload,
+    ctx: QboRequestContext,
+  ): Promise<{ qboPaymentId: string }>;
+
   /** Exchange an OAuth2 authorization code for an initial token pair. */
   exchangeAuthCode(code: string, redirectUri: string): Promise<QboTokenSet>;
 
@@ -175,6 +202,9 @@ export class StubQboClient implements QboClient {
   }
   async createInvoice(): Promise<{ qboInvoiceId: string }> {
     throw new QboNotConfiguredError('create a QuickBooks invoice');
+  }
+  async createPayment(): Promise<{ qboPaymentId: string }> {
+    throw new QboNotConfiguredError('record a QuickBooks payment');
   }
   async exchangeAuthCode(): Promise<QboTokenSet> {
     throw new QboNotConfiguredError('complete the QuickBooks OAuth handshake');
@@ -263,6 +293,35 @@ export class RealQboClient implements QboClient {
       throw new QboProviderError('QuickBooks createInvoice: response missing Invoice.Id');
     }
     return { qboInvoiceId: id };
+  }
+
+  async createPayment(
+    payload: QboPaymentPayload,
+    ctx: QboRequestContext,
+  ): Promise<{ qboPaymentId: string }> {
+    const res = await fetch(
+      `${this.apiBase}/v3/company/${encodeURIComponent(ctx.realmId)}/payment?minorversion=${getMinorVersion()}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${ctx.accessToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!res.ok) {
+      throw new QboProviderError(`QuickBooks createPayment failed (HTTP ${res.status})`, res.status);
+    }
+
+    const json = (await res.json()) as { Payment?: { Id?: string } };
+    const id = json.Payment?.Id;
+    if (!id) {
+      throw new QboProviderError('QuickBooks createPayment: response missing Payment.Id');
+    }
+    return { qboPaymentId: id };
   }
 
   private async tokenRequest(params: URLSearchParams): Promise<QboTokenSet> {

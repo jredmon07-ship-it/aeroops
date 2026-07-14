@@ -30,7 +30,8 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getInvoiceAction } from '../actions';
+import { getInvoiceAction, getInvoiceQboStatusAction } from '../actions';
+import type { QboInvoiceExportStatus } from '../actions';
 import { InvoiceDetailClient } from '../_components/invoice-detail-client';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
@@ -88,12 +89,24 @@ async function DetailContent({ invoiceId, slug, canManage }: DetailContentProps)
     );
   }
 
+  // QBO export status (best-effort — a failure just renders the neutral
+  // "not exported" badge; it never blocks the invoice detail).
+  let initialQboStatus: QboInvoiceExportStatus = 'not_exported';
+  let initialQboId: string | null = null;
+  const qboResult = await getInvoiceQboStatusAction(result.invoice.id);
+  if ('ok' in qboResult && qboResult.ok) {
+    initialQboStatus = qboResult.status;
+    initialQboId = qboResult.qboId;
+  }
+
   return (
     <InvoiceDetailClient
       invoice={result.invoice}
       lineItems={result.lineItems}
       slug={slug}
       canManage={canManage}
+      initialQboStatus={initialQboStatus}
+      initialQboId={initialQboId}
     />
   );
 }

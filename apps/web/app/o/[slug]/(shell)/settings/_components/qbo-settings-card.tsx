@@ -21,18 +21,22 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, Link2, Link2Off, RefreshCw, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, Link2, Link2Off, RefreshCw, Plus, Trash2, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/lib/toast-store';
 import type { QboLineKind } from '@aeroops/api';
 import {
   getQboStatusAction,
   setQboAccountMappingAction,
   deleteQboAccountMappingAction,
   disconnectQboAction,
+  getQboAutoExportAction,
+  setQboAutoExportAction,
+  backfillQboExportsAction,
 } from '../actions';
 import type { SerializedQboStatus } from '../actions';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -174,6 +178,13 @@ export function QboSettingsCard({ slug }: QboSettingsCardProps) {
             </div>
           </div>
 
+          {/* Auto-sync + backfill (migration 0046) */}
+          <SyncControls
+            slug={slug}
+            connected={state.status.connection?.status === 'connected'}
+            onBackfilled={() => void load()}
+          />
+
           {/* Account mapping editor */}
           <AccountMappingEditor
             slug={slug}
@@ -210,6 +221,160 @@ function StatusChip({ status }: { status: 'connected' | 'disconnected' | 'error'
     <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-slate-500 dark:text-slate-400">
       Not connected
     </span>
+  );
+}
+
+// ─── SyncControls (auto-sync toggle + backfill) ───────────────────────────────
+
+interface SyncControlsProps {
+  slug: string;
+  connected: boolean;
+  onBackfilled: () => void;
+}
+
+type AutoExportState =
+  | { phase: 'loading' }
+  | { phase: 'ready'; autoExportInvoices: boolean; available: boolean }
+  | { phase: 'error' };
+
+function SyncControls({ slug, connected, onBackfilled }: SyncControlsProps) {
+  const [state, setState] = React.useState<AutoExportState>({ phase: 'loading' });
+  const [toggling, setToggling] = React.useState(false);
+  const [backfilling, setBackfilling] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const result = await getQboAutoExportAction();
+      if (cancelled) return;
+      if ('error' in result) {
+        setState({ phase: 'error' });
+        return;
+      }
+      setState({
+        phase: 'ready',
+        autoExportInvoices: result.setting.autoExportInvoices,
+        available: result.setting.available,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleToggle(next: boolean) {
+    setToggling(true);
+    try {
+      const result = await setQboAutoExportAction(slug, next);
+      if ('error' in result) {
+        toast.error('Could not update auto-sync. Please try again.');
+        return;
+      }
+      if (!result.ok) {
+        toast.error('Auto-sync isn’t available yet.');
+        return;
+      }
+      setState((prev) =>
+        prev.phase === 'ready' ? { ...prev, autoExportInvoices: result.autoExportInvoices } : prev,
+      );
+      toast.success(
+        result.autoExportInvoices
+          ? 'Finalized invoices will now auto-export to QuickBooks.'
+          : 'Auto-export is off. Export invoices manually when you choose.',
+      );
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  async function handleBackfill() {
+    setBackfilling(true);
+    try {
+      const result = await backfillQboExportsAction(slug);
+      if ('error' in result) {
+        toast.error('Could not sync unexported invoices. Please try again.');
+        return;
+      }
+      const failedCount = result.failed + result.paymentsFailed;
+      const remainingCount = result.remaining + result.paymentsRemaining;
+      toast.success(
+        `Synced ${result.exported} invoice${result.exported === 1 ? '' : 's'}` +
+          (result.paymentsExported > 0
+            ? ` and ${result.paymentsExported} payment${result.paymentsExported === 1 ? '' : 's'}`
+            : '') +
+          ' to QuickBooks' +
+          (failedCount > 0 ? `, ${failedCount} failed` : '') +
+          (remainingCount > 0 ? `. ${remainingCount} still remaining. Run again to continue.` : '.'),
+      );
+      onBackfilled();
+    } finally {
+      setBackfilling(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border border-slate-200 dark:border-slate-800 px-3 py-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        Sync
+      </h3>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        Auto-export finalized invoices to QuickBooks as they are finalized. This is a bookkeeping
+        export of invoice records — no money is moved.
+      </p>
+
+      {state.phase === 'loading' && <Skeleton className="h-6 w-40" />}
+
+      {state.phase === 'error' && (
+        <p className="text-xs text-slate-500 dark:text-slate-400">Couldn’t load the auto-sync setting.</p>
+      )}
+
+      {state.phase === 'ready' && !state.available && (
+        <Alert role="status">
+          <AlertCircle className="h-4 w-4" aria-hidden="true" />
+          <AlertDescription>Auto-sync becomes available in an upcoming update.</AlertDescription>
+        </Alert>
+      )}
+
+      {state.phase === 'ready' && state.available && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              {state.autoExportInvoices ? 'Auto-export is ON' : 'Auto-export is OFF'}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant={state.autoExportInvoices ? 'outline' : 'default'}
+              className="h-7 text-xs"
+              disabled={toggling}
+              aria-busy={toggling}
+              onClick={() => void handleToggle(!state.autoExportInvoices)}
+            >
+              {state.autoExportInvoices ? 'Turn off' : 'Turn on auto-export'}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Catch up finalized invoices and their payments not yet in QuickBooks (up to 50 of each per run).
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs shrink-0"
+              disabled={backfilling || !connected}
+              aria-busy={backfilling}
+              onClick={() => void handleBackfill()}
+              title={connected ? undefined : 'Connect QuickBooks first'}
+            >
+              <UploadCloud className="h-3 w-3 mr-1" aria-hidden="true" />
+              {backfilling ? 'Syncing…' : 'Sync all unexported'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

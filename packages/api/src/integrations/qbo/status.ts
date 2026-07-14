@@ -38,7 +38,7 @@ export interface QboConnectionView {
 
 export interface QboExportLogView {
   id: string;
-  entityType: 'invoice' | 'customer';
+  entityType: 'invoice' | 'customer' | 'payment';
   entityId: string;
   qboId: string | null;
   status: 'pending' | 'exported' | 'error';
@@ -71,7 +71,7 @@ function toConnectionView(row: typeof qboConnection.$inferSelect): QboConnection
 function toExportLogView(row: typeof qboExportLog.$inferSelect): QboExportLogView {
   return {
     id: row.id,
-    entityType: row.entityType as 'invoice' | 'customer',
+    entityType: row.entityType as 'invoice' | 'customer' | 'payment',
     entityId: row.entityId,
     qboId: row.qboId ?? null,
     status: row.status as 'pending' | 'exported' | 'error',

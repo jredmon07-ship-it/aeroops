@@ -30,10 +30,17 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { SectionHeader } from '@/components/ui/section-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { listInvoicesAction, listInvoiceableDispatchAction, listRatePickerAction } from './actions';
+import {
+  listInvoicesAction,
+  listInvoiceableDispatchAction,
+  listRatePickerAction,
+  listInvoiceQboStatusesAction,
+} from './actions';
 import { getAccountsReceivableAction, getRevenueReportAction } from './reports/actions';
 import { formatCents } from './_components/format-cents';
 import { ReadyToInvoiceClient } from './_components/ready-to-invoice-client';
+import { QboExportBadge } from './_components/qbo-export-badge';
+import type { QboInvoiceExportStatus } from './_components/qbo-export-badge';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -80,6 +87,23 @@ async function InvoiceListContent({ slug }: { slug: string }) {
     );
   }
 
+  // Best-effort QBO export state for the finalized rows (Slice QBO-SYNC). The
+  // column only appears once at least one invoice has an export-log entry, so
+  // an operator who never touched QuickBooks sees no extra noise. A failure
+  // here just hides the column — it never blocks the list.
+  const finalizedIds = result.invoices
+    .filter((inv) => inv.status === 'finalized')
+    .map((inv) => inv.id)
+    .slice(0, 200);
+  const qboStatusById = new Map<string, QboInvoiceExportStatus>();
+  if (finalizedIds.length > 0) {
+    const qboResult = await listInvoiceQboStatusesAction(finalizedIds);
+    if ('ok' in qboResult && qboResult.ok) {
+      for (const s of qboResult.statuses) qboStatusById.set(s.invoiceId, s.status);
+    }
+  }
+  const showQboColumn = Array.from(qboStatusById.values()).some((s) => s !== 'not_exported');
+
   return (
     <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
       <table className="w-full text-sm" aria-label="Invoices">
@@ -94,6 +118,11 @@ async function InvoiceListContent({ slug }: { slug: string }) {
             <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">
               Created
             </th>
+            {showQboColumn && (
+              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide hidden md:table-cell">
+                QuickBooks
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -110,6 +139,15 @@ async function InvoiceListContent({ slug }: { slug: string }) {
               <td className="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 hidden sm:table-cell nums">
                 <Link href={`/o/${slug}/billing/${inv.id}`}>{new Date(inv.createdAt).toLocaleDateString()}</Link>
               </td>
+              {showQboColumn && (
+                <td className="px-3 py-3 hidden md:table-cell">
+                  {inv.status === 'finalized' && (
+                    <Link href={`/o/${slug}/billing/${inv.id}`}>
+                      <QboExportBadge status={qboStatusById.get(inv.id) ?? 'not_exported'} />
+                    </Link>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

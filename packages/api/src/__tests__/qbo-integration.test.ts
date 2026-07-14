@@ -251,7 +251,7 @@ async function seedConnection(
 // ── Fake QboClient ─────────────────────────────────────────────────────────────
 
 interface FakeCall {
-  kind: 'createCustomer' | 'createInvoice' | 'exchangeAuthCode' | 'refreshTokens';
+  kind: 'createCustomer' | 'createInvoice' | 'createPayment' | 'exchangeAuthCode' | 'refreshTokens';
   args: unknown;
 }
 
@@ -276,6 +276,14 @@ class FakeQboClient implements QboClient {
     this.calls.push({ kind: 'createInvoice', args: { payload, ctx } });
     if (this.failCreateInvoice) throw new Error('fake invoice create failure');
     return { qboInvoiceId: 'qbo-inv-1' };
+  }
+
+  async createPayment(
+    payload: import('../integrations/qbo/client.js').QboPaymentPayload,
+    ctx: QboRequestContext,
+  ): Promise<{ qboPaymentId: string }> {
+    this.calls.push({ kind: 'createPayment', args: { payload, ctx } });
+    return { qboPaymentId: 'qbo-pay-1' };
   }
 
   async exchangeAuthCode(code: string, redirectUri: string): Promise<QboTokenSet> {

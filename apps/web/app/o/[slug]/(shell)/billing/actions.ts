@@ -29,6 +29,8 @@ import {
   finalizeInvoice,
   voidInvoice,
   exportInvoiceToQbo,
+  autoExportInvoiceOnFinalize,
+  getInvoiceQboStatuses,
   getMemberBalance,
   listLedgerEntries,
   recordManualPayment,
@@ -167,6 +169,16 @@ export async function finalizeInvoiceAction(id: string, slug: string): Promise<F
     if (!result.ok) return { ok: false, reason: result.reason };
     revalidatePath(`/o/${slug}/billing/${id}`);
 
+    // Best-effort QBO auto-sync (Slice QBO-SYNC) — fire AFTER finalize has
+    // already committed. autoExportInvoiceOnFinalize is a no-op unless the org
+    // has the auto-export toggle ON and is connected; it NEVER throws for a
+    // provider/absence failure, and the `.catch` here is belt-and-suspenders so
+    // a QBO hiccup can never surface as a finalize failure. Mirrors the
+    // post-commit notification hook placement below exactly.
+    if (session) {
+      await autoExportInvoiceOnFinalize(session, { invoiceId: id }).catch(() => {});
+    }
+
     // Best-effort notifications (Slice P1.3) — fire AFTER finalize (and its
     // own autopay attempt) have already committed/completed. sendNotification
     // never throws; .catch here is defense-in-depth only.
@@ -242,6 +254,54 @@ export async function exportInvoiceToQboAction(
       revalidatePath(`/o/${slug}/billing/${invoiceId}`);
     }
     return result;
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+// ─── getInvoiceQboStatusAction (Slice QBO-SYNC) ─────────────────────────────
+// Per-invoice QBO export state for the detail/list badge. billing:access
+// (enforced inside @aeroops/api). Read-only, NO money.
+
+export type QboInvoiceExportStatus = 'not_exported' | 'exported' | 'failed';
+
+export type GetInvoiceQboStatusActionResult =
+  | { ok: true; status: QboInvoiceExportStatus; qboId: string | null }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function getInvoiceQboStatusAction(invoiceId: string): Promise<GetInvoiceQboStatusActionResult> {
+  const session = await auth();
+  try {
+    const result = await getInvoiceQboStatuses(session, { invoiceIds: [invoiceId] });
+    const row = result.statuses[0];
+    return { ok: true, status: row?.status ?? 'not_exported', qboId: row?.qboId ?? null };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export interface SerializedQboInvoiceStatus {
+  invoiceId: string;
+  status: QboInvoiceExportStatus;
+  qboId: string | null;
+}
+
+export type ListInvoiceQboStatusesActionResult =
+  | { ok: true; statuses: SerializedQboInvoiceStatus[] }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+/** Batch per-invoice QBO status for the invoice list badges (<=200 ids). */
+export async function listInvoiceQboStatusesAction(invoiceIds: string[]): Promise<ListInvoiceQboStatusesActionResult> {
+  const session = await auth();
+  try {
+    const result = await getInvoiceQboStatuses(session, { invoiceIds });
+    return { ok: true, statuses: result.statuses };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

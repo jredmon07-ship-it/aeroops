@@ -63,6 +63,7 @@ import { mapInvoiceToQboPayload } from './map-invoice.js';
 import type { QboLineItemInput } from './map-invoice.js';
 import { resolveLineKind } from './line-kind.js';
 import { loadQboAccountMap } from './account-mapping.js';
+import { ensureFreshAccessToken } from './token.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -331,49 +332,6 @@ async function _exportInvoiceToQboImpl(
       return { ok: false, reason: 'provider_error', message } as const;
     }
   });
-}
-
-/**
- * ensureFreshAccessToken — refresh the connection's access token if it is
- * expired (or within a 60s safety margin), persisting the new tokens.
- * Throws QboNotConfiguredError (propagated from the stub client) or the
- * underlying provider error — callers handle both.
- */
-async function ensureFreshAccessToken(
-  tx: AnyDb,
-  orgId: string,
-  connection: { accessToken: string | null; refreshToken: string | null; accessTokenExpiresAt: Date | string | null; realmId: string | null },
-  client: QboClient,
-): Promise<QboRequestContext> {
-  const realmId = connection.realmId as string;
-  const expiresAt = connection.accessTokenExpiresAt
-    ? connection.accessTokenExpiresAt instanceof Date
-      ? connection.accessTokenExpiresAt
-      : new Date(connection.accessTokenExpiresAt)
-    : null;
-
-  const isFresh = expiresAt !== null && expiresAt.getTime() - Date.now() > 60_000;
-  if (isFresh && connection.accessToken) {
-    return { realmId, accessToken: connection.accessToken };
-  }
-
-  if (!connection.refreshToken) {
-    throw new Error('[qbo] ensureFreshAccessToken: no refresh_token on file — reconnect required');
-  }
-
-  const refreshed = await client.refreshTokens(connection.refreshToken);
-
-  await tx
-    .update(qboConnection)
-    .set({
-      accessToken: refreshed.accessToken,
-      refreshToken: refreshed.refreshToken,
-      accessTokenExpiresAt: refreshed.expiresAt,
-      updatedAt: new Date(),
-    })
-    .where(eq(qboConnection.orgId, orgId));
-
-  return { realmId, accessToken: refreshed.accessToken };
 }
 
 export async function exportInvoiceToQbo(

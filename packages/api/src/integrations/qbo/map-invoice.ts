@@ -95,8 +95,12 @@ function centsToDollarString(cents: number): string {
   return `${dollars}.${String(remainder).padStart(2, '0')}`;
 }
 
-/** cents → a QBO-ready JSON number (lossless parse of the exact decimal string). */
-function centsToQboAmount(cents: number): number {
+/**
+ * cents → a QBO-ready JSON number (lossless parse of the exact decimal string).
+ * Exported for reuse by the payment-sync payload builder (sync-payment.ts) so
+ * the integer-only cents→amount conversion lives in exactly ONE place.
+ */
+export function centsToQboAmount(cents: number): number {
   return Number(centsToDollarString(cents));
 }
 

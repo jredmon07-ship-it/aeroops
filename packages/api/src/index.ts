@@ -1599,6 +1599,55 @@ export type {
   ExportInvoiceToQboResult,
 } from './integrations/qbo/export-invoice.js';
 
+// ─── QBO SYNC layer (migration 0046) — auto-sync toggle + payment sync +
+// backfill + per-invoice status. Manual EXPORT (above) → real SYNC. Every
+// piece is BEST-EFFORT and NEVER blocks a money path; graceful-absence guarded
+// so a prod DB without 0046 degrades to OFF/not_available (byte-identical to
+// the manual-export world). NO money moves — bookkeeping SYNC only.
+export type { QboPaymentPayload } from './integrations/qbo/client.js';
+export { centsToQboAmount } from './integrations/qbo/map-invoice.js';
+export {
+  getQboAutoExport,
+  getQboAutoExportWithDb,
+  setQboAutoExport,
+  setQboAutoExportWithDb,
+} from './integrations/qbo/auto-export-setting.js';
+export type {
+  QboAutoExportView,
+  GetQboAutoExportResult,
+  SetQboAutoExportInput,
+  SetQboAutoExportResult,
+} from './integrations/qbo/auto-export-setting.js';
+export {
+  autoExportInvoiceOnFinalize,
+  autoExportInvoiceOnFinalizeWithDb,
+} from './integrations/qbo/auto-export-hook.js';
+export type { AutoExportInvoiceResult } from './integrations/qbo/auto-export-hook.js';
+export {
+  syncPaymentToQbo,
+  syncPaymentToQboWithDb,
+} from './integrations/qbo/sync-payment.js';
+export type {
+  SyncPaymentToQboInput,
+  SyncPaymentToQboResult,
+} from './integrations/qbo/sync-payment.js';
+export {
+  backfillQboExports,
+  backfillQboExportsWithDb,
+  QBO_BACKFILL_BATCH_LIMIT,
+} from './integrations/qbo/backfill.js';
+export type { BackfillQboExportsResult } from './integrations/qbo/backfill.js';
+export {
+  getInvoiceQboStatuses,
+  getInvoiceQboStatusesWithDb,
+} from './integrations/qbo/invoice-export-status.js';
+export type {
+  GetInvoiceQboStatusesInput,
+  GetInvoiceQboStatusesResult,
+  QboInvoiceExportStatus,
+  QboInvoiceStatusView,
+} from './integrations/qbo/invoice-export-status.js';
+
 // ─── Slice B3-foundation — Stripe SEAM TO THE KEY BOUNDARY ─────────────────────
 // NO real Stripe call anywhere until STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET
 // are set (stub-when-unconfigured seam, exactly like the QBO + CAPTCHA seams).

@@ -76,6 +76,8 @@ import type { ResolvedBalancePayment } from './resolve-balance-payment.js';
 import { resolveOrgByStripeCustomerId } from './resolve-payment-customer.js';
 import { ensureBillingAccountTx } from '../../billing/ledger-internal.js';
 import { isUniqueViolation } from '../../dispatch/internal.js';
+import { autoSyncPaymentToQboOnStripeWebhook } from '../qbo/sync-payment.js';
+import type { QboClient } from '../qbo/client.js';
 
 export type HandleStripeWebhookResult =
   | { ok: true; alreadyProcessed: boolean }
@@ -87,6 +89,9 @@ export async function handleStripeWebhookEvent(
   rawBody: string,
   signatureHeader: string | null,
   client: StripeClient = getStripeClient(),
+  // Injectable ONLY so tests can fake the post-commit QBO auto-sync; app code
+  // never passes it (the memoized getQboClient() selector applies).
+  qboClient?: QboClient,
 ): Promise<HandleStripeWebhookResult> {
   // 1. Verify signature + parse — the ONLY trusted entry point for event data.
   let event;
@@ -192,6 +197,10 @@ export async function handleStripeWebhookEvent(
 
   const { orgId, invoiceId, paymentIntentRecordId } = resolved;
 
+  // Captured inside the money tx below, consumed AFTER it commits by the
+  // best-effort QBO auto-sync (migration 0046) — never inside the money path.
+  let creditedLedgerEntryId: string | null = null;
+
   await withOrgContext(db, orgId, async (tx) => {
     // Guarded UPDATE WHERE status <> 'succeeded' — idempotent even if a race
     // somehow slipped past the stripe_event PK guard (defense-in-depth; the
@@ -216,17 +225,21 @@ export async function handleStripeWebhookEvent(
 
     if (memberUserId) {
       const accountId = await ensureBillingAccountTx(tx, orgId, memberUserId);
-      await tx.insert(ledgerEntry).values({
-        orgId,
-        accountId,
-        entryType: 'payment',
-        direction: 'credit',
-        amountCents: updated[0].amountCents,
-        invoiceId,
-        paymentId: piId,
-        memo: 'Stripe payment (webhook-verified)',
-        createdBy: null, // SYSTEM/webhook-generated — mirrors audit_log's nullable actor convention.
-      });
+      const insertedCredit = await tx
+        .insert(ledgerEntry)
+        .values({
+          orgId,
+          accountId,
+          entryType: 'payment',
+          direction: 'credit',
+          amountCents: updated[0].amountCents,
+          invoiceId,
+          paymentId: piId,
+          memo: 'Stripe payment (webhook-verified)',
+          createdBy: null, // SYSTEM/webhook-generated — mirrors audit_log's nullable actor convention.
+        })
+        .returning({ id: ledgerEntry.id });
+      creditedLedgerEntryId = insertedCredit[0]?.id ?? null;
     }
 
     await tx.insert(auditLog).values({
@@ -242,6 +255,16 @@ export async function handleStripeWebhookEvent(
       },
     });
   });
+
+  // Post-commit best-effort QBO payment auto-sync (Slice QBO-SYNC, migration
+  // 0046). Runs only AFTER the ledger credit above has committed; internally
+  // gated on the org's auto_export_invoices toggle (graceful absence → no-op)
+  // and guaranteed non-throwing — a QBO hiccup can never turn a verified
+  // Stripe payment into a webhook failure/retry. The .catch is belt-and-
+  // suspenders, mirroring the finalize-invoice hook in billing/actions.ts.
+  if (creditedLedgerEntryId) {
+    await autoSyncPaymentToQboOnStripeWebhook(db, orgId, creditedLedgerEntryId, qboClient).catch(() => {});
+  }
 
   return { ok: true, alreadyProcessed: false };
 }
