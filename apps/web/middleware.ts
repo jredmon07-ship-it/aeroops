@@ -43,6 +43,14 @@ export default auth(function middleware(
     return NextResponse.next();
   }
 
+  // ── Self-serve signup (Slice SIGNUP) ────────────────────────────────────────
+  // /signup — public org-creation page (unauthenticated: the visitor has no org
+  // yet). Not under /o/[slug]/* so it already falls through the matcher; made
+  // explicit here alongside /book so a future refactor cannot close it off.
+  if (pathname === '/signup' || pathname.startsWith('/signup/')) {
+    return NextResponse.next();
+  }
+
   // ── Slice P1.4 public calendar feed ────────────────────────────────────────
   // /api/calendar/[token] — public, unauthenticated .ics GET (a calendar app
   // cannot do session auth). Not under /o/[slug]/* so it already passes

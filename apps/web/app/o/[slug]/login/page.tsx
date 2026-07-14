@@ -149,6 +149,13 @@ export default async function LoginPage({ params }: LoginPageProps) {
               </div>
             )}
             <LoginForm slug={slug} />
+            <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+              New to AeroOps?{' '}
+              <a href="/signup" className="font-medium underline hover:text-slate-700 dark:hover:text-slate-300">
+                Create an operation
+              </a>
+              .
+            </p>
           </CardContent>
         </Card>
       </div>

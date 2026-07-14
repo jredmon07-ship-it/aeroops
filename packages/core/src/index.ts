@@ -416,3 +416,17 @@ export {
   mergeFeatureFlags,
 } from './org-modules.js';
 export type { OrgModuleKey, OrgFeatureFlags, OperatingMode } from './org-modules.js';
+
+// ─── Signup — pure helpers for self-serve org creation (slug, reserved, version) ──
+// deriveSlugBase/deriveSlugCandidate/isValidSlug turn an org name into a URL-safe
+//   tenant slug and skip reserved route names; LEGAL_DOCUMENT_VERSION stamps the
+//   terms/privacy acceptance record. No DB — the caller collision-checks slugs.
+export {
+  LEGAL_DOCUMENT_VERSION,
+  RESERVED_SLUGS,
+  SLUG_MIN_LENGTH,
+  SLUG_MAX_LENGTH,
+  deriveSlugBase,
+  deriveSlugCandidate,
+  isValidSlug,
+} from './signup.js';
