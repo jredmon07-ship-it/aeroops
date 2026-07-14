@@ -44,12 +44,16 @@ import {
   listInvoiceableDispatch,
   listRateSchedules,
   generateInvoiceFromDispatch,
+  listOrgDuesSchedules,
+  applyStandardDuesSchedule,
 } from '@aeroops/api';
 import type {
   InvoiceStatus,
   ListInvoicesOptions,
   LedgerEntryCursor,
   MemberBillingProfile,
+  OrgDuesScheduleRow,
+  ApplyStandardDuesInput,
 } from '@aeroops/api';
 
 // ─── Error shapes ──────────────────────────────────────────────────────────────
@@ -675,6 +679,53 @@ export async function generateInvoiceFromDispatchAction(
     // The ticket is now invoiced — drop it from the "ready to invoice" worklist.
     revalidatePath(`/o/${slug}/billing`);
     return { ok: true, invoiceId: result.invoice.id };
+  } catch (err) {
+    const mapped = mapActionError(err);
+    if (mapped) return mapped;
+    return { error: 'server' };
+  }
+}
+
+// ─── Recurring billing hub (org-level dues/tuition list + bulk apply) ───────
+// listOrgDuesSchedulesAction is billing:access (read); applyStandardDuesAction
+// is billing:manage, enforced inside the @aeroops/api commands. NO charge
+// happens here — a schedule only produces a DRAFT invoice when a period is
+// later generated (runDuesForPeriodAction, reused unchanged below).
+
+export type ListOrgDuesSchedulesActionResult =
+  | { ok: true; schedules: OrgDuesScheduleRow[] }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function listOrgDuesSchedulesAction(): Promise<ListOrgDuesSchedulesActionResult> {
+  const session = await auth();
+  try {
+    const result = await listOrgDuesSchedules(session);
+    return { ok: true, schedules: result.schedules };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export type ApplyStandardDuesActionResult =
+  | { ok: true; createdCount: number; skippedExistingCount: number }
+  | { ok: false; reason: 'cadence_not_available' }
+  | { error: 'validation'; message: string }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function applyStandardDuesAction(
+  slug: string,
+  input: ApplyStandardDuesInput,
+): Promise<ApplyStandardDuesActionResult> {
+  const session = await auth();
+  try {
+    const result = await applyStandardDuesSchedule(session, input);
+    if (!result.ok) return result;
+    revalidatePath(`/o/${slug}/billing/recurring`);
+    return { ok: true, createdCount: result.createdCount, skippedExistingCount: result.skippedExistingCount };
   } catch (err) {
     const mapped = mapActionError(err);
     if (mapped) return mapped;

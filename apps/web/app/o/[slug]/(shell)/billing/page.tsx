@@ -361,6 +361,9 @@ export default async function BillingPage({ params }: BillingPageProps) {
         actions={
           <>
             <Button asChild variant="outline" size="sm">
+              <Link href={`/o/${slug}/billing/recurring`}>Recurring billing</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
               <Link href={`/o/${slug}/billing/block-time`}>Block time</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
