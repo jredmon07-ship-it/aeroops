@@ -17,7 +17,9 @@
  * ║  as the PGlite test seed). Once seeded, the running app connects as       ║
  * ║  aeroops_app for enforced RLS.                                           ║
  * ║                                                                          ║
- * ║  This seeds the SAME dataset as pnpm demo (in-memory PGlite, DEMO.md):  ║
+ * ║  This seeds the SAME dataset as pnpm demo (in-memory PGlite, DEMO.md) —  ║
+ * ║  TWO orgs, one seedDemo() call:                                          ║
+ * ║                                                                          ║
  * ║    org:     Alpha Flight School (slug: alpha)                            ║
  * ║    users:   5 (one per role, each with password credential)              ║
  * ║    fleet:   N172SP / N152AB / N28K / N66RG + CFI resource               ║
@@ -25,9 +27,18 @@
  * ║             weekly series, squawks, grounded Cirrus, dispatch gate,      ║
  * ║             civil-twilight config                                        ║
  * ║                                                                          ║
+ * ║    org:     Buckeye Flying Club — small-club counter-example (slug:     ║
+ * ║             buckeye; club operating mode when migration 0047 is         ║
+ * ║             applied — training/booking/auto-schedule off)                ║
+ * ║    users:   3 (owner / manager / renter, each with password credential) ║
+ * ║    fleet:   N735BW / N2189K                                              ║
+ * ║    data:    upcoming reservations, a flown dispatch ticket, an open     ║
+ * ║             squawk, a booking policy                                     ║
+ * ║                                                                          ║
  * ║  Logins (password: demo1234) — see DEMO.md for the full click-through:  ║
  * ║    owner@alpha.aero  /  manager@alpha.aero  /  dispatch@alpha.aero       ║
  * ║    cfi@alpha.aero    /  student@alpha.aero                               ║
+ * ║    owner@buckeye.aero  /  admin@buckeye.aero  /  member@buckeye.aero    ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  *
  * Usage:
@@ -35,7 +46,7 @@
  *
  * Prerequisites:
  *   1. All migrations applied (pnpm db:migrate:apply).
- *   2. Target DB is empty — no existing org with slug "alpha".
+ *   2. Target DB is empty — no existing org with slug "alpha" OR "buckeye".
  *   3. DATABASE_URL is the owner/DDL role (not aeroops_app).
  *
  * After seeding, configure the running app with the aeroops_app DATABASE_URL
@@ -45,7 +56,14 @@
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from '@aeroops/db';
-import { seedDemo, DEMO_LOGINS, DEMO_PASSWORD, DEMO_SLUG } from '../src/demo/seed.js';
+import {
+  seedDemo,
+  DEMO_LOGINS,
+  DEMO_LOGINS_BUCKEYE,
+  DEMO_PASSWORD,
+  DEMO_SLUG,
+  DEMO_SLUG_BUCKEYE,
+} from '../src/demo/seed.js';
 import type { AnyDb } from '@aeroops/db';
 
 // ── Environment guards ────────────────────────────────────────────────────────

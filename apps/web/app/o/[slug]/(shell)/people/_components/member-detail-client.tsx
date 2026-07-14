@@ -21,9 +21,13 @@ import { Tag } from 'lucide-react';
 import { ROLE_LABELS } from '@aeroops/core';
 import type { MembershipRole } from '@aeroops/core';
 import type { SerializedMemberDetail } from '../actions';
+import { updateMemberAvatarAction } from '../actions';
 import { EditMemberDialog } from './edit-member-dialog';
 import { StatusToggle } from './status-toggle';
 import { TagEditor } from './tag-editor';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import { AvatarUpload } from '@/components/ui/avatar-upload';
+import { actionErrorMessage } from '@/lib/action-feedback';
 
 // ─── Status chip ───────────────────────────────────────────────────────────────
 
@@ -59,18 +63,33 @@ interface MemberDetailClientProps {
   member: SerializedMemberDetail;
   slug: string;
   canManage: boolean;
+  /** null when no photo is set (or migration 0048 is unapplied). */
+  avatarDataUrl: string | null;
+  /** false while migration 0048 is unapplied — hides the upload control. */
+  avatarAvailable: boolean;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function MemberDetailClient({ member: initialMember, slug, canManage }: MemberDetailClientProps) {
+export function MemberDetailClient({
+  member: initialMember,
+  slug,
+  canManage,
+  avatarDataUrl: initialAvatarDataUrl,
+  avatarAvailable,
+}: MemberDetailClientProps) {
   const router = useRouter();
   const [member, setMember] = React.useState<SerializedMemberDetail>(initialMember);
+  const [avatarDataUrl, setAvatarDataUrl] = React.useState<string | null>(initialAvatarDataUrl);
 
   // Sync if the server re-renders with fresh data (e.g. after router.refresh)
   React.useEffect(() => {
     setMember(initialMember);
   }, [initialMember]);
+
+  React.useEffect(() => {
+    setAvatarDataUrl(initialAvatarDataUrl);
+  }, [initialAvatarDataUrl]);
 
   function handleMemberUpdate(updated: SerializedMemberDetail) {
     setMember(updated);
@@ -83,32 +102,67 @@ export function MemberDetailClient({ member: initialMember, slug, canManage }: M
     // Tags are managed entirely in client state; no full RSC refresh needed.
   }
 
+  async function handleAvatarSave(dataUrl: string | null) {
+    const result = await updateMemberAvatarAction(member.userId, dataUrl, slug);
+    if ('error' in result) {
+      return { ok: false, message: actionErrorMessage(result) };
+    }
+    if (!result.ok) {
+      return {
+        ok: false,
+        message:
+          result.reason === 'member_not_found'
+            ? 'Member not found.'
+            : "Photos aren't available yet.",
+      };
+    }
+    setAvatarDataUrl(dataUrl);
+    return { ok: true };
+  }
+
   return (
     <>
       {/* ── Identity header ────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{member.displayName}</h1>
-            <StatusChip status={member.status} />
-            <RoleBadge role={member.role} />
-          </div>
-          {/* [AUTH-DECISION]: no-login hint — only for members without a credential. */}
-          {!member.hasLogin && (
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              Roster entry — no login yet. Login access requires a future invite slice.
+        <div className="flex items-start gap-4">
+          <UserAvatar name={member.displayName} src={avatarDataUrl} size="xl" />
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{member.displayName}</h1>
+              <StatusChip status={member.status} />
+              <RoleBadge role={member.role} />
+            </div>
+            {/* [AUTH-DECISION]: no-login hint — only for members without a credential. */}
+            {!member.hasLogin && (
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                Roster entry — no login yet. Login access requires a future invite slice.
+              </p>
+            )}
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Member since{' '}
+              {member.joinedAt
+                ? new Intl.DateTimeFormat('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  }).format(new Date(member.joinedAt))
+                : '—'}
             </p>
-          )}
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Member since{' '}
-            {member.joinedAt
-              ? new Intl.DateTimeFormat('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                }).format(new Date(member.joinedAt))
-              : '—'}
-          </p>
+
+            {canManage &&
+              (avatarAvailable ? (
+                <AvatarUpload
+                  name={member.displayName}
+                  currentSrc={avatarDataUrl}
+                  onSave={handleAvatarSave}
+                  className="pt-1"
+                />
+              ) : (
+                <p className="pt-1 text-xs text-slate-400 dark:text-slate-500">
+                  Profile photos become available in an upcoming update.
+                </p>
+              ))}
+          </div>
         </div>
 
         {canManage && (

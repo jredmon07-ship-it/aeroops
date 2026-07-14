@@ -25,12 +25,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { getSessionOrg, getOrgFieldStatus, getOrgFeatures } from '@aeroops/api';
+import { getSessionOrg, getOrgFieldStatus, getOrgFeatures, getMyAvatar } from '@aeroops/api';
 import type { OrgFieldStatusResult } from '@aeroops/api';
 import { ROLE_LABELS, ALL_MODULES_ENABLED } from '@aeroops/core';
 import type { OrgFeatureFlags } from '@aeroops/core';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { SignOutButton } from '../sign-out-button';
 import { MobileNav } from './mobile-nav';
 import { filterNavForSession, NAV_ITEMS } from '@/lib/nav';
@@ -98,6 +99,17 @@ export default async function OrgShellLayout({
   // UI/nav only — gate enforced by requireCapability() in each protected page.
   const navItems = filterNavForSession(session, NAV_ITEMS, slug, enabledModules);
 
+  // Signed-in user's own avatar (Slice AVATARS) — FAIL SOFT to null: any
+  // failure (or migration 0048 unapplied) renders the header with initials
+  // only, never blocks the shell.
+  let myAvatarDataUrl: string | null = null;
+  try {
+    const avatarResult = await getMyAvatar(session);
+    myAvatarDataUrl = avatarResult.avatarDataUrl;
+  } catch {
+    myAvatarDataUrl = null;
+  }
+
   return (
     <ThemeProvider>
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-800 dark:bg-slate-950">
@@ -158,6 +170,7 @@ export default async function OrgShellLayout({
 
             <Separator orientation="vertical" className="h-5" />
 
+            <UserAvatar name={session.user.email} src={myAvatarDataUrl} size="xs" />
             <span className="hidden text-sm text-slate-500 sm:block dark:text-slate-400">
               {session.user.email}
             </span>

@@ -1,20 +1,32 @@
 /**
  * demo/seed.ts — rich, deterministic demo seed for the zero-setup prototype.
  *
- * Builds ONE org ("Alpha Flight School", slug `alpha`) with a believable
- * cross-section of data so a reviewer can click through the whole scheduling +
- * dispatch surface without any setup:
+ * Builds TWO orgs so a reviewer can see both ends of the product:
  *
- *   - one user per key role (owner / manager / dispatcher / cfi / student),
- *     each with a known password (see DEMO_PASSWORD) and an auth_credential.
- *   - four aircraft (by tail #) + one instructor resource (linked to the CFI).
- *   - today's reservations across several aircraft (one already flown, one
- *     currently out, two on the books) + a future reservation on the
- *     policy-gated aircraft.
- *   - a per-resource booking policy (max duration / advance / lead time).
- *   - a weekly recurring lesson series.
- *   - one CLOSED dispatch ticket (flown earlier today, Hobbs/tach recorded)
- *     and one OPEN dispatch ticket (aircraft currently checked out).
+ *   1. "Alpha Flight School" (slug `alpha`) — a busy flight school:
+ *      - one user per key role (owner / manager / dispatcher / cfi / student),
+ *        each with a known password (see DEMO_PASSWORD) and an auth_credential.
+ *      - four aircraft (by tail #) + one instructor resource (linked to the CFI).
+ *      - today's reservations across several aircraft (one already flown, one
+ *        currently out, two on the books) + a future reservation on the
+ *        policy-gated aircraft.
+ *      - a per-resource booking policy (max duration / advance / lead time).
+ *      - a weekly recurring lesson series.
+ *      - one CLOSED dispatch ticket (flown earlier today, Hobbs/tach recorded)
+ *        and one OPEN dispatch ticket (aircraft currently checked out).
+ *
+ *   2. "Buckeye Flying Club" (slug `buckeye`) — a SMALL CLUB counter-example:
+ *      - three logins (owner / admin / member), two aircraft, one location.
+ *      - a modest slice of life: a couple of upcoming member reservations, one
+ *        flown+closed dispatch ticket, one open low-severity squawk, a booking
+ *        policy. NO training course (club operating mode turns training off).
+ *      - CLUB OPERATING MODE (migration 0047, GRACEFUL ABSENCE if unapplied):
+ *        the org_feature_config row is written with the 'club' preset
+ *        (training/booking/auto-schedule off).
+ *
+ * Both orgs are built by this SAME seedDemo() call — one entry point so
+ * bootstrap.ts, reset.ts, and the real-Postgres runner (seed-demo.ts) all get
+ * both without any extra wiring.
  *
  * SEEDING POSTURE: this runs as the PGlite superuser (BEFORE setTestAppRole),
  * exactly like the test seed. Control-plane rows (org/plan/subscription) go
@@ -23,10 +35,14 @@
  * tested write paths (createReservationWithDb, upsertBookingPolicyWithDb,
  * createSeriesWithDb, openDispatchWithDb, closeDispatchWithDb) so the demo data
  * is byte-identical to what the running app would produce — no hand-rolled SQL.
+ * The two GRACEFUL-ABSENCE features (club mode / avatars) have no Drizzle
+ * table/column object by design (see org-features-internal.ts / avatar.ts) —
+ * those two spots use guarded raw SQL, same as their production consumers.
  *
  * This module is DEMO-ONLY. It is never imported by the production code path
  * (getDb only reaches it when AEROOPS_DEMO=1).
  */
+import { sql } from 'drizzle-orm';
 import {
   withOrgContext,
   withPlatformAdminContext,
@@ -44,6 +60,7 @@ import {
 } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import type { MembershipRole } from '@aeroops/core';
+import { OPERATING_MODE_PRESETS } from '@aeroops/core';
 import { hashPassword } from '../auth/hash.js';
 import type { AppSession } from '../auth/types.js';
 import { createReservationWithDb } from '../scheduling/create-reservation.js';
@@ -60,9 +77,13 @@ import { createCourseWithDb } from '../training/create-course.js';
 import { addCourseLessonWithDb } from '../training/add-course-lesson.js';
 import { enrollMemberWithDb } from '../training/enroll-member.js';
 import { recordLessonWithDb } from '../training/record-lesson.js';
+import { orgFeatureConfigTableExists } from '../org-features/org-features-internal.js';
+import { appUserHasAvatarColumn } from '../people/avatar.js';
 
 /** The org address used in the URL: /o/alpha/login */
 export const DEMO_SLUG = 'alpha';
+/** The small-club org address used in the URL: /o/buckeye/login */
+export const DEMO_SLUG_BUCKEYE = 'buckeye';
 /** Shared password for every demo login (printed in the runbook). */
 export const DEMO_PASSWORD = 'demo1234';
 
@@ -81,6 +102,30 @@ export const DEMO_LOGINS: DemoLogin[] = [
   { email: 'cfi@alpha.aero', fullName: 'Casey Reed (CFI)', role: 'cfi', phone: '(614) 555-0104' },
   { email: 'student@alpha.aero', fullName: 'Sam Student', role: 'student', phone: '(614) 555-0105' },
 ];
+
+/** The three Buckeye Flying Club demo logins (owner / admin / member). */
+export const DEMO_LOGINS_BUCKEYE: DemoLogin[] = [
+  { email: 'owner@buckeye.aero', fullName: 'Jordan Club-President', role: 'owner', phone: '(614) 555-0201' },
+  { email: 'admin@buckeye.aero', fullName: 'Casey Scheduler', role: 'manager', phone: '(614) 555-0202' },
+  { email: 'member@buckeye.aero', fullName: 'Riley Member', role: 'renter', phone: '(614) 555-0203' },
+];
+
+/**
+ * Tiny 1x1 solid-color PNG data URIs for demo avatars (migration 0048,
+ * GRACEFUL ABSENCE if unapplied). One distinct color per seeded user; each is
+ * a genuine, valid PNG (not a placeholder string) well under the 160,000-char
+ * DB cap. Not exported — internal to the seed.
+ */
+const AVATAR_BLUE =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mNQTX4NAAIkAXSk55J4AAAAAElFTkSuQmCC';
+const AVATAR_FUCHSIA =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mO46fYeAAQKAg/O90McAAAAAElFTkSuQmCC';
+const AVATAR_GREEN =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mMQW+wFAAHWAQSgVTXHAAAAAElFTkSuQmCC';
+const AVATAR_ORANGE =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mN4FcEDAAN+AU+fpiGuAAAAAElFTkSuQmCC';
+const AVATAR_CYAN =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mPgmLgJAAHwAUwmFUimAAAAAElFTkSuQmCC';
 
 /**
  * Memoized argon2id hash of the (constant) demo password. The reset-on-open
@@ -102,6 +147,51 @@ function atLocal(dayOffset: number, hour: number, minute = 0): Date {
   d.setDate(d.getDate() + dayOffset);
   d.setHours(hour, minute, 0, 0);
   return d;
+}
+
+/**
+ * maybeSetAvatar — set a demo user's avatar IF migration 0048 is applied.
+ * GRACEFUL ABSENCE: probes appUserHasAvatarColumn first (catalog-only, never
+ * poisons the transaction) and silently no-ops on a pre-0048 DB. `tx` must
+ * already be org-scoped (RLS GUC set) — same contract as avatar.ts's writers.
+ */
+async function maybeSetAvatar(
+  tx: AnyDb,
+  orgId: string,
+  userId: string,
+  avatarDataUrl: string,
+): Promise<void> {
+  if (!(await appUserHasAvatarColumn(tx))) return;
+  await tx.execute(sql`
+    UPDATE "app_user"
+    SET "avatar_data" = ${avatarDataUrl}
+    WHERE "id" = ${userId}::uuid AND "org_id" = ${orgId}::uuid
+  `);
+}
+
+/**
+ * maybeSeedClubMode — write the org_feature_config row for a small-club org
+ * IF migration 0047 is applied. GRACEFUL ABSENCE: probes
+ * orgFeatureConfigTableExists first and silently no-ops on a pre-0047 DB (the
+ * org then simply behaves as ALL-MODULES-ENABLED, same as today). `tx` must
+ * already be org-scoped (RLS GUC set). There is deliberately no Drizzle table
+ * object for org_feature_config (see org-features-internal.ts), so this is a
+ * guarded raw INSERT — same pattern as its production writer (setOrgFeatures).
+ */
+async function maybeSeedClubMode(tx: AnyDb, orgId: string): Promise<void> {
+  if (!(await orgFeatureConfigTableExists(tx))) return;
+  const preset = OPERATING_MODE_PRESETS.club;
+  await tx.execute(sql`
+    INSERT INTO "org_feature_config" (
+      "org_id", "operating_mode",
+      "module_training", "module_maintenance", "module_billing", "module_booking",
+      "module_portal", "module_reports", "module_auto_schedule", "module_messages"
+    ) VALUES (
+      ${orgId}::uuid, 'club',
+      ${preset.training}, ${preset.maintenance}, ${preset.billing}, ${preset.booking},
+      ${preset.portal}, ${preset.reports}, ${preset.auto_schedule}, ${preset.messages}
+    )
+  `);
 }
 
 /**
@@ -157,6 +247,10 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     const cfiUserId = userIdByEmail.get('cfi@alpha.aero')!;
     const ownerUserId = userIdByEmail.get('owner@alpha.aero')!;
     const studentUserId = userIdByEmail.get('student@alpha.aero')!;
+
+    // Demo avatars (migration 0048, GRACEFUL ABSENCE — no-ops pre-0048).
+    await maybeSetAvatar(tx, orgId, ownerUserId, AVATAR_BLUE);
+    await maybeSetAvatar(tx, orgId, cfiUserId, AVATAR_FUCHSIA);
 
     // Free-text member tags (operator labels ONLY — no computed currency/medical).
     const demoTags: Array<{ userId: string; tag: string }> = [
@@ -521,6 +615,194 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     if (!recorded.ok) {
       throw new Error(`[demo] record lesson failed (${recorded.reason}) — seed cannot continue.`);
     }
+  }
+
+  // ── 9. Second org — "Buckeye Flying Club" (small club, slug `buckeye`) ──
+  await seedBuckeyeClub(db);
+}
+
+/**
+ * seedBuckeyeClub — the small-club counter-example org, built through the
+ * SAME real write paths as Alpha above. Called once from seedDemo() so every
+ * runner (bootstrap, reset, the real-Postgres script) gets both orgs for free.
+ */
+async function seedBuckeyeClub(db: AnyDb): Promise<void> {
+  // ── Control-plane: org + plan + active subscription ──────────────────────
+  const orgRow = await withPlatformAdminContext(db, async (tx) => {
+    const [o] = await tx
+      .insert(org)
+      .values({ name: 'Buckeye Flying Club', slug: DEMO_SLUG_BUCKEYE, status: 'active' })
+      .returning();
+    // Idempotent on the (global, non-org-scoped) plan — shared with Alpha.
+    const [p] = await tx
+      .insert(plan)
+      .values({ code: 'growth', name: 'Growth' })
+      .onConflictDoUpdate({ target: plan.code, set: { name: 'Growth' } })
+      .returning();
+    await tx
+      .insert(subscription)
+      .values({ orgId: o!.id, planId: p!.id, status: 'active' })
+      .returning();
+    return o!;
+  });
+  const orgId = orgRow.id;
+
+  // ── Tenant: users + memberships + credentials + club mode + avatars ──────
+  const passwordHash = await demoPasswordHash();
+
+  const ids = await withOrgContext(db, orgId, async (tx) => {
+    const userIdByEmail = new Map<string, string>();
+    for (const login of DEMO_LOGINS_BUCKEYE) {
+      const [u] = await tx
+        .insert(appUser)
+        .values({ orgId, email: login.email, fullName: login.fullName, phone: login.phone })
+        .returning();
+      await tx
+        .insert(membership)
+        .values({ orgId, userId: u!.id, role: login.role })
+        .returning();
+      await tx
+        .insert(authCredential)
+        .values({ orgId, userId: u!.id, passwordHash })
+        .returning();
+      userIdByEmail.set(login.email, u!.id);
+    }
+
+    const ownerUserId = userIdByEmail.get('owner@buckeye.aero')!;
+    const adminUserId = userIdByEmail.get('admin@buckeye.aero')!;
+    const memberUserId = userIdByEmail.get('member@buckeye.aero')!;
+
+    // CLUB OPERATING MODE (migration 0047, GRACEFUL ABSENCE — no-ops pre-0047).
+    // Training / public booking / auto-scheduler off; everything else on.
+    await maybeSeedClubMode(tx, orgId);
+
+    // Demo avatars (migration 0048, GRACEFUL ABSENCE — no-ops pre-0048).
+    await maybeSetAvatar(tx, orgId, ownerUserId, AVATAR_GREEN);
+    await maybeSetAvatar(tx, orgId, adminUserId, AVATAR_ORANGE);
+    await maybeSetAvatar(tx, orgId, memberUserId, AVATAR_CYAN);
+
+    // Home base — Don Scott Field (KOSU), the same field Alpha uses.
+    const [base] = await tx
+      .insert(location)
+      .values({
+        orgId,
+        name: 'Don Scott Field',
+        icao: 'KOSU',
+        latitude: '40.07980',
+        longitude: '-83.07300',
+      })
+      .returning();
+
+    // Two aircraft — a small club's whole fleet. Both have Hobbs + tach.
+    const aircraftSpecs = [
+      { displayName: 'Cessna 172N Skyhawk', tailNumber: 'N735BW', make: 'Cessna', model: '172N Skyhawk', year: 1977, serialNumber: '17270123' },
+      { displayName: 'Piper PA-28-161 Warrior II', tailNumber: 'N2189K', make: 'Piper', model: 'PA-28-161 Warrior II', year: 1979, serialNumber: '28-7916345' },
+    ];
+    const aircraftIdByTail = new Map<string, string>();
+    for (const a of aircraftSpecs) {
+      const [r] = await tx
+        .insert(resource)
+        .values({
+          orgId,
+          kind: 'aircraft',
+          displayName: a.displayName,
+          tailNumber: a.tailNumber,
+          make: a.make,
+          model: a.model,
+          year: a.year,
+          serialNumber: a.serialNumber,
+          homeBaseLocationId: base!.id,
+          hasHobbs: true,
+          hasTach: true,
+        })
+        .returning();
+      aircraftIdByTail.set(a.tailNumber, r!.id);
+    }
+
+    return { userIdByEmail, aircraftIdByTail, ownerId: ownerUserId, memberId: memberUserId };
+  });
+
+  // Owner session drives the real write paths below (full capabilities),
+  // same pattern as Alpha.
+  const ownerSession: AppSession = {
+    user: { email: 'owner@buckeye.aero' },
+    userId: ids.ownerId,
+    orgId,
+    slug: DEMO_SLUG_BUCKEYE,
+    role: 'owner',
+  };
+
+  const tail = (t: string) => ids.aircraftIdByTail.get(t)!;
+
+  // ── Reservations (through the real gated create path) ────────────────────
+  // Flown earlier today — will receive a CLOSED dispatch ticket.
+  const flownRes = await mustCreate(
+    createReservationWithDb(db, ownerSession, {
+      startAt: atLocal(0, 8, 0),
+      endAt: atLocal(0, 9, 0),
+      resourceIds: [tail('N735BW')],
+      notes: 'Riley — club currency flight',
+    }),
+    'reservation (Skyhawk, flown)',
+  );
+
+  // Two upcoming reservations for the member, one on each aircraft.
+  await mustCreate(
+    createReservationWithDb(db, ownerSession, {
+      startAt: atLocal(1, 10, 0),
+      endAt: atLocal(1, 11, 30),
+      resourceIds: [tail('N735BW')],
+      notes: 'Riley — pattern work',
+    }),
+    'reservation (Skyhawk, upcoming)',
+  );
+  await mustCreate(
+    createReservationWithDb(db, ownerSession, {
+      startAt: atLocal(2, 14, 0),
+      endAt: atLocal(2, 15, 30),
+      resourceIds: [tail('N2189K')],
+      notes: 'Riley — local area familiarization',
+    }),
+    'reservation (Warrior, upcoming)',
+  );
+
+  // ── Booking policy on the Warrior (cheap — added after its reservations) ──
+  await mustOk(
+    upsertBookingPolicyWithDb(db, ownerSession, {
+      resourceId: tail('N2189K'),
+      maxDurationMinutes: 240,
+      maxAdvanceDays: 45,
+      minAdvanceMinutes: 60,
+    }),
+    'booking policy (Warrior)',
+  );
+
+  // ── Dispatch ticket — flown + closed, Hobbs/tach recorded ────────────────
+  const opened = await openDispatchWithDb(db, ownerSession, {
+    reservationId: flownRes.id,
+    resourceId: tail('N735BW'),
+    pilotUserId: ids.memberId,
+    hobbsOut: 890.4,
+    tachOut: 850.1,
+    notes: 'Pre-flight complete',
+  });
+  if (!opened.ok) throw new Error(`[demo] buckeye open dispatch failed: ${opened.reason}`);
+  const closed = await closeDispatchWithDb(db, ownerSession, {
+    ticketId: opened.ticket.id,
+    hobbsIn: 891.6,
+    tachIn: 851.2,
+  });
+  if (!closed.ok) throw new Error(`[demo] buckeye close dispatch failed: ${closed.reason}`);
+
+  // ── Squawk — open, low severity, on the Warrior (no grounding) ───────────
+  const squawk = await reportSquawkWithDb(db, ownerSession, {
+    resourceId: tail('N2189K'),
+    title: 'Right main tire showing wear',
+    description: 'Noted during preflight walkaround. Keep an eye on it before the next annual.',
+    severity: 'low',
+  });
+  if (!squawk.ok) {
+    throw new Error('[demo] buckeye report squawk failed — seed cannot continue.');
   }
 }
 

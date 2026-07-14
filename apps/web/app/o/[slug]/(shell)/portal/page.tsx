@@ -51,7 +51,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SectionHeader } from '@/components/ui/section-header';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
-import { getMyPortalSummaryAction, getMyBillingAction } from './actions';
+import { getMyPortalSummaryAction, getMyBillingAction, getMyAvatarAction } from './actions';
 import type { SerializedMyPortalSummary } from './actions';
 import { formatCents } from '../billing/_components/format-cents';
 // Pure display helpers — extracted to a separate file so they can be
@@ -59,6 +59,7 @@ import { formatCents } from '../billing/_components/format-cents';
 // Imported for use within this file; the utils file is the canonical export.
 import { deriveFirstName, reservationRoleLabel } from './_utils/portal-display';
 import { CalendarFeedCard } from './_components/calendar-feed-card';
+import { PortalAvatarCard } from './_components/portal-avatar-card';
 
 /**
  * formatLocalDateTime — formats an ISO string to a readable local date+time.
@@ -415,16 +416,21 @@ interface PortalContentProps {
 }
 
 async function PortalContent({ slug }: PortalContentProps) {
-  // Balance is best-effort — any failure just hides the hero metric and falls
-  // back to the plain Billing link (never blocks the portal).
-  const [result, billingResult] = await Promise.all([
+  // Balance + avatar are best-effort — any failure just hides that piece and
+  // falls back gracefully (never blocks the portal).
+  const [result, billingResult, avatarResult] = await Promise.all([
     getMyPortalSummaryAction(),
     getMyBillingAction().catch(() => null),
+    getMyAvatarAction().catch(() => null),
   ]);
   const balanceCents =
     billingResult && 'ok' in billingResult && billingResult.ok
       ? billingResult.billing.balanceCents
       : null;
+  const avatarDataUrl =
+    avatarResult && 'ok' in avatarResult && avatarResult.ok ? avatarResult.avatarDataUrl : null;
+  const avatarAvailable =
+    avatarResult && 'ok' in avatarResult && avatarResult.ok ? avatarResult.available : false;
 
   if ('error' in result) {
     const message =
@@ -464,6 +470,14 @@ async function PortalContent({ slug }: PortalContentProps) {
           Your upcoming reservations, training progress, and account info.
         </p>
       </div>
+
+      {/* ── Your photo (Slice AVATARS) — self-service ─────────────────────── */}
+      <PortalAvatarCard
+        slug={slug}
+        displayName={summary.account.displayName}
+        initialAvatarDataUrl={avatarDataUrl}
+        available={avatarAvailable}
+      />
 
       {/* ── Billing (Slice P0-REV) — hero balance metric ──────────────────── */}
       {balanceCents !== null ? (

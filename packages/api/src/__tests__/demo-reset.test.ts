@@ -35,7 +35,7 @@ import { createTestClient, applyMigrationSql } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 import type { PGlite } from '@electric-sql/pglite';
 
-import { seedDemo, DEMO_SLUG, DEMO_PASSWORD } from '../demo/seed.js';
+import { seedDemo, DEMO_SLUG, DEMO_SLUG_BUCKEYE, DEMO_PASSWORD } from '../demo/seed.js';
 import {
   resetDemoTenantWithDb,
   maybeResetDemoTenant,
@@ -270,5 +270,131 @@ describe('demo reset-on-open — works under a NON-superuser role bound by FORCE
       password: DEMO_PASSWORD,
     });
     expect(claims).not.toBeNull();
+  });
+});
+
+// ─── Buckeye Flying Club — the second demo org (small club, club mode) ────────
+
+describe('demo seed — Buckeye Flying Club (second demo org)', () => {
+  let db: PgliteTestClient;
+  let pglite: PGlite;
+
+  beforeAll(async () => {
+    const client = await createTestClient();
+    db = client.db;
+    pglite = client.pglite;
+    for (const migration of readAllMigrations()) {
+      await applyMigrationSql({ pglite }, migration);
+    }
+    await seedDemo(db);
+  }, 120_000);
+
+  it('seeds BOTH demo orgs exactly once', async () => {
+    const rows = extractRows<{ slug: string; n: number }>(
+      await db.execute(sql`
+        select slug, count(*)::int as n from org
+        where slug in (${DEMO_SLUG}, ${DEMO_SLUG_BUCKEYE})
+        group by slug order by slug
+      `),
+    );
+    expect(rows).toEqual([
+      { slug: DEMO_SLUG, n: 1 },
+      { slug: DEMO_SLUG_BUCKEYE, n: 1 },
+    ]);
+  });
+
+  it('buckeye has exactly 2 aircraft and the 3 demo logins with the right roles', async () => {
+    const aircraft = extractRows<{ n: number }>(
+      await db.execute(sql`
+        select count(*)::int as n
+        from resource r join org o on o.id = r.org_id
+        where o.slug = ${DEMO_SLUG_BUCKEYE} and r.kind = 'aircraft'
+      `),
+    );
+    expect(aircraft[0]?.n).toBe(2);
+
+    const users = extractRows<{ email: string; role: string }>(
+      await db.execute(sql`
+        select u.email, m.role
+        from app_user u
+        join membership m on m.user_id = u.id and m.org_id = u.org_id
+        join org o on o.id = u.org_id
+        where o.slug = ${DEMO_SLUG_BUCKEYE}
+        order by u.email
+      `),
+    );
+    expect(users).toEqual([
+      { email: 'admin@buckeye.aero', role: 'manager' },
+      { email: 'member@buckeye.aero', role: 'renter' },
+      { email: 'owner@buckeye.aero', role: 'owner' },
+    ]);
+  });
+
+  it('buckeye is in CLUB mode with training/booking/auto-schedule off (0047 applied here)', async () => {
+    const rows = extractRows<{
+      operating_mode: string;
+      module_training: boolean;
+      module_booking: boolean;
+      module_auto_schedule: boolean;
+      module_billing: boolean;
+      module_maintenance: boolean;
+      module_portal: boolean;
+    }>(
+      await db.execute(sql`
+        select f.operating_mode, f.module_training, f.module_booking,
+               f.module_auto_schedule, f.module_billing, f.module_maintenance, f.module_portal
+        from org_feature_config f join org o on o.id = f.org_id
+        where o.slug = ${DEMO_SLUG_BUCKEYE}
+      `),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      operating_mode: 'club',
+      module_training: false,
+      module_booking: false,
+      module_auto_schedule: false,
+      module_billing: true,
+      module_maintenance: true,
+      module_portal: true,
+    });
+  });
+
+  it('buckeye demo users carry seeded avatars (0048 applied here)', async () => {
+    const rows = extractRows<{ n: number }>(
+      await db.execute(sql`
+        select count(*)::int as n
+        from app_user u join org o on o.id = u.org_id
+        where o.slug = ${DEMO_SLUG_BUCKEYE}
+          and u.avatar_data like 'data:image/png;base64,%'
+      `),
+    );
+    expect(rows[0]?.n).toBe(3);
+  });
+
+  it('all three buckeye credentials authenticate with the shared demo password', async () => {
+    for (const email of ['owner@buckeye.aero', 'admin@buckeye.aero', 'member@buckeye.aero']) {
+      const claims = await verifyLoginAndIssueClaimsWithDb(db, {
+        slug: DEMO_SLUG_BUCKEYE,
+        email,
+        password: DEMO_PASSWORD,
+      });
+      expect(claims, `${email} should authenticate`).not.toBeNull();
+    }
+  });
+
+  it("resetting 'buckeye' is allowlisted and rebuilds BOTH demo orgs exactly once", async () => {
+    const r = await resetDemoTenantWithDb(db, DEMO_SLUG_BUCKEYE);
+    expect(r.reset).toBe(true);
+    const rows = extractRows<{ slug: string; n: number }>(
+      await db.execute(sql`
+        select slug, count(*)::int as n from org
+        where slug in (${DEMO_SLUG}, ${DEMO_SLUG_BUCKEYE})
+        group by slug order by slug
+      `),
+    );
+    expect(rows).toEqual([
+      { slug: DEMO_SLUG, n: 1 },
+      { slug: DEMO_SLUG_BUCKEYE, n: 1 },
+    ]);
   });
 });

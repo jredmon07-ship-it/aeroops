@@ -30,6 +30,7 @@
 import { serializePilotLog, type SerializedPilotLog } from '@/lib/serialize-pilot-log';
 
 import { auth } from '@/auth';
+import { revalidatePath } from 'next/cache';
 import {
   getMyPortalSummary,
   getMyBilling,
@@ -48,6 +49,8 @@ import {
   getMyPilotLog,
   exportMyPilotLogCsv,
   annotateFlight,
+  getMyAvatar,
+  setMyAvatar,
 } from '@aeroops/api';
 import type {
   MyPortalSummary,
@@ -702,6 +705,57 @@ export async function annotateFlightAction(
   try {
     const result = await annotateFlight(session, input);
     if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice AVATARS — the caller's own profile photo (migration 0048, staged NOT
+// applied). SELF-SCOPED (unchanged pattern): no row-identifying input — the
+// subject is ALWAYS session.userId inside getMyAvatar/setMyAvatar (app:access).
+//
+// GRACEFUL ABSENCE: while migration 0048 is unapplied, available:false with a
+// null avatarDataUrl — the UI shows initials only and hides upload controls.
+// ════════════════════════════════════════════════════════════════════════════════
+
+export type GetMyAvatarActionResult =
+  | { ok: true; avatarDataUrl: string | null; available: boolean }
+  | AuthErrorResult
+  | ServerErrorResult;
+
+export async function getMyAvatarAction(): Promise<GetMyAvatarActionResult> {
+  const session = await auth();
+  try {
+    const result = await getMyAvatar(session);
+    return { ok: true, avatarDataUrl: result.avatarDataUrl, available: result.available };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    return { error: 'server' };
+  }
+}
+
+export type SetMyAvatarActionResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_available' | 'member_not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function setMyAvatarAction(
+  avatarDataUrl: string | null,
+  slug: string,
+): Promise<SetMyAvatarActionResult> {
+  const session = await auth();
+  try {
+    const result = await setMyAvatar(session, { avatarDataUrl });
+    if (!result.ok) return { ok: false, reason: result.reason };
+    revalidatePath(`/o/${slug}/portal`);
     return { ok: true };
   } catch (err) {
     const authErr = mapAuthError(err);

@@ -15,6 +15,8 @@ import { ROLE_LABELS } from '@aeroops/core';
 import type { MembershipRole } from '@aeroops/core';
 import type { OrgMemberListRow, MemberTagChipView } from '@aeroops/api';
 import { tagChipClasses } from '@/lib/member-tag-color';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import { listMemberAvatarsAction } from '../actions';
 
 // ─── Role badge ────────────────────────────────────────────────────────────────
 
@@ -84,6 +86,33 @@ interface MembersTableProps {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function MembersTable({ members, slug }: MembersTableProps) {
+  // Best-effort avatar batch fetch for the currently-loaded page of rows.
+  // Failure (or migration 0048 unapplied → available:false) just leaves the
+  // map empty — UserAvatar falls back to initials, quietly, no error surfaced.
+  const [avatars, setAvatars] = React.useState<Record<string, string | null>>({});
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const userIds = members.map((m) => m.userId);
+    if (userIds.length === 0) {
+      setAvatars({});
+      return;
+    }
+    listMemberAvatarsAction(userIds)
+      .then((result) => {
+        if (cancelled || 'error' in result) return;
+        const next: Record<string, string | null> = {};
+        for (const a of result.avatars) next[a.userId] = a.avatarDataUrl;
+        setAvatars(next);
+      })
+      .catch(() => {
+        // Best-effort — initials fallback covers this.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [members]);
+
   return (
     <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
       <table className="w-full text-sm" aria-label="Members roster">
@@ -116,12 +145,19 @@ export function MembersTable({ members, slug }: MembersTableProps) {
               className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <td className="px-4 py-3">
-                <Link
-                  href={`/o/${slug}/people/${member.userId}`}
-                  className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand hover:underline underline-offset-2 transition-colors"
-                >
-                  {member.displayName}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <UserAvatar
+                    name={member.displayName}
+                    src={avatars[member.userId] ?? null}
+                    size="sm"
+                  />
+                  <Link
+                    href={`/o/${slug}/people/${member.userId}`}
+                    className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand hover:underline underline-offset-2 transition-colors"
+                  >
+                    {member.displayName}
+                  </Link>
+                </div>
               </td>
               <td className="px-4 py-3 text-slate-600 dark:text-slate-300 hidden sm:table-cell">
                 {member.email}

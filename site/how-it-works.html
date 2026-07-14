@@ -264,7 +264,7 @@ section{padding:96px 0}
 @media (max-width:820px){.demo-inner{grid-template-columns:1fr;gap:36px}}
 
 /* Explore / cross-link cards */
-.explore-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.explore-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
 .explore-card{
   background:var(--white);padding:36px 32px;text-decoration:none;color:var(--text);
   display:flex;flex-direction:column;gap:10px;transition:background-color .15s ease;
@@ -342,18 +342,6 @@ section{padding:96px 0}
   .step-num{margin-bottom:2px}
 }
 
-/* ============ Founder page ============ */
-.founder-layout{display:grid;grid-template-columns:220px 1fr;gap:64px;align-items:start}
-.founder-mark{display:flex;flex-direction:column;align-items:flex-start;gap:18px;position:sticky;top:110px}
-.founder-mark .signature{font-family:var(--serif);font-style:italic;font-size:1.4rem;color:var(--navy)}
-.founder-mark .role{font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft)}
-.founder-copy{max-width:66ch}
-.founder-copy p{color:var(--text);font-size:1.06rem}
-.founder-copy p.lead{font-family:var(--serif);font-size:1.35rem;font-weight:440;font-style:italic;color:var(--navy);line-height:1.45}
-@media (max-width:820px){
-  .founder-layout{grid-template-columns:1fr;gap:32px}
-  .founder-mark{position:static;flex-direction:row;align-items:center}
-}
 </style>
 </head>
 <body>
@@ -427,7 +415,7 @@ section{padding:96px 0}
             and log in as <strong>owner@alpha.aero</strong> / <strong>demo1234</strong>. You land on
             your dashboard: today's flights, any grounded aircraft or open squawks, and your
             recent utilization, at a glance. A field status bar rides the bottom of every
-            screen — local and Zulu clocks, sunrise and sunset, and your field's live METAR
+            screen: local and Zulu clocks, sunrise and sunset, and your field's live METAR
             with its flight category.</p>
           </div>
         </li>
@@ -470,9 +458,10 @@ section{padding:96px 0}
             member: name, email, phone, and role. Moving from another scheduler, upload a
             roster export as a CSV in <strong>Settings &rarr; Import</strong> instead; you
             review a preview of what it detected before anything is created.</p>
-            <p>Each member's page also keeps reminder dates — medical, flight review, rental
-            agreement, anything you name — and the dispatch screen warns when one is expired
-            or coming due. Operator-entered reminders, never an FAA currency determination.</p>
+            <p>Each member's page also keeps reminder dates you define (medical, flight review,
+            rental agreement, or anything else), and the dispatch screen warns when one is
+            expired or coming due. Operator-entered reminders, never an FAA currency
+            determination.</p>
           </div>
         </li>
 
@@ -513,13 +502,13 @@ section{padding:96px 0}
             <h3>Schedule and dispatch <span class="step-tag step-tag--essential">Essential</span></h3>
             <p>Book a reservation against the tail and the instructor; the conflict check and
             your booking policies hold automatically. See the week on the list, the day on the
-            dispatch board, or the whole month on the calendar view — whichever fits the moment.</p>
+            dispatch board, or the whole month on the calendar view, whichever fits the moment.</p>
             <p>When the aircraft flies, check it out on the dispatch board. The confirm screen
-            shows a pre-flight checklist first — grounding status, the pilot's reminder dates,
-            account balance, open squawks — then records Hobbs (and tach, if it tracks one).
+            shows a pre-flight checklist first: grounding status, the pilot's reminder dates,
+            account balance, and open squawks. Then it records Hobbs (and tach, if it tracks one).
             Check it back in the same way when it returns.</p>
             <p>Something needs attention: log a squawk at check-in. An aircraft grounded for a
-            squawk cannot be dispatched again until the grounding is resolved — a gate that
+            squawk cannot be dispatched again until the grounding is resolved. It is a gate that
             blocks, not a warning that scrolls past.</p>
           </div>
         </li>
@@ -540,10 +529,11 @@ section{padding:96px 0}
           <div>
             <h3>Billing, payments, and QuickBooks <span class="step-tag">Optional</span></h3>
             <p>Turn billing on when you're ready. We set your rate schedule up with you, per
-            aircraft and for instruction; from there, every closed dispatch produces a draft
-            invoice from the recorded Hobbs time. Review it in <strong>Billing</strong>, finalize
-            it, and collect payment by bank transfer for 1% capped at $15, cards welcome too,
-            or record a payment you took another way.</p>
+            aircraft and for instruction. From there, every closed dispatch pre-fills a draft
+            invoice from the recorded Hobbs time for you to review in <strong>Billing</strong>
+            and finalize. With auto-pay enabled, a finalized invoice collects from the member's
+            linked bank account automatically; otherwise, collect it yourself by card or another
+            method. Bank transfers cost 1%, capped at $15.</p>
             <p>Connect QuickBooks Online once, in <strong>Settings</strong>, and export a clean
             line-item file, split between rental and instruction accounts, whenever you close
             your books.</p>
@@ -563,11 +553,11 @@ section{padding:96px 0}
           <div>
             <h3>Keep everyone in the loop <span class="step-tag">Optional</span></h3>
             <p>From <strong>Messages</strong>, email an announcement to every active member or
-            to one role — a runway closure, a rate change, an event — with a live recipient
+            to one role (a runway closure, a rate change, an event) with a live recipient
             count before you hit send. Members who opt out of announcements are skipped
             automatically.</p>
             <p>And when you want the numbers, <strong>Reports</strong> covers utilization,
-            hours by tail, reservations versus flights, and accounts-receivable aging — all
+            hours by tail, reservations versus flights, and accounts-receivable aging, all
             scoped to any date range.</p>
           </div>
         </li>
@@ -600,6 +590,8 @@ section{padding:96px 0}
           <li><a href="faq.html">FAQ</a></li>
           <li><a href="how-it-works.html">Instructions</a></li>
           <li><a href="https://aeroops-web.vercel.app/o/alpha/login">Live demo</a></li>
+          <li><a href="terms.html">Terms</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
         </ul>
       </nav>
     </div>

@@ -25,6 +25,7 @@ import { serializePilotLog, type SerializedPilotLog } from '@/lib/serialize-pilo
 import { serializeDate } from '@/lib/serialize-date';
 
 import { auth } from '@/auth';
+import { revalidatePath } from 'next/cache';
 import {
   listMembers,
   listMembersPage,
@@ -40,6 +41,8 @@ import {
   deactivateMemberExpiration,
   listMemberExpirations,
   getMemberBalance,
+  getMemberAvatars,
+  updateMemberAvatar,
 } from '@aeroops/api';
 import type {
   OrgMemberListRow,
@@ -65,6 +68,7 @@ import type {
   MemberExpirationStatus,
   AddMemberExpirationInput,
   MemberTagColor,
+  MemberAvatarView,
 } from '@aeroops/api';
 import type { DispatchTicketView } from '@aeroops/api';
 
@@ -603,5 +607,89 @@ export async function getMemberBalanceSummaryAction(
     // Forbidden (no billing:access), unauthenticated, or any read failure →
     // hide the card. Never surfaces an error to a people:access-only viewer.
     return null;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Slice AVATARS — member profile photos (migration 0048, staged NOT applied)
+//
+// GRACEFUL ABSENCE: while migration 0048 is unapplied, getMemberAvatars returns
+// available:false with every avatarDataUrl null — the UI shows initials only
+// and hides upload controls. No error is ever surfaced for this case.
+//
+// updateMemberAvatarAction is people:manage (enforced inside updateMemberAvatar);
+// listMemberAvatarsAction / getMemberAvatarAction are people:access (read).
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ─── listMemberAvatarsAction (bounded batch read, backs the roster table) ─────
+
+export type ListMemberAvatarsActionResult =
+  | { ok: true; avatars: MemberAvatarView[]; available: boolean }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function listMemberAvatarsAction(
+  userIds: string[],
+): Promise<ListMemberAvatarsActionResult> {
+  const session = await auth();
+  try {
+    const result = await getMemberAvatars(session, { userIds });
+    return { ok: true, avatars: result.avatars, available: result.available };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── getMemberAvatarAction (single read, backs the People detail header) ──────
+// Reuses the batch read with a one-element array rather than a bespoke query.
+
+export type GetMemberAvatarActionResult =
+  | { ok: true; avatarDataUrl: string | null; available: boolean }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getMemberAvatarAction(
+  userId: string,
+): Promise<GetMemberAvatarActionResult> {
+  const result = await listMemberAvatarsAction([userId]);
+  if ('error' in result) return result;
+  return {
+    ok: true,
+    avatarDataUrl: result.avatars[0]?.avatarDataUrl ?? null,
+    available: result.available,
+  };
+}
+
+// ─── updateMemberAvatarAction (people:manage — staff sets/clears a member's photo) ──
+
+export type UpdateMemberAvatarActionResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_available' | 'member_not_found' }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function updateMemberAvatarAction(
+  memberUserId: string,
+  avatarDataUrl: string | null,
+  slug: string,
+): Promise<UpdateMemberAvatarActionResult> {
+  const session = await auth();
+  try {
+    const result = await updateMemberAvatar(session, { memberUserId, avatarDataUrl });
+    if (!result.ok) return { ok: false, reason: result.reason };
+    revalidatePath(`/o/${slug}/people`);
+    revalidatePath(`/o/${slug}/people/${memberUserId}`);
+    return { ok: true };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
   }
 }

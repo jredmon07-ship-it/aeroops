@@ -30,6 +30,26 @@ interface LoginPageProps {
   params: Promise<{ slug: string }>;
 }
 
+interface DemoLoginEntry {
+  email: string;
+  label: string;
+}
+
+/**
+ * Demo orgs whose sign-in card shows shared credentials right on the page, so
+ * a prospect landing here from the marketing site can get in without
+ * hunting. Keyed by slug — real operators' login pages never render this
+ * block (their slug simply isn't in this registry).
+ */
+const DEMO_ORG_LOGINS: Record<string, DemoLoginEntry[]> = {
+  alpha: [{ email: 'owner@alpha.aero', label: 'Owner' }],
+  buckeye: [
+    { email: 'owner@buckeye.aero', label: 'Owner' },
+    { email: 'admin@buckeye.aero', label: 'Admin' },
+    { email: 'member@buckeye.aero', label: 'Member' },
+  ],
+};
+
 export default async function LoginPage({ params }: LoginPageProps) {
   const { slug } = await params;
   const org = await resolveOrgForPage(slug);
@@ -83,11 +103,10 @@ export default async function LoginPage({ params }: LoginPageProps) {
   }
 
   // ── Active org — render the login form ──────────────────────────────────
-  // The hosted demo org (slug 'alpha', seeded by db:seed:demo) shows its
-  // shared credentials right on the sign-in card so a prospect landing here
-  // from the marketing site can get in without hunting. Real operators'
-  // login pages never render this block.
-  const isDemoOrg = slug === 'alpha';
+  // The hosted demo orgs (slugs 'alpha' and 'buckeye', both seeded by
+  // db:seed:demo) show their shared credentials right on the sign-in card.
+  // Real operators' login pages never render this block (see DEMO_ORG_LOGINS).
+  const demoLogins = DEMO_ORG_LOGINS[slug];
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
@@ -102,14 +121,27 @@ export default async function LoginPage({ params }: LoginPageProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isDemoOrg && (
+            {demoLogins && (
               <div className="mb-4 rounded-md border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-950/40 px-3 py-2.5 text-sm">
                 <p className="font-medium text-sky-900 dark:text-sky-200">Live demo — sign in with:</p>
-                <p className="mt-1 text-sky-800 dark:text-sky-200">
-                  Email: <strong className="font-mono font-semibold">owner@alpha.aero</strong>
-                  <br />
-                  Password: <strong className="font-mono font-semibold">demo1234</strong>
-                </p>
+                {demoLogins.length === 1 ? (
+                  <p className="mt-1 text-sky-800 dark:text-sky-200">
+                    Email: <strong className="font-mono font-semibold">{demoLogins[0]!.email}</strong>
+                    <br />
+                    Password: <strong className="font-mono font-semibold">demo1234</strong>
+                  </p>
+                ) : (
+                  <div className="mt-1 space-y-0.5 text-sky-800 dark:text-sky-200">
+                    {demoLogins.map((l) => (
+                      <p key={l.email}>
+                        {l.label}: <strong className="font-mono font-semibold">{l.email}</strong>
+                      </p>
+                    ))}
+                    <p>
+                      Password: <strong className="font-mono font-semibold">demo1234</strong> for all three.
+                    </p>
+                  </div>
+                )}
                 <p className="mt-1.5 text-xs text-sky-700 dark:text-sky-300">
                   Shared demo with fictional sample data — please don&apos;t enter real
                   personal information.

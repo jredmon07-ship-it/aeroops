@@ -2,7 +2,9 @@
 
 A four-page marketing site for AeroOps: self-contained static HTML with inline CSS and inline
 SVG, one Google Font (Fraunces, with a system-serif fallback so pages still work offline), and
-**zero `<script>` tags anywhere in the site** (see the 2026-07-03 entry below for why). Direction:
+**exactly one `<script>` tag in the whole site** (the inline savings calculator on index.html;
+every other page is script-free, and the calculator degrades to placeholder text with JS off).
+Copy rule as of 2026-07-14: zero em dashes in rendered copy across all pages. Direction:
 **white navy luxury** — a private-FBO-terminal feel, built to the Forma playbook's reference
 **"Kirkland & Ellis"** (`DESIGN-REFERENCE-LIBRARY.md`: *"leads with values, not a practice-area
 list — crisp monochrome, clean sans, heavy whitespace; premium but purposeful"*) plus the

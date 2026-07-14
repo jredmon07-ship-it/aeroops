@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AeroOps Privacy Policy (Draft)</title>
+<meta name="description" content="Draft privacy policy for AeroOps: what is collected, how it is used, who touches it, and how to reach us about it.">
+<meta property="og:title" content="AeroOps Privacy Policy (Draft)">
+<meta property="og:description" content="Draft privacy policy for AeroOps: what is collected, how it is used, who touches it, and how to reach us about it.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aeroops-web.vercel.app">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230C1322'/%3E%3Cpath d='M16 6 L25 24 L20.7 24 L16 14.7 L11.3 24 L7 24 Z' fill='%23FFFFFF'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,440;0,560;1,440&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:      #FFFFFF;
+  --paper:      #FAF9F5;   /* warm ivory, used for restrained tonal variation */
+  --navy:       #0C1322;   /* deep navy anchor */
+  --navy-soft:  #16203A;
+  --text:       #0C1322;
+  --text-soft:  #4B5568;   /* secondary on white/paper - 7.5:1 */
+  --text-inv:   #FFFFFF;
+  --text-inv-soft:#AEB9CF; /* secondary on navy - 8.4:1, brightened slightly for the video scrim */
+  --rule:       rgba(12,19,34,.14);
+  --rule-inv:   rgba(255,255,255,.22);
+  --radius:     3px;
+  --serif:      "Fraunces", Georgia, "Times New Roman", serif;
+  --sans:       -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono:       ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition:none !important;animation:none !important}
+}
+body{
+  margin:0;
+  font-family:var(--sans);
+  font-size:1.05rem;
+  line-height:1.7;
+  color:var(--text);
+  background:var(--white);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:var(--serif);font-weight:560;line-height:1.14;margin:0 0 .5em;letter-spacing:-.01em;color:var(--navy)}
+p{margin:0 0 1.1em}
+a{color:inherit}
+img,svg{max-width:100%;height:auto}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+
+/* Accessibility */
+.skip-link{
+  position:absolute;left:-9999px;top:0;z-index:200;
+  background:var(--navy);color:var(--white);padding:12px 20px;
+  font-family:var(--mono);font-size:.85rem;
+}
+.skip-link:focus{left:0}
+:focus-visible{outline:2.5px solid var(--navy);outline-offset:3px}
+.on-navy :focus-visible{outline-color:var(--white)}
+
+/* Type helpers */
+.eyebrow{
+  display:flex;align-items:center;gap:12px;
+  font-family:var(--sans);font-size:.76rem;letter-spacing:.16em;font-weight:600;
+  text-transform:uppercase;color:var(--text-soft);margin:0 0 20px;
+}
+.eyebrow::before{content:"";display:block;width:26px;height:1px;background:var(--navy);flex:none}
+.on-navy .eyebrow{color:var(--text-inv-soft)}
+.on-navy .eyebrow::before{background:var(--white)}
+
+/* Buttons */
+.btn{
+  display:inline-block;font-family:var(--sans);font-weight:600;font-size:.94rem;letter-spacing:.01em;
+  padding:14px 28px;border-radius:var(--radius);text-decoration:none;
+  border:1.5px solid transparent;transition:background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.btn-solid{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.btn-solid:hover{background:#1B2A4A;border-color:#1B2A4A}
+.btn-line{color:var(--navy);border-color:var(--navy)}
+.btn-line:hover{background:var(--navy);color:var(--white)}
+.btn-line-inv{color:var(--white);border-color:var(--rule-inv)}
+.btn-line-inv:hover{border-color:var(--white)}
+.btn-solid-inv{background:var(--white);color:var(--navy);border-color:var(--white)}
+.btn-solid-inv:hover{background:#E7E2D6;border-color:#E7E2D6}
+.text-link{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule);font-weight:600}
+.text-link:hover{text-decoration-color:currentColor}
+.on-navy .text-link{text-decoration-color:var(--rule-inv);color:var(--white)}
+.on-navy .text-link:hover{text-decoration-color:var(--white)}
+
+/* Brand mark */
+.brand-tile{
+  display:inline-grid;place-items:center;flex:none;
+  background:var(--navy);color:var(--white);
+  font-family:var(--sans);font-weight:700;line-height:1;
+  border-radius:var(--radius);
+  box-shadow:0 1px 2px rgba(12,19,34,.35);
+}
+.brand-tile--lg{width:34px;height:34px;font-size:1rem}
+.brand-tile--sm{width:28px;height:28px;font-size:.8125rem}
+.on-navy .brand-tile{background:var(--white);color:var(--navy);box-shadow:none}
+.wordmark{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--navy);font-family:var(--serif);font-weight:560;font-size:1.28rem;letter-spacing:-.01em}
+.on-navy .wordmark{color:var(--white)}
+
+/* ============ Header / nav ============ */
+.site-header{
+  position:sticky;top:0;z-index:80;
+  border-bottom:1px solid var(--rule);
+}
+.site-header-bg{
+  position:absolute;inset:0;z-index:0;
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.site-header .wrap{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:76px}
+.site-nav{display:flex;align-items:center;gap:34px}
+.site-nav .nav-links{display:flex;align-items:center;gap:30px;list-style:none;margin:0;padding:0}
+.site-nav a.nav-link{
+  position:relative;display:inline-block;padding:8px 1px;
+  color:var(--text-soft);text-decoration:none;
+  font-size:.76rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+}
+.site-nav a.nav-link::after{
+  content:"";position:absolute;left:1px;right:1px;bottom:3px;height:1.5px;
+  background:var(--navy);transform:scaleX(0);transform-origin:left;
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+.site-nav a.nav-link:hover,
+.site-nav a.nav-link:focus-visible,
+.site-nav a.nav-link[aria-current="page"]{color:var(--navy)}
+.site-nav a.nav-link:hover::after,
+.site-nav a.nav-link:focus-visible::after,
+.site-nav a.nav-link[aria-current="page"]::after{transform:scaleX(1)}
+.site-nav .btn{padding:10px 22px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
+
+/* Mobile nav - native <details>/<summary> disclosure: works with JS fully off */
+.nav-toggle-wrap{display:none}
+@media (max-width:980px){
+  .site-nav .nav-links{display:none}
+  .nav-toggle-wrap{display:block}
+}
+@media (max-width:600px){
+  .site-nav > .btn{display:none}
+}
+.nav-toggle-wrap summary{
+  list-style:none;cursor:pointer;display:grid;place-items:center;
+  width:42px;height:42px;border-radius:var(--radius);border:1px solid var(--rule);
+}
+.nav-toggle-wrap summary::-webkit-details-marker{display:none}
+.nav-toggle-wrap summary .bars{position:relative;width:20px;height:14px}
+.nav-toggle-wrap summary .bars span{
+  position:absolute;left:0;right:0;height:1.5px;background:var(--navy);
+  transition:transform .2s ease, opacity .2s ease, top .2s ease;
+}
+.nav-toggle-wrap summary .bars span:nth-child(1){top:0}
+.nav-toggle-wrap summary .bars span:nth-child(2){top:6px}
+.nav-toggle-wrap summary .bars span:nth-child(3){top:12px}
+.nav-toggle-wrap[open] summary .bars span:nth-child(1){top:6px;transform:rotate(45deg)}
+.nav-toggle-wrap[open] summary .bars span:nth-child(2){opacity:0}
+.nav-toggle-wrap[open] summary .bars span:nth-child(3){top:6px;transform:rotate(-45deg)}
+.mobile-nav{
+  position:fixed;inset:76px 0 0 0;z-index:70;
+  background:var(--navy);color:var(--white);
+  padding:36px 28px 40px;overflow-y:auto;
+}
+.mobile-nav ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.mobile-nav a{
+  display:block;padding:16px 4px;color:var(--white);text-decoration:none;
+  font-family:var(--serif);font-size:1.5rem;border-bottom:1px solid var(--rule-inv);
+}
+.mobile-nav a:hover,.mobile-nav a:focus-visible{color:var(--white);background:rgba(255,255,255,.06)}
+.mobile-nav .mobile-nav-cta{margin-top:26px;color:var(--navy)}
+.mobile-nav .mobile-nav-cta:hover{color:var(--navy)}
+@media (min-width:981px){.mobile-nav{display:none}}
+
+/* ============ Cinematic hero (home) ============ */
+.hero-video-wrap{
+  position:relative;isolation:isolate;overflow:hidden;
+  min-height:min(92vh, 780px);
+  display:flex;align-items:flex-end;
+  background:
+    radial-gradient(120% 100% at 82% 12%, rgba(255,214,150,.10), transparent 55%),
+    linear-gradient(160deg,#0C1322 0%,#16203A 55%,#0C1322 100%);
+}
+.hero-media{position:absolute;inset:0;z-index:0}
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+@media (prefers-reduced-motion: reduce){
+  .hero-video{display:none}
+}
+.hero-scrim{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(100deg, rgba(12,19,34,.86) 8%, rgba(12,19,34,.42) 46%, rgba(12,19,34,.7) 100%),
+    linear-gradient(0deg, rgba(12,19,34,.55) 0%, transparent 42%);
+}
+.hero-content{position:relative;z-index:2;width:100%;padding:120px 0 84px}
+.hero-inner{max-width:640px}
+.hero h1{
+  font-size:clamp(2.5rem, 5vw, 3.85rem);
+  color:var(--white);margin-bottom:.4em;
+}
+.hero h1 em{font-style:italic;font-weight:440}
+.hero .lede{
+  font-size:clamp(1.05rem, 1.6vw, 1.22rem);
+  color:var(--text-inv-soft);max-width:50ch;margin-bottom:36px;
+}
+.hero-ctas{display:flex;flex-wrap:wrap;align-items:center;gap:24px;margin-bottom:26px}
+.hero-note{font-family:var(--mono);font-size:.74rem;letter-spacing:.07em;color:var(--text-inv-soft)}
+
+/* ============ Sections ============ */
+section{padding:96px 0}
+.section-head{max-width:56ch;margin-bottom:56px}
+.section-head h2{font-size:clamp(1.7rem, 3vw, 2.25rem)}
+.section-head p{color:var(--text-soft);font-size:1.08rem;margin-bottom:0}
+.band-top{border-top:1px solid var(--rule)}
+
+/* Capabilities list */
+.cap-list{list-style:none;margin:0;padding:0}
+.cap{
+  display:grid;grid-template-columns:88px 1fr;gap:32px;
+  padding:44px 0;border-top:1px solid var(--rule);
+}
+.cap:first-child{border-top:none;padding-top:0}
+.cap-mark{padding-top:6px}
+.cap-mark .roman{display:block;font-family:var(--serif);font-style:italic;font-weight:440;font-size:1.5rem;color:var(--text-soft);margin-bottom:16px}
+.cap-mark svg{color:var(--navy)}
+.cap h3{font-size:clamp(1.3rem, 2.2vw, 1.55rem);margin-bottom:.5em}
+.cap p{color:var(--text-soft);max-width:62ch}
+.cap-points{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:9px;max-width:64ch}
+.cap-points li{padding-left:22px;position:relative;font-size:.97rem;color:var(--text)}
+.cap-points li::before{
+  content:"";position:absolute;left:0;top:9px;width:10px;height:1.5px;background:var(--navy);
+}
+@media (max-width:640px){
+  .cap{grid-template-columns:1fr;gap:14px}
+  .cap-mark{display:flex;align-items:center;gap:14px;padding-top:0}
+  .cap-mark .roman{margin-bottom:0}
+}
+
+/* Pricing */
+.pricing-inner{display:grid;grid-template-columns:1.15fr 1fr;gap:64px;align-items:start}
+.price-box{
+  border:1px solid var(--rule);border-radius:var(--radius);padding:34px 34px 30px;background:var(--paper);
+}
+.price-box .cap-caption{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);margin-bottom:18px;display:block}
+.price-box ul{list-style:none;margin:0 0 26px;padding:0}
+.price-box li{padding:11px 0;border-top:1px solid var(--rule);font-size:.98rem}
+.price-box li:first-child{border-top:none}
+@media (max-width:820px){.pricing-inner{grid-template-columns:1fr;gap:36px}}
+
+/* Demo */
+.demo-inner{display:grid;grid-template-columns:1.1fr 1fr;gap:64px;align-items:start}
+.cred{
+  font-family:var(--mono);font-size:.9rem;border:1px solid var(--rule-inv);
+  border-radius:var(--radius);padding:28px;
+}
+.cred dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:13px 22px}
+.cred dt{color:var(--text-inv-soft);letter-spacing:.04em}
+.cred dd{margin:0;color:var(--white);overflow-wrap:break-word}
+.cred .note{margin:22px 0 0;font-size:.78rem;font-family:var(--sans);color:var(--text-inv-soft);line-height:1.6;border-top:1px solid var(--rule-inv);padding-top:18px}
+@media (max-width:820px){.demo-inner{grid-template-columns:1fr;gap:36px}}
+
+/* Explore / cross-link cards */
+.explore-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.explore-card{
+  background:var(--white);padding:36px 32px;text-decoration:none;color:var(--text);
+  display:flex;flex-direction:column;gap:10px;transition:background-color .15s ease;
+}
+.explore-card:hover,.explore-card:focus-visible{background:var(--paper)}
+.explore-card .roman{font-family:var(--serif);font-style:italic;color:var(--text-soft);font-size:1.2rem}
+.explore-card h3{font-size:1.15rem;margin-bottom:.2em}
+.explore-card p{color:var(--text-soft);font-size:.95rem;margin-bottom:0;flex:1}
+.explore-card .goto{font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--navy)}
+@media (max-width:820px){.explore-grid{grid-template-columns:1fr}}
+
+/* Footer */
+.site-footer{background:var(--navy);color:var(--text-inv-soft);padding:64px 0 56px}
+.footer-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:40px;padding-bottom:40px;border-bottom:1px solid var(--rule-inv)}
+.footer-nav{display:flex;flex-wrap:wrap;gap:16px 28px;list-style:none;margin:0;padding:0}
+.footer-nav a{
+  color:var(--text-inv-soft);text-decoration:none;font-size:.85rem;font-weight:600;
+  letter-spacing:.03em;
+}
+.footer-nav a:hover{color:var(--white)}
+.footer-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px;align-items:flex-start;padding-top:32px}
+.site-footer a{color:var(--white);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-inv)}
+.site-footer a:hover{text-decoration-color:var(--white)}
+.footer-nav a:hover{text-decoration:none}
+.fineprint{font-size:.86rem;line-height:1.65;max-width:66ch;margin:30px 0 0;padding-top:26px;border-top:1px solid var(--rule-inv);color:var(--text-inv-soft)}
+
+/* ============ Subpage hero (FAQ / Instructions / Founder) ============ */
+.page-hero{
+  background:linear-gradient(160deg,#0C1322 0%,#16203A 55%,#0C1322 100%);
+  color:var(--white);padding:88px 0 72px;
+}
+.page-hero .wrap{max-width:760px}
+.page-hero h1{color:var(--white);font-size:clamp(2.1rem,4.2vw,3rem)}
+.page-hero p{color:var(--text-inv-soft);font-size:1.08rem;max-width:56ch;margin-bottom:0}
+
+/* ============ FAQ accordion (native details/summary, no JS required) ============ */
+.faq-list{max-width:74ch}
+.faq-item{border-top:1px solid var(--rule)}
+.faq-item:last-child{border-bottom:1px solid var(--rule)}
+.faq-item summary{
+  list-style:none;cursor:pointer;padding:26px 34px 26px 0;position:relative;
+  font-family:var(--serif);font-weight:560;font-size:1.15rem;color:var(--navy);
+}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{
+  content:"+";position:absolute;right:0;top:24px;font-family:var(--sans);font-weight:300;
+  font-size:1.6rem;color:var(--text-soft);transition:transform .2s ease;line-height:1;
+}
+.faq-item[open] summary::after{content:"–"}
+.faq-item .faq-a{margin:-6px 0 28px;max-width:66ch;color:var(--text-soft)}
+.faq-item .faq-a p:last-child{margin-bottom:0}
+
+/* ============ Instructions / steps ============ */
+.steps{list-style:none;margin:0;padding:0;counter-reset:step}
+.step{
+  display:grid;grid-template-columns:64px 1fr;gap:28px;padding:40px 0;border-top:1px solid var(--rule);
+}
+.step:first-child{border-top:none;padding-top:0}
+.step-num{
+  width:44px;height:44px;border-radius:var(--radius);border:1px solid var(--rule);
+  display:grid;place-items:center;font-family:var(--serif);font-style:italic;font-size:1.15rem;color:var(--navy);
+}
+.step-diagram{margin-top:18px;color:var(--navy)}
+.step h3{font-size:1.25rem;margin-bottom:.45em}
+.step p{color:var(--text-soft);max-width:62ch;margin-bottom:0}
+@media (max-width:640px){
+  .step{grid-template-columns:1fr;gap:14px}
+  .step-num{margin-bottom:2px}
+}
+
+
+/* legal pages */
+.legal{max-width:760px;margin:0 auto}
+.legal h2{font-family:var(--serif);font-weight:560;font-size:1.35rem;margin:2.4em 0 .5em}
+.legal p, .legal li{font-size:.95rem;line-height:1.75;color:var(--text-soft)}
+.legal .caps{color:var(--text);font-weight:600}
+.legal .draft-banner{border:1px solid var(--rule);background:var(--paper);padding:14px 18px;border-radius:var(--radius);margin:26px 0 0;font-size:.85rem;color:var(--text)}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="site-header-bg" aria-hidden="true"></div>
+  <div class="wrap">
+    <a class="wordmark" href="index.html" aria-label="AeroOps home">
+      <span class="brand-tile brand-tile--lg" aria-hidden="true">✈</span>
+      AeroOps
+    </a>
+    <nav class="site-nav" aria-label="Site">
+      <ul class="nav-links">
+        <li><a class="nav-link" href="index.html">Home</a></li>
+        <li><a class="nav-link" href="index.html#product">Platform</a></li>
+        <li><a class="nav-link" href="index.html#pricing">Pricing</a></li>
+        <li><a class="nav-link" href="faq.html" aria-current="page">FAQ</a></li>
+        <li><a class="nav-link" href="how-it-works.html">Instructions</a></li>
+      </ul>
+      <a class="btn btn-solid" href="https://aeroops-web.vercel.app/o/alpha/login">View the live demo</a>
+      <details class="nav-toggle-wrap">
+        <summary aria-label="Open menu">
+          <span class="bars" aria-hidden="true"><span></span><span></span><span></span></span>
+        </summary>
+        <nav class="mobile-nav" aria-label="Mobile">
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#product">Platform</a></li>
+            <li><a href="index.html#pricing">Pricing</a></li>
+            <li><a href="faq.html">FAQ</a></li>
+            <li><a href="how-it-works.html">Instructions</a></li>
+          </ul>
+          <a class="btn btn-solid-inv mobile-nav-cta" href="https://aeroops-web.vercel.app/o/alpha/login">View the live demo</a>
+        </nav>
+      </details>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="page-hero on-navy" aria-labelledby="privacy-title">
+    <div class="wrap">
+      <p class="eyebrow">Legal</p>
+      <h1 id="privacy-title">Privacy Policy.</h1>
+      <p>What AeroOps collects, why, and who else touches it.</p>
+    </div>
+  </section>
+
+  <section aria-label="Privacy policy">
+    <div class="wrap">
+      <div class="legal">
+        <p class="draft-banner"><strong>Draft, not yet in force.</strong> This document is a working draft
+        published for review. It has not been reviewed by an attorney. A final version will carry an
+        effective date.</p>
+
+        <h2>What we collect</h2>
+        <p>Account information: your name, email address, phone number, role, and an optional profile photo.
+        Operational records your organization enters: schedules, dispatch and meter readings, maintenance
+        entries, training records, invoices, and payment activity. Technical logs: sign-ins and the actions
+        taken in the product, kept as an audit trail for your organization. Card numbers and bank account
+        details never touch AeroOps servers; Stripe collects and stores those directly.</p>
+
+        <h2>How we use it</h2>
+        <p>To provide the service to your organization: running the schedule, producing invoices, collecting
+        payments you initiate, and showing your organization its own records. We do not sell personal
+        information, we do not run advertising, and we do not use your records to train anything or market
+        to your members.</p>
+
+        <h2>Who else touches it</h2>
+        <p>Service providers under contract: Stripe (payment processing), our hosting and database providers
+        (application and data hosting), an email delivery provider (notifications you ask for), and Intuit
+        QuickBooks Online, only if your organization connects it, and only the invoice and payment records
+        your organization exports. Each receives the minimum needed to do its job.</p>
+
+        <h2>Your choices</h2>
+        <p>You can review and correct your account information inside the product. Members can ask their
+        organization, or us directly, to review, correct, or delete their personal information; write to the
+        address below and we will respond within thirty days. Organizations can export their data at any
+        time.</p>
+
+        <h2>Do Not Track</h2>
+        <p>AeroOps does not track visitors across other sites and shows no ads, so there is nothing for a
+        Do Not Track signal to turn off. Browsers sending it are treated like every other browser: untracked.</p>
+
+        <h2>Changes</h2>
+        <p>If this policy changes materially we will give notice inside the product or by email before the
+        change takes effect, and this page will always carry the current version and its effective date.</p>
+
+        <h2>Contact</h2>
+        <p>Privacy questions or requests: <a href="mailto:jredmon07@icloud.com">jredmon07@icloud.com</a>.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer on-navy">
+  <div class="wrap">
+    <div class="footer-top">
+      <a class="wordmark" href="index.html" aria-label="AeroOps home">
+        <span class="brand-tile brand-tile--sm" aria-hidden="true">✈</span>
+        AeroOps
+      </a>
+      <nav aria-label="Footer">
+        <ul class="footer-nav">
+          <li><a href="index.html#product">Platform</a></li>
+          <li><a href="index.html#pricing">Pricing</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="how-it-works.html">Instructions</a></li>
+          <li><a href="https://aeroops-web.vercel.app/o/alpha/login">Live demo</a></li>
+          <li><a href="terms.html">Terms</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="footer-row">
+      <p style="margin:0">
+        Questions, pricing, or a walkthrough:
+        <a href="mailto:jredmon07@icloud.com">jredmon07@icloud.com</a>
+      </p>
+    </div>
+    <p class="fineprint">
+      AeroOps records and enforces the rules your operation defines, with a full audit trail
+      on every record. It does not make, compute, or certify FAA determinations such as
+      airworthiness, currency, or training completion. Those calls stay with your operation
+      and your certificated personnel, where they belong.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

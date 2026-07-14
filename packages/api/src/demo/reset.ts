@@ -4,12 +4,20 @@
  * PROBLEM: the deployed demo (Vercel + Neon) writes to a REAL database, so
  * anything a visitor does persists and pollutes the shared demo for everyone.
  *
- * SOLUTION: on a SUCCESSFUL login to an allowlisted demo tenant, wipe that
- * tenant and re-seed it back to its exact seeded baseline (via the existing
- * seedDemo logic — no duplicated seed data) BEFORE the session is established,
- * so the visitor lands on fresh data and nothing they do survives the next
- * reset. The owner@alpha.aero credential (password demo1234) is recreated by
- * the seed, so the just-submitted login still succeeds against the fresh org.
+ * SOLUTION: on a SUCCESSFUL login to an allowlisted demo tenant, wipe BOTH
+ * demo orgs and re-seed them back to their exact seeded baseline (via the
+ * existing seedDemo logic — no duplicated seed data) BEFORE the session is
+ * established, so the visitor lands on fresh data and nothing they do
+ * survives the next reset. The relevant credential (password demo1234) is
+ * recreated by the seed, so the just-submitted login still succeeds against
+ * the fresh org.
+ *
+ * TWO DEMO ORGS, ONE SEED CALL: seedDemo() creates BOTH "alpha" and "buckeye"
+ * in a single call (see demo/seed.ts) — there is no way to seed just one. A
+ * reset therefore always wipes every allowlisted slug's org row and re-seeds
+ * once, regardless of which slug's login triggered it, so the two orgs never
+ * drift out of sync (e.g. one deleted-and-recreated while the other survives
+ * with a stale org_id nothing else references).
  *
  * ── SAFETY (a bug here could wipe a real customer) ──────────────────────────
  *   1. HARD ALLOWLIST: resetDemoTenant* REFUSE (throw) for any slug that is not
@@ -41,8 +49,10 @@ import { seedDemo } from './seed.js';
 /**
  * Hard-coded allowlist of demo slugs that may be reset. NOTHING outside this
  * list can ever be wiped by this module — resetDemoTenant* throw otherwise.
+ * A reset always wipes + rebuilds EVERY slug in this list together (see the
+ * module doc comment) — seedDemo() seeds both orgs in one call.
  */
-export const DEMO_RESET_ALLOWLIST = ['alpha'] as const;
+export const DEMO_RESET_ALLOWLIST = ['alpha', 'buckeye'] as const;
 
 /** Minimum time between resets of the same tenant (throttle window). */
 export const RESET_INTERVAL_MS = 60_000;
@@ -96,21 +106,30 @@ export function isDemoResetCandidate(slug: string): boolean {
 /**
  * resetDemoTenantWithDb — the core wipe + re-seed, on an injected client.
  *
- * The `db` MUST be a PRIVILEGED client (owner role): the reset deletes the org
- * (cascading its tenant rows) and re-inserts control-plane rows, which the
- * RLS-restricted aeroops_app role cannot do. Tests inject a PGlite superuser
- * client.
+ * The `db` MUST be a PRIVILEGED client (owner role): the reset deletes org
+ * rows (cascading their tenant rows) and re-inserts control-plane rows, which
+ * the RLS-restricted aeroops_app role cannot do. Tests inject a PGlite
+ * superuser client.
+ *
+ * `slug` identifies which demo login triggered the reset, but seedDemo()
+ * seeds BOTH allowlisted orgs in one call (there is no per-org seed entry
+ * point) — so every reset wipes + rebuilds EVERY slug in DEMO_RESET_ALLOWLIST
+ * together, regardless of which one was passed in. This keeps the two demo
+ * orgs from ever drifting apart (one fresh, one stale).
  *
  * Wrapped in a single transaction:
  *   1. pg_try_advisory_xact_lock — skip if another reset holds it.
- *   2. throttle check against demo_reset_state.last_reset_at — skip if too soon.
- *   3. DELETE FROM org WHERE slug = <slug> — SCOPED wipe of only the target org;
- *      the ON DELETE CASCADE FKs remove all of that org's tenant rows and its
- *      subscription. Cannot affect any other tenant. The global `plan` row is
- *      left in place and re-used by the seed.
- *   4. seedDemo(tx) — recreates the org (a NEW org_id) and all seeded data via
- *      the exact same seed logic used by `pnpm demo` and db:seed:demo.
- *   5. record last_reset_at = now().
+ *   2. throttle check against demo_reset_state.last_reset_at (for `slug`) —
+ *      skip if too soon. Since step 5 stamps every allowlisted slug together,
+ *      checking any one of them reflects the reset state of the whole set.
+ *   3. DELETE FROM org WHERE slug = <s>, for every s in DEMO_RESET_ALLOWLIST —
+ *      SCOPED wipe of only the allowlisted demo orgs; the ON DELETE CASCADE
+ *      FKs remove each org's tenant rows and its subscription. Cannot affect
+ *      any other tenant. The global `plan` row is left in place and re-used
+ *      by the seed.
+ *   4. seedDemo(tx) — recreates BOTH orgs (NEW org_ids) and all seeded data
+ *      via the exact same seed logic used by `pnpm demo` and db:seed:demo.
+ *   5. record last_reset_at = now() for every allowlisted slug.
  *
  * @returns { reset: true } if a wipe/re-seed ran; { reset: false } if skipped.
  * @throws  if `slug` is not allowlisted, or on infrastructure/seed failure.
@@ -138,7 +157,9 @@ export async function resetDemoTenantWithDb(
       return { reset: false };
     }
 
-    // (3) Throttle: skip if the tenant was reset within the interval window.
+    // (3) Throttle: skip if the tenant set was reset within the interval
+    // window (checked against the requested slug; step 5 keeps every
+    // allowlisted slug's timestamp in sync).
     const throttleRows = extractRows<{ throttled: boolean }>(
       await txDb.execute(
         sql`select (now() - last_reset_at) < make_interval(secs => ${intervalSeconds})
@@ -151,12 +172,13 @@ export async function resetDemoTenantWithDb(
       return { reset: false };
     }
 
-    // (4) Wipe — SCOPED to the single target org, so this can NEVER affect any
-    // other tenant even if more than one org exists in the database. Deleting the
-    // org row cascades (org_id FKs are ON DELETE CASCADE) to every tenant table
-    // AND to that org's subscription. The global, non-org-scoped `plan` row is
-    // intentionally left in place (the seed re-uses it idempotently), and
-    // demo_reset_state references nothing here, so both are untouched.
+    // (4) Wipe — SCOPED to exactly the allowlisted demo orgs, so this can
+    // NEVER affect any other tenant even if more orgs exist in the database.
+    // Deleting each org row cascades (org_id FKs are ON DELETE CASCADE) to
+    // every tenant table AND to that org's subscription. The global,
+    // non-org-scoped `plan` row is intentionally left in place (the seed
+    // re-uses it idempotently), and demo_reset_state references nothing
+    // here, so both are untouched.
     //
     // RLS: the production owner role (e.g. Neon's neondb_owner) is a
     // NON-superuser WITHOUT BYPASSRLS, and `org` has FORCE ROW LEVEL SECURITY —
@@ -164,34 +186,40 @@ export async function resetDemoTenantWithDb(
     // `id = current_org_id` (no platform-admin arm), so an unscoped DELETE is
     // silently filtered to 0 rows there (empirically verified on PG16; the
     // PGlite test client is a true superuser and cannot catch this). Sequence:
-    // resolve the org id under the platform-admin read arm, scope the GUC to
+    // resolve each org id under the platform-admin read arm, scope the GUC to
     // that id so the DELETE passes org_delete, then clear both GUCs before the
     // re-seed (seedDemo's withOrgContext/withPlatformAdminContext manage their
     // own). The ON DELETE CASCADE fan-out is a referential action, which
     // Postgres exempts from RLS once the org DELETE itself is allowed.
     await txDb.execute(sql`select set_config('app.platform_admin', 'on', true)`);
-    const orgRows = extractRows<{ id: string }>(
-      await txDb.execute(sql`SELECT id FROM "org" WHERE "slug" = ${slug}`),
-    );
-    const targetOrgId = orgRows[0]?.id;
-    if (targetOrgId) {
-      await txDb.execute(
-        sql`select set_config('app.current_org_id', ${targetOrgId}, true)`,
+    for (const s of DEMO_RESET_ALLOWLIST) {
+      const orgRows = extractRows<{ id: string }>(
+        await txDb.execute(sql`SELECT id FROM "org" WHERE "slug" = ${s}`),
       );
-      await txDb.execute(sql`DELETE FROM "org" WHERE "id" = ${targetOrgId}::uuid`);
+      const targetOrgId = orgRows[0]?.id;
+      if (targetOrgId) {
+        await txDb.execute(
+          sql`select set_config('app.current_org_id', ${targetOrgId}, true)`,
+        );
+        await txDb.execute(sql`DELETE FROM "org" WHERE "id" = ${targetOrgId}::uuid`);
+      }
     }
     await txDb.execute(sql`select set_config('app.current_org_id', '', true)`);
     await txDb.execute(sql`select set_config('app.platform_admin', '', true)`);
 
-    // (5) Re-seed to the exact baseline (reuses the canonical seed logic).
+    // (5) Re-seed to the exact baseline — ONE call rebuilds every demo org
+    // (reuses the canonical seed logic).
     await seedDemo(txDb);
 
-    // (6) Record the reset time (DB clock) for the throttle.
-    await txDb.execute(
-      sql`insert into demo_reset_state (slug, last_reset_at)
-          values (${slug}, now())
-          on conflict (slug) do update set last_reset_at = now()`,
-    );
+    // (6) Record the reset time (DB clock) for the throttle — every
+    // allowlisted slug together, so they stay in lockstep.
+    for (const s of DEMO_RESET_ALLOWLIST) {
+      await txDb.execute(
+        sql`insert into demo_reset_state (slug, last_reset_at)
+            values (${s}, now())
+            on conflict (slug) do update set last_reset_at = now()`,
+      );
+    }
 
     return { reset: true };
   });

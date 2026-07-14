@@ -38,7 +38,7 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getMemberDetailAction } from '../actions';
+import { getMemberDetailAction, getMemberAvatarAction } from '../actions';
 import type { SerializedMemberDetail } from '../actions';
 import { MemberDetailClient } from '../_components/member-detail-client';
 import { MemberExpirationsCard } from '../_components/member-expirations-card';
@@ -299,6 +299,16 @@ async function DetailContent({ userId, slug, canManage, canViewBilling }: Detail
 
   const member = result.member;
 
+  // Avatar is best-effort: any failure (or migration 0048 unapplied) just
+  // renders initials — never blocks or errors the detail page.
+  let avatarDataUrl: string | null = null;
+  let avatarAvailable = false;
+  const avatarResult = await getMemberAvatarAction(member.userId);
+  if ('ok' in avatarResult && avatarResult.ok) {
+    avatarDataUrl = avatarResult.avatarDataUrl;
+    avatarAvailable = avatarResult.available;
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Back link ──────────────────────────────────────────────────────── */}
@@ -313,7 +323,13 @@ async function DetailContent({ userId, slug, canManage, canViewBilling }: Detail
       </div>
 
       {/* ── Identity header + Tags (client for interactivity) ─────────────── */}
-      <MemberDetailClient member={member} slug={slug} canManage={canManage} />
+      <MemberDetailClient
+        member={member}
+        slug={slug}
+        canManage={canManage}
+        avatarDataUrl={avatarDataUrl}
+        avatarAvailable={avatarAvailable}
+      />
 
       {/* ── Static cards ────────────────────────────────────────────────────── */}
       <StaticContactCard member={member} />
