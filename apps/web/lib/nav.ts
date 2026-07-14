@@ -21,7 +21,8 @@
 
 import { hasCapability } from '@aeroops/api';
 import type { AppSession } from '@aeroops/api';
-import type { Capability } from '@aeroops/core';
+import { ALL_MODULES_ENABLED } from '@aeroops/core';
+import type { Capability, OrgModuleKey, OrgFeatureFlags } from '@aeroops/core';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,13 @@ export interface NavItem {
   /** href may contain [slug] placeholder — callers are responsible for interpolation. */
   href: string;
   requiredCapability: Capability;
+  /**
+   * Per-org module toggle this item belongs to (Slice CLUB-MODE, migration
+   * 0047). Absent = a CORE surface that can never be disabled. Like the
+   * capability filter, hiding a nav item is cosmetic — each module route also
+   * gates server-side on getOrgFeatures.
+   */
+  module?: OrgModuleKey;
 }
 
 // ─── Nav item registry ────────────────────────────────────────────────────────
@@ -72,6 +80,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Portal',
     href: '/o/[slug]/portal',
     requiredCapability: 'portal:access',
+    module: 'portal',
   },
   {
     label: 'Dashboard',
@@ -94,6 +103,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Auto-schedule',
     href: '/o/[slug]/schedule/auto',
     requiredCapability: 'schedule:create_reservation',
+    module: 'auto_schedule',
   },
   {
     label: 'Resources',
@@ -111,6 +121,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Training',
     href: '/o/[slug]/training',
     requiredCapability: 'training:access',
+    module: 'training',
   },
   {
     label: 'Fleet',
@@ -123,6 +134,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Maintenance',
     href: '/o/[slug]/maintenance/work-orders',
     requiredCapability: 'maintenance:access',
+    module: 'maintenance',
   },
   // Slice PB1.2: Booking requests — staff triage inbox for public lead-capture
   // booking requests. Gated by booking:triage (owner/manager/dispatcher).
@@ -132,6 +144,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Booking requests',
     href: '/o/[slug]/booking',
     requiredCapability: 'booking:triage',
+    module: 'booking',
   },
   // Slice QB1: Billing (invoices + QuickBooks Online export) — gated by
   // billing:access (owner/manager/accountant). Placed after Booking requests,
@@ -140,6 +153,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Billing',
     href: '/o/[slug]/billing',
     requiredCapability: 'billing:access',
+    module: 'billing',
   },
   // Slice R1.2: Operational reports — gated by reporting:access (owner/manager/
   // dispatcher/cfi/accountant). Placed after Maintenance, before Activity.
@@ -149,6 +163,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Reports',
     href: '/o/[slug]/reporting/reports',
     requiredCapability: 'reporting:access',
+    module: 'reports',
   },
   // Slice A1.2: Activity feed — audit trail read-only view. Gated by
   // reporting:access (same audience as Reports + Dashboard).
@@ -159,6 +174,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Activity',
     href: '/o/[slug]/activity',
     requiredCapability: 'reporting:access',
+    module: 'reports',
   },
   // FC-parity: Messages — operator-authored member announcements. Gated on
   // org:manage_settings (owner/manager, same as Org settings). Placed right
@@ -168,6 +184,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Messages',
     href: '/o/[slug]/settings/messages',
     requiredCapability: 'org:manage_settings',
+    module: 'messages',
   },
   {
     label: 'Org settings',
@@ -236,17 +253,27 @@ export function isPortalOnly(
 export function landingPathFor(
   session: AppSession | null | undefined,
   items: readonly NavItem[] = NAV_ITEMS,
+  enabledModules: OrgFeatureFlags = ALL_MODULES_ENABLED,
 ): string | null {
   if (!session) return null;
 
   // Roles with reporting:access belong on the dashboard — no redirect.
   if (hasCapability(session, 'reporting:access')) return null;
 
-  // Portal-only roles (student/renter) redirect to the portal.
-  if (hasCapability(session, 'portal:access')) return '/o/[slug]/portal';
+  // Portal-only roles (student/renter) redirect to the portal — unless the
+  // org turned the portal module off, in which case fall through to the first
+  // still-enabled nav item.
+  if (hasCapability(session, 'portal:access') && enabledModules.portal) {
+    return '/o/[slug]/portal';
+  }
 
-  // Everyone else (e.g. mechanic): find the first nav item they can access.
-  const first = items.find((item) => hasCapability(session, item.requiredCapability));
+  // Everyone else (e.g. mechanic): find the first nav item they can access
+  // that belongs to an enabled module (core items always qualify).
+  const first = items.find(
+    (item) =>
+      hasCapability(session, item.requiredCapability) &&
+      (item.module === undefined || enabledModules[item.module]),
+  );
   return first?.href ?? null;
 }
 
@@ -270,6 +297,7 @@ export function filterNavForSession(
   session: AppSession | null | undefined,
   items: readonly NavItem[],
   slug: string,
+  enabledModules: OrgFeatureFlags = ALL_MODULES_ENABLED,
 ): NavItem[] {
   if (!session) return [];
 
@@ -277,7 +305,10 @@ export function filterNavForSession(
     .filter(
       (item) =>
         // UI only — never the gate; see AUTHZ NOTE above.
-        hasCapability(session, item.requiredCapability),
+        hasCapability(session, item.requiredCapability) &&
+        // Per-org module toggle (Slice CLUB-MODE): items of a disabled module
+        // disappear; items with no module key are core and always stay.
+        (item.module === undefined || enabledModules[item.module]),
     )
     .map((item) => ({
       ...item,

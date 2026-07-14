@@ -35,7 +35,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { AlertCircle, GraduationCap, Wrench, ClipboardList, CalendarX2 } from 'lucide-react';
 import { auth } from '@/auth';
-import { hasCapability } from '@aeroops/api';
+import { hasCapability, getOrgFeatures } from '@aeroops/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAllReportsAction } from './actions';
@@ -79,6 +79,21 @@ function PermissionDeniedPanel() {
       </p>
       <p className="text-sm text-slate-500 dark:text-slate-400">
         Contact your administrator if you need access.
+      </p>
+    </div>
+  );
+}
+
+// ─── Module-disabled panel (Slice CLUB-MODE) ──────────────────────────────────
+
+function ModuleDisabledPanel() {
+  return (
+    <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-6 py-10 text-center space-y-2">
+      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+        Reports are turned off for this organization.
+      </p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        An owner or manager can turn them back on in Org settings.
       </p>
     </div>
   );
@@ -1312,22 +1327,37 @@ export default async function ReportsPage({
   // NO redirect: shell is app:access; the reports section is reporting:access.
   const canViewReporting = session ? hasCapability(session, 'reporting:access') : false;
 
+  // ── Module gate (Slice CLUB-MODE) — panel pattern, no redirect. Only checked
+  // once role access is confirmed; fail-soft to enabled on read failure.
+  let reportsModuleEnabled = true;
+  if (canViewReporting) {
+    try {
+      const orgFeatures = await getOrgFeatures(session);
+      reportsModuleEnabled = orgFeatures.features.reports;
+    } catch {
+      reportsModuleEnabled = true;
+    }
+  }
+  const canViewReports = canViewReporting && reportsModuleEnabled;
+
   return (
     <div className="space-y-6">
       {/* ── A. Heading row — OUTSIDE Suspense (always instant) ─────────── */}
       <PageHeader
         title="Operational reports"
         subtitle="Aggregated activity for the selected period."
-        actions={canViewReporting && <RangeSelector slug={slug} current={range} />}
+        actions={canViewReports && <RangeSelector slug={slug} current={range} />}
       />
 
       {/* ── B–F: ONE Suspense boundary ───────────────────────────────────── */}
-      {canViewReporting ? (
+      {!canViewReporting ? (
+        <PermissionDeniedPanel />
+      ) : !reportsModuleEnabled ? (
+        <ModuleDisabledPanel />
+      ) : (
         <Suspense fallback={<ReportsSkeleton />}>
           <ReportsContent slug={slug} range={range} />
         </Suspense>
-      ) : (
-        <PermissionDeniedPanel />
       )}
     </div>
   );

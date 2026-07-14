@@ -20,7 +20,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Wrench, AlertCircle, ArrowLeft } from 'lucide-react';
 import { auth } from '@/auth';
-import { requireCapability, hasCapability } from '@aeroops/api';
+import { requireCapability, hasCapability, getOrgFeatures } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -168,6 +168,19 @@ export default async function WorkOrderDetailPage({ params }: WorkOrderDetailPag
       redirect(`/o/${slug}/login`);
     }
     throw err;
+  }
+
+  // ── Module gate (Slice CLUB-MODE) — fail-soft to enabled on read failure.
+  // NOTE: redirect() must run OUTSIDE the try/catch — it throws to signal the
+  // redirect, and a catch-all here would otherwise swallow that throw.
+  let orgFeatures: Awaited<ReturnType<typeof getOrgFeatures>> | null = null;
+  try {
+    orgFeatures = await getOrgFeatures(session);
+  } catch {
+    orgFeatures = null;
+  }
+  if (orgFeatures && !orgFeatures.features.maintenance) {
+    redirect(`/o/${slug}/no-access?reason=module_disabled`);
   }
 
   const canWorkOrder = hasCapability(session, 'maintenance:work_order');

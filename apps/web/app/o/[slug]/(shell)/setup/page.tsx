@@ -33,6 +33,7 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { OperatingModePicker } from './_components/operating-mode-picker';
 
 interface SetupPageProps {
   params: Promise<{ slug: string }>;
@@ -273,6 +274,9 @@ export default async function SetupPage({ params }: SetupPageProps) {
           </>
         }
       />
+
+      {/* ── Operating mode (migration 0047) ─────────────────────────────────── */}
+      <OperatingModePicker slug={slug} />
 
       {/* ── Progress summary ────────────────────────────────────────────────── */}
       <Card>

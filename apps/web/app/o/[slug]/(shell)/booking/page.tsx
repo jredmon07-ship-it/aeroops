@@ -26,7 +26,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Inbox, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
-import { requireCapability, hasCapability } from '@aeroops/api';
+import { requireCapability, hasCapability, getOrgFeatures } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -153,6 +153,22 @@ export default async function BookingPage({ params }: BookingPageProps) {
     if (action === 'login') redirect(`/o/${slug}/login`);
     // For forbidden (authenticated but wrong role), show the inline panel (no redirect).
     if (action !== 'forbidden') throw err;
+  }
+
+  // ── Module gate (Slice CLUB-MODE) — only once role access is confirmed; a
+  // role-denied user already gets the inline panel above (no redirect there).
+  // Fail-soft to enabled on read failure. redirect() must run OUTSIDE any
+  // catch-all, since it throws to signal the redirect.
+  if (hasAccess) {
+    let orgFeatures: Awaited<ReturnType<typeof getOrgFeatures>> | null = null;
+    try {
+      orgFeatures = await getOrgFeatures(session);
+    } catch {
+      orgFeatures = null;
+    }
+    if (orgFeatures && !orgFeatures.features.booking) {
+      redirect(`/o/${slug}/no-access?reason=module_disabled`);
+    }
   }
 
   // PB2.2 cosmetic gate — Convert button visible only when BOTH caps present.

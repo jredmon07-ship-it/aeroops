@@ -21,7 +21,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
-import { requireCapability } from '@aeroops/api';
+import { requireCapability, getOrgFeatures } from '@aeroops/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
@@ -90,6 +90,20 @@ export default async function PortalBlockTimePage({ params }: PortalBlockTimePag
     if (action === 'forbidden') redirect(`/o/${slug}/no-access?reason=insufficient_role`);
     if (action === 'login') redirect(`/o/${slug}/login`);
     throw err;
+  }
+
+  // ── Module gate (Slice CLUB-MODE) — portal block-time is a money surface, so
+  // it requires BOTH the portal module AND the billing module to be enabled.
+  // Fail-soft to enabled on read failure. redirect() must run OUTSIDE the
+  // try/catch — it throws to signal the redirect.
+  let orgFeatures: Awaited<ReturnType<typeof getOrgFeatures>> | null = null;
+  try {
+    orgFeatures = await getOrgFeatures(session);
+  } catch {
+    orgFeatures = null;
+  }
+  if (orgFeatures && (!orgFeatures.features.portal || !orgFeatures.features.billing)) {
+    redirect(`/o/${slug}/no-access?reason=module_disabled`);
   }
 
   return (

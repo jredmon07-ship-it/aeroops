@@ -2574,3 +2574,42 @@ export type {
   OnboardingStep,
   OnboardingStepKey,
 } from './onboarding/get-onboarding-status.js';
+
+// ─── Slice CLUB-MODE — per-org module toggles + operating mode (0047) ─────────
+// getOrgFeatures (app:access): the shell/nav/search/route read — which modules
+//   exist for this org. setOrgFeatures (org:manage_settings): mode label +
+//   partial per-module patch, optional preset application; ONE audit row.
+// GRACEFUL ABSENCE: until migration 0047 is applied everything reads as
+//   enabled (available:false) — byte-identical to the pre-0047 world.
+// "HIDE, DON'T DESTROY": toggles gate nav/search/routes only; module data is
+//   never deleted or mutated. NO money, NO FAA/regulatory meaning.
+export { getOrgFeatures, getOrgFeaturesWithDb } from './org-features/get-org-features.js';
+export type { OrgFeaturesView, GetOrgFeaturesResult } from './org-features/get-org-features.js';
+export { setOrgFeatures, setOrgFeaturesWithDb } from './org-features/set-org-features.js';
+export type { SetOrgFeaturesInput, SetOrgFeaturesResult } from './org-features/set-org-features.js';
+
+// ─── Slice AVATARS — member profile photos (migration 0048) ───────────────────
+// Optional small profile photo per account, stored inline as a size-capped
+//   data-URI on app_user (no object-storage dependency). getMyAvatar
+//   (app:access, own photo) / getMemberAvatars (people:access, bounded batch)
+//   / setMyAvatar (app:access, self) / updateMemberAvatar (people:manage).
+// GRACEFUL ABSENCE: until 0048 is applied, reads return null + available:false
+//   (initials-only UI) and writes return not_available. STORED, NEVER
+//   INTERPRETED — image bytes never enter logs or audit metadata.
+export {
+  getMyAvatar,
+  getMyAvatarWithDb,
+  getMemberAvatars,
+  getMemberAvatarsWithDb,
+  setMyAvatar,
+  setMyAvatarWithDb,
+  updateMemberAvatar,
+  updateMemberAvatarWithDb,
+  AVATAR_MAX_CHARS,
+} from './people/avatar.js';
+export type {
+  MemberAvatarView,
+  GetMyAvatarResult,
+  GetMemberAvatarsResult,
+  SetAvatarResult,
+} from './people/avatar.js';

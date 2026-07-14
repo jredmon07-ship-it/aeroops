@@ -57,6 +57,7 @@ import type {
   SearchOrgResult,
 } from './types.js';
 import { extractRows } from '../db-rows.js';
+import { loadOrgFeatureState } from '../org-features/org-features-internal.js';
 
 // ─── Zod schema ───────────────────────────────────────────────────────────────
 
@@ -107,6 +108,11 @@ async function _searchOrgImpl(
   // 5. Run per-type queries inside one session org context.
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     const groupMap = new Map<string, SearchResult[]>();
+
+    // Per-org module toggles (Slice CLUB-MODE, migration 0047): a disabled
+    // module's entities never surface in search, alongside the per-type
+    // capability gates below. Graceful absence → all-enabled (pre-0047 world).
+    const { features } = await loadOrgFeatureState(tx, _sess.orgId);
 
     // ── 5a. Aircraft (fleet:access) ─────────────────────────────────────────
     if (hasCapability(session, 'fleet:access')) {
@@ -194,7 +200,7 @@ async function _searchOrgImpl(
     }
 
     // ── 5c. Work orders (maintenance:access) ────────────────────────────────
-    if (hasCapability(session, 'maintenance:access')) {
+    if (features.maintenance && hasCapability(session, 'maintenance:access')) {
       const result = await tx.execute(sql`
         SELECT
           id,
@@ -224,7 +230,7 @@ async function _searchOrgImpl(
     }
 
     // ── 5d. Squawks (maintenance:access) ────────────────────────────────────
-    if (hasCapability(session, 'maintenance:access')) {
+    if (features.maintenance && hasCapability(session, 'maintenance:access')) {
       const result = await tx.execute(sql`
         SELECT
           id,
@@ -256,7 +262,7 @@ async function _searchOrgImpl(
     }
 
     // ── 5e. Courses (training:access) ────────────────────────────────────────
-    if (hasCapability(session, 'training:access')) {
+    if (features.training && hasCapability(session, 'training:access')) {
       const result = await tx.execute(sql`
         SELECT
           id,

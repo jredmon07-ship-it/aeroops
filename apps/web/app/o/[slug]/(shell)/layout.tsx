@@ -25,9 +25,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { getSessionOrg, getOrgFieldStatus } from '@aeroops/api';
+import { getSessionOrg, getOrgFieldStatus, getOrgFeatures } from '@aeroops/api';
 import type { OrgFieldStatusResult } from '@aeroops/api';
-import { ROLE_LABELS } from '@aeroops/core';
+import { ROLE_LABELS, ALL_MODULES_ENABLED } from '@aeroops/core';
+import type { OrgFeatureFlags } from '@aeroops/core';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { SignOutButton } from '../sign-out-button';
@@ -83,8 +84,19 @@ export default async function OrgShellLayout({
     fieldStatus = null;
   }
 
+  // Per-org module toggles (Slice CLUB-MODE) — FAIL SOFT to all-enabled: a
+  // read failure must never blank the nav; each module page still gates
+  // server-side on its own getOrgFeatures read.
+  let enabledModules: OrgFeatureFlags = ALL_MODULES_ENABLED;
+  try {
+    const features = await getOrgFeatures(session);
+    enabledModules = features.features;
+  } catch {
+    enabledModules = ALL_MODULES_ENABLED;
+  }
+
   // UI/nav only — gate enforced by requireCapability() in each protected page.
-  const navItems = filterNavForSession(session, NAV_ITEMS, slug);
+  const navItems = filterNavForSession(session, NAV_ITEMS, slug, enabledModules);
 
   return (
     <ThemeProvider>

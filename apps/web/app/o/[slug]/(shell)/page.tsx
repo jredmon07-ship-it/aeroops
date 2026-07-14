@@ -35,8 +35,10 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
-import { hasCapability, getDashboardSummary, getOnboardingStatus } from '@aeroops/api';
-import { landingPathFor } from '@/lib/nav';
+import { hasCapability, getDashboardSummary, getOnboardingStatus, getOrgFeatures } from '@aeroops/api';
+import { ALL_MODULES_ENABLED } from '@aeroops/core';
+import type { OrgFeatureFlags } from '@aeroops/core';
+import { landingPathFor, NAV_ITEMS } from '@/lib/nav';
 import { SetupBanner } from './setup-banner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -172,9 +174,10 @@ function PermissionDeniedPanel() {
 interface DashboardContentProps {
   slug: string;
   range: '7d' | '30d' | '90d';
+  enabledModules: OrgFeatureFlags;
 }
 
-async function DashboardContent({ slug, range }: DashboardContentProps) {
+async function DashboardContent({ slug, range, enabledModules }: DashboardContentProps) {
   // Parallel-fetch all dashboard data.
   const [metricsResult, utilizationResult, todaysFlightsResult, groundedResult, squawksResult, maintenanceDueSummaryResult] =
     await Promise.all([
@@ -352,91 +355,97 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
               </p>
             </div>
 
-            {/* Tile 5: Open work orders */}
-            <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Open work orders
-              </p>
-              <p
-                className={[
-                  'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.openWorkOrderCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400 dark:text-slate-500',
-                ].join(' ')}
-              >
-                {metrics.openWorkOrderCount}
-              </p>
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                <Link
-                  href={`/o/${slug}/maintenance/work-orders`}
-                  className="hover:text-brand underline-offset-2 hover:underline"
+            {/* Tile 5: Open work orders (maintenance module) */}
+            {enabledModules.maintenance && (
+              <div className="flex-1 px-5 py-4">
+                <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Open work orders
+                </p>
+                <p
+                  className={[
+                    'nums mt-1 text-2xl font-bold leading-none',
+                    metrics.openWorkOrderCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400 dark:text-slate-500',
+                  ].join(' ')}
                 >
-                  {metrics.openWorkOrderCount > 0 ? 'open or in progress' : 'none open'}
-                </Link>
-              </p>
-            </div>
-
-            {/* Tile 6: Active enrollments */}
-            <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Active enrollments
-              </p>
-              <p
-                className={[
-                  'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.activeEnrollmentCount === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100',
-                ].join(' ')}
-              >
-                {metrics.activeEnrollmentCount}
-              </p>
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                <Link
-                  href={`/o/${slug}/training/enrollments`}
-                  className="hover:text-brand underline-offset-2 hover:underline"
-                >
-                  {metrics.activeEnrollmentCount === 0 ? 'none yet' : 'students in training'}
-                </Link>
-              </p>
-            </div>
-
-            {/* Tile 7: Maintenance due (Slice P1.5) [VERIFY-P1.5-A] */}
-            <div className="flex-1 px-5 py-4">
-              <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Maintenance due
-              </p>
-              {maintenanceDueSummary === null ? (
-                <>
-                  <p className="nums mt-1 text-2xl font-bold leading-none text-slate-300">—</p>
-                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">not available</p>
-                </>
-              ) : (
-                <>
-                  <p
-                    className={[
-                      'nums mt-1 text-2xl font-bold leading-none',
-                      maintenanceDueSummary.overdueCount > 0
-                        ? 'text-danger'
-                        : maintenanceDueSummary.dueSoonCount > 0
-                          ? 'text-amber-700 dark:text-amber-300'
-                          : 'text-slate-400 dark:text-slate-500',
-                    ].join(' ')}
+                  {metrics.openWorkOrderCount}
+                </p>
+                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                  <Link
+                    href={`/o/${slug}/maintenance/work-orders`}
+                    className="hover:text-brand underline-offset-2 hover:underline"
                   >
-                    {maintenanceDueSummary.overdueCount + maintenanceDueSummary.dueSoonCount}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                    <Link
-                      href={`/o/${slug}/maintenance/due`}
-                      className="hover:text-brand underline-offset-2 hover:underline"
+                    {metrics.openWorkOrderCount > 0 ? 'open or in progress' : 'none open'}
+                  </Link>
+                </p>
+              </div>
+            )}
+
+            {/* Tile 6: Active enrollments (training module) */}
+            {enabledModules.training && (
+              <div className="flex-1 px-5 py-4">
+                <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Active enrollments
+                </p>
+                <p
+                  className={[
+                    'nums mt-1 text-2xl font-bold leading-none',
+                    metrics.activeEnrollmentCount === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100',
+                  ].join(' ')}
+                >
+                  {metrics.activeEnrollmentCount}
+                </p>
+                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                  <Link
+                    href={`/o/${slug}/training/enrollments`}
+                    className="hover:text-brand underline-offset-2 hover:underline"
+                  >
+                    {metrics.activeEnrollmentCount === 0 ? 'none yet' : 'students in training'}
+                  </Link>
+                </p>
+              </div>
+            )}
+
+            {/* Tile 7: Maintenance due (Slice P1.5) [VERIFY-P1.5-A] — maintenance module */}
+            {enabledModules.maintenance && (
+              <div className="flex-1 px-5 py-4">
+                <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Maintenance due
+                </p>
+                {maintenanceDueSummary === null ? (
+                  <>
+                    <p className="nums mt-1 text-2xl font-bold leading-none text-slate-300">—</p>
+                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">not available</p>
+                  </>
+                ) : (
+                  <>
+                    <p
+                      className={[
+                        'nums mt-1 text-2xl font-bold leading-none',
+                        maintenanceDueSummary.overdueCount > 0
+                          ? 'text-danger'
+                          : maintenanceDueSummary.dueSoonCount > 0
+                            ? 'text-amber-700 dark:text-amber-300'
+                            : 'text-slate-400 dark:text-slate-500',
+                      ].join(' ')}
                     >
-                      {maintenanceDueSummary.overdueCount > 0
-                        ? `${maintenanceDueSummary.overdueCount} overdue`
-                        : maintenanceDueSummary.dueSoonCount > 0
-                          ? `${maintenanceDueSummary.dueSoonCount} due soon`
-                          : 'none due'}
-                    </Link>
-                  </p>
-                </>
-              )}
-            </div>
+                      {maintenanceDueSummary.overdueCount + maintenanceDueSummary.dueSoonCount}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                      <Link
+                        href={`/o/${slug}/maintenance/due`}
+                        className="hover:text-brand underline-offset-2 hover:underline"
+                      >
+                        {maintenanceDueSummary.overdueCount > 0
+                          ? `${maintenanceDueSummary.overdueCount} overdue`
+                          : maintenanceDueSummary.dueSoonCount > 0
+                            ? `${maintenanceDueSummary.dueSoonCount} due soon`
+                            : 'none due'}
+                      </Link>
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -725,93 +734,97 @@ async function DashboardContent({ slug, range }: DashboardContentProps) {
             </div>
           </div>
 
-          {/* Card 2: Grounded aircraft */}
-          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-            <div className="hairline flex items-center justify-between px-4 py-2.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {groundedAircraft.length > 0 && (
-                  <span
-                    className="inline-block h-2 w-2 rounded-full bg-danger"
-                    aria-hidden="true"
-                  />
-                )}
-                Grounded
-              </span>
-              <Link
-                href={`/o/${slug}/fleet`}
-                className="text-xs text-brand hover:text-brand-ink underline-offset-2 hover:underline"
-              >
-                Fleet
-              </Link>
-            </div>
-            <div className="max-h-52 overflow-y-auto">
-              {groundedAircraft.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-                  No aircraft grounded.
-                </p>
-              ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {groundedAircraft.map((a) => (
-                    <li key={a.id} className="flex items-baseline gap-2 px-4 py-2.5">
-                      <Link
-                        href={`/o/${slug}/fleet/${a.id}`}
-                        className="nums text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline shrink-0"
-                      >
-                        {a.tailNumber}
-                      </Link>
-                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                        {a.groundingReason ?? 'No reason given'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-
-          {/* Card 3: Open squawks */}
-          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-            <div className="hairline flex items-center justify-between px-4 py-2.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {openSquawks.length > 0 && (
-                  <span
-                    className="inline-block h-2 w-2 rounded-full bg-amber-500"
-                    aria-hidden="true"
-                  />
-                )}
-                Open squawks
-              </span>
-              <Link
-                href={`/o/${slug}/maintenance/squawks`}
-                className="text-xs text-brand hover:text-brand-ink underline-offset-2 hover:underline"
-              >
-                Maintenance
-              </Link>
-            </div>
-            <div className="max-h-52 overflow-y-auto">
-              {openSquawks.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-                  No open squawks.
-                </p>
-              ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {openSquawks.map((s) => (
-                    <li key={s.id}>
-                      <Link
-                        href={`/o/${slug}/maintenance/squawks?resourceId=${s.resourceId}`}
-                        className="flex items-start gap-2 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        <span className="flex-1 min-w-0 text-xs text-slate-700 dark:text-slate-300 truncate">
-                          {s.title}
+          {/* Card 2: Grounded aircraft (maintenance module) */}
+          {enabledModules.maintenance && (
+            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+              <div className="hairline flex items-center justify-between px-4 py-2.5">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {groundedAircraft.length > 0 && (
+                    <span
+                      className="inline-block h-2 w-2 rounded-full bg-danger"
+                      aria-hidden="true"
+                    />
+                  )}
+                  Grounded
+                </span>
+                <Link
+                  href={`/o/${slug}/fleet`}
+                  className="text-xs text-brand hover:text-brand-ink underline-offset-2 hover:underline"
+                >
+                  Fleet
+                </Link>
+              </div>
+              <div className="max-h-52 overflow-y-auto">
+                {groundedAircraft.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                    No aircraft grounded.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {groundedAircraft.map((a) => (
+                      <li key={a.id} className="flex items-baseline gap-2 px-4 py-2.5">
+                        <Link
+                          href={`/o/${slug}/fleet/${a.id}`}
+                          className="nums text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline shrink-0"
+                        >
+                          {a.tailNumber}
+                        </Link>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                          {a.groundingReason ?? 'No reason given'}
                         </span>
-                        <SeverityChip severity={s.severity} />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Card 3: Open squawks (maintenance module) */}
+          {enabledModules.maintenance && (
+            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+              <div className="hairline flex items-center justify-between px-4 py-2.5">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {openSquawks.length > 0 && (
+                    <span
+                      className="inline-block h-2 w-2 rounded-full bg-amber-500"
+                      aria-hidden="true"
+                    />
+                  )}
+                  Open squawks
+                </span>
+                <Link
+                  href={`/o/${slug}/maintenance/squawks`}
+                  className="text-xs text-brand hover:text-brand-ink underline-offset-2 hover:underline"
+                >
+                  Maintenance
+                </Link>
+              </div>
+              <div className="max-h-52 overflow-y-auto">
+                {openSquawks.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                    No open squawks.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {openSquawks.map((s) => (
+                      <li key={s.id}>
+                        <Link
+                          href={`/o/${slug}/maintenance/squawks?resourceId=${s.resourceId}`}
+                          className="flex items-start gap-2 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <span className="flex-1 min-w-0 text-xs text-slate-700 dark:text-slate-300 truncate">
+                            {s.title}
+                          </span>
+                          <SeverityChip severity={s.severity} />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </div>
@@ -877,10 +890,21 @@ export default async function DashboardPage({
     redirect(`/o/${slug}/login`);
   }
 
+  // Per-org module toggles (Slice CLUB-MODE) — FAIL SOFT to all-enabled: a
+  // read failure must never break the landing redirect or hide dashboard
+  // content; each module page still gates server-side on its own read.
+  let enabledModules: OrgFeatureFlags = ALL_MODULES_ENABLED;
+  try {
+    const features = await getOrgFeatures(session);
+    enabledModules = features.features;
+  } catch {
+    enabledModules = ALL_MODULES_ENABLED;
+  }
+
   // Redirect roles that belong elsewhere (student/renter → portal; mechanic → Fleet;
   // any other non-dashboard role → first accessible page).
   // Roles with reporting:access (owner/manager/dispatcher/cfi/accountant) stay here.
-  const landingRaw = landingPathFor(session);
+  const landingRaw = landingPathFor(session, NAV_ITEMS, enabledModules);
   if (landingRaw) {
     // landingRaw still contains the [slug] placeholder — resolve it now.
     redirect(landingRaw.replace('[slug]', slug));
@@ -936,7 +960,7 @@ export default async function DashboardPage({
       {/* ── B+C+D+E — Suspense boundary ─────────────────────────────────── */}
       {canViewReporting ? (
         <Suspense fallback={<DashboardSkeleton />}>
-          <DashboardContent slug={slug} range={range} />
+          <DashboardContent slug={slug} range={range} enabledModules={enabledModules} />
         </Suspense>
       ) : (
         <PermissionDeniedPanel />

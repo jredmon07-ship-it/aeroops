@@ -397,3 +397,22 @@ export {
   parseMetarText,
 } from './weather/metar.js';
 export type { FlightCategory, ParsedMetar, ParseMetarOptions } from './weather/metar.js';
+
+// ─── Org modules — per-org feature toggles + operating-mode presets (0047) ──
+// The PURE module registry: which whole areas of the app an operator can turn
+//   off (leaner nav for a small flying club), the 'school' | 'club' operating
+//   modes, their presets, and display metadata. Enforcement reads ONLY the
+//   flags; the mode is a preset label. "Hide, don't destroy" — toggling a
+//   module never touches its data. See docs/specs/slice-club-mode.md.
+export {
+  ORG_MODULES,
+  OPERATING_MODES,
+  ALL_MODULES_ENABLED,
+  OPERATING_MODE_PRESETS,
+  ORG_MODULE_META,
+  OPERATING_MODE_META,
+  isOrgModuleKey,
+  isOperatingMode,
+  mergeFeatureFlags,
+} from './org-modules.js';
+export type { OrgModuleKey, OrgFeatureFlags, OperatingMode } from './org-modules.js';

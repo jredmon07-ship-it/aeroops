@@ -45,6 +45,7 @@ import { bookingRequestSchema } from '@aeroops/core';
 import { resolveOrgBySlug } from '../auth/resolve-org.js';
 import { getDb } from '../db.js';
 import { extractRows } from '../db-rows.js';
+import { loadOrgFeatureState } from '../org-features/org-features-internal.js';
 import { getCaptchaVerifier } from './captcha.js';
 import type { CaptchaVerifier } from './captcha.js';
 
@@ -159,6 +160,19 @@ async function _submitImpl(
   // Both cases return the SAME generic response (anti-enumeration: no way to distinguish).
   const resolvedOrg = await resolveOrgBySlug(db, slug);
   if (!resolvedOrg || resolvedOrg.status !== 'active') {
+    return { ok: false, reason: 'unavailable' };
+  }
+
+  // ── (c2) Per-org module gate (Slice CLUB-MODE, migration 0047) ─────────────
+  // An org that turned the public-booking module OFF accepts no public
+  // requests. Same generic 'unavailable' as unknown/suspended (anti-
+  // enumeration: a disabled module is indistinguishable from a missing org).
+  // Read-only, in its OWN org context — invariant (d)'s INSERT-only tx below
+  // is untouched. Graceful absence (0047 unapplied) → enabled → unchanged.
+  const featureState = await withOrgContext(db, resolvedOrg.id, (tx) =>
+    loadOrgFeatureState(tx as AnyDb, resolvedOrg.id),
+  );
+  if (!featureState.features.booking) {
     return { ok: false, reason: 'unavailable' };
   }
 

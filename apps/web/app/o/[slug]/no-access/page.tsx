@@ -9,6 +9,9 @@
  *   - org_suspended      — "This operator's account is suspended…"
  *   - insufficient_role  — "You don't have permission to access this page…"
  *                          Also shows a "Back to Dashboard" link.
+ *   - module_disabled    — "This area is turned off…" (Slice CLUB-MODE — the
+ *                          org has turned off the module this page belongs to).
+ *                          Also shows a "Back to Dashboard" link.
  *   - (default)          — generic message
  *
  * Sign-out button is always present and is immediate (no confirm here —
@@ -37,6 +40,15 @@ const REASON_MESSAGES: Record<string, string> = {
     "This operator's account is suspended. Please contact AeroOps support for assistance.",
   insufficient_role:
     "You don't have permission to access this page. Contact your operator's owner if you need access.",
+  module_disabled:
+    'An owner or manager can turn it back on in Org settings under Modules.',
+};
+
+// Slice CLUB-MODE: module_disabled gets its own card title ("This area is
+// turned off") instead of the generic "Access denied" — this isn't a
+// permissions problem, the org just switched the module off.
+const REASON_TITLES: Record<string, string> = {
+  module_disabled: 'This area is turned off',
 };
 
 function getReasonMessage(reason: Reason): string {
@@ -44,6 +56,10 @@ function getReasonMessage(reason: Reason): string {
     REASON_MESSAGES[reason] ??
     'You do not have permission to access this operator.'
   );
+}
+
+function getReasonTitle(reason: Reason): string {
+  return REASON_TITLES[reason] ?? 'Access denied';
 }
 
 interface NoAccessPageProps {
@@ -58,28 +74,33 @@ export default async function NoAccessPage({
   const { slug } = await params;
   const { reason = 'no_membership' } = await searchParams;
   const message = getReasonMessage(reason);
+  const title = getReasonTitle(reason);
   const isInsufficientRole = reason === 'insufficient_role';
+  const isModuleDisabled = reason === 'module_disabled';
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-sm">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Access denied</CardTitle>
+            <CardTitle className="text-xl">{title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert variant="destructive" role="alert" aria-live="polite">
+            <Alert variant={isModuleDisabled ? 'default' : 'destructive'} role="alert" aria-live="polite">
               <AlertDescription>{message}</AlertDescription>
             </Alert>
 
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              If you believe this is a mistake, contact your operator
-              administrator.
-            </p>
+            {!isModuleDisabled && (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                If you believe this is a mistake, contact your operator
+                administrator.
+              </p>
+            )}
 
-            {/* Back to Dashboard link — shown for insufficient_role only.
-                The user is authenticated but hit a page their role can't see. */}
-            {isInsufficientRole && (
+            {/* Back to Dashboard link — shown for insufficient_role and
+                module_disabled. The user is authenticated but hit a page
+                their role can't see, or that the org has turned off. */}
+            {(isInsufficientRole || isModuleDisabled) && (
               <div className="pt-1">
                 <Button asChild variant="outline" className="w-full">
                   <Link href={`/o/${slug}`}>Back to Dashboard</Link>

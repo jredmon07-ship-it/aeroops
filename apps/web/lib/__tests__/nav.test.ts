@@ -50,8 +50,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { MEMBERSHIP_ROLES } from '@aeroops/core';
-import type { MembershipRole } from '@aeroops/core';
+import { MEMBERSHIP_ROLES, ALL_MODULES_ENABLED } from '@aeroops/core';
+import type { MembershipRole, OrgFeatureFlags } from '@aeroops/core';
 import type { AppSession } from '@aeroops/api';
 import { filterNavForSession, isPortalOnly, landingPathFor, NAV_ITEMS } from '../nav';
 import type { NavItem } from '../nav';
@@ -1084,5 +1084,137 @@ describe('17. Help (Slice P1.8)', () => {
       const result = filterNavForSession(session, NAV_ITEMS, 'acme');
       expect(result[result.length - 1]?.label, `role=${role}`).toBe('Help');
     }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 18. Per-org module toggles (Slice CLUB-MODE, migration 0047) — filterNavForSession
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('18. Module toggles — filterNavForSession (Slice CLUB-MODE)', () => {
+  // Club-preset-shaped flags: training / booking / auto_schedule off, rest on.
+  const clubFlags: OrgFeatureFlags = {
+    ...ALL_MODULES_ENABLED,
+    training: false,
+    booking: false,
+    auto_schedule: false,
+  };
+
+  it('owner: disabling training/booking/auto_schedule hides exactly those 3 items; core items stay', () => {
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme', clubFlags);
+    const labels = result.map((i) => i.label);
+
+    expect(labels).not.toContain('Training');
+    expect(labels).not.toContain('Booking requests');
+    expect(labels).not.toContain('Auto-schedule');
+
+    // Every other item from the full owner nav remains, in order.
+    expect(labels).toEqual([
+      'Portal',
+      'Dashboard',
+      'Reservations',
+      'Board',
+      'Resources',
+      'People',
+      'Fleet',
+      'Maintenance',
+      'Billing',
+      'Reports',
+      'Activity',
+      'Messages',
+      'Org settings',
+      'Help',
+    ]);
+  });
+
+  it('owner: result has exactly 14 items with the 3 modules off (was 17)', () => {
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme', clubFlags);
+    expect(result.length).toBe(14);
+  });
+
+  it('default (no 4th arg / ALL_MODULES_ENABLED) keeps everything — byte-identical to today', () => {
+    const session = makeSession('owner');
+    const withDefault = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const withExplicitAllEnabled = filterNavForSession(session, NAV_ITEMS, 'acme', ALL_MODULES_ENABLED);
+    expect(withDefault).toEqual(withExplicitAllEnabled);
+    expect(withDefault.map((i) => i.label)).toContain('Training');
+    expect(withDefault.map((i) => i.label)).toContain('Booking requests');
+    expect(withDefault.map((i) => i.label)).toContain('Auto-schedule');
+    expect(withDefault.length).toBe(17);
+  });
+
+  it('a disabled module hides the item even for a role that otherwise has the capability (dispatcher)', () => {
+    const session = makeSession('dispatcher');
+    const withAll = filterNavForSession(session, NAV_ITEMS, 'acme');
+    const withClub = filterNavForSession(session, NAV_ITEMS, 'acme', clubFlags);
+    expect(withAll.map((i) => i.label)).toContain('Training');
+    expect(withAll.map((i) => i.label)).toContain('Booking requests');
+    expect(withAll.map((i) => i.label)).toContain('Auto-schedule');
+    expect(withClub.map((i) => i.label)).not.toContain('Training');
+    expect(withClub.map((i) => i.label)).not.toContain('Booking requests');
+    expect(withClub.map((i) => i.label)).not.toContain('Auto-schedule');
+  });
+
+  it('items with no module key (core) are never hidden by any flag combination', () => {
+    const allOffExceptCore: OrgFeatureFlags = {
+      training: false,
+      maintenance: false,
+      billing: false,
+      booking: false,
+      portal: false,
+      reports: false,
+      auto_schedule: false,
+      messages: false,
+    };
+    const session = makeSession('owner');
+    const result = filterNavForSession(session, NAV_ITEMS, 'acme', allOffExceptCore);
+    const labels = result.map((i) => i.label);
+    // Core items (no `module` key): Dashboard, Reservations, Board, Resources,
+    // People, Fleet, Org settings, Help.
+    expect(labels).toEqual([
+      'Dashboard',
+      'Reservations',
+      'Board',
+      'Resources',
+      'People',
+      'Fleet',
+      'Org settings',
+      'Help',
+    ]);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 19. Per-org module toggles — landingPathFor (Slice CLUB-MODE)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('19. Module toggles — landingPathFor (Slice CLUB-MODE)', () => {
+  it('student session with portal:false falls through to the first enabled nav item, not /portal', () => {
+    const portalOffFlags: OrgFeatureFlags = { ...ALL_MODULES_ENABLED, portal: false };
+    const landing = landingPathFor(makeSession('student'), NAV_ITEMS, portalOffFlags);
+    expect(landing).not.toBe('/o/[slug]/portal');
+    // Student only has app:access + portal:access; with portal off, the only
+    // remaining nav item student can see is Help (core, app:access, last item).
+    expect(landing).toBe('/o/[slug]/help');
+  });
+
+  it('renter session with portal:false falls through the same way', () => {
+    const portalOffFlags: OrgFeatureFlags = { ...ALL_MODULES_ENABLED, portal: false };
+    const landing = landingPathFor(makeSession('renter'), NAV_ITEMS, portalOffFlags);
+    expect(landing).not.toBe('/o/[slug]/portal');
+    expect(landing).toBe('/o/[slug]/help');
+  });
+
+  it('student session with portal:true (default) still lands on /portal', () => {
+    expect(landingPathFor(makeSession('student'), NAV_ITEMS, ALL_MODULES_ENABLED)).toBe('/o/[slug]/portal');
+    // And the 2-arg default form (no flags passed) is unaffected too.
+    expect(landingPathFor(makeSession('student'))).toBe('/o/[slug]/portal');
+  });
+
+  it('mechanic landing (no portal/reporting access) is unaffected by portal:false', () => {
+    const portalOffFlags: OrgFeatureFlags = { ...ALL_MODULES_ENABLED, portal: false };
+    expect(landingPathFor(makeSession('mechanic'), NAV_ITEMS, portalOffFlags)).toBe('/o/[slug]/fleet');
   });
 });

@@ -30,6 +30,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { QboSettingsCard } from './_components/qbo-settings-card';
 import { FeePassingCard } from './_components/fee-passing-card';
+import { ModulesCard } from './_components/modules-card';
 import { getFeePassingAction } from './actions';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -131,6 +132,9 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
           </dl>
         </CardContent>
       </Card>
+
+      {/* ── Modules + operating mode (migration 0047) ──────────────────────── */}
+      <ModulesCard slug={slug} />
 
       {/* ── Payment processing fee passing (migration 0045) ───────────────── */}
       <FeePassingCard slug={slug} initial={feePassing} />
