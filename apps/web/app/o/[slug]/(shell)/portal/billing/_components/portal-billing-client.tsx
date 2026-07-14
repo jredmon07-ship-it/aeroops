@@ -30,7 +30,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { computeAchPassthroughFeeCents } from '@aeroops/core';
+import { computeAchPassthroughFeeCents, DUES_CADENCE_META } from '@aeroops/core';
+import type { DuesCadence } from '@aeroops/core';
 import type { SavedPaymentMethodView, AutopaySettingView } from '@aeroops/api';
 import type { SerializedMyBilling, StripePublishableConfig } from '../../actions';
 import {
@@ -51,6 +52,24 @@ function formatCents(cents: number): string {
 /** Copy for the pass-through fee line, shown when the operator opts in. */
 const FEE_LINE_LABEL = 'Processing fee (1%, max $15)';
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/**
+ * "/ month" (monthly) or "/ year (July)" (an anchored cadence) — appended
+ * after the formatted amount, e.g. "$130.00 / month" or "$600.00 / year
+ * (July)". Mirrors billing/accounts/_components/account-detail-client.tsx's
+ * duesCadenceSuffix (each client file keeps its own copy per house convention).
+ */
+function duesCadenceSuffix(cadence: DuesCadence, anchorMonth: number | null): string {
+  const unit = DUES_CADENCE_META[cadence].per.replace(/^per /, '');
+  if (cadence === 'monthly' || anchorMonth == null) return `/ ${unit}`;
+  const monthName = MONTH_NAMES[anchorMonth - 1] ?? String(anchorMonth);
+  return `/ ${unit} (${monthName})`;
+}
+
 function pmLabel(pm: SavedPaymentMethodView): string {
   const brand = pm.brand ?? (pm.type === 'us_bank_account' ? 'Bank account' : 'Card');
   return pm.last4 ? `${brand} ····${pm.last4}` : brand;
@@ -59,9 +78,15 @@ function pmLabel(pm: SavedPaymentMethodView): string {
 interface PortalBillingClientProps {
   initialBilling: SerializedMyBilling;
   stripeConfig: StripePublishableConfig;
+  /** "Tuition" (school mode) or "Dues" (club mode) — same engine, different label. */
+  chargeNoun?: 'Tuition' | 'Dues';
 }
 
-export function PortalBillingClient({ initialBilling, stripeConfig }: PortalBillingClientProps) {
+export function PortalBillingClient({
+  initialBilling,
+  stripeConfig,
+  chargeNoun = 'Dues',
+}: PortalBillingClientProps) {
   const [billing, setBilling] = React.useState(initialBilling);
   const [pmIdInput, setPmIdInput] = React.useState('');
   const [addingPm, setAddingPm] = React.useState(false);
@@ -277,6 +302,37 @@ export function PortalBillingClient({ initialBilling, stripeConfig }: PortalBill
           )}
         </div>
       </section>
+
+      {/* Recurring dues/tuition (Slice AEROSTUDY — display-only, self-scoped) */}
+      {billing.duesSchedules.length > 0 && (
+        <section
+          className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden"
+          aria-label={`Your recurring ${chargeNoun.toLowerCase()}`}
+        >
+          <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3">
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Your recurring {chargeNoun.toLowerCase()}
+            </h2>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <ul className="space-y-1" role="list">
+              {billing.duesSchedules.map((s) => (
+                <li key={s.id} className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="nums font-medium">{formatCents(s.amountCents)}</span>{' '}
+                  {duesCadenceSuffix(s.cadence, s.anchorMonth)}
+                  {s.memo && <span className="text-slate-400 dark:text-slate-500">, {s.memo}</span>}
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              These are billed automatically each period.{' '}
+              {billing.autopay.enabled
+                ? 'Auto-pay is on, so they collect from your linked bank account.'
+                : 'Turn on auto-pay to have them collect automatically.'}
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Invoices */}
       <section className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden" aria-label="My invoices">

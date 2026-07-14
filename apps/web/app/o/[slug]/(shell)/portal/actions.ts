@@ -65,6 +65,7 @@ import type {
   PilotLog,
   PilotLogEntry,
   BlockPurchaseView,
+  MyDuesScheduleView,
 } from '@aeroops/api';
 
 // ─── Error shapes ─────────────────────────────────────────────────────────────
@@ -241,6 +242,12 @@ export interface SerializedMyBilling {
   invoices: SerializedMyInvoiceRow[];
   paymentMethods: SavedPaymentMethodView[];
   autopay: AutopaySettingView;
+  /**
+   * The member's OWN active recurring dues/tuition schedules (DISPLAY only,
+   * self-scoped). No Dates on this shape, so it passes through unchanged from
+   * @aeroops/api — see MyDuesScheduleView's own doc comment.
+   */
+  duesSchedules: MyDuesScheduleView[];
   /** Whether the operator passes the ACH processing fee (1%, max $15) to the member. */
   feePassingEnabled: boolean;
 }
@@ -262,6 +269,7 @@ export async function getMyBillingAction(): Promise<GetMyBillingActionResult> {
         invoices: billing.invoices.map(serializeMyInvoice),
         paymentMethods: billing.paymentMethods,
         autopay: billing.autopay,
+        duesSchedules: billing.duesSchedules,
         feePassingEnabled: billing.feePassingEnabled,
       },
     };

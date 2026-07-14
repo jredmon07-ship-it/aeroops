@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
 import { requireCapability, getOrgFeatures } from '@aeroops/api';
+import { recurringChargeNoun } from '@aeroops/core';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
@@ -41,9 +42,10 @@ function BillingSkeleton() {
 
 interface BillingContentProps {
   slug: string;
+  chargeNoun: 'Tuition' | 'Dues';
 }
 
-async function BillingContent({ slug }: BillingContentProps) {
+async function BillingContent({ slug, chargeNoun }: BillingContentProps) {
   const [billingResult, stripeConfig] = await Promise.all([
     getMyBillingAction(),
     getStripePublishableConfigAction(),
@@ -72,7 +74,13 @@ async function BillingContent({ slug }: BillingContentProps) {
     );
   }
 
-  return <PortalBillingClient initialBilling={billingResult.billing} stripeConfig={stripeConfig} />;
+  return (
+    <PortalBillingClient
+      initialBilling={billingResult.billing}
+      stripeConfig={stripeConfig}
+      chargeNoun={chargeNoun}
+    />
+  );
 }
 
 interface PortalBillingPageProps {
@@ -110,6 +118,12 @@ export default async function PortalBillingPage({ params }: PortalBillingPagePro
     redirect(`/o/${slug}/no-access?reason=module_disabled`);
   }
 
+  // Default 'school' (=> "Tuition") when the module-gate read failed above
+  // and orgFeatures is null — matches the fail-soft-to-enabled posture used
+  // for `features` a few lines up, and the same default used on the
+  // operator-side billing pages (accounts/[memberId]/page.tsx, recurring/page.tsx).
+  const chargeNoun = recurringChargeNoun(orgFeatures?.operatingMode ?? 'school');
+
   return (
     <div className="space-y-4">
       <Link
@@ -120,7 +134,7 @@ export default async function PortalBillingPage({ params }: PortalBillingPagePro
         Back to portal
       </Link>
       <Suspense fallback={<BillingSkeleton />}>
-        <BillingContent slug={slug} />
+        <BillingContent slug={slug} chargeNoun={chargeNoun} />
       </Suspense>
     </div>
   );
