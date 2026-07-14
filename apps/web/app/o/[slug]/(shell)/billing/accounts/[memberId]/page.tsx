@@ -27,6 +27,7 @@ import Link from 'next/link';
 import { Wallet, AlertCircle, ArrowLeft } from 'lucide-react';
 import { auth } from '@/auth';
 import { requireCapability, hasCapability, getOrgFeatures } from '@aeroops/api';
+import { recurringChargeNoun } from '@aeroops/core';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -52,9 +53,10 @@ interface DetailContentProps {
   memberId: string;
   slug: string;
   canManage: boolean;
+  chargeNoun: 'Tuition' | 'Dues';
 }
 
-async function DetailContent({ memberId, slug, canManage }: DetailContentProps) {
+async function DetailContent({ memberId, slug, canManage, chargeNoun }: DetailContentProps) {
   const [balanceResult, entriesResult, billingProfileResult] = await Promise.all([
     getMemberBalanceAction(memberId),
     listLedgerEntriesAction(memberId),
@@ -102,6 +104,7 @@ async function DetailContent({ memberId, slug, canManage }: DetailContentProps) 
       initialEntries={entriesResult.entries}
       canManage={canManage}
       initialBillingProfile={billingProfile}
+      chargeNoun={chargeNoun}
     />
   );
 }
@@ -139,6 +142,10 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
   }
 
   const canManage = hasCapability(session, 'billing:manage');
+  // Default 'school' (=> "Tuition") when the module-gate read failed above
+  // and orgFeatures is null — matches the fail-soft-to-enabled posture used
+  // for `features` a few lines up.
+  const chargeNoun = recurringChargeNoun(orgFeatures?.operatingMode ?? 'school');
 
   return (
     <div className="space-y-4">
@@ -150,7 +157,7 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
         Back to Billing
       </Link>
       <Suspense fallback={<DetailSkeleton />}>
-        <DetailContent memberId={memberId} slug={slug} canManage={canManage} />
+        <DetailContent memberId={memberId} slug={slug} canManage={canManage} chargeNoun={chargeNoun} />
       </Suspense>
     </div>
   );

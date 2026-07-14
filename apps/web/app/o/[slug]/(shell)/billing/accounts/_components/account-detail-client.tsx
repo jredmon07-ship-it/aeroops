@@ -44,6 +44,8 @@ import type { MemberBillingProfile } from '@aeroops/api';
 import { toast } from '@/lib/toast-store';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { DUES_CADENCES, DUES_CADENCE_META, duesChargesPerYear } from '@aeroops/core';
+import type { DuesCadence } from '@aeroops/core';
 
 interface AccountDetailClientProps {
   memberId: string;
@@ -53,6 +55,32 @@ interface AccountDetailClientProps {
   initialEntries: SerializedLedgerEntry[];
   canManage: boolean;
   initialBillingProfile: MemberBillingProfile | null;
+  /** "Tuition" (school mode) or "Dues" (club mode) — same engine, different label. */
+  chargeNoun?: 'Tuition' | 'Dues';
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/**
+ * "/ month" (monthly) or "/ year (July)" (an anchored cadence) — appended
+ * after the formatted amount, e.g. "$130.00 / month" or "$600.00 / year
+ * (July)".
+ */
+function duesCadenceSuffix(cadence: DuesCadence, anchorMonth: number | null): string {
+  // DUES_CADENCE_META[cadence].per is e.g. "per month" — drop the leading
+  // "per" in favor of the "/" already used elsewhere in this list.
+  const unit = DUES_CADENCE_META[cadence].per.replace(/^per /, '');
+  if (cadence === 'monthly' || anchorMonth == null) return `/ ${unit}`;
+  const monthName = MONTH_NAMES[anchorMonth - 1] ?? String(anchorMonth);
+  return `/ ${unit} (${monthName})`;
+}
+
+/** Months between charges for a cadence, derived from duesChargesPerYear. */
+function anchorIntervalMonths(cadence: DuesCadence): number {
+  return 12 / duesChargesPerYear(cadence);
 }
 
 function pmLabel(pm: { type: string; last4: string | null; brand: string | null }): string {
@@ -90,6 +118,7 @@ export function AccountDetailClient({
   initialEntries,
   canManage,
   initialBillingProfile,
+  chargeNoun = 'Dues',
 }: AccountDetailClientProps) {
   const [balanceCents, setBalanceCents] = React.useState(initialBalanceCents);
   const [entries, setEntries] = React.useState(initialEntries);
@@ -118,6 +147,8 @@ export function AccountDetailClient({
   const [duesDialogOpen, setDuesDialogOpen] = React.useState(false);
   const [duesAmountInput, setDuesAmountInput] = React.useState('');
   const [duesDayInput, setDuesDayInput] = React.useState('1');
+  const [duesCadence, setDuesCadence] = React.useState<DuesCadence>('monthly');
+  const [duesAnchorMonthInput, setDuesAnchorMonthInput] = React.useState('1');
   const [duesMemoInput, setDuesMemoInput] = React.useState('');
   const [duesBusy, setDuesBusy] = React.useState(false);
   const [duesError, setDuesError] = React.useState<string | null>(null);
@@ -143,23 +174,42 @@ export function AccountDetailClient({
       setDuesError('Day of month must be between 1 and 28.');
       return;
     }
+    const anchorMonth = Number(duesAnchorMonthInput);
+    if (duesCadence !== 'monthly' && (!Number.isInteger(anchorMonth) || anchorMonth < 1 || anchorMonth > 12)) {
+      setDuesError('Choose the month this cycle bills.');
+      return;
+    }
     setDuesBusy(true);
     try {
       const result = await createDuesScheduleAction(
-        memberId, Math.round(dollars * 100), dayOfMonth, duesMemoInput.trim() || undefined, slug,
+        memberId,
+        Math.round(dollars * 100),
+        dayOfMonth,
+        duesMemoInput.trim() || undefined,
+        slug,
+        duesCadence,
+        duesCadence === 'monthly' ? undefined : anchorMonth,
       );
       if ('error' in result) {
-        setDuesError(result.error === 'validation' ? result.message : "Couldn't create the dues schedule.");
+        setDuesError(result.error === 'validation' ? result.message : `Couldn't create the ${chargeNoun.toLowerCase()} schedule.`);
         return;
       }
       if (!result.ok) {
-        setDuesError('This member could not be found.');
+        if (result.reason === 'cadence_not_available') {
+          const message = `Non-monthly ${chargeNoun.toLowerCase()} needs a database update that has not been applied yet.`;
+          setDuesError(message);
+          toast.error(message);
+        } else {
+          setDuesError('This member could not be found.');
+        }
         return;
       }
       await refreshBillingProfile();
       setDuesDialogOpen(false);
       setDuesAmountInput('');
       setDuesDayInput('1');
+      setDuesCadence('monthly');
+      setDuesAnchorMonthInput('1');
       setDuesMemoInput('');
     } finally {
       setDuesBusy(false);
@@ -444,7 +494,7 @@ export function AccountDetailClient({
                 {runDuesBusy ? 'Running…' : `Run dues for ${currentPeriodKey()}`}
               </Button>
               <Button type="button" size="sm" variant="outline" onClick={() => setDuesDialogOpen(true)}>
-                Add dues schedule
+                Add {chargeNoun.toLowerCase()} schedule
               </Button>
             </div>
           )}
@@ -476,18 +526,18 @@ export function AccountDetailClient({
 
               <div>
                 <h3 className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1">
-                  Active dues schedules
+                  Active {chargeNoun.toLowerCase()} schedules
                 </h3>
                 {billingProfile.activeDuesSchedules.length === 0 ? (
-                  <p className="text-sm text-slate-400 dark:text-slate-500">None.</p>
+                  <p className="text-sm text-slate-400 dark:text-slate-500">No {chargeNoun.toLowerCase()} schedules yet.</p>
                 ) : (
                   <ul className="space-y-1" role="list">
                     {billingProfile.activeDuesSchedules.map((s) => (
                       <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
                         <span className="text-slate-700 dark:text-slate-300">
-                          <span className="nums font-medium">{formatCents(s.amountCents)}</span> / {s.cadence} on day{' '}
-                          {s.dayOfMonth}
-                          {s.memo && <span className="text-slate-400 dark:text-slate-500"> — {s.memo}</span>}
+                          <span className="nums font-medium">{formatCents(s.amountCents)}</span>{' '}
+                          {duesCadenceSuffix(s.cadence, s.anchorMonth)} on day {s.dayOfMonth}
+                          {s.memo && <span className="text-slate-400 dark:text-slate-500">, {s.memo}</span>}
                         </span>
                         {canManage && (
                           <Button
@@ -515,10 +565,10 @@ export function AccountDetailClient({
         <DialogContent aria-describedby="add-dues-desc">
           <form onSubmit={(e) => void handleCreateDuesSchedule(e)}>
             <DialogHeader>
-              <DialogTitle>Add a recurring dues schedule</DialogTitle>
+              <DialogTitle>Add a {chargeNoun.toLowerCase()} schedule</DialogTitle>
               <DialogDescription id="add-dues-desc">
-                Creates one DRAFT invoice per month for this member when you (or later, an automated run) generate
-                dues for a period. This does NOT charge anything by itself.
+                Creates a DRAFT invoice for this member on this cadence when you (or later, an automated run)
+                generate {chargeNoun.toLowerCase()} for a period. This does NOT charge anything by itself.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
@@ -529,7 +579,7 @@ export function AccountDetailClient({
                 </Alert>
               )}
               <div className="space-y-1">
-                <Label htmlFor="dues-amount">Monthly amount</Label>
+                <Label htmlFor="dues-amount">Amount</Label>
                 <Input
                   id="dues-amount"
                   type="number"
@@ -543,6 +593,44 @@ export function AccountDetailClient({
                   required
                 />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="dues-cadence">Cadence</Label>
+                <select
+                  id="dues-cadence"
+                  className="flex h-9 w-full rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={duesCadence}
+                  onChange={(e) => setDuesCadence(e.target.value as DuesCadence)}
+                  disabled={duesBusy}
+                >
+                  {DUES_CADENCES.map((c) => (
+                    <option key={c} value={c}>
+                      {DUES_CADENCE_META[c].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {duesCadence !== 'monthly' && (
+                <div className="space-y-1">
+                  <Label htmlFor="dues-anchor-month">Anchor month</Label>
+                  <select
+                    id="dues-anchor-month"
+                    className="flex h-9 w-full rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={duesAnchorMonthInput}
+                    onChange={(e) => setDuesAnchorMonthInput(e.target.value)}
+                    disabled={duesBusy}
+                    required
+                  >
+                    {MONTH_NAMES.map((name, i) => (
+                      <option key={name} value={i + 1}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    The month this cycle bills (and every {anchorIntervalMonths(duesCadence)} months after).
+                  </p>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label htmlFor="dues-day">Day of month</Label>
                 <Input
@@ -561,7 +649,7 @@ export function AccountDetailClient({
                 <Input
                   id="dues-memo"
                   type="text"
-                  placeholder="e.g. Monthly club dues"
+                  placeholder={`e.g. ${chargeNoun === 'Tuition' ? 'Monthly tuition' : 'Monthly club dues'}`}
                   value={duesMemoInput}
                   onChange={(e) => setDuesMemoInput(e.target.value)}
                   disabled={duesBusy}
