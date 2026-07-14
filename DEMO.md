@@ -22,7 +22,9 @@ in the terminal. It takes a few seconds, then it's instant.
 
 ## Logins
 
-One operator — **Alpha Flight School** (`/o/alpha`). Password for **everyone**: `demo1234`
+Two seeded operators. Password for **everyone**: `demo1234`
+
+**Alpha Flight School** (`/o/alpha`) — the full product, every module on:
 
 | Email | Role | What they can do |
 |---|---|---|
@@ -32,7 +34,21 @@ One operator — **Alpha Flight School** (`/o/alpha`). Password for **everyone**
 | `cfi@alpha.aero` | instructor | Schedule, dispatch, training (manage) |
 | `student@alpha.aero` | student | App access only (the locked-down view) |
 
-Sign in as **`owner@alpha.aero`** for the full walkthrough below.
+**Bravo Flying Club** (`/o/bravo`) — a small club in **club mode** (2 aircraft;
+training, public booking, and auto-scheduler turned off for a leaner nav):
+
+| Email | Role | What they can do |
+|---|---|---|
+| `owner@bravo.aero` | owner | Full access; see Org settings → Modules to flip club/school mode |
+| `admin@bravo.aero` | manager | Scheduling + billing + settings |
+| `member@bravo.aero` | renter | The member portal view (balance, reservations, recurring dues) |
+
+Sign in as **`owner@alpha.aero`** for the full walkthrough below, or
+**`owner@bravo.aero`** to see club mode.
+
+**Create a fresh operation** at **http://localhost:3000/signup** — enter a name,
+accept the Terms + Privacy clickwrap, and you land on the setup checklist with
+your new org. (Self-serve tenant creation; migration 0049 staged.)
 
 ## What's seeded
 
@@ -55,6 +71,15 @@ Sign in as **`owner@alpha.aero`** for the full walkthrough below.
 - **Member tags** on the CFI + student (free-text).
 - **A training course:** "Private Pilot — Part 61" (5 lessons); the student is
   **enrolled at 2/5 progress** (two lessons recorded by the CFI).
+- **Profile photos** on several accounts (avatars in the roster + header).
+- **Recurring dues / tuition** (migration 0050): a **$450/mo "Flight training
+  tuition"** on the Alpha student; on Bravo, **$130/mo club dues** for two
+  members plus a **$600/yr annual membership**. See it operator-side at
+  `/o/<slug>/billing/recurring` and member-side in the portal (`member@bravo.aero`).
+  A school shows "Tuition", a club shows "Dues" — same engine.
+
+> Bravo Flying Club seeds the same shape at small-club scale (2 aircraft, 3
+> members, club mode). Both orgs reset to baseline on the hosted demo.
 
 ## 8-minute click-through (as owner)
 
