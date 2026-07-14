@@ -75,3 +75,31 @@ export const DUES_CADENCE_META: Record<DuesCadence, { label: string; per: string
 export function recurringChargeNoun(mode: OperatingMode): 'Tuition' | 'Dues' {
   return mode === 'school' ? 'Tuition' : 'Dues';
 }
+
+/** English month names, index 0 = January. For the anchor-month picker + labels. */
+export const DUES_MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+] as const;
+
+/** 1-12 -> "January".."December" (falls back to the number if out of range). */
+export function duesMonthName(month: number): string {
+  return DUES_MONTH_NAMES[month - 1] ?? String(month);
+}
+
+/**
+ * The rate suffix for an amount line, e.g. "/ month" or "/ year (July)".
+ * DUES_CADENCE_META[c].per is "per month"; drop the "per" in favor of "/".
+ */
+export function duesCadenceSuffix(cadence: DuesCadence, anchorMonth: number | null): string {
+  const unit = DUES_CADENCE_META[cadence].per.replace(/^per /, '');
+  if (cadence === 'monthly' || anchorMonth == null) return `/ ${unit}`;
+  return `/ ${unit} (${duesMonthName(anchorMonth)})`;
+}
+
+/** The cadence label for a table cell, e.g. "Monthly" or "Annual (July)". */
+export function duesCadenceLabel(cadence: DuesCadence, anchorMonth: number | null): string {
+  const label = DUES_CADENCE_META[cadence].label;
+  if (cadence === 'monthly' || anchorMonth == null) return label;
+  return `${label} (${duesMonthName(anchorMonth)})`;
+}

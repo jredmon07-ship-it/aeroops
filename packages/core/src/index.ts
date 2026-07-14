@@ -444,5 +444,9 @@ export {
   duesChargesPerYear,
   DUES_CADENCE_META,
   recurringChargeNoun,
+  DUES_MONTH_NAMES,
+  duesMonthName,
+  duesCadenceSuffix,
+  duesCadenceLabel,
 } from './dues.js';
 export type { DuesCadence } from './dues.js';

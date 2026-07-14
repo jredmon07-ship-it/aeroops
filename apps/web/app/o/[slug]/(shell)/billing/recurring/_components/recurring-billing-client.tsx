@@ -36,7 +36,13 @@ import { applyStandardDuesAction, runDuesForPeriodAction } from '../../actions';
 import type { OrgDuesScheduleRow } from '@aeroops/api';
 import { formatCents } from '../../_components/format-cents';
 import { toast } from '@/lib/toast-store';
-import { DUES_CADENCES, DUES_CADENCE_META, duesChargesPerYear } from '@aeroops/core';
+import {
+  DUES_CADENCES,
+  DUES_CADENCE_META,
+  duesChargesPerYear,
+  DUES_MONTH_NAMES,
+  duesCadenceLabel,
+} from '@aeroops/core';
 import type { DuesCadence } from '@aeroops/core';
 
 interface RecurringBillingClientProps {
@@ -47,22 +53,9 @@ interface RecurringBillingClientProps {
   currentPeriodKey: string;
 }
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
 /** Months between charges for a cadence, derived from duesChargesPerYear. */
 function anchorIntervalMonths(cadence: DuesCadence): number {
   return 12 / duesChargesPerYear(cadence);
-}
-
-/** Cadence label plus the anchor month name in parens for a non-monthly cadence. */
-function cadenceCellLabel(cadence: DuesCadence, anchorMonth: number | null): string {
-  const label = DUES_CADENCE_META[cadence].label;
-  if (cadence === 'monthly' || anchorMonth == null) return label;
-  const monthName = MONTH_NAMES[anchorMonth - 1] ?? String(anchorMonth);
-  return `${label} (${monthName})`;
 }
 
 export function RecurringBillingClient({
@@ -224,7 +217,7 @@ export function RecurringBillingClient({
                   </td>
                   <td className="px-3 py-3 text-right nums">{formatCents(s.amountCents)}</td>
                   <td className="px-3 py-3 text-slate-700 dark:text-slate-300">
-                    {cadenceCellLabel(s.cadence, s.anchorMonth)}
+                    {duesCadenceLabel(s.cadence, s.anchorMonth)}
                   </td>
                   <td className="px-3 py-3 text-slate-500 dark:text-slate-400 hidden sm:table-cell">
                     {s.memo ?? '—'}
@@ -297,7 +290,7 @@ export function RecurringBillingClient({
                     disabled={bulkBusy}
                     required
                   >
-                    {MONTH_NAMES.map((name, i) => (
+                    {DUES_MONTH_NAMES.map((name, i) => (
                       <option key={name} value={i + 1}>
                         {name}
                       </option>

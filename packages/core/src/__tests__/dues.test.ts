@@ -4,6 +4,9 @@ import {
   duesChargesPerYear,
   recurringChargeNoun,
   DUES_CADENCES,
+  duesMonthName,
+  duesCadenceSuffix,
+  duesCadenceLabel,
 } from '../dues.js';
 
 describe('isDuesScheduleDue', () => {
@@ -65,5 +68,29 @@ describe('recurringChargeNoun', () => {
   it('a school shows Tuition, a club shows Dues', () => {
     expect(recurringChargeNoun('school')).toBe('Tuition');
     expect(recurringChargeNoun('club')).toBe('Dues');
+  });
+});
+
+describe('cadence formatters', () => {
+  it('duesMonthName maps 1-12 to English names, falls back otherwise', () => {
+    expect(duesMonthName(1)).toBe('January');
+    expect(duesMonthName(7)).toBe('July');
+    expect(duesMonthName(12)).toBe('December');
+    expect(duesMonthName(0)).toBe('0');
+    expect(duesMonthName(13)).toBe('13');
+  });
+
+  it('duesCadenceSuffix: monthly drops the month, non-monthly appends it', () => {
+    expect(duesCadenceSuffix('monthly', null)).toBe('/ month');
+    expect(duesCadenceSuffix('annual', 7)).toBe('/ year (July)');
+    expect(duesCadenceSuffix('quarterly', 3)).toBe('/ quarter (March)');
+    // a non-monthly cadence with no anchor degrades to the bare unit.
+    expect(duesCadenceSuffix('annual', null)).toBe('/ year');
+  });
+
+  it('duesCadenceLabel: monthly is bare, non-monthly carries the month', () => {
+    expect(duesCadenceLabel('monthly', null)).toBe('Monthly');
+    expect(duesCadenceLabel('annual', 7)).toBe('Annual (July)');
+    expect(duesCadenceLabel('semiannual', 3)).toBe('Twice a year (March)');
   });
 });

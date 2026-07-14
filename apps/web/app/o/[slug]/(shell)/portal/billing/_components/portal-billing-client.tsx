@@ -30,7 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { computeAchPassthroughFeeCents, DUES_CADENCE_META } from '@aeroops/core';
+import { computeAchPassthroughFeeCents, duesCadenceSuffix } from '@aeroops/core';
 import type { DuesCadence } from '@aeroops/core';
 import type { SavedPaymentMethodView, AutopaySettingView } from '@aeroops/api';
 import type { SerializedMyBilling, StripePublishableConfig } from '../../actions';
@@ -52,23 +52,6 @@ function formatCents(cents: number): string {
 /** Copy for the pass-through fee line, shown when the operator opts in. */
 const FEE_LINE_LABEL = 'Processing fee (1%, max $15)';
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-/**
- * "/ month" (monthly) or "/ year (July)" (an anchored cadence) — appended
- * after the formatted amount, e.g. "$130.00 / month" or "$600.00 / year
- * (July)". Mirrors billing/accounts/_components/account-detail-client.tsx's
- * duesCadenceSuffix (each client file keeps its own copy per house convention).
- */
-function duesCadenceSuffix(cadence: DuesCadence, anchorMonth: number | null): string {
-  const unit = DUES_CADENCE_META[cadence].per.replace(/^per /, '');
-  if (cadence === 'monthly' || anchorMonth == null) return `/ ${unit}`;
-  const monthName = MONTH_NAMES[anchorMonth - 1] ?? String(anchorMonth);
-  return `/ ${unit} (${monthName})`;
-}
 
 function pmLabel(pm: SavedPaymentMethodView): string {
   const brand = pm.brand ?? (pm.type === 'us_bank_account' ? 'Bank account' : 'Card');

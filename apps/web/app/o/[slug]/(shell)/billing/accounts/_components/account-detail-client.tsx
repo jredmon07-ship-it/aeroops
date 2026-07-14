@@ -44,7 +44,13 @@ import type { MemberBillingProfile } from '@aeroops/api';
 import { toast } from '@/lib/toast-store';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
-import { DUES_CADENCES, DUES_CADENCE_META, duesChargesPerYear } from '@aeroops/core';
+import {
+  DUES_CADENCES,
+  DUES_CADENCE_META,
+  duesChargesPerYear,
+  DUES_MONTH_NAMES,
+  duesCadenceSuffix,
+} from '@aeroops/core';
 import type { DuesCadence } from '@aeroops/core';
 
 interface AccountDetailClientProps {
@@ -57,25 +63,6 @@ interface AccountDetailClientProps {
   initialBillingProfile: MemberBillingProfile | null;
   /** "Tuition" (school mode) or "Dues" (club mode) — same engine, different label. */
   chargeNoun?: 'Tuition' | 'Dues';
-}
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-/**
- * "/ month" (monthly) or "/ year (July)" (an anchored cadence) — appended
- * after the formatted amount, e.g. "$130.00 / month" or "$600.00 / year
- * (July)".
- */
-function duesCadenceSuffix(cadence: DuesCadence, anchorMonth: number | null): string {
-  // DUES_CADENCE_META[cadence].per is e.g. "per month" — drop the leading
-  // "per" in favor of the "/" already used elsewhere in this list.
-  const unit = DUES_CADENCE_META[cadence].per.replace(/^per /, '');
-  if (cadence === 'monthly' || anchorMonth == null) return `/ ${unit}`;
-  const monthName = MONTH_NAMES[anchorMonth - 1] ?? String(anchorMonth);
-  return `/ ${unit} (${monthName})`;
 }
 
 /** Months between charges for a cadence, derived from duesChargesPerYear. */
@@ -620,7 +607,7 @@ export function AccountDetailClient({
                     disabled={duesBusy}
                     required
                   >
-                    {MONTH_NAMES.map((name, i) => (
+                    {DUES_MONTH_NAMES.map((name, i) => (
                       <option key={name} value={i + 1}>
                         {name}
                       </option>
