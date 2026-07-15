@@ -77,16 +77,28 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
   members plus a **$600/yr annual membership**. See it operator-side at
   `/o/<slug>/billing/recurring` and member-side in the portal (`member@bravo.aero`).
   A school shows "Tuition", a club shows "Dues" — same engine.
+- **A month of activity + billing (both orgs):** ~24 flights over the last ~24
+  days on Alpha (14 on Bravo), each a closed dispatch turned into a finalized
+  **rental invoice**, most **paid by ACH**. So the **dashboard** shows a populated
+  reservations-vs-flights **activity chart** + KPI **sparklines**, **Fleet
+  utilization** shows real per-tail hours, and **Billing → Reports** shows a
+  **revenue chart** (finalized vs collected), A/R aging, payments, and an
+  **Unbilled flights** card — a flown flight with no invoice yet, i.e. revenue to
+  capture. The **Reports** hub (`/reporting/reports`) charts utilization and
+  reservations-vs-flights over time.
 
 > Bravo Flying Club seeds the same shape at small-club scale (2 aircraft, 3
-> members, club mode). Both orgs reset to baseline on the hosted demo.
+> members, club mode) and is the **primary** demo on the marketing site (the
+> live-demo picker leads with the flying club). Both orgs reset to baseline on
+> the hosted demo.
 
 ## 8-minute click-through (as owner)
 
 1. **Ops dashboard** (`/o/alpha`) — the operator console: an "as of now" snapshot
    (grounded aircraft, open squawks, active fleet, members) vs. "last N days" KPIs
-   (flights, hours, reservations), a per-tail utilization table, and at-a-glance
-   lists (today's flights, grounded, open squawks).
+   (flights, hours, reservations) with **sparklines**, a **reservations-vs-flights
+   activity chart**, a per-tail utilization table, and at-a-glance lists (today's
+   flights showing tail # + notes, grounded, open squawks).
 2. **Schedule** (sidebar → *Schedule*) — today's reservations across all aircraft +
    the instructor. Date arrows move between days; the recurring lessons appear on
    future Tue/Thu.
@@ -111,8 +123,13 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
    open **Enrollments → Sam Student** to see the **2 / 5 progress**, the per-lesson
    checklist, and **Record lesson** / **Void** (an instructor data-entry record, not
    an e-signature).
-9. **Roles** — sign out and back in as `student@alpha.aero` to see the
-   capability-gated, locked-down view (no Fleet/People/Training/Reporting).
+9. **Billing → Reports** (`/o/alpha/billing/reports`) — the money view: **A/R
+   aging**, a **revenue chart** (finalized vs collected over the period), items
+   sold, payments, and an **Unbilled flights** card flagging a flown flight that
+   hasn't been invoiced yet (open it on the board to bill it — revenue capture).
+   The recurring hub is at *Billing → Recurring* (dues/tuition + MRR).
+10. **Roles** — sign out and back in as `student@alpha.aero` to see the
+    capability-gated, locked-down view (no Fleet/People/Training/Reporting).
 
 ## How it works (and what it is *not*)
 
