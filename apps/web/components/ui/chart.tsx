@@ -212,7 +212,15 @@ export function Sparkline({
   });
   const line = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
   const area = `${line} L${W},${H} L0,${H} Z`;
-  const gid = `spark-${values.join('-').replace(/[^0-9]/g, '').slice(0, 12)}`;
+  // Gradient id must be unique per (color, values) — id derived from values ALONE
+  // collides when two sparklines on a page share a value signature OR differ only
+  // by color, making the second reference the first's gradient (wrong fill). A
+  // deterministic hash of color + full values keeps it SSR-stable while unique;
+  // an exact-duplicate sparkline safely shares an identical gradient.
+  const gkey = `${color}|${values.join(',')}`;
+  let gh = 0;
+  for (let i = 0; i < gkey.length; i++) gh = (gh * 31 + gkey.charCodeAt(i)) | 0;
+  const gid = `spark-${(gh >>> 0).toString(36)}`;
 
   return (
     <svg

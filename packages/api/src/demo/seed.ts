@@ -809,6 +809,13 @@ export async function seedDemo(db: AnyDb): Promise<void> {
             UPDATE invoice
                SET issued_at = ${issuedIso}::timestamptz, created_at = ${issuedIso}::timestamptz
              WHERE id = ${invId}`);
+          // Also backdate the invoice_finalized DEBIT ledger entry finalize wrote
+          // at now(): A/R aging keys on its created_at, and the member statement
+          // orders by it — leaving it at now() ages every receivable as "current"
+          // and inverts the statement's running balance.
+          await tx.execute(sql`
+            UPDATE ledger_entry SET created_at = ${issuedIso}::timestamptz
+             WHERE invoice_id = ${invId} AND entry_type = 'invoice_finalized'`);
         });
 
         // Pay ~3 of every 4 (skip every 4th) → a believable outstanding balance.
@@ -821,7 +828,14 @@ export async function seedDemo(db: AnyDb): Promise<void> {
           });
           if (pay.ok) {
             paid++;
-            const payIso = new Date(f.startAt.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+            // Paid ~2 days after the flight, but never in the future (the most
+            // recent flights are <2 days old) — a future payment is dropped from
+            // the collected-revenue total and is nonsensical in the ledger.
+            const payMs = Math.min(
+              f.startAt.getTime() + 2 * 24 * 60 * 60 * 1000,
+              Date.now() - 3 * 60 * 60 * 1000,
+            );
+            const payIso = new Date(payMs).toISOString();
             await withOrgContext(db, orgId, async (tx) => {
               await tx.execute(sql`
                 UPDATE ledger_entry SET created_at = ${payIso}::timestamptz
@@ -1164,6 +1178,11 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
                 await tx.execute(sql`
                   UPDATE invoice SET issued_at = ${issuedIso}::timestamptz, created_at = ${issuedIso}::timestamptz
                    WHERE id = ${gen.invoice.id}`);
+                // Backdate the invoice_finalized debit too (see Alpha note): keeps
+                // A/R aging + the member statement consistent with the issue date.
+                await tx.execute(sql`
+                  UPDATE ledger_entry SET created_at = ${issuedIso}::timestamptz
+                   WHERE invoice_id = ${gen.invoice.id} AND entry_type = 'invoice_finalized'`);
               });
               if (k % 4 !== 3) {
                 const pay = await recordManualPaymentWithDb(db, ownerSession, {
@@ -1174,7 +1193,12 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
                 });
                 if (pay.ok) {
                   paid++;
-                  const payIso = new Date(startAt.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+                  // ~2 days after the flight, but never in the future.
+                  const payMs = Math.min(
+                    startAt.getTime() + 2 * 24 * 60 * 60 * 1000,
+                    Date.now() - 3 * 60 * 60 * 1000,
+                  );
+                  const payIso = new Date(payMs).toISOString();
                   await withOrgContext(db, orgId, async (tx) => {
                     await tx.execute(sql`
                       UPDATE ledger_entry SET created_at = ${payIso}::timestamptz
