@@ -72,6 +72,7 @@ img,svg{max-width:100%;height:auto}
   font-family:var(--mono);font-size:.85rem;
 }
 .skip-link:focus{left:0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 :focus-visible{outline:2.5px solid var(--navy);outline-offset:3px}
 .on-navy :focus-visible{outline-color:var(--white)}
 
@@ -361,6 +362,18 @@ section{padding:96px 0}
 .hub-dark .feat li::after{border-color:#9EC2F5}
 .hub-dark .hub-kicker{color:#9EC2F5}
 .hub-dark .hub-kicker .hub-no{background:rgba(106,166,240,.18);color:#BFD6F7}
+
+/* Comparison table */
+.compare-wrap{overflow-x:auto;margin-top:8px;border:1px solid var(--rule);border-radius:var(--r-card)}
+.compare{width:100%;min-width:660px;border-collapse:collapse;font-size:.95rem}
+.compare th,.compare td{padding:15px 18px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top}
+.compare thead th{font-family:var(--sans);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--text-soft);background:var(--paper)}
+.compare tbody th{font-weight:600;color:var(--navy);width:32%}
+.compare .col-aero{background:rgba(106,166,240,.07)}
+.compare thead th.col-aero{background:rgba(106,166,240,.15);color:var(--accent-ink)}
+.compare td.col-aero{font-weight:600;color:var(--navy)}
+.compare tbody tr:last-child th,.compare tbody tr:last-child td{border-bottom:none}
+.compare .yes{color:var(--accent-ink);font-weight:700}
 
 /* For clubs */
 .club-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:8px}
@@ -995,6 +1008,70 @@ section{padding:96px 0}
     <img src="img-ramp.jpg" alt="A row of single-engine training aircraft parked on a flight-school ramp at golden hour" loading="lazy" width="1376" height="768">
     <figcaption>Built for flight schools, flying clubs, and FBOs</figcaption>
   </figure>
+
+  <!-- ============ HOW IT COMPARES ============ -->
+  <section class="band-top" aria-labelledby="compare-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow eyebrow--accent">How it compares</p>
+        <h2 id="compare-title">The math a club actually cares about.</h2>
+        <p>
+          Most flight-ops tools charge by the aircraft or by the seat, every month, whether you fly
+          or not. AeroOps charges nothing to run and takes a small, capped cut only when a payment
+          moves. The rows below are the cost structure; features are covered above.
+        </p>
+      </div>
+      <div class="compare-wrap reveal">
+        <table class="compare">
+          <thead>
+            <tr>
+              <th scope="col"><span class="sr-only">Category</span></th>
+              <th scope="col" class="col-aero">AeroOps</th>
+              <th scope="col">Per-aircraft platforms</th>
+              <th scope="col">Subscription platforms</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Software fee</th>
+              <td class="col-aero yes">Free, for good</td>
+              <td>About $10 per aircraft, per month</td>
+              <td>$60 to $250 per month</td>
+            </tr>
+            <tr>
+              <th scope="row">Per-aircraft fee</th>
+              <td class="col-aero yes">None, ever</td>
+              <td>Yes, and it grows with your fleet</td>
+              <td>Sometimes</td>
+            </tr>
+            <tr>
+              <th scope="row">Cost to collect a payment</th>
+              <td class="col-aero yes">1%, capped at $10 by bank transfer</td>
+              <td>About 2.9% plus 30&cent; on cards</td>
+              <td>1%, capped at $100</td>
+            </tr>
+            <tr>
+              <th scope="row">Commitment</th>
+              <td class="col-aero">None</td>
+              <td>Monthly, per tail</td>
+              <td>Annual, quote-based</td>
+            </tr>
+            <tr>
+              <th scope="row">Instructors, students, and staff</th>
+              <td class="col-aero yes">Unlimited, included</td>
+              <td>Varies</td>
+              <td>Varies</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="reveal" style="margin:20px 0 0;font-size:.78rem;color:var(--text-soft);max-width:70ch">
+        Comparisons use generic archetypes, not any single named product. Figures reflect the
+        published pricing of leading alternatives verified July 2026; your actual quote may differ.
+        Run your own numbers in the calculator below.
+      </p>
+    </div>
+  </section>
 
   <!-- ============ PRICING ============ -->
   <section class="band-top" id="pricing" aria-labelledby="pricing-title">
