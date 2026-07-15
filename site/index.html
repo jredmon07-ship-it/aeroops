@@ -489,6 +489,18 @@ section{padding:96px 0}
 .site-footer a:hover{text-decoration-color:var(--white)}
 .footer-nav a:hover{text-decoration:none}
 .fineprint{font-size:.86rem;line-height:1.65;max-width:66ch;margin:30px 0 0;padding-top:26px;border-top:1px solid var(--rule-inv);color:var(--text-inv-soft)}
+
+/* Demo boot loader — shown while the (cold-start) demo app compiles + loads */
+.demo-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--white);background:radial-gradient(1100px 760px at 50% 32%, #12233f, var(--navy));opacity:0;visibility:hidden;transition:opacity .28s ease}
+.demo-loader.is-on{opacity:1;visibility:visible}
+.demo-loader-inner{display:grid;gap:20px;justify-items:center;max-width:380px}
+.demo-loader-spinner{width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,255,255,.16);border-top-color:#79B0F5;animation:demo-spin .8s linear infinite}
+@keyframes demo-spin{to{transform:rotate(360deg)}}
+.demo-loader-title{font-size:1.2rem;font-weight:600;color:var(--white);margin:0;letter-spacing:-.01em}
+.demo-loader-sub{font-size:.86rem;color:var(--text-inv-soft);margin:0;line-height:1.55}
+.demo-loader-brand{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#9EC2F5}
+.demo-loader-brand svg{width:16px;height:16px}
+@media (prefers-reduced-motion: reduce){.demo-loader-spinner{border-top-color:#79B0F5;opacity:.9}}
 </style>
 </head>
 <body>
@@ -1177,7 +1189,7 @@ section{padding:96px 0}
             <dt>EMAIL</dt><dd>owner@bravo.aero</dd>
             <dt>PASSWORD</dt><dd>demo1234</dd>
           </dl>
-          <a class="btn btn-solid-inv" href="https://aeroops-web.vercel.app/o/bravo/login">Open the flying-club demo</a>
+          <a class="btn btn-solid-inv" href="https://aeroops-web.vercel.app/o/bravo/login" data-demo-link data-demo-name="flying-club">Open the flying-club demo</a>
         </div>
 
         <!-- Flight school (full product) -->
@@ -1192,7 +1204,7 @@ section{padding:96px 0}
             <dt>EMAIL</dt><dd>owner@alpha.aero</dd>
             <dt>PASSWORD</dt><dd>demo1234</dd>
           </dl>
-          <a class="btn btn-line-inv" href="https://aeroops-web.vercel.app/o/alpha/login">Open the flight-school demo</a>
+          <a class="btn btn-line-inv" href="https://aeroops-web.vercel.app/o/alpha/login" data-demo-link data-demo-name="flight-school">Open the flight-school demo</a>
         </div>
       </div>
 
@@ -1321,7 +1333,51 @@ section{padding:96px 0}
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
   })();
+
+  // Demo boot loader: show a branded loading screen the instant a demo button is
+  // clicked, so the cold-start compile before the login screen never looks broken.
+  (function () {
+    var overlay = document.getElementById('demo-loader');
+    if (!overlay) return;
+    var nameEl = document.getElementById('demo-loader-name');
+    var LABELS = { 'flying-club': 'flying-club', 'flight-school': 'flight-school' };
+
+    document.querySelectorAll('[data-demo-link]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        // Let new-tab / modified clicks behave normally — no overlay hijack.
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        var href = a.getAttribute('href');
+        if (!href) return;
+        e.preventDefault();
+        var key = a.getAttribute('data-demo-name');
+        if (nameEl && LABELS[key]) nameEl.textContent = LABELS[key];
+        overlay.classList.add('is-on');
+        overlay.setAttribute('aria-hidden', 'false');
+        // Paint the overlay first, then navigate to the (cold) demo app.
+        setTimeout(function () { window.location.href = href; }, 90);
+      });
+    });
+
+    // If the visitor hits Back and this page is restored from bfcache, the
+    // overlay could still be showing — clear it so the site is usable again.
+    window.addEventListener('pageshow', function (ev) {
+      if (ev.persisted) {
+        overlay.classList.remove('is-on');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+    });
+  })();
 </script>
+
+<!-- Demo boot loader: covers the cold-start compile between click and the login screen -->
+<div id="demo-loader" class="demo-loader" role="status" aria-live="polite" aria-hidden="true">
+  <div class="demo-loader-inner">
+    <span class="demo-loader-brand"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 13l9-2V4a1 1 0 0 1 2 0v7l9 2v2l-9-1.5V19l2 1.5V22l-4-1-4 1v-1.5L11 19v-2.5L2 15z" fill="#79B0F5"/></svg>AeroOps</span>
+    <div class="demo-loader-spinner" aria-hidden="true"></div>
+    <p class="demo-loader-title">Opening the <span id="demo-loader-name">live</span> demo…</p>
+    <p class="demo-loader-sub">First load can take a few seconds while the demo spins up. Hang tight — the login screen is on its way.</p>
+  </div>
+</div>
 
 </body>
 </html>
