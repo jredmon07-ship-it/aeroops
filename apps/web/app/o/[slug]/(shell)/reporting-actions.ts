@@ -19,6 +19,7 @@ import { auth } from '@/auth';
 import {
   getOrgDashboardMetrics,
   getAircraftUtilization,
+  getReservationsVsFlightsTrend,
   listReservations,
   listAircraft,
   listSquawks,
@@ -26,6 +27,7 @@ import {
 import type {
   OrgDashboardMetrics,
   AircraftUtilizationRow,
+  ReservationsVsFlightsTrendResult,
   ReservationRow,
   AircraftListRow,
   SquawkView,
@@ -154,6 +156,59 @@ export async function getDashboardMetricsAction(input?: {
       return { error: 'validation', message: err.message };
     }
     logServerError('getDashboardMetricsAction', err);
+    return { error: 'server' };
+  }
+}
+
+// ─── getReservationsTrendAction (dashboard activity chart) ───────────────────
+
+/** One bucket of the reservations-vs-flights trend, Dates → ISO strings. */
+export interface SerializedTrendBucket {
+  bucketStart: string;
+  reservationsCreated: number;
+  flightsClosed: number;
+}
+
+export interface SerializedReservationsTrend {
+  granularity: string;
+  buckets: SerializedTrendBucket[];
+  totalReservationsCreated: number;
+  totalFlightsClosed: number;
+}
+
+function serializeTrend(t: ReservationsVsFlightsTrendResult): SerializedReservationsTrend {
+  return {
+    granularity: t.granularity,
+    buckets: t.buckets.map((b) => ({
+      bucketStart: b.bucketStart instanceof Date ? b.bucketStart.toISOString() : String(b.bucketStart),
+      reservationsCreated: b.reservationsCreated,
+      flightsClosed: b.flightsClosed,
+    })),
+    totalReservationsCreated: t.totalReservationsCreated,
+    totalFlightsClosed: t.totalFlightsClosed,
+  };
+}
+
+export type GetReservationsTrendActionResult =
+  | { ok: true; trend: SerializedReservationsTrend }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getReservationsTrendAction(input?: {
+  range?: string;
+}): Promise<GetReservationsTrendActionResult> {
+  const session = await auth();
+  try {
+    const trend = await getReservationsVsFlightsTrend(session, { range: input?.range ?? '30d' });
+    return { ok: true, trend: serializeTrend(trend) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) {
+      return { error: 'validation', message: err.message };
+    }
+    logServerError('getReservationsTrendAction', err);
     return { error: 'server' };
   }
 }

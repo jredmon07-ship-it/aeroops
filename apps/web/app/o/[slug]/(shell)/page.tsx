@@ -43,6 +43,7 @@ import { SetupBanner } from './setup-banner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { BarTrend } from '@/components/ui/chart';
 import {
   resolveRangeKey,
   rangeLabelFull,
@@ -52,6 +53,7 @@ import {
 import {
   getDashboardMetricsAction,
   getAircraftUtilizationAction,
+  getReservationsTrendAction,
   getTodaysFlightsAction,
   getGroundedAircraftAction,
   getOpenSquawksAction,
@@ -62,6 +64,16 @@ import { getMaintenanceDueSummaryAction } from './maintenance/due-actions';
 
 // rangeLabelFull is imported from @/lib/dashboard-utils — aliased for brevity.
 const rangeLabel = rangeLabelFull;
+
+/**
+ * Short UTC axis label for a trend bucket, e.g. "7/3". [VERIFY-7-TZ]: bucket
+ * starts are UTC-aligned server-side; we render them UTC-consistently.
+ */
+function fmtBucketLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+}
 
 // ─── Severity chip (squawk severity) ─────────────────────────────────────────
 
@@ -113,6 +125,20 @@ function DashboardSkeleton() {
               <Skeleton className="h-2.5 w-24" />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* C2: activity chart skeleton */}
+      <div>
+        <Skeleton className="h-3 w-28 mb-2" />
+        <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+          <div className="flex h-44 items-end gap-1.5">
+            {[40, 65, 80, 55, 90, 70, 100, 60, 75, 50].map((h, i) => (
+              <div key={i} className="flex-1">
+                <Skeleton className="w-full rounded-t-sm" style={{ height: `${h}%` }} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -179,10 +205,11 @@ interface DashboardContentProps {
 
 async function DashboardContent({ slug, range, enabledModules }: DashboardContentProps) {
   // Parallel-fetch all dashboard data.
-  const [metricsResult, utilizationResult, todaysFlightsResult, groundedResult, squawksResult, maintenanceDueSummaryResult] =
+  const [metricsResult, utilizationResult, trendResult, todaysFlightsResult, groundedResult, squawksResult, maintenanceDueSummaryResult] =
     await Promise.all([
       getDashboardMetricsAction({ range }),
       getAircraftUtilizationAction({ range }),
+      getReservationsTrendAction({ range }),
       getTodaysFlightsAction(),
       getGroundedAircraftAction(),
       getOpenSquawksAction(),
@@ -221,6 +248,10 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
     squawksResult && 'ok' in squawksResult && squawksResult.ok
       ? squawksResult.squawks
       : [];
+  // Best-effort: the activity chart is non-critical — a trend failure just
+  // hides the chart rather than erroring the whole dashboard.
+  const trend =
+    trendResult && 'ok' in trendResult && trendResult.ok ? trendResult.trend : null;
   // Best-effort fail-closed (Slice P1.5): a reporting:access-only role
   // lacking maintenance:access (e.g. accountant) sees the tile as "—" rather
   // than an error — mirrors the existing at-a-glance-lists posture (R7 tracked nit).
@@ -522,6 +553,34 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
           </p>
         )}
       </section>
+
+      {/* ── C2. Activity trend chart ──────────────────────────────────────── */}
+      {trend && (
+        <section aria-label={`Activity — last ${rangeLbl}`}>
+          <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+            Activity — last {rangeLbl}
+          </p>
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
+            <BarTrend
+              categories={trend.buckets.map((b) => fmtBucketLabel(b.bucketStart))}
+              series={[
+                {
+                  label: 'Reservations',
+                  color: 'hsl(var(--color-brand))',
+                  values: trend.buckets.map((b) => b.reservationsCreated),
+                },
+                {
+                  label: 'Flights flown',
+                  color: 'hsl(var(--color-success))',
+                  values: trend.buckets.map((b) => b.flightsClosed),
+                },
+              ]}
+              ariaLabel={`Reservations booked versus flights flown per ${trend.granularity}, last ${rangeLbl}: ${trend.totalReservationsCreated} reservations, ${trend.totalFlightsClosed} flights.`}
+              emptyLabel="No reservations or flights in this period yet."
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── D. Utilization table ──────────────────────────────────────────── */}
       <section aria-label={`Fleet utilization — last ${rangeLbl}`}>
