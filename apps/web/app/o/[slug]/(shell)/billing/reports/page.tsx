@@ -42,6 +42,7 @@ import {
 import { formatCents } from '../_components/format-cents';
 import { PageHeader } from '@/components/ui/page-header';
 import { SectionHeader } from '@/components/ui/section-header';
+import { BarTrend } from '@/components/ui/chart';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ExportCsvButton } from '@/components/ui/export-csv-button';
@@ -282,6 +283,30 @@ async function RevenueSection({ range }: { slug: string; range: RangeKey }) {
         </div>
       </div>
 
+      {hasActivity && (
+        <div className="px-5 pt-5">
+          <BarTrend
+            categories={data.buckets.map((b) =>
+              new Date(b.bucketStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            )}
+            series={[
+              {
+                label: 'Finalized',
+                color: 'hsl(var(--color-brand))',
+                values: data.buckets.map((b) => b.finalizedCents),
+              },
+              {
+                label: 'Collected',
+                color: 'hsl(var(--color-success))',
+                values: data.buckets.map((b) => b.collectedCents),
+              },
+            ]}
+            valueLabel={(v) => formatCents(v)}
+            height={150}
+            ariaLabel={`Revenue by period: ${formatCents(data.totalFinalizedCents)} finalized, ${formatCents(data.totalCollectedCents)} collected over the last ${range}.`}
+          />
+        </div>
+      )}
       {!hasActivity ? (
         <p className="px-5 py-6 text-center text-sm text-slate-400 dark:text-slate-500">No billing or payment activity in this period.</p>
       ) : (
