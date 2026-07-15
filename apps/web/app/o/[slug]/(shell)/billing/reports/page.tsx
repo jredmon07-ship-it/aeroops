@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import {
   getAccountsReceivableAction,
   getRevenueReportAction,
+  getUnbilledFlightsAction,
   getItemsSoldReportAction,
   getPaymentsReportAction,
   getAdjustmentsReportAction,
@@ -349,6 +350,92 @@ async function RevenueSection({ range }: { slug: string; range: RangeKey }) {
 }
 
 // ─── Items sold section (POS) ──────────────────────────────────────────────────
+
+// ─── Unbilled flights (billable-hours monitoring) ────────────────────────────
+
+async function UnbilledFlightsSection({ slug, range }: { slug: string; range: RangeKey }) {
+  const result = await getUnbilledFlightsAction(range);
+
+  if ('error' in result) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+        <AlertDescription>Could not load unbilled flights. Please try again.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const { data } = result;
+
+  if (data.totalCount === 0) {
+    return (
+      <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-5 py-6 text-center">
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Every flight is billed.</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          No closed flights in the last {range} are missing an invoice.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-amber-300/70 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 shadow-xs overflow-hidden">
+      <div className="grid grid-cols-2 divide-x divide-amber-300/50 dark:divide-amber-900/40 border-b border-amber-300/50 dark:border-amber-900/40">
+        <div className="px-5 py-4">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">Unbilled flights</p>
+          <p className="nums mt-1 text-2xl font-bold leading-none text-amber-800 dark:text-amber-200">{data.totalCount}</p>
+        </div>
+        <div className="px-5 py-4">
+          <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">Hours not invoiced *</p>
+          <p className="nums mt-1 text-2xl font-bold leading-none text-amber-800 dark:text-amber-200">{data.totalHours.toFixed(1)}</p>
+        </div>
+      </div>
+      <p className="px-5 pt-3 text-xs text-slate-500 dark:text-slate-400">
+        Closed flights with no invoice yet. Open one on the{' '}
+        <Link href={`/o/${slug}/schedule/board`} className="text-brand hover:underline underline-offset-2">
+          dispatch board
+        </Link>{' '}
+        to bill it.
+      </p>
+      <div className="max-h-72 overflow-y-auto px-2 py-2">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <th scope="col" className="px-3 py-2 font-medium">Date</th>
+              <th scope="col" className="px-3 py-2 font-medium">Tail #</th>
+              <th scope="col" className="px-3 py-2 font-medium">Pilot</th>
+              <th scope="col" className="px-3 py-2 font-medium text-right">Hours *</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.flights.map((f) => (
+              <tr key={f.ticketId} className="border-t border-slate-100 dark:border-slate-800">
+                <td className="px-3 py-2 nums text-xs text-slate-500 dark:text-slate-400">
+                  {new Date(f.closedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </td>
+                <td className="px-3 py-2">
+                  <Link href={`/o/${slug}/fleet/${f.resourceId}`} className="font-medium text-slate-800 dark:text-slate-200 hover:text-brand">
+                    {f.tailNumber}
+                  </Link>
+                </td>
+                <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{f.pilotName ?? '—'}</td>
+                <td className="px-3 py-2 text-right nums text-slate-700 dark:text-slate-300">{f.flightTimeHours.toFixed(1)}h</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {data.truncated && (
+          <p className="px-3 pt-2 text-xs text-slate-400 dark:text-slate-500">
+            Showing the {data.flights.length} most recent of {data.totalCount}.
+          </p>
+        )}
+      </div>
+      <p className="px-5 pb-4 pt-1 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        * Hobbs-derived operational hours, not billed time.
+      </p>
+    </div>
+  );
+}
 
 async function ItemsSoldSection({ range }: { slug: string; range: RangeKey }) {
   const result = await getItemsSoldReportAction(range);
@@ -761,6 +848,16 @@ export default async function BillingReportsPage({ params, searchParams }: Repor
             <RangeSelector slug={slug} current={range} />
           </div>
           <RevenueSection slug={slug} range={range} />
+        </section>
+      </Suspense>
+
+      <Suspense fallback={<ReportsSkeleton />}>
+        <section aria-label={`Unbilled flights — last ${range}`}>
+          <div className="mb-2 flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+            <AlertCircle className="h-3 w-3" aria-hidden="true" />
+            Unbilled flights — last {range}
+          </div>
+          <UnbilledFlightsSection slug={slug} range={range} />
         </section>
       </Suspense>
 

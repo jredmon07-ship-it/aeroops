@@ -21,6 +21,7 @@ import { auth } from '@/auth';
 import {
   getAccountsReceivable,
   getRevenueReport,
+  getUnbilledFlights,
   getMemberStatement,
   getItemsSoldReport,
   getPaymentsReport,
@@ -43,6 +44,66 @@ import { mapAuthError, isValidationError } from '@/lib/action-errors-result';
 import type { AuthErrorResult, ValidationErrorResult, ServerErrorResult } from '@/lib/action-errors-result';
 
 export type { AuthErrorResult, ValidationErrorResult, ServerErrorResult };
+
+// ─── getUnbilledFlightsAction ───────────────────────────────────────────────
+
+export interface SerializedUnbilledFlight {
+  ticketId: string;
+  resourceId: string;
+  tailNumber: string;
+  pilotName: string | null;
+  closedAt: string;
+  flightTimeHours: number;
+}
+
+export interface SerializedUnbilledFlights {
+  range: { key: string; from: string; to: string };
+  flights: SerializedUnbilledFlight[];
+  totalCount: number;
+  totalHours: number;
+  truncated: boolean;
+}
+
+export type GetUnbilledFlightsActionResult =
+  | { ok: true; data: SerializedUnbilledFlights }
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function getUnbilledFlightsAction(
+  range?: string,
+): Promise<GetUnbilledFlightsActionResult> {
+  const session = await auth();
+  try {
+    const result = await getUnbilledFlights(session, { range });
+    return {
+      ok: true,
+      data: {
+        range: {
+          key: result.range.key,
+          from: result.range.from.toISOString(),
+          to: result.range.to.toISOString(),
+        },
+        flights: result.flights.map((f) => ({
+          ticketId: f.ticketId,
+          resourceId: f.resourceId,
+          tailNumber: f.tailNumber,
+          pilotName: f.pilotName,
+          closedAt: f.closedAt.toISOString(),
+          flightTimeHours: f.flightTimeHours,
+        })),
+        totalCount: result.totalCount,
+        totalHours: result.totalHours,
+        truncated: result.truncated,
+      },
+    };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
 
 // ─── getAccountsReceivableAction ────────────────────────────────────────────
 

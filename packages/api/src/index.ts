@@ -1978,6 +1978,19 @@ export type {
   RevenueReportResult,
 } from './billing/get-revenue-report.js';
 
+// getUnbilledFlights: closed dispatch tickets with no live invoice — the
+//   "revenue not yet captured" list (billing:access, READ-ONLY). FSP-parity
+//   billable-hours monitoring.
+export {
+  getUnbilledFlights,
+  getUnbilledFlightsWithDb,
+} from './billing/get-unbilled-flights.js';
+export type {
+  GetUnbilledFlightsInput,
+  UnbilledFlightRow,
+  UnbilledFlightsResult,
+} from './billing/get-unbilled-flights.js';
+
 export {
   getMemberStatement,
   getMemberStatementWithDb,
