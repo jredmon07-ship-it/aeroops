@@ -3,11 +3,11 @@
  * (the pure ACH pass-through processing-fee math). PROPERTY-BASED per CLAUDE.md
  * ("money math gets PROPERTY-BASED tests").
  *
- * FEE RULE: fee = min( round-half-up(baseCents × 0.01), 1000 ).
+ * FEE RULE: fee = min( round-half-up(baseCents × 0.01), 700 ).
  *
  * WHAT WE PROVE:
  *   Unit targets: 0 / tiny / just-under-cap / exact cap / over cap / negatives.
- *   Properties: bounds [0,1000], monotonicity, cap saturation, ~1% below cap.
+ *   Properties: bounds [0,700], monotonicity, cap saturation, ~1% below cap.
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
@@ -31,17 +31,17 @@ describe('computeAchPassthroughFeeCents — unit targets', () => {
     expect(computeAchPassthroughFeeCents(100)).toBe(1);
   });
 
-  it('just under the cap: $999.00 → 999¢', () => {
-    expect(computeAchPassthroughFeeCents(99_900)).toBe(999);
+  it('just under the cap: $699.00 → 699¢', () => {
+    expect(computeAchPassthroughFeeCents(69_900)).toBe(699);
   });
 
-  it('exactly at the cap boundary: $1000.00 → 1000¢ ($10 cap)', () => {
-    expect(computeAchPassthroughFeeCents(100_000)).toBe(1000);
+  it('exactly at the cap boundary: $700.00 → 700¢ ($7 cap)', () => {
+    expect(computeAchPassthroughFeeCents(70_000)).toBe(700);
   });
 
-  it('over the cap saturates at 1000¢: $5000 → 1000¢', () => {
+  it('over the cap saturates at 700¢: $5000 → 700¢', () => {
     expect(computeAchPassthroughFeeCents(500_000)).toBe(ACH_FEE_CAP_CENTS);
-    expect(computeAchPassthroughFeeCents(100_100)).toBe(1000);
+    expect(computeAchPassthroughFeeCents(70_100)).toBe(700);
   });
 
   it('negative / non-finite / non-integer base ⇒ 0 (never a negative fee)', () => {
@@ -53,7 +53,7 @@ describe('computeAchPassthroughFeeCents — unit targets', () => {
 });
 
 describe('computeAchPassthroughFeeCents — properties', () => {
-  it('P1 bounds: result is always an integer in [0, 1000]', () => {
+  it('P1 bounds: result is always an integer in [0, 700]', () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 100_000_000 }), (base) => {
         const fee = computeAchPassthroughFeeCents(base);
@@ -80,9 +80,9 @@ describe('computeAchPassthroughFeeCents — properties', () => {
     );
   });
 
-  it('P3 cap saturation: any base ≥ $1000 yields exactly 1000¢', () => {
+  it('P3 cap saturation: any base ≥ $700 yields exactly 700¢', () => {
     fc.assert(
-      fc.property(fc.integer({ min: 100_000, max: 100_000_000 }), (base) => {
+      fc.property(fc.integer({ min: 70_000, max: 100_000_000 }), (base) => {
         expect(computeAchPassthroughFeeCents(base)).toBe(ACH_FEE_CAP_CENTS);
       }),
     );
@@ -90,7 +90,7 @@ describe('computeAchPassthroughFeeCents — properties', () => {
 
   it('P4 below the cap the fee is within 1 cent of 1% of base', () => {
     fc.assert(
-      fc.property(fc.integer({ min: 1, max: 99_900 }), (base) => {
+      fc.property(fc.integer({ min: 1, max: 69_900 }), (base) => {
         const fee = computeAchPassthroughFeeCents(base);
         expect(Math.abs(fee - base * 0.01)).toBeLessThanOrEqual(0.5);
       }),

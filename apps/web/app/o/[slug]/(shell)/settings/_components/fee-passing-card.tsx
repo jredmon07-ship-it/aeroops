@@ -77,7 +77,7 @@ export function FeePassingCard({ slug, initial }: FeePassingCardProps) {
           Pass the payment processing fee through to the member at checkout. When on, members
           paying an invoice or their balance in the portal see a{' '}
           <span className="font-medium text-slate-700 dark:text-slate-300">
-            &ldquo;Processing fee (1%, max $10)&rdquo;
+            &ldquo;Processing fee (1%, max $7)&rdquo;
           </span>{' '}
           line added to their total. When off (the default), your operation absorbs the fee and
           members pay exactly the invoice amount.

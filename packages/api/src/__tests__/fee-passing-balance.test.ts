@@ -2,7 +2,7 @@
  * fee-passing-balance.test.ts — integration tests for the two additive money
  * features (migration 0045):
  *   (1) FEE-PASSING TOGGLE — per-org pass_ach_fee_to_member. When ON, the portal
- *       grosses invoice/balance payments up by min(round(base×1%), $15); the
+ *       grosses invoice/balance payments up by min(round(base×1%), $7); the
  *       webhook ledger credit posts the BASE only. OFF ⇒ byte-identical.
  *   (2) PAY FULL BALANCE — payMyBalance creates ONE PaymentIntent for the
  *       magnitude of the member's negative balance; the webhook posts one
@@ -274,7 +274,7 @@ describe('payMyInvoice — fee-passing grossing', () => {
     const pay = await payMyInvoiceWithDb(env.db, makeSession(env.orgAId, member, 'renter'), { invoiceId }, fake);
     expect(pay.ok).toBe(true);
     if (!pay.ok) return;
-    expect(pay.chargedCents).toBe(80_000 + 800); // $8 fee
+    expect(pay.chargedCents).toBe(80_000 + 700); // 1% of $800 = $8 → capped at $7
 
     await handleStripeWebhookEvent(
       env.db,
@@ -287,7 +287,7 @@ describe('payMyInvoice — fee-passing grossing', () => {
       tx.select().from(ledgerEntry).where(and(eq(ledgerEntry.paymentId, pay.paymentIntentId), eq(ledgerEntry.entryType, 'payment'))),
     );
     expect(credits).toHaveLength(1);
-    expect(credits[0]!.amountCents).toBe(80_000); // BASE, not 80_800.
+    expect(credits[0]!.amountCents).toBe(80_000); // BASE, not 80_700 (the grossed charge).
     expect(credits[0]!.direction).toBe('credit');
     await setFeePassingWithDb(env.db, makeSession(env.orgAId, env.userAId, 'owner'), { passAchFeeToMember: false });
   });
@@ -346,11 +346,11 @@ describe('payMyBalance', () => {
     expect(pay.ok).toBe(true);
     if (!pay.ok) return;
     expect(pay.baseCents).toBe(200_000);
-    expect(pay.feeCents).toBe(1000); // 1% of $2000 = $20 → capped at $10.
-    expect(pay.chargedCents).toBe(201_000);
-    expect(fake.paymentIntentCalls[0]!.amountCents).toBe(201_000);
+    expect(pay.feeCents).toBe(700); // 1% of $2000 = $20 → capped at $7.
+    expect(pay.chargedCents).toBe(200_700);
+    expect(fake.paymentIntentCalls[0]!.amountCents).toBe(200_700);
 
-    await handleStripeWebhookEvent(env.db, makeSucceededEventBody('evt_bal_on', pay.paymentIntentId, 201_000), 'sig', fake);
+    await handleStripeWebhookEvent(env.db, makeSucceededEventBody('evt_bal_on', pay.paymentIntentId, 200_700), 'sig', fake);
     expect(await memberBalanceFor(env.db, env.orgAId, member)).toBe(0); // credited BASE 200_000.
     await setFeePassingWithDb(env.db, makeSession(env.orgAId, env.userAId, 'owner'), { passAchFeeToMember: false });
   });

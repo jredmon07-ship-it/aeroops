@@ -267,8 +267,8 @@ export { computeBalance } from './billing/ledger-math.js';
 export type { LedgerEntryAmount } from './billing/ledger-math.js';
 
 // ─── Fee-passing — Pure ACH pass-through processing-fee math (integer cents) ──
-// computeAchPassthroughFeeCents: fee = min(round(baseCents × 0.01), 1000) — the
-//   1%-capped-$10 ACH pricing, optionally passed through to the member
+// computeAchPassthroughFeeCents: fee = min(round(baseCents × 0.01), 700) — the
+//   1%-capped-$7 ACH pricing, optionally passed through to the member
 //   at checkout when the operator opts in (dispatch_config.pass_ach_fee_to_member).
 // PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
 // Property-tested (hard guardrail): __tests__/fee-math.test.ts.
