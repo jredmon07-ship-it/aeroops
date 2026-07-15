@@ -378,7 +378,21 @@ async function UnbilledFlightsSection({ slug, range }: { slug: string; range: Ra
     );
   }
 
+  const csvRows: string[][] = [
+    ['Date', 'Tail', 'Pilot', 'Hours'],
+    ...data.flights.map((f) => [
+      csvDate(f.closedAt),
+      f.tailNumber,
+      f.pilotName ?? '',
+      f.flightTimeHours.toFixed(1),
+    ]),
+  ];
+
   return (
+    <div className="space-y-2">
+    <div className="flex justify-end">
+      <ExportCsvButton rows={csvRows} filename={csvFilename('unbilled-flights')} />
+    </div>
     <div className="rounded-md border border-amber-300/70 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 shadow-xs overflow-hidden">
       <div className="grid grid-cols-2 divide-x divide-amber-300/50 dark:divide-amber-900/40 border-b border-amber-300/50 dark:border-amber-900/40">
         <div className="px-5 py-4">
@@ -433,6 +447,7 @@ async function UnbilledFlightsSection({ slug, range }: { slug: string; range: Ra
       <p className="px-5 pb-4 pt-1 text-[0.6875rem] text-slate-400 dark:text-slate-500">
         * Hobbs-derived operational hours, not billed time.
       </p>
+    </div>
     </div>
   );
 }
