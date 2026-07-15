@@ -39,6 +39,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Sparkline } from '@/components/ui/chart';
 import { getAircraftDetailAction, listAircraftAction } from '../actions';
 import { EditAircraftDialog } from '../_components/edit-aircraft-dialog';
 import { DispatchRequirementsCard } from '../_components/dispatch-requirements-card';
@@ -413,6 +414,26 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
           <Plane className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent Dispatch</h2>
         </div>
+
+        {(() => {
+          const hrs = aircraft.recentDispatch
+            .filter((t) => t.flightTimeHours !== null)
+            .map((t) => t.flightTimeHours as number)
+            .reverse(); // oldest → newest, so the sparkline reads left to right
+          return hrs.length >= 2 ? (
+            <div className="flex items-center gap-3">
+              <Sparkline
+                values={hrs}
+                height={24}
+                className="flex-1"
+                ariaLabel={`Flight-hours trend across the last ${hrs.length} dispatches`}
+              />
+              <span className="shrink-0 whitespace-nowrap text-[0.6875rem] text-slate-400 dark:text-slate-500">
+                last {hrs.length} flights
+              </span>
+            </div>
+          ) : null;
+        })()}
 
         {aircraft.recentDispatch.length === 0 ? (
           <EmptyState icon={History} title="No dispatch history yet." className="py-6" />
