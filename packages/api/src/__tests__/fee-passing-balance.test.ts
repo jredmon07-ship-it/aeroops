@@ -346,11 +346,11 @@ describe('payMyBalance', () => {
     expect(pay.ok).toBe(true);
     if (!pay.ok) return;
     expect(pay.baseCents).toBe(200_000);
-    expect(pay.feeCents).toBe(1500); // 1% of $2000 = $20 → capped at $15.
-    expect(pay.chargedCents).toBe(201_500);
-    expect(fake.paymentIntentCalls[0]!.amountCents).toBe(201_500);
+    expect(pay.feeCents).toBe(1000); // 1% of $2000 = $20 → capped at $10.
+    expect(pay.chargedCents).toBe(201_000);
+    expect(fake.paymentIntentCalls[0]!.amountCents).toBe(201_000);
 
-    await handleStripeWebhookEvent(env.db, makeSucceededEventBody('evt_bal_on', pay.paymentIntentId, 201_500), 'sig', fake);
+    await handleStripeWebhookEvent(env.db, makeSucceededEventBody('evt_bal_on', pay.paymentIntentId, 201_000), 'sig', fake);
     expect(await memberBalanceFor(env.db, env.orgAId, member)).toBe(0); // credited BASE 200_000.
     await setFeePassingWithDb(env.db, makeSession(env.orgAId, env.userAId, 'owner'), { passAchFeeToMember: false });
   });

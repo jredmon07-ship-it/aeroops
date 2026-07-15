@@ -248,7 +248,7 @@ export interface SerializedMyBilling {
    * @aeroops/api — see MyDuesScheduleView's own doc comment.
    */
   duesSchedules: MyDuesScheduleView[];
-  /** Whether the operator passes the ACH processing fee (1%, max $15) to the member. */
+  /** Whether the operator passes the ACH processing fee (1%, max $10) to the member. */
   feePassingEnabled: boolean;
 }
 

@@ -50,7 +50,7 @@ function formatCents(cents: number): string {
 }
 
 /** Copy for the pass-through fee line, shown when the operator opts in. */
-const FEE_LINE_LABEL = 'Processing fee (1%, max $15)';
+const FEE_LINE_LABEL = 'Processing fee (1%, max $10)';
 
 
 function pmLabel(pm: SavedPaymentMethodView): string {
