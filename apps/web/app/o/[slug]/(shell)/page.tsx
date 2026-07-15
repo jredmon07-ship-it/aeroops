@@ -289,6 +289,13 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
   for (const s of openSquawks) {
     squawkCountByResource.set(s.resourceId, (squawkCountByResource.get(s.resourceId) ?? 0) + 1);
   }
+  // resourceId → tail # (utilization covers the whole active fleet) so the
+  // today's-flights at-a-glance shows tail numbers, not raw resource ids.
+  const tailByResource = new Map<string, string>();
+  for (const row of utilizationRows) tailByResource.set(row.resourceId, row.tailNumber);
+  for (const a of groundedAircraft) tailByResource.set(a.id, a.tailNumber);
+  const tailForReservation = (resourceIds: string[]): string =>
+    resourceIds.map((id) => tailByResource.get(id)).find(Boolean) ?? '—';
 
   return (
     <div className="space-y-6">
@@ -797,11 +804,11 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                       <span className="nums text-xs text-slate-500 dark:text-slate-400 shrink-0">
                         {formatUtcTime(r.startAt)}
                       </span>
-                      <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                        {r.resourceIds.length > 0 ? r.resourceIds[0]?.slice(0, 8) : '—'}
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300 shrink-0">
+                        {tailForReservation(r.resourceIds)}
                       </span>
-                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate ml-auto">
-                        {r.createdBy.slice(0, 8)}
+                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate ml-auto text-right">
+                        {r.notes?.trim() || r.status}
                       </span>
                     </li>
                   ))}
