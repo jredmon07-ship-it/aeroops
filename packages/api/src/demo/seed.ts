@@ -1080,6 +1080,121 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
   if (bravoDuesRun.created.length < 2) {
     throw new Error('[demo] bravo dues invoice generation created fewer than expected invoices — seed cannot continue.');
   }
+
+  // ── Historical activity + billing backfill (DEMO-ONLY) ───────────────────
+  // Make the club demo look lived-in, since it's the primary demo: ~14 Skyhawk
+  // flights over the last ~18 days flown by the member, each turned into a
+  // finalized rental invoice (most paid by ACH), with timestamps backdated so
+  // the dashboard, utilization, and billing all populate. Skyhawk only — the
+  // Warrior's min-lead booking policy refuses past-dated reservations.
+  // DEFENSIVE + best-effort; resets on demo restart.
+  try {
+    const clubRate = await createRateScheduleWithDb(db, ownerSession, {
+      resourceId: tail('N735BW'),
+      name: 'Skyhawk — wet hourly',
+      rateKind: 'wet_hourly',
+      amountCents: 13500,
+      effectiveFrom: atLocal(-120, 0, 0),
+    });
+    const rateId = clubRate.ok ? clubRate.rate.id : null;
+    const durChoices = [60, 90, 90, 120, 75];
+    let hobbs = 852;
+    let tach = 815;
+    let invoiced = 0;
+    let paid = 0;
+    for (let k = 0; k < 14; k++) {
+      const daysAgo = 18 - k; // 18..5 days ago; meters climb toward the present
+      const startH = 9 + (k % 6); // 09:00–14:00 local
+      const durMin = durChoices[k % durChoices.length]!;
+      const startAt = atLocal(-daysAgo, startH, 0);
+      const endAt = new Date(startAt.getTime() + durMin * 60_000);
+      try {
+        const res = await createReservationWithDb(db, ownerSession, {
+          startAt,
+          endAt,
+          resourceIds: [tail('N735BW')],
+          notes: 'Club flight',
+        });
+        if (!res.ok) continue;
+
+        const durH = durMin / 60;
+        const hobbsOut = Number(hobbs.toFixed(1));
+        const hobbsIn = Number((hobbs + durH).toFixed(1));
+        const tachOut = Number(tach.toFixed(1));
+        const tachIn = Number((tach + durH * 0.95).toFixed(1));
+
+        const op = await openDispatchWithDb(db, ownerSession, {
+          reservationId: res.reservation.id,
+          resourceId: tail('N735BW'),
+          pilotUserId: ids.memberId,
+          hobbsOut,
+          tachOut,
+        });
+        if (!op.ok) continue;
+        const cl = await closeDispatchWithDb(db, ownerSession, {
+          ticketId: op.ticket.id,
+          hobbsIn,
+          tachIn,
+        });
+        if (!cl.ok) continue;
+        hobbs = hobbsIn + 0.3;
+        tach = tachIn + 0.3;
+
+        const issuedIso = startAt.toISOString();
+        await withOrgContext(db, orgId, async (tx) => {
+          await tx.execute(sql`
+            UPDATE reservation SET created_at = start_at - interval '2 hours'
+             WHERE id = ${res.reservation.id}`);
+          await tx.execute(sql`
+            UPDATE dispatch_ticket dt SET opened_at = r.start_at, closed_at = r.end_at
+              FROM reservation r WHERE dt.id = ${op.ticket.id} AND r.id = ${res.reservation.id}`);
+        });
+
+        if (rateId) {
+          const gen = await generateInvoiceFromDispatchWithDb(db, ownerSession, {
+            dispatchTicketId: op.ticket.id,
+            rateScheduleId: rateId,
+            memberUserId: ids.memberId,
+          });
+          if (gen.ok) {
+            const fin = await finalizeInvoiceWithDb(db, ownerSession, { id: gen.invoice.id });
+            if (fin.ok) {
+              invoiced++;
+              await withOrgContext(db, orgId, async (tx) => {
+                await tx.execute(sql`
+                  UPDATE invoice SET issued_at = ${issuedIso}::timestamptz, created_at = ${issuedIso}::timestamptz
+                   WHERE id = ${gen.invoice.id}`);
+              });
+              if (k % 4 !== 3) {
+                const pay = await recordManualPaymentWithDb(db, ownerSession, {
+                  memberUserId: ids.memberId,
+                  amountCents: gen.invoice.totalCents,
+                  methodNote: 'ACH',
+                  memo: 'Auto-pay (demo)',
+                });
+                if (pay.ok) {
+                  paid++;
+                  const payIso = new Date(startAt.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+                  await withOrgContext(db, orgId, async (tx) => {
+                    await tx.execute(sql`
+                      UPDATE ledger_entry SET created_at = ${payIso}::timestamptz
+                       WHERE id = ${pay.entry.id}`);
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[demo] bravo backfill: ${invoiced} invoices finalized, ${paid} paid`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[demo] bravo backfill skipped:', err);
+  }
 }
 
 /** Assert a createReservation result succeeded, returning the new reservation. */
