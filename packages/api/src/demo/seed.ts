@@ -84,6 +84,10 @@ import { enrollMemberWithDb } from '../training/enroll-member.js';
 import { recordLessonWithDb } from '../training/record-lesson.js';
 import { createDuesScheduleWithDb } from '../billing/dues-schedule-commands.js';
 import { generateDuesInvoicesWithDb } from '../billing/generate-dues-invoices.js';
+import { createRateScheduleWithDb } from '../billing/rate-commands.js';
+import { generateInvoiceFromDispatchWithDb } from '../billing/generate-invoice.js';
+import { finalizeInvoiceWithDb } from '../billing/invoice-status-commands.js';
+import { recordManualPaymentWithDb } from '../billing/record-manual-payment.js';
 import { orgFeatureConfigTableExists } from '../org-features/org-features-internal.js';
 import { appUserHasAvatarColumn } from '../people/avatar.js';
 
@@ -671,6 +675,8 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   // to the flight day in one UPDATE so the time-bucketed reports pick them up.
   // DEFENSIVE: any failure is logged and skipped so the core demo still seeds.
   // Resets on every demo restart.
+  // Declared out here so the billing backfill (8c) can bill from the same flights.
+  const backdated: { resId: string; ticketId: string; tail: string; startAt: Date }[] = [];
   try {
     // Two trainers carry the history: the 172 (student-flown) and the Archer
     // (CFI-flown — satisfies its 'Club checkout: complex' dispatch requirement).
@@ -684,7 +690,6 @@ export async function seedDemo(db: AnyDb): Promise<void> {
       { tail: 'N28K', pilot: cfiUserId, hobbs: 1500, tach: 1400 },
     ];
     const durChoices = [60, 90, 90, 120, 105, 75];
-    const backdated: { resId: string; ticketId: string }[] = [];
     // 24 flights, one per day over the last 24 days (unique days → no conflicts;
     // daysAgo = 24 - k so meters climb toward the present). Each flight is
     // isolated in its own try so one refusal never drops the rest.
@@ -727,7 +732,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
 
         plan.hobbs = hobbsIn + 0.4; // advance the running meter for this tail
         plan.tach = tachIn + 0.4;
-        backdated.push({ resId: res.reservation.id, ticketId: op.ticket.id });
+        backdated.push({ resId: res.reservation.id, ticketId: op.ticket.id, tail: plan.tail, startAt });
       } catch {
         // a single refused flight (e.g. a gate) is non-fatal — skip it.
         continue;
@@ -753,6 +758,86 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[demo] historical activity backfill skipped:', err);
+  }
+
+  // ── 8c. Billing backfill (DEMO-ONLY) — the Hobbs → invoice → paid story ──
+  // Turn the backfilled flights into money: a wet-hourly rate per trainer, a
+  // finalized rental invoice per flight (billed to the student), most of them
+  // paid by ACH. issued_at + the payment ledger entry are backdated to the
+  // flight day so the revenue chart, A/R, and payments report all populate.
+  // DEFENSIVE + best-effort; resets on demo restart.
+  try {
+    const rateByTail = new Map<string, string>();
+    const rateSpec = [
+      { tail: 'N172SP', name: 'C172 — wet hourly', amountCents: 15500 },
+      { tail: 'N28K', name: 'Archer — wet hourly', amountCents: 16500 },
+    ];
+    for (const rs of rateSpec) {
+      const created = await createRateScheduleWithDb(db, ownerSession, {
+        resourceId: tail(rs.tail),
+        name: rs.name,
+        rateKind: 'wet_hourly',
+        amountCents: rs.amountCents,
+        effectiveFrom: atLocal(-120, 0, 0),
+      });
+      if (created.ok) rateByTail.set(rs.tail, created.rate.id);
+    }
+
+    let invoiced = 0;
+    let paid = 0;
+    for (let i = 0; i < backdated.length; i++) {
+      const f = backdated[i]!;
+      const rateId = rateByTail.get(f.tail);
+      if (!rateId) continue;
+      try {
+        const gen = await generateInvoiceFromDispatchWithDb(db, ownerSession, {
+          dispatchTicketId: f.ticketId,
+          rateScheduleId: rateId,
+          memberUserId: ids.studentId,
+        });
+        if (!gen.ok) continue;
+        const invId = gen.invoice.id;
+        const totalCents = gen.invoice.totalCents;
+
+        const fin = await finalizeInvoiceWithDb(db, ownerSession, { id: invId });
+        if (!fin.ok) continue;
+        invoiced++;
+
+        const issuedIso = f.startAt.toISOString();
+        await withOrgContext(db, orgId, async (tx) => {
+          await tx.execute(sql`
+            UPDATE invoice
+               SET issued_at = ${issuedIso}::timestamptz, created_at = ${issuedIso}::timestamptz
+             WHERE id = ${invId}`);
+        });
+
+        // Pay ~3 of every 4 (skip every 4th) → a believable outstanding balance.
+        if (i % 4 !== 3) {
+          const pay = await recordManualPaymentWithDb(db, ownerSession, {
+            memberUserId: ids.studentId,
+            amountCents: totalCents,
+            methodNote: 'ACH',
+            memo: 'Auto-pay (demo)',
+          });
+          if (pay.ok) {
+            paid++;
+            const payIso = new Date(f.startAt.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+            await withOrgContext(db, orgId, async (tx) => {
+              await tx.execute(sql`
+                UPDATE ledger_entry SET created_at = ${payIso}::timestamptz
+                 WHERE id = ${pay.entry.id}`);
+            });
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[demo] billing backfill: ${invoiced} invoices finalized, ${paid} paid`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[demo] billing backfill skipped:', err);
   }
 
   // ── 9. Second org — "Bravo Flying Club" (small club, slug `bravo`) ──
