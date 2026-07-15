@@ -48,6 +48,7 @@ import {
 } from './_components/report-utils';
 import type { ReportRangeKey } from './_components/report-utils';
 import { PageHeader } from '@/components/ui/page-header';
+import { BarTrend } from '@/components/ui/chart';
 import { SectionHeader } from '@/components/ui/section-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -533,8 +534,24 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
             </div>
           </div>
 
-          {/* Bucket bar-rows */}
+          {/* Column chart (visual) + bucket bar-rows (detail) */}
           <div className="p-4">
+            {utilizationTrend.buckets.length > 0 && (
+              <BarTrend
+                className="mb-5"
+                categories={utilizationTrend.buckets.map((b) => formatBucketLabel(b.bucketStart, gran))}
+                series={[
+                  {
+                    label: 'Flight hours',
+                    color: 'hsl(var(--color-brand))',
+                    values: utilizationTrend.buckets.map((b) => b.flightHours),
+                  },
+                ]}
+                valueLabel={(v) => `${v.toFixed(1)}h`}
+                ariaLabel={`Flight hours per ${gran}: ${utilizationTrend.totalFlightHours.toFixed(1)} hours total across ${utilizationTrend.totalFlights} flights.`}
+                emptyLabel="No flights in the selected period."
+              />
+            )}
             {utilizationTrend.buckets.length === 0 ? (
               <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-4">
                 No bucket data available.
@@ -856,11 +873,32 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                 <span className="text-xs text-slate-500 dark:text-slate-400">Reservations</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="h-1.5 w-4 rounded-full bg-slate-400" aria-hidden="true" />
+                <div className="h-1.5 w-4 rounded-full bg-success" aria-hidden="true" />
                 <span className="text-xs text-slate-500 dark:text-slate-400">Flights closed</span>
               </div>
             </div>
 
+            {reservationsVsFlights.buckets.length > 0 && (
+              <BarTrend
+                className="mb-5"
+                showLegend={false}
+                categories={reservationsVsFlights.buckets.map((b) => formatBucketLabel(b.bucketStart, gran))}
+                series={[
+                  {
+                    label: 'Reservations',
+                    color: 'hsl(var(--color-brand))',
+                    values: reservationsVsFlights.buckets.map((b) => b.reservationsCreated),
+                  },
+                  {
+                    label: 'Flights closed',
+                    color: 'hsl(var(--color-success))',
+                    values: reservationsVsFlights.buckets.map((b) => b.flightsClosed),
+                  },
+                ]}
+                ariaLabel={`Reservations created versus flights closed per ${gran}: ${reservationsVsFlights.totalReservationsCreated} reservations, ${reservationsVsFlights.totalFlightsClosed} flights.`}
+                emptyLabel="No activity in the selected period."
+              />
+            )}
             {reservationsVsFlights.buckets.length === 0 ? (
               <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-4">
                 No bucket data available.
@@ -903,7 +941,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                         </div>
                         <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
                           <div
-                            className="h-1.5 rounded-full bg-slate-400"
+                            className="h-1.5 rounded-full bg-success"
                             style={{ width: `${flightBar}%` }}
                           />
                         </div>

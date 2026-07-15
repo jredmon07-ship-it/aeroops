@@ -41,6 +41,9 @@ export interface BarTrendProps {
   emptyLabel?: string;
   /** Cap the number of visible x-axis labels; others render blank to keep spacing. */
   maxLabels?: number;
+  /** Render the built-in legend for multi-series charts. Default true. Set false
+   *  when the surrounding card already provides its own legend. */
+  showLegend?: boolean;
   className?: string;
 }
 
@@ -61,6 +64,7 @@ export function BarTrend({
   ariaLabel,
   emptyLabel = 'No activity in this period.',
   maxLabels = 8,
+  showLegend = true,
   className,
 }: BarTrendProps) {
   const allValues = series.flatMap((s) => s.values);
@@ -77,7 +81,7 @@ export function BarTrend({
       className={['m-0', className].filter(Boolean).join(' ')}
     >
       {/* Legend (only meaningful with ≥2 series) */}
-      {series.length > 1 && (
+      {series.length > 1 && showLegend && (
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1" aria-hidden="true">
           {series.map((s) => (
             <span key={s.label} className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
