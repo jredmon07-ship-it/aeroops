@@ -9,6 +9,43 @@ and optionally hosting a public demo.
 
 ---
 
+## Quick redeploy (already deployed once)
+
+You already have a Vercel deployment + a Neon demo DB, and want to ship the
+current branch (`slice/aerostudy-integration` — club mode, dues, avatars,
+signup, charts, and the month-of-activity demo). Run this in your terminal
+(the branch is already pushed). `psql` must be installed, or clear the demo
+orgs in the Neon SQL console instead.
+
+```bash
+cd /path/to/AeroOps
+
+# 1. Load YOUR Neon OWNER connection string (never commit it; not in git).
+export DATABASE_URL='postgres://neondb_owner:PASSWORD@HOST.neon.tech/neondb?sslmode=require'
+
+# 2. Apply the new migrations (0046–0050). Dry-run first — it applies nothing.
+pnpm db:migrate
+CONFIRM_APPLY=1 pnpm db:migrate:apply
+
+# 3. Wipe the old demo orgs so the seed's "empty demo DB" guard passes
+#    (fictional data only; org_id FKs are ON DELETE CASCADE).
+psql "$DATABASE_URL" -c "DELETE FROM org WHERE slug IN ('alpha','bravo');"
+
+# 4. Reseed both orgs fresh (with the month of flights + finalized/paid invoices).
+ALLOW_DEMO_SEED=1 pnpm db:seed:demo
+
+# 5. Deploy the code — Vercel auto-builds when main updates.
+git push origin slice/aerostudy-integration:main
+```
+
+Then `https://<your-app>.vercel.app/o/bravo/login` (owner@bravo.aero / demo1234)
+and `/o/alpha/login` (owner@alpha.aero / demo1234) go live. **Stripe is
+untouched** — none of these steps read Stripe keys; Vercel keeps its existing
+test keys. If any step errors, capture the error text (never the connection
+string) and fix before continuing. The full first-time guide is below.
+
+---
+
 ## Prerequisites
 
 - A GitHub account (to push the repo and trigger CI).
@@ -221,7 +258,7 @@ data — they authorize wiping a tenant.
 
 | Variable | Value | Notes |
 |---|---|---|
-| `AEROOPS_DEMO_RESET_ENABLED` | `1` (or `true`/`yes`/`on`) | Turns the feature on. Unset/empty = never resets. When on, a **successful** login to an allowlisted demo slug (hard-coded: only `alpha`) wipes + re-seeds that tenant to its clean seeded baseline **before** the session is issued, so nothing a visitor does persists. Throttled to at most one reset per 60s and guarded by a Postgres advisory lock. |
+| `AEROOPS_DEMO_RESET_ENABLED` | `1` (or `true`/`yes`/`on`) | Turns the feature on. Unset/empty = never resets. When on, a **successful** login to an allowlisted demo slug (`alpha` **or** `bravo`) wipes + re-seeds **both** demo tenants to their clean seeded baseline **before** the session is issued, so nothing a visitor does persists. Throttled to at most one reset per 60s and guarded by a Postgres advisory lock. **Note:** the seed now backfills ~a month of flights + finalized/paid invoices per org, so a reset does more work than before — expect the login that triggers it to take a few extra seconds. For a fast demo where you don't mind visitor edits sticking until the next manual `db:seed:demo`, leave this **off**. |
 | `AEROOPS_DEMO_OWNER_URL` | `postgres://neondb_owner:PASS@HOST/DB?sslmode=require` | The **owner/DDL** connection string used ONLY to perform the wipe + re-seed (a scoped `DELETE FROM org` + control-plane re-inserts need elevated rights the runtime role lacks). This is the **owner** role — NOT the `aeroops_app` role in `DATABASE_URL`. Note: on Neon this owner is a non-superuser, so FORCE RLS still applies to it — the reset code scopes the org GUCs itself; no extra grants are needed beyond ownership. |
 
 How it works: the reset deletes and recreates the `alpha` org (a **new** `org_id`
