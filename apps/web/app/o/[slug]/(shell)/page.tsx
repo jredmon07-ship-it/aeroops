@@ -43,7 +43,7 @@ import { SetupBanner } from './setup-banner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { BarTrend } from '@/components/ui/chart';
+import { BarTrend, Sparkline } from '@/components/ui/chart';
 import {
   resolveRangeKey,
   rangeLabelFull,
@@ -504,8 +504,16 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
             <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500" aria-hidden="true">
               {metrics.totalFlights === 0 ? 'no flights in period' : 'completed dispatches'}
             </p>
-            {/* Reserved 16px trend slot — future sparkline */}
-            <div className="h-4" aria-hidden="true" />
+            {/* Per-day flights sparkline (from the activity trend) */}
+            <div className="mt-2 h-4">
+              {trend && trend.totalFlightsClosed > 0 && (
+                <Sparkline
+                  values={trend.buckets.map((b) => b.flightsClosed)}
+                  color="hsl(var(--color-success))"
+                  height={16}
+                />
+              )}
+            </div>
           </div>
 
           {/* Flight hours */}
@@ -543,7 +551,16 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
             <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
               {metrics.reservationsInRange === 0 ? 'no … in period' : 'incl. upcoming'}
             </p>
-            <div className="h-4" aria-hidden="true" />
+            {/* Per-day reservations sparkline (from the activity trend) */}
+            <div className="mt-2 h-4">
+              {trend && trend.totalReservationsCreated > 0 && (
+                <Sparkline
+                  values={trend.buckets.map((b) => b.reservationsCreated)}
+                  color="hsl(var(--color-brand))"
+                  height={16}
+                />
+              )}
+            </div>
           </div>
         </div>
         {/* Range-no-data subline */}
