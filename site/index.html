@@ -4,31 +4,44 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AeroOps: flight operations software for flight schools, clubs, and FBOs</title>
-<meta name="description" content="AeroOps runs scheduling, dispatch, maintenance, training records, and billing for flight schools, flying clubs, and FBOs. The software is free; bank transfers cost 1%, capped at $15, and there is no software fee.">
+<meta name="description" content="AeroOps runs scheduling, dispatch, maintenance, training records, billing, and reporting for flight schools, flying clubs, and FBOs. The software is free; bank transfers cost 1%, capped at $15, and there is no software fee.">
 <meta property="og:title" content="AeroOps: flight operations software">
-<meta property="og:description" content="Scheduling, dispatch, maintenance, training records, and billing for flight schools, clubs, and FBOs. Free software; 1% capped at $15, only when a payment moves.">
+<meta property="og:description" content="Scheduling, dispatch, maintenance, training records, billing, and reporting for flight schools, clubs, and FBOs. Free software; 1% capped at $15, only when a payment moves.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://aeroops-web.vercel.app">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230C1322'/%3E%3Cpath d='M16 6 L25 24 L20.7 24 L16 14.7 L11.3 24 L7 24 Z' fill='%23FFFFFF'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,440;0,560;1,440&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js')</script>
 <style>
 :root{
   --white:      #FFFFFF;
   --paper:      #FAF9F5;   /* warm ivory, used for restrained tonal variation */
   --navy:       #0C1322;   /* deep navy anchor */
   --navy-soft:  #16203A;
+  --navy-deep:  #080D18;
   --text:       #0C1322;
   --text-soft:  #4B5568;   /* secondary on white/paper - 7.5:1 */
   --text-inv:   #FFFFFF;
   --text-inv-soft:#AEB9CF; /* secondary on navy - 8.4:1, brightened slightly for the video scrim */
   --rule:       rgba(12,19,34,.14);
   --rule-inv:   rgba(255,255,255,.22);
+  /* accent family - kept navy-adjacent (a restrained azure, warm gold, mint) so
+     charts and highlights have life without drifting to a generic bright-blue SaaS look */
+  --accent:     #6AA6F0;
+  --accent-ink: #2F6FD1;
+  --gold:       #E9B44C;
+  --mint:       #56BE97;
+  --rose:       #E98C7F;
   --radius:     3px;
+  --r-card:     14px;
   --serif:      "Fraunces", Georgia, "Times New Roman", serif;
   --sans:       -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --mono:       ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --shadow-1:   0 1px 2px rgba(12,19,34,.06), 0 3px 10px rgba(12,19,34,.06);
+  --shadow-2:   0 12px 30px -12px rgba(12,19,34,.22), 0 3px 8px rgba(12,19,34,.07);
+  --shadow-lift:0 40px 80px -30px rgba(8,13,24,.55), 0 12px 28px -18px rgba(8,13,24,.4);
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -44,12 +57,13 @@ body{
   color:var(--text);
   background:var(--white);
   -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
 }
 h1,h2,h3{font-family:var(--serif);font-weight:560;line-height:1.14;margin:0 0 .5em;letter-spacing:-.01em;color:var(--navy)}
 p{margin:0 0 1.1em}
 a{color:inherit}
 img,svg{max-width:100%;height:auto}
-.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+.wrap{max-width:1140px;margin:0 auto;padding:0 28px}
 
 /* Accessibility */
 .skip-link{
@@ -61,6 +75,14 @@ img,svg{max-width:100%;height:auto}
 :focus-visible{outline:2.5px solid var(--navy);outline-offset:3px}
 .on-navy :focus-visible{outline-color:var(--white)}
 
+/* Scroll reveal - only active when JS is present, so no-JS visitors see everything */
+.js .reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.js .reveal.is-in{opacity:1;transform:none}
+.js .reveal[data-d="1"]{transition-delay:.09s}
+.js .reveal[data-d="2"]{transition-delay:.18s}
+.js .reveal[data-d="3"]{transition-delay:.27s}
+@media (prefers-reduced-motion: reduce){.js .reveal{opacity:1;transform:none}}
+
 /* Type helpers */
 .eyebrow{
   display:flex;align-items:center;gap:12px;
@@ -70,21 +92,24 @@ img,svg{max-width:100%;height:auto}
 .eyebrow::before{content:"";display:block;width:26px;height:1px;background:var(--navy);flex:none}
 .on-navy .eyebrow{color:var(--text-inv-soft)}
 .on-navy .eyebrow::before{background:var(--white)}
+.eyebrow--accent::before{background:var(--accent)}
 
 /* Buttons */
 .btn{
   display:inline-block;font-family:var(--sans);font-weight:600;font-size:.94rem;letter-spacing:.01em;
   padding:14px 28px;border-radius:var(--radius);text-decoration:none;
-  border:1.5px solid transparent;transition:background-color .15s ease, color .15s ease, border-color .15s ease;
+  border:1.5px solid transparent;transition:background-color .15s ease, color .15s ease, border-color .15s ease, transform .15s ease, box-shadow .15s ease;
 }
 .btn-solid{background:var(--navy);color:var(--white);border-color:var(--navy)}
-.btn-solid:hover{background:#1B2A4A;border-color:#1B2A4A}
+.btn-solid:hover{background:#1B2A4A;border-color:#1B2A4A;transform:translateY(-1px);box-shadow:var(--shadow-2)}
 .btn-line{color:var(--navy);border-color:var(--navy)}
 .btn-line:hover{background:var(--navy);color:var(--white)}
 .btn-line-inv{color:var(--white);border-color:var(--rule-inv)}
 .btn-line-inv:hover{border-color:var(--white)}
 .btn-solid-inv{background:var(--white);color:var(--navy);border-color:var(--white)}
-.btn-solid-inv:hover{background:#E7E2D6;border-color:#E7E2D6}
+.btn-solid-inv:hover{background:#E7E2D6;border-color:#E7E2D6;transform:translateY(-1px)}
+.btn-accent{background:linear-gradient(180deg,#79B0F5,#3D7AD4);color:#fff;border-color:transparent;box-shadow:0 6px 18px -6px rgba(47,111,209,.6)}
+.btn-accent:hover{transform:translateY(-1px);box-shadow:0 12px 26px -8px rgba(47,111,209,.7)}
 .text-link{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule);font-weight:600}
 .text-link:hover{text-decoration-color:currentColor}
 .on-navy .text-link{text-decoration-color:var(--rule-inv);color:var(--white)}
@@ -107,14 +132,18 @@ img,svg{max-width:100%;height:auto}
 /* ============ Header / nav ============ */
 .site-header{
   position:sticky;top:0;z-index:80;
-  border-bottom:1px solid var(--rule);
+  border-bottom:1px solid transparent;
+  transition:border-color .25s ease;
 }
+.site-header.scrolled{border-bottom-color:var(--rule)}
 .site-header-bg{
   position:absolute;inset:0;z-index:0;
-  background:rgba(255,255,255,.9);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
+  background:rgba(255,255,255,.72);
+  backdrop-filter:blur(14px) saturate(1.4);
+  -webkit-backdrop-filter:blur(14px) saturate(1.4);
+  opacity:0;transition:opacity .25s ease;
 }
+.site-header.scrolled .site-header-bg{opacity:1}
 .site-header .wrap{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:76px}
 .site-nav{display:flex;align-items:center;gap:34px}
 .site-nav .nav-links{display:flex;align-items:center;gap:30px;list-style:none;margin:0;padding:0}
@@ -179,7 +208,7 @@ img,svg{max-width:100%;height:auto}
 /* ============ Cinematic hero (home) ============ */
 .hero-video-wrap{
   position:relative;isolation:isolate;overflow:hidden;
-  min-height:min(92vh, 780px);
+  min-height:min(90vh, 760px);
   display:flex;align-items:flex-end;
   background:
     radial-gradient(120% 100% at 82% 12%, rgba(255,214,150,.10), transparent 55%),
@@ -190,30 +219,86 @@ img,svg{max-width:100%;height:auto}
 @media (prefers-reduced-motion: reduce){
   .hero-video{display:none}
 }
-/* Bottom-only gradient - the aircraft stays fully visible; only the lower
-   band is darkened just enough to keep the headline + CTA legible. */
 .hero-scrim{
   position:absolute;inset:0;z-index:1;pointer-events:none;
   background:linear-gradient(0deg, rgba(12,19,34,.82) 0%, rgba(12,19,34,.44) 18%, rgba(12,19,34,.06) 38%, transparent 54%);
 }
-.hero-content{position:relative;z-index:2;width:100%;padding:0 0 60px}
-.hero-inner{max-width:640px}
+.hero-content{position:relative;z-index:2;width:100%;padding:0 0 58px}
+.hero-inner{max-width:660px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:9px;margin-bottom:22px;
+  padding:7px 14px 7px 11px;border-radius:100px;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  font-family:var(--sans);font-size:.76rem;font-weight:600;letter-spacing:.02em;color:#fff;
+}
+.hero-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 4px rgba(86,190,151,.25)}
 .hero-content h1{
-  font-size:clamp(2.3rem, 4.4vw, 3.4rem);
-  color:var(--white);margin-bottom:.5em;
+  font-size:clamp(2.4rem, 4.6vw, 3.6rem);
+  color:var(--white);margin-bottom:.42em;
   text-shadow:0 1px 30px rgba(12,19,34,.45);
 }
 .hero-content h1 em{font-style:italic;font-weight:440}
-.hero-ctas{display:flex;flex-wrap:wrap;align-items:center;gap:24px;margin-bottom:22px}
+.hero-lede{color:#DCE3F1;font-size:clamp(1.02rem,1.5vw,1.18rem);max-width:52ch;margin:0 0 26px;text-shadow:0 1px 16px rgba(12,19,34,.5)}
+.hero-ctas{display:flex;flex-wrap:wrap;align-items:center;gap:18px 24px;margin-bottom:22px}
 .hero-note{font-family:var(--mono);font-size:.74rem;letter-spacing:.07em;color:var(--text-inv-soft)}
 
-/* Statement band directly under the video - carries the fuller pitch that
-   used to sit over the footage. */
-.statement{padding:76px 0}
+/* ============ App showcase band (product hero) ============ */
+.showcase{
+  position:relative;isolation:isolate;overflow:hidden;
+  background:linear-gradient(180deg,#0C1322 0%, #101B32 46%, #0C1322 100%);
+  color:#fff;padding:92px 0 104px;
+}
+.showcase::before,.showcase::after{content:"";position:absolute;z-index:0;border-radius:50%;filter:blur(70px);opacity:.5;pointer-events:none}
+.showcase::before{width:520px;height:520px;left:-140px;top:-120px;background:radial-gradient(circle,rgba(106,166,240,.5),transparent 62%)}
+.showcase::after{width:480px;height:480px;right:-120px;bottom:-160px;background:radial-gradient(circle,rgba(233,180,76,.34),transparent 62%)}
+.showcase .wrap{position:relative;z-index:1}
+.showcase-head{max-width:60ch;margin:0 auto 44px;text-align:center}
+.showcase-head h2{color:#fff;font-size:clamp(1.8rem,3.2vw,2.5rem);margin-bottom:.4em}
+.showcase-head p{color:#C6CFE1;font-size:1.08rem;margin:0 auto;max-width:56ch}
+.showcase-stage{position:relative;max-width:1000px;margin:0 auto}
+.showcase-stage .device{transform:perspective(1800px) rotateX(4deg)}
+.float-chip{
+  position:absolute;z-index:2;display:flex;align-items:center;gap:11px;
+  padding:13px 16px;border-radius:12px;
+  background:rgba(18,28,50,.82);border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.6);
+}
+.float-chip .fc-ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none}
+.float-chip .fc-txt{display:flex;flex-direction:column;gap:1px}
+.float-chip .fc-k{display:block;font-family:var(--sans);font-weight:700;font-size:.98rem;color:#fff;line-height:1.15}
+.float-chip .fc-l{display:block;font-size:.72rem;color:#9DA9C4;letter-spacing:.02em;line-height:1.2}
+.float-chip--tl{left:-26px;top:150px}
+.float-chip--br{right:-26px;bottom:48px}
+@media (max-width:760px){.float-chip{display:none}.showcase-stage .device{transform:none}}
+
+/* Device / browser-chrome frame for product mockups */
+.device{
+  border-radius:var(--r-card);overflow:hidden;background:#0b1220;
+  border:1px solid rgba(255,255,255,.10);box-shadow:var(--shadow-lift);
+}
+.device-bar{display:flex;align-items:center;gap:7px;padding:11px 15px;background:#0e1729;border-bottom:1px solid rgba(255,255,255,.06)}
+.device-bar i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16);flex:none}
+.device-bar .addr{margin-left:12px;font:600 .68rem/1 var(--mono);color:#7f8aa6;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.device svg{display:block;width:100%;height:auto}
+
+/* ============ Stat strip ============ */
+.stat-strip{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--paper)}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat{padding:40px 28px;border-left:1px solid var(--rule)}
+.stat:first-child{border-left:none}
+.stat .num{font-family:var(--serif);font-weight:560;font-size:clamp(1.9rem,3.4vw,2.7rem);color:var(--navy);line-height:1;letter-spacing:-.02em}
+.stat .num em{font-style:normal;color:var(--accent-ink)}
+.stat .lbl{margin-top:10px;font-size:.9rem;color:var(--text-soft);line-height:1.45}
+@media (max-width:760px){.stat-grid{grid-template-columns:1fr 1fr}.stat:nth-child(odd){border-left:none}.stat:nth-child(3),.stat:nth-child(4){border-top:1px solid var(--rule)}}
+
+/* Statement band */
+.statement{padding:84px 0}
 .statement p{
   font-family:var(--serif);font-weight:420;
   font-size:clamp(1.35rem, 2.5vw, 1.95rem);line-height:1.42;
-  color:var(--text);max-width:44ch;margin:0;
+  color:var(--text);max-width:46ch;margin:0;
 }
 .statement p strong{font-weight:560;color:var(--navy)}
 
@@ -230,55 +315,108 @@ img,svg{max-width:100%;height:auto}
 /* ============ Sections ============ */
 section{padding:96px 0}
 .section-head{max-width:56ch;margin-bottom:56px}
-.section-head h2{font-size:clamp(1.7rem, 3vw, 2.25rem)}
+.section-head--center{margin-left:auto;margin-right:auto;text-align:center}
+.section-head h2{font-size:clamp(1.7rem, 3vw, 2.35rem)}
 .section-head p{color:var(--text-soft);font-size:1.08rem;margin-bottom:0}
 .band-top{border-top:1px solid var(--rule)}
 
-/* Capabilities list */
-.cap-list{list-style:none;margin:0;padding:0}
-.cap{
-  display:grid;grid-template-columns:88px 1fr;gap:32px;
-  padding:44px 0;border-top:1px solid var(--rule);
+/* ============ Feature hubs ============ */
+.hubs{padding-top:24px}
+.hub{
+  display:grid;grid-template-columns:1.02fr 1.18fr;gap:60px;align-items:center;
+  padding:74px 0;border-top:1px solid var(--rule);
 }
-.cap:first-child{border-top:none;padding-top:0}
-.cap-mark{padding-top:6px}
-.cap-mark .roman{display:block;font-family:var(--serif);font-style:italic;font-weight:440;font-size:1.5rem;color:var(--text-soft);margin-bottom:16px}
-.cap-mark svg{color:var(--navy)}
-.cap h3{font-size:clamp(1.3rem, 2.2vw, 1.55rem);margin-bottom:.5em}
-.cap p{color:var(--text-soft);max-width:62ch}
-.cap-points{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:9px;max-width:64ch}
-.cap-points li{padding-left:22px;position:relative;font-size:.97rem;color:var(--text)}
-.cap-points li::before{
-  content:"";position:absolute;left:0;top:9px;width:10px;height:1.5px;background:var(--navy);
+.hub--rev .hub-copy{order:2}
+.hub--rev .hub-media{order:1}
+.hub-kicker{
+  display:inline-flex;align-items:center;gap:10px;margin-bottom:16px;
+  font-size:.74rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);
 }
-@media (max-width:640px){
-  .cap{grid-template-columns:1fr;gap:14px}
-  .cap-mark{display:flex;align-items:center;gap:14px;padding-top:0}
-  .cap-mark .roman{margin-bottom:0}
+.hub-kicker .hub-no{
+  display:grid;place-items:center;width:26px;height:26px;border-radius:7px;
+  background:rgba(106,166,240,.14);color:var(--accent-ink);
+  font-family:var(--serif);font-style:italic;font-size:.9rem;
 }
+.hub h3{font-size:clamp(1.5rem,2.6vw,1.95rem);margin-bottom:.4em}
+.hub-copy > p{color:var(--text-soft);max-width:52ch}
+.feat{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:13px;max-width:56ch}
+.feat li{position:relative;padding-left:32px;font-size:.98rem;color:var(--text);line-height:1.5}
+.feat li::before{content:"";position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:rgba(106,166,240,.15)}
+.feat li::after{content:"";position:absolute;left:6.5px;top:7px;width:7px;height:4px;border-left:1.7px solid var(--accent-ink);border-bottom:1.7px solid var(--accent-ink);transform:rotate(-45deg)}
+.hub-media{position:relative}
+.hub-media .device{transition:transform .4s cubic-bezier(.2,.7,.2,1),box-shadow .4s ease}
+.hub-media:hover .device{transform:translateY(-4px)}
+@media (max-width:860px){
+  .hub{grid-template-columns:1fr;gap:30px;padding:56px 0}
+  .hub--rev .hub-copy,.hub--rev .hub-media{order:0}
+}
+
+/* Reporting hub sits on a dark band for contrast */
+.hub-dark{background:linear-gradient(180deg,#0C1322,#111C34);color:#fff;border-radius:0}
+.hub-dark .hub{border-top:none}
+.hub-dark h3{color:#fff}
+.hub-dark .hub-copy > p{color:#C6CFE1}
+.hub-dark .feat li{color:#E7ECF6}
+.hub-dark .feat li::before{background:rgba(106,166,240,.2)}
+.hub-dark .feat li::after{border-color:#9EC2F5}
+.hub-dark .hub-kicker{color:#9EC2F5}
+.hub-dark .hub-kicker .hub-no{background:rgba(106,166,240,.18);color:#BFD6F7}
 
 /* Pricing */
 .pricing-head{max-width:66ch;margin-bottom:40px}
 .pricing-head p{color:var(--text-soft);font-size:1.08rem;margin-bottom:0}
 .tiers{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:48px}
-.tier{border:1px solid var(--rule);border-radius:var(--radius);padding:32px 30px 28px;background:var(--white)}
-.tier--pro{background:var(--paper);border-color:rgba(12,19,34,.28)}
+.tier{
+  position:relative;border:1px solid var(--rule);border-radius:var(--r-card);padding:34px 32px 30px;
+  background:var(--white);box-shadow:var(--shadow-1);transition:transform .2s ease, box-shadow .2s ease;
+}
+.tier:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
+.tier--pro{
+  background:linear-gradient(180deg,#0F1B33,#0C1322);color:#fff;border-color:transparent;
+  box-shadow:var(--shadow-lift);
+}
+.tier--pro::before{
+  content:"Waived with payments";position:absolute;top:-12px;right:22px;
+  background:linear-gradient(180deg,var(--gold),#D69A2E);color:#20170a;
+  font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:6px 12px;border-radius:100px;box-shadow:0 6px 16px -6px rgba(214,154,46,.6);
+}
 .tier .cap-caption{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);margin-bottom:14px;display:block}
+.tier--pro .cap-caption{color:#9EC2F5}
 .tier-who{font-size:.92rem;color:var(--text-soft);margin:0 0 18px}
-.tier-price{font-family:var(--serif);font-size:2.1rem;font-weight:560;color:var(--navy);line-height:1.1;margin:0 0 4px}
+.tier--pro .tier-who{color:#AEB9CF}
+.tier-price{font-family:var(--serif);font-size:2.2rem;font-weight:560;color:var(--navy);line-height:1.1;margin:0 0 4px}
+.tier--pro .tier-price{color:#fff}
 .tier-price .tier-sub{display:block;font-family:var(--sans);font-size:.82rem;font-weight:600;letter-spacing:.02em;color:var(--text-soft);margin-top:8px}
+.tier--pro .tier-price .tier-sub{color:#AEB9CF}
 .tier ul{list-style:none;margin:20px 0 0;padding:0}
-.tier li{padding:10px 0;border-top:1px solid var(--rule);font-size:.95rem;color:var(--text)}
+.tier li{padding:11px 0 11px 28px;border-top:1px solid var(--rule);font-size:.95rem;color:var(--text);position:relative}
 .tier li:first-child{border-top:none}
 .tier li strong{color:var(--navy)}
+.tier li::before{content:"";position:absolute;left:0;top:16px;width:14px;height:8px;border-left:2px solid var(--accent-ink);border-bottom:2px solid var(--accent-ink);transform:rotate(-45deg)}
+.tier--pro li{border-top-color:var(--rule-inv);color:#E7ECF6}
+.tier--pro li strong{color:#fff}
+.tier--pro li::before{border-color:var(--gold)}
 .pricing-detail{max-width:70ch}
 @media (max-width:720px){.tiers{grid-template-columns:1fr}}
+
+/* Savings calculator */
+.calc{margin:56px auto 8px;max-width:880px;border-radius:var(--r-card);padding:34px 36px;background:#fff;border:1px solid var(--rule);box-shadow:var(--shadow-2)}
+.calc h3{margin:.25em 0 .35em;font-size:1.5rem}
+.calc-out{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px;text-align:center}
+.calc-cell{border:1px solid var(--rule);border-radius:10px;padding:20px 12px;background:var(--paper)}
+.calc-cell--hero{background:linear-gradient(180deg,#0F1B33,#0C1322);border-color:transparent;color:#fff}
+.calc-cell .k{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;opacity:.7;min-height:2.4em;display:flex;align-items:center;justify-content:center}
+.calc-cell .v{font-size:1.7rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:6px;font-family:var(--serif)}
+.calc-cell--hero .v{color:var(--white)}
+.calc-cell .u{font-size:.72rem;opacity:.6;margin-top:2px}
+.calc-range{width:100%;margin-top:10px;accent-color:var(--accent-ink)}
 
 /* Demo */
 .demo-inner{display:grid;grid-template-columns:1.1fr 1fr;gap:64px;align-items:start}
 .cred{
   font-family:var(--mono);font-size:.9rem;border:1px solid var(--rule-inv);
-  border-radius:var(--radius);padding:28px;
+  border-radius:var(--r-card);padding:28px;background:rgba(255,255,255,.03);
 }
 .cred dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:13px 22px}
 .cred dt{color:var(--text-inv-soft);letter-spacing:.04em}
@@ -287,7 +425,7 @@ section{padding:96px 0}
 @media (max-width:820px){.demo-inner{grid-template-columns:1fr;gap:36px}}
 
 /* Explore / cross-link cards */
-.explore-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.explore-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:var(--r-card);overflow:hidden}
 .explore-card{
   background:var(--white);padding:36px 32px;text-decoration:none;color:var(--text);
   display:flex;flex-direction:column;gap:10px;transition:background-color .15s ease;
@@ -313,51 +451,6 @@ section{padding:96px 0}
 .site-footer a:hover{text-decoration-color:var(--white)}
 .footer-nav a:hover{text-decoration:none}
 .fineprint{font-size:.86rem;line-height:1.65;max-width:66ch;margin:30px 0 0;padding-top:26px;border-top:1px solid var(--rule-inv);color:var(--text-inv-soft)}
-
-/* ============ Subpage hero (FAQ / Instructions / Founder) ============ */
-.page-hero{
-  background:linear-gradient(160deg,#0C1322 0%,#16203A 55%,#0C1322 100%);
-  color:var(--white);padding:88px 0 72px;
-}
-.page-hero .wrap{max-width:760px}
-.page-hero h1{color:var(--white);font-size:clamp(2.1rem,4.2vw,3rem)}
-.page-hero p{color:var(--text-inv-soft);font-size:1.08rem;max-width:56ch;margin-bottom:0}
-
-/* ============ FAQ accordion (native details/summary, no JS required) ============ */
-.faq-list{max-width:74ch}
-.faq-item{border-top:1px solid var(--rule)}
-.faq-item:last-child{border-bottom:1px solid var(--rule)}
-.faq-item summary{
-  list-style:none;cursor:pointer;padding:26px 34px 26px 0;position:relative;
-  font-family:var(--serif);font-weight:560;font-size:1.15rem;color:var(--navy);
-}
-.faq-item summary::-webkit-details-marker{display:none}
-.faq-item summary::after{
-  content:"+";position:absolute;right:0;top:24px;font-family:var(--sans);font-weight:300;
-  font-size:1.6rem;color:var(--text-soft);transition:transform .2s ease;line-height:1;
-}
-.faq-item[open] summary::after{content:"–"}
-.faq-item .faq-a{margin:-6px 0 28px;max-width:66ch;color:var(--text-soft)}
-.faq-item .faq-a p:last-child{margin-bottom:0}
-
-/* ============ Instructions / steps ============ */
-.steps{list-style:none;margin:0;padding:0;counter-reset:step}
-.step{
-  display:grid;grid-template-columns:64px 1fr;gap:28px;padding:40px 0;border-top:1px solid var(--rule);
-}
-.step:first-child{border-top:none;padding-top:0}
-.step-num{
-  width:44px;height:44px;border-radius:var(--radius);border:1px solid var(--rule);
-  display:grid;place-items:center;font-family:var(--serif);font-style:italic;font-size:1.15rem;color:var(--navy);
-}
-.step-diagram{margin-top:18px;color:var(--navy)}
-.step h3{font-size:1.25rem;margin-bottom:.45em}
-.step p{color:var(--text-soft);max-width:62ch;margin-bottom:0}
-@media (max-width:640px){
-  .step{grid-template-columns:1fr;gap:14px}
-  .step-num{margin-bottom:2px}
-}
-
 </style>
 </head>
 <body>
@@ -373,12 +466,12 @@ section{padding:96px 0}
     <nav class="site-nav" aria-label="Site">
       <ul class="nav-links">
         <li><a class="nav-link" href="#top" aria-current="page">Home</a></li>
-        <li><a class="nav-link" href="#product">Platform</a></li>
+        <li><a class="nav-link" href="#platform">Platform</a></li>
         <li><a class="nav-link" href="#pricing">Pricing</a></li>
         <li><a class="nav-link" href="faq.html">FAQ</a></li>
         <li><a class="nav-link" href="how-it-works.html">Instructions</a></li>
       </ul>
-      <a class="btn btn-solid" href="https://aeroops-web.vercel.app/o/alpha/login">View the live demo</a>
+      <a class="btn btn-solid" href="https://aeroops-web.vercel.app/signup">Create your operation</a>
       <details class="nav-toggle-wrap">
         <summary aria-label="Open menu">
           <span class="bars" aria-hidden="true"><span></span><span></span><span></span></span>
@@ -386,12 +479,12 @@ section{padding:96px 0}
         <nav class="mobile-nav" aria-label="Mobile">
           <ul>
             <li><a href="#top">Home</a></li>
-            <li><a href="#product">Platform</a></li>
+            <li><a href="#platform">Platform</a></li>
             <li><a href="#pricing">Pricing</a></li>
             <li><a href="faq.html">FAQ</a></li>
             <li><a href="how-it-works.html">Instructions</a></li>
           </ul>
-          <a class="btn btn-solid-inv mobile-nav-cta" href="https://aeroops-web.vercel.app/o/alpha/login">View the live demo</a>
+          <a class="btn btn-solid-inv mobile-nav-cta" href="https://aeroops-web.vercel.app/signup">Create your operation</a>
         </nav>
       </details>
     </nav>
@@ -410,15 +503,136 @@ section{padding:96px 0}
     <div class="hero-scrim" aria-hidden="true"></div>
     <div class="wrap hero-content">
       <div class="hero-inner">
-        <p class="eyebrow">Flight operations software</p>
-        <h1 id="hero-title">The software is <em>free</em>.</h1>
+        <span class="hero-badge"><span class="dot" aria-hidden="true"></span>Free software · live demo running now</span>
+        <h1 id="hero-title">The whole operation. <em>One</em> system.</h1>
+        <p class="hero-lede">
+          Scheduling, dispatch, maintenance, training records, billing, and reporting for
+          flight schools, flying clubs, and FBOs. The software is free.
+        </p>
         <div class="hero-ctas">
           <a class="btn btn-solid-inv" href="https://aeroops-web.vercel.app/signup">Create your operation</a>
           <a class="text-link" href="https://aeroops-web.vercel.app/o/alpha/login">View the live demo</a>
-          <a class="text-link" href="#savings-calc">Estimate your savings</a>
-          <a class="text-link" href="how-it-works.html">See how it works</a>
+          <a class="text-link" href="#platform">See the platform</a>
         </div>
         <p class="hero-note">LIVE DEMO · owner@alpha.aero / demo1234 · fictional sample data</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ APP SHOWCASE (product hero) ============ -->
+  <section class="showcase" aria-labelledby="showcase-title">
+    <div class="wrap">
+      <div class="showcase-head reveal">
+        <p class="eyebrow eyebrow--accent" style="justify-content:center">The platform</p>
+        <h2 id="showcase-title">Everything the aircraft touches, on one screen.</h2>
+        <p>From the booking to the Hobbs reading to the invoice, one system follows the aircraft through the day, so nothing is retyped and nothing slips.</p>
+      </div>
+
+      <div class="showcase-stage reveal" data-d="1">
+        <!-- floating stat chips -->
+        <div class="float-chip float-chip--tl" aria-hidden="true">
+          <span class="fc-ico" style="background:rgba(86,190,151,.18)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#56BE97" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <span class="fc-txt"><span class="fc-k">No double-books</span><span class="fc-l">One conflict gate, always on</span></span>
+        </div>
+        <div class="float-chip float-chip--br" aria-hidden="true">
+          <span class="fc-ico" style="background:rgba(233,180,76,.18)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E9B44C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </span>
+          <span class="fc-txt"><span class="fc-k">$15 max</span><span class="fc-l">to collect any payment</span></span>
+        </div>
+
+        <!-- App window: nav rail + schedule board -->
+        <div class="device">
+          <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">aeroops-web.vercel.app/o/alpha/schedule</span></div>
+          <svg viewBox="0 0 1000 600" role="img" aria-label="The AeroOps schedule board: aircraft in rows, colored reservations across the day, one aircraft grounded, live weather and Zulu time in the header.">
+            <rect width="1000" height="600" fill="#0b1220"/>
+            <!-- nav rail -->
+            <rect x="0" y="0" width="196" height="600" fill="#0e1729"/>
+            <rect x="24" y="26" width="26" height="26" rx="6" fill="#fff"/>
+            <path d="M37 31 L45 47 L41 47 L37 39 L33 47 L29 47 Z" fill="#0e1729"/>
+            <text x="60" y="44" font-family="Georgia,serif" font-size="17" fill="#fff">AeroOps</text>
+            <!-- nav items -->
+            <g font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="13.5">
+              <rect x="16" y="86" width="164" height="34" rx="8" fill="rgba(106,166,240,.16)"/>
+              <rect x="30" y="98" width="12" height="10" rx="2" fill="none" stroke="#6AA6F0" stroke-width="1.6"/>
+              <text x="54" y="107" fill="#DCE6F8" font-weight="600">Schedule</text>
+              <text x="54" y="150" fill="#8794b0">Dashboard</text><rect x="30" y="141" width="12" height="12" rx="2" fill="none" stroke="#8794b0" stroke-width="1.4"/>
+              <text x="54" y="188" fill="#8794b0">Fleet</text><circle cx="36" cy="183" r="6" fill="none" stroke="#8794b0" stroke-width="1.4"/>
+              <text x="54" y="226" fill="#8794b0">People</text><circle cx="36" cy="221" r="6" fill="none" stroke="#8794b0" stroke-width="1.4"/>
+              <text x="54" y="264" fill="#8794b0">Training</text><rect x="30" y="255" width="12" height="12" rx="2" fill="none" stroke="#8794b0" stroke-width="1.4"/>
+              <text x="54" y="302" fill="#8794b0">Maintenance</text><path d="M32 296 l4 4 6-6" fill="none" stroke="#8794b0" stroke-width="1.4"/>
+              <text x="54" y="340" fill="#8794b0">Billing</text><path d="M36 331 v10 M32 335 h8" stroke="#8794b0" stroke-width="1.4"/>
+              <text x="54" y="378" fill="#8794b0">Reporting</text><path d="M31 375 v-9 M36 375 v-14 M41 375 v-6" stroke="#8794b0" stroke-width="1.6"/>
+            </g>
+            <circle cx="36" cy="560" r="13" fill="#2F6FD1"/><text x="36" y="565" font-family="Helvetica" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">JR</text>
+            <text x="60" y="558" font-family="Helvetica" font-size="12.5" fill="#DCE6F8" font-weight="600">Jordan Reyes</text>
+            <text x="60" y="574" font-family="Helvetica" font-size="11" fill="#8794b0">Owner</text>
+
+            <!-- top bar -->
+            <text x="224" y="52" font-family="Georgia,serif" font-size="22" fill="#fff">Schedule</text>
+            <text x="224" y="74" font-family="Helvetica" font-size="12.5" fill="#8794b0">Thursday, July 16 · KOSU</text>
+            <!-- METAR + zulu chips -->
+            <rect x="520" y="30" width="196" height="30" rx="8" fill="#111d34" stroke="rgba(255,255,255,.08)"/>
+            <circle cx="537" cy="45" r="4" fill="#56BE97"/><text x="549" y="49" font-family="ui-monospace,monospace" font-size="11" fill="#B9C4DB">KOSU 09010KT 10SM FEW250</text>
+            <rect x="726" y="30" width="86" height="30" rx="8" fill="#111d34" stroke="rgba(255,255,255,.08)"/>
+            <text x="742" y="49" font-family="ui-monospace,monospace" font-size="12" fill="#B9C4DB">14:32Z</text>
+            <rect x="822" y="30" width="150" height="30" rx="8" fill="url(#accentG)"/>
+            <text x="897" y="49" font-family="Helvetica" font-size="12.5" fill="#fff" font-weight="600" text-anchor="middle">+ New reservation</text>
+            <defs>
+              <linearGradient id="accentG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#79B0F5"/><stop offset="1" stop-color="#3D7AD4"/></linearGradient>
+            </defs>
+
+            <!-- board header (time axis) -->
+            <line x1="352" y1="96" x2="352" y2="576" stroke="rgba(255,255,255,.06)"/>
+            <g font-family="ui-monospace,monospace" font-size="11" fill="#6c789a">
+              <text x="372" y="112">8</text><text x="450" y="112">9</text><text x="528" y="112">10</text><text x="606" y="112">11</text><text x="684" y="112">12</text><text x="762" y="112">1</text><text x="840" y="112">2</text><text x="918" y="112">3</text>
+            </g>
+            <g stroke="rgba(255,255,255,.05)">
+              <line x1="440" y1="124" x2="440" y2="576"/><line x1="518" y1="124" x2="518" y2="576"/><line x1="596" y1="124" x2="596" y2="576"/><line x1="674" y1="124" x2="674" y2="576"/><line x1="752" y1="124" x2="752" y2="576"/><line x1="830" y1="124" x2="830" y2="576"/><line x1="908" y1="124" x2="908" y2="576"/>
+            </g>
+            <!-- now line -->
+            <line x1="700" y1="124" x2="700" y2="576" stroke="#E9B44C" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <circle cx="700" cy="124" r="3.5" fill="#E9B44C"/>
+
+            <!-- rows -->
+            <g font-family="Helvetica" font-size="13">
+              <!-- row labels -->
+              <text x="216" y="150" fill="#DCE6F8" font-weight="600">N172SP</text><text x="216" y="166" fill="#6c789a" font-size="10.5">Cessna 172</text>
+              <text x="216" y="212" fill="#DCE6F8" font-weight="600">N152AB</text><text x="216" y="228" fill="#6c789a" font-size="10.5">Cessna 152</text>
+              <text x="216" y="274" fill="#DCE6F8" font-weight="600">N28K</text><text x="216" y="290" fill="#6c789a" font-size="10.5">Piper Archer</text>
+              <text x="216" y="336" fill="#DCE6F8" font-weight="600">N66RG</text><text x="216" y="352" fill="#6c789a" font-size="10.5">Cirrus SR20</text>
+              <text x="216" y="398" fill="#DCE6F8" font-weight="600">Casey Reed</text><text x="216" y="414" fill="#6c789a" font-size="10.5">Instructor</text>
+            </g>
+            <g stroke="rgba(255,255,255,.05)">
+              <line x1="196" y1="180" x2="1000" y2="180"/><line x1="196" y1="242" x2="1000" y2="242"/><line x1="196" y1="304" x2="1000" y2="304"/><line x1="196" y1="366" x2="1000" y2="366"/><line x1="196" y1="428" x2="1000" y2="428"/>
+            </g>
+            <!-- reservation blocks -->
+            <g font-family="Helvetica" font-size="11.5" fill="#fff">
+              <rect x="360" y="134" width="150" height="34" rx="7" fill="#2F6FD1"/><text x="372" y="155">Dual · Rivera</text>
+              <rect x="360" y="196" width="112" height="34" rx="7" fill="#56BE97"/><text x="372" y="217">Solo · Kim</text>
+              <rect x="642" y="196" width="150" height="34" rx="7" fill="#2F6FD1" opacity=".55"/><text x="654" y="217" fill="#dbe6fa">Checkride prep</text>
+              <rect x="516" y="258" width="188" height="34" rx="7" fill="#E9B44C"/><text x="528" y="279" fill="#20170a">Stage check · Ross</text>
+              <!-- grounded row -->
+              <rect x="360" y="320" width="612" height="34" rx="7" fill="rgba(233,140,127,.14)" stroke="#E98C7F" stroke-dasharray="4 3"/>
+              <circle cx="382" cy="337" r="6" fill="#E98C7F"/><text x="398" y="341" fill="#E98C7F">Grounded · oil seep, work order WO-114 open</text>
+              <rect x="516" y="382" width="188" height="34" rx="7" fill="#2F6FD1"/><text x="528" y="403">Stage check · Ross</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAT STRIP ============ -->
+  <section class="stat-strip" style="padding:0" aria-label="At a glance">
+    <div class="wrap" style="padding:0">
+      <div class="stat-grid">
+        <div class="stat reveal"><div class="num"><em>5</em>-in-1</div><div class="lbl">Scheduling, maintenance, training, billing, and reporting under one login</div></div>
+        <div class="stat reveal" data-d="1"><div class="num">$<em>15</em></div><div class="lbl">The most it ever costs to collect a payment by bank transfer</div></div>
+        <div class="stat reveal" data-d="2"><div class="num">$<em>0</em></div><div class="lbl">Per aircraft, per instructor, per student, per seat. Ever.</div></div>
+        <div class="stat reveal" data-d="3"><div class="num"><em>∞</em></div><div class="lbl">Unlimited instructors, students, and staff on every plan</div></div>
       </div>
     </div>
   </section>
@@ -426,125 +640,280 @@ section{padding:96px 0}
   <!-- ============ STATEMENT ============ -->
   <section class="statement" aria-label="What AeroOps is">
     <div class="wrap">
-      <p>
-        <strong>Free scheduling, dispatch, maintenance, training records, and billing</strong>
-        for flight schools, flying clubs, and FBOs. No per-aircraft fee, no per-instructor
-        fee, no subscription. Unlimited instructors, students, and staff.
+      <p class="reveal">
+        <strong>Most scheduling tools stop at the calendar.</strong> AeroOps follows the aircraft
+        through the day it books, dispatches, maintains, trains on, and bills for. One system,
+        one source of truth, no spreadsheets in between.
       </p>
     </div>
   </section>
 
-  <!-- ============ CAPABILITIES ============ -->
-  <section id="product" aria-labelledby="product-title">
+  <!-- ============ PLATFORM / FEATURE HUBS ============ -->
+  <section id="platform" class="band-top" aria-labelledby="platform-title" style="padding-bottom:40px">
     <div class="wrap">
-      <div class="section-head">
-        <p class="eyebrow">The product</p>
-        <h2 id="product-title">Four jobs, one system.</h2>
-        <p>
-          Most scheduling tools stop at the calendar. AeroOps follows the aircraft through
-          the day it books, dispatches, and bills for.
-        </p>
+      <div class="section-head section-head--center">
+        <p class="eyebrow eyebrow--accent" style="justify-content:center">The platform</p>
+        <h2 id="platform-title">Five hubs. One aircraft, followed all the way through.</h2>
+        <p>Everything a flight school, club, or FBO runs on, matched feature for feature and built to hold its integrity as you grow.</p>
+      </div>
+    </div>
+
+    <div class="wrap hubs">
+
+      <!-- 1. SCHEDULING -->
+      <div class="hub reveal">
+        <div class="hub-copy">
+          <span class="hub-kicker"><span class="hub-no">I</span>Scheduling</span>
+          <h3>A schedule that refuses to double-book.</h3>
+          <p>Every reservation, recurring series, reschedule, and auto-scheduled slot passes through one conflict gate, so there is no way around it, from any device.</p>
+          <ul class="feat">
+            <li>Unlimited users book, manage, and view online and on mobile</li>
+            <li>Drag-and-drop dispatch board with automatic reminders</li>
+            <li>Self-dispatch and check-in, or centralize at the front desk</li>
+            <li>Booking policies you set: duration, advance limits, lead time, blackout windows</li>
+            <li>Live METAR, Zulu clock, and a civil-twilight day/night bar on every screen</li>
+          </ul>
+        </div>
+        <div class="hub-media">
+          <div class="device">
+            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/schedule/board</span></div>
+            <svg viewBox="0 0 640 400" role="img" aria-label="Dispatch board close-up: reservation blocks across a time axis with a live now-line.">
+              <rect width="640" height="400" fill="#0b1220"/>
+              <text x="28" y="42" font-family="Georgia,serif" font-size="19" fill="#fff">Dispatch board</text>
+              <rect x="470" y="26" width="146" height="28" rx="8" fill="url(#accentG2)"/><text x="543" y="44" font-family="Helvetica" font-size="12" fill="#fff" font-weight="600" text-anchor="middle">+ Check out</text>
+              <defs><linearGradient id="accentG2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#79B0F5"/><stop offset="1" stop-color="#3D7AD4"/></linearGradient></defs>
+              <g font-family="ui-monospace,monospace" font-size="10.5" fill="#6c789a"><text x="150" y="82">9</text><text x="248" y="82">10</text><text x="346" y="82">11</text><text x="444" y="82">12</text><text x="542" y="82">1</text></g>
+              <g stroke="rgba(255,255,255,.05)"><line x1="140" y1="92" x2="140" y2="372"/><line x1="238" y1="92" x2="238" y2="372"/><line x1="336" y1="92" x2="336" y2="372"/><line x1="434" y1="92" x2="434" y2="372"/><line x1="532" y1="92" x2="532" y2="372"/></g>
+              <line x1="400" y1="92" x2="400" y2="372" stroke="#E9B44C" stroke-width="1.5" stroke-dasharray="3 3"/>
+              <g font-family="Helvetica" font-size="12" fill="#DCE6F8" font-weight="600"><text x="24" y="126">N172SP</text><text x="24" y="188">N152AB</text><text x="24" y="250">N28K</text><text x="24" y="312">N66RG</text></g>
+              <g stroke="rgba(255,255,255,.05)"><line x1="20" y1="140" x2="620" y2="140"/><line x1="20" y1="202" x2="620" y2="202"/><line x1="20" y1="264" x2="620" y2="264"/><line x1="20" y1="326" x2="620" y2="326"/></g>
+              <g font-family="Helvetica" font-size="11" fill="#fff">
+                <rect x="140" y="106" width="150" height="30" rx="6" fill="#2F6FD1"/><text x="150" y="125">Dual · Rivera</text>
+                <rect x="140" y="168" width="110" height="30" rx="6" fill="#56BE97"/><text x="150" y="187">Solo · Kim</text>
+                <rect x="336" y="230" width="150" height="30" rx="6" fill="#E9B44C"/><text x="346" y="249" fill="#20170a">Stage check</text>
+                <rect x="140" y="292" width="440" height="30" rx="6" fill="rgba(233,140,127,.14)" stroke="#E98C7F" stroke-dasharray="4 3"/><text x="152" y="311" fill="#E98C7F">Grounded · cannot dispatch</text>
+              </g>
+              <!-- conflict toast -->
+              <rect x="300" y="150" width="196" height="40" rx="9" fill="#161f34" stroke="#E98C7F"/><circle cx="322" cy="170" r="8" fill="none" stroke="#E98C7F" stroke-width="1.6"/><path d="M322 166 v5 M322 174 v.4" stroke="#E98C7F" stroke-width="1.6" stroke-linecap="round"/><text x="340" y="167" font-family="Helvetica" font-size="10.5" fill="#E98C7F">Conflict: overlaps 9:00 dual.</text><text x="340" y="181" font-family="Helvetica" font-size="10.5" fill="#8794b0">Reservation refused.</text>
+            </svg>
+          </div>
+        </div>
       </div>
 
-      <ol class="cap-list">
-        <li class="cap">
-          <div class="cap-mark">
-            <span class="roman" aria-hidden="true">I</span>
-            <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="2.5" y="4" width="21" height="19" rx="1.5"/>
-              <line x1="2.5" y1="9.5" x2="23.5" y2="9.5"/>
-              <line x1="7.5" y1="1.5" x2="7.5" y2="6.5"/>
-              <line x1="18.5" y1="1.5" x2="18.5" y2="6.5"/>
-              <line x1="7" y1="14" x2="10.5" y2="14"/>
-              <line x1="14" y1="14" x2="17.5" y2="14"/>
-              <line x1="7" y1="18.5" x2="10.5" y2="18.5"/>
+      <!-- 2. BILLING -->
+      <div class="hub hub--rev reveal">
+        <div class="hub-copy">
+          <span class="hub-kicker"><span class="hub-no">II</span>Billing &amp; payments</span>
+          <h3>From Hobbs reading to paid, without a spreadsheet.</h3>
+          <p>The meters your dispatch tickets already capture pre-fill a draft invoice, calculated to the exact cent, for a person to review and finalize before anything goes out.</p>
+          <ul class="feat">
+            <li>Paperless statements and invoices, emailed to members</li>
+            <li>Ring up and take a payment straight from a reservation</li>
+            <li>Rate schedules per aircraft, wet or dry, plus instructor and member rates</li>
+            <li>Recurring dues, tuition, and memberships that bill themselves on any cadence</li>
+            <li>Clean line-item export to QuickBooks Online</li>
+            <li>Bank transfers cost 1%, capped at $15; cards at processor cost, no markup</li>
+          </ul>
+        </div>
+        <div class="hub-media">
+          <div class="device">
+            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/billing/inv-2048</span></div>
+            <svg viewBox="0 0 640 400" role="img" aria-label="An invoice pre-filled from a dispatch ticket, with a monthly collections chart and a QuickBooks export tag.">
+              <rect width="640" height="400" fill="#0b1220"/>
+              <!-- invoice card -->
+              <rect x="28" y="28" width="330" height="344" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+              <text x="50" y="62" font-family="Georgia,serif" font-size="17" fill="#fff">Invoice 2048</text>
+              <rect x="286" y="46" width="52" height="22" rx="11" fill="rgba(86,190,151,.18)"/><text x="312" y="61" font-family="Helvetica" font-size="10.5" fill="#56BE97" text-anchor="middle" font-weight="700">PAID</text>
+              <text x="50" y="84" font-family="Helvetica" font-size="11.5" fill="#8794b0">Alex Rivera · N172SP · Jul 16</text>
+              <line x1="50" y1="98" x2="336" y2="98" stroke="rgba(255,255,255,.08)"/>
+              <g font-family="Helvetica" font-size="12">
+                <text x="50" y="126" fill="#C6CFE1">Aircraft rental · 1.4 h wet</text><text x="336" y="126" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$203.00</text>
+                <text x="50" y="154" fill="#C6CFE1">Instruction · 1.4 h</text><text x="336" y="154" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$84.00</text>
+                <text x="50" y="182" fill="#C6CFE1">Landing fees</text><text x="336" y="182" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$12.00</text>
+              </g>
+              <line x1="50" y1="200" x2="336" y2="200" stroke="rgba(255,255,255,.08)"/>
+              <text x="50" y="228" font-family="Helvetica" font-size="13" fill="#fff" font-weight="700">Total</text><text x="336" y="228" font-family="ui-monospace,monospace" font-size="14" fill="#fff" text-anchor="end" font-weight="700">$299.00</text>
+              <rect x="50" y="248" width="286" height="30" rx="7" fill="#0e1729"/><text x="64" y="268" font-family="Helvetica" font-size="11" fill="#8794b0">Bank transfer fee (1%, capped $15)</text><text x="322" y="268" font-family="ui-monospace,monospace" font-size="11" fill="#56BE97" text-anchor="end">$2.99</text>
+              <rect x="50" y="300" width="150" height="26" rx="6" fill="#0e1729" stroke="rgba(255,255,255,.09)"/><path d="M64 313 h5 v-6 h5 v6 h5 v-10 h5 v10 h5" fill="none" stroke="#56BE97" stroke-width="1.6"/><text x="112" y="317" font-family="Helvetica" font-size="10.5" fill="#C6CFE1">QBO export ✓</text>
+              <text x="50" y="352" font-family="Helvetica" font-size="10.5" fill="#6c789a">Pre-filled from dispatch ticket DT-771</text>
+              <!-- collections chart -->
+              <rect x="378" y="28" width="234" height="180" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+              <text x="398" y="58" font-family="Helvetica" font-size="12.5" fill="#C6CFE1" font-weight="600">Collected this month</text>
+              <text x="398" y="84" font-family="Georgia,serif" font-size="22" fill="#fff">$41,280</text>
+              <g fill="#2F6FD1"><rect x="398" y="150" width="20" height="34" rx="3"/><rect x="428" y="138" width="20" height="46" rx="3"/><rect x="458" y="120" width="20" height="64" rx="3"/><rect x="488" y="128" width="20" height="56" rx="3"/><rect x="518" y="104" width="20" height="80" rx="3"/><rect x="548" y="92" width="20" height="92" rx="3" fill="#56BE97"/></g>
+              <!-- autopay card -->
+              <rect x="378" y="224" width="234" height="148" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+              <text x="398" y="252" font-family="Helvetica" font-size="12.5" fill="#C6CFE1" font-weight="600">Recurring · auto-pay</text>
+              <g font-family="Helvetica" font-size="11.5">
+                <text x="398" y="282" fill="#DCE6F8">Club dues · monthly</text><text x="592" y="282" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$130.00</text>
+                <text x="398" y="308" fill="#DCE6F8">Annual membership</text><text x="592" y="308" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$600.00</text>
+                <text x="398" y="334" fill="#DCE6F8">Flight tuition · monthly</text><text x="592" y="334" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$450.00</text>
+              </g>
+              <rect x="398" y="348" width="120" height="14" rx="7" fill="#0e1729"/><rect x="398" y="348" width="86" height="14" rx="7" fill="#56BE97"/><text x="524" y="359" font-family="Helvetica" font-size="10" fill="#8794b0">bills itself</text>
             </svg>
           </div>
-          <div>
-            <h3>A schedule that refuses to double-book.</h3>
-            <p>
-              Every reservation, recurring series, reschedule, and auto-scheduled slot passes
-              through one conflict gate, so there is no way around it.
-            </p>
-            <ul class="cap-points">
-              <li>Month calendar, day board, and list views &mdash; with a live METAR, Zulu clock, and sunrise/sunset bar on every screen</li>
-              <li>Booking policies you define: maximum duration, advance limits, lead time, blackout windows</li>
-              <li>A drag-and-drop dispatch board with a pre-flight confirm checklist and write-once Hobbs and tach entries</li>
-              <li>Civil-twilight aware, flagged or blocked under rules your operation sets</li>
-            </ul>
-          </div>
-        </li>
+        </div>
+      </div>
 
-        <li class="cap">
-          <div class="cap-mark">
-            <span class="roman" aria-hidden="true">II</span>
-            <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M17.2 3.8a3.6 3.6 0 0 0-4.9 4l-8 8 3 3 8-8a3.6 3.6 0 0 0 4-4.9l-2.7 2.7-2-2z" stroke-linejoin="round"/>
-              <line x1="5.5" y1="17.3" x2="3.2" y2="19.6"/>
+      <!-- 3. TRAINING -->
+      <div class="hub reveal">
+        <div class="hub-copy">
+          <span class="hub-kicker"><span class="hub-no">III</span>Training</span>
+          <h3>Training records that hold their integrity as you grow.</h3>
+          <p>Build your own courses and ordered lessons, enroll members, and let instructors write lesson records that lock the moment they are entered.</p>
+          <ul class="feat">
+            <li>Unlimited courses and enrollments</li>
+            <li>Load your own syllabus, lesson by lesson</li>
+            <li>Part 141 and Part 61 recordkeeping structure</li>
+            <li>Course overview, lesson prep, and a record for every student</li>
+            <li>Write-once lesson records; corrections append, never overwrite</li>
+            <li>Progress drawn from actual lesson coverage, at a glance</li>
+          </ul>
+        </div>
+        <div class="hub-media">
+          <div class="device">
+            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/training/private-pilot</span></div>
+            <svg viewBox="0 0 640 400" role="img" aria-label="A Private Pilot course with ordered lessons, a two-of-five progress ring, and per-student records.">
+              <rect width="640" height="400" fill="#0b1220"/>
+              <text x="28" y="46" font-family="Georgia,serif" font-size="18" fill="#fff">Private Pilot · Part 61</text>
+              <text x="28" y="68" font-family="Helvetica" font-size="12" fill="#8794b0">Sam Ross · enrolled Apr 2</text>
+              <!-- progress ring -->
+              <g transform="translate(548,74)">
+                <circle r="46" fill="none" stroke="#1a2743" stroke-width="10"/>
+                <circle r="46" fill="none" stroke="#56BE97" stroke-width="10" stroke-linecap="round" stroke-dasharray="115 289" transform="rotate(-90)"/>
+                <text y="-2" font-family="Georgia,serif" font-size="22" fill="#fff" text-anchor="middle">2/5</text>
+                <text y="18" font-family="Helvetica" font-size="10" fill="#8794b0" text-anchor="middle">lessons</text>
+              </g>
+              <!-- lesson list -->
+              <g font-family="Helvetica" font-size="12.5">
+                <rect x="28" y="96" width="380" height="44" rx="9" fill="#111d34"/><circle cx="52" cy="118" r="10" fill="#56BE97"/><path d="M47 118 l4 4 6-7" fill="none" stroke="#0b1220" stroke-width="2" stroke-linecap="round"/><text x="74" y="115" fill="#fff">1 · Preflight &amp; taxi</text><text x="74" y="131" fill="#6c789a" font-size="10.5">Recorded by C. Reed · Apr 9</text>
+                <rect x="28" y="150" width="380" height="44" rx="9" fill="#111d34"/><circle cx="52" cy="172" r="10" fill="#56BE97"/><path d="M47 172 l4 4 6-7" fill="none" stroke="#0b1220" stroke-width="2" stroke-linecap="round"/><text x="74" y="169" fill="#fff">2 · Slow flight &amp; stalls</text><text x="74" y="185" fill="#6c789a" font-size="10.5">Recorded by C. Reed · Apr 23</text>
+                <rect x="28" y="204" width="380" height="44" rx="9" fill="#0e1729" stroke="rgba(255,255,255,.06)"/><circle cx="52" cy="226" r="10" fill="none" stroke="#6c789a" stroke-width="1.6"/><text x="74" y="223" fill="#C6CFE1">3 · Ground reference</text><text x="74" y="239" fill="#6c789a" font-size="10.5">Next up</text>
+                <rect x="28" y="258" width="380" height="44" rx="9" fill="#0e1729" stroke="rgba(255,255,255,.06)"/><circle cx="52" cy="280" r="10" fill="none" stroke="#6c789a" stroke-width="1.6"/><text x="74" y="277" fill="#C6CFE1">4 · Takeoffs &amp; landings</text>
+                <rect x="28" y="312" width="380" height="44" rx="9" fill="#0e1729" stroke="rgba(255,255,255,.06)"/><circle cx="52" cy="334" r="10" fill="none" stroke="#6c789a" stroke-width="1.6"/><text x="74" y="331" fill="#C6CFE1">5 · Solo prep &amp; stage check</text>
+              </g>
+              <!-- record panel -->
+              <rect x="424" y="140" width="188" height="216" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+              <text x="444" y="168" font-family="Helvetica" font-size="12" fill="#C6CFE1" font-weight="600">Lesson 2 record</text>
+              <text x="444" y="196" font-family="Helvetica" font-size="10.5" fill="#8794b0">Instructor note</text>
+              <rect x="444" y="204" width="148" height="8" rx="4" fill="#1a2743"/><rect x="444" y="218" width="120" height="8" rx="4" fill="#1a2743"/><rect x="444" y="232" width="140" height="8" rx="4" fill="#1a2743"/>
+              <rect x="444" y="256" width="70" height="22" rx="6" fill="rgba(86,190,151,.16)"/><text x="479" y="271" font-family="Helvetica" font-size="10" fill="#56BE97" text-anchor="middle" font-weight="700">Locked</text>
+              <text x="444" y="304" font-family="Helvetica" font-size="10" fill="#6c789a">Write-once. Corrections append</text><text x="444" y="318" font-family="Helvetica" font-size="10" fill="#6c789a">as a new entry, never edited.</text>
             </svg>
           </div>
-          <div>
-            <h3>Maintenance that actually grounds aircraft.</h3>
-            <p>
-              When your team grounds an aircraft, nobody can dispatch it until the work order
-              that grounded it is closed.
-            </p>
-            <ul class="cap-points">
-              <li>Squawks tracked from report to resolution, severity your team assigns</li>
-              <li>A hard dispatch gate: grounded means grounded until the work is done</li>
-              <li>Work orders with return to service, and write-once sign-offs that are never silently edited</li>
-            </ul>
-          </div>
-        </li>
+        </div>
+      </div>
 
-        <li class="cap">
-          <div class="cap-mark">
-            <span class="roman" aria-hidden="true">III</span>
-            <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
-              <path d="M13 3 L24 8.5 L13 14 L2 8.5 Z"/>
-              <path d="M7 11 v6 c0 1.7 2.7 3 6 3 s6-1.3 6-3 v-6" stroke-linecap="round"/>
-              <line x1="24" y1="8.5" x2="24" y2="16" stroke-linecap="round"/>
+      <!-- 4. MAINTENANCE -->
+      <div class="hub hub--rev reveal">
+        <div class="hub-copy">
+          <span class="hub-kicker"><span class="hub-no">IV</span>Maintenance</span>
+          <h3>Maintenance that actually grounds aircraft.</h3>
+          <p>When your team grounds an aircraft, nobody can dispatch it until the work order that grounded it is closed. Not a warning. A hard gate.</p>
+          <ul class="feat">
+            <li>Real-time aircraft usage from the meters dispatch already records</li>
+            <li>Digital work orders, items, and logs</li>
+            <li>Squawks tracked from report to resolution, at the severity your team sets</li>
+            <li>Integrated with aircraft, reservations, reminders, and squawks</li>
+            <li>Full audit and change tracking; write-once sign-offs, never silently edited</li>
+          </ul>
+        </div>
+        <div class="hub-media">
+          <div class="device">
+            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/fleet/n66rg</span></div>
+            <svg viewBox="0 0 640 400" role="img" aria-label="An aircraft detail page showing a grounded badge, an open work order, and tracked squawks.">
+              <rect width="640" height="400" fill="#0b1220"/>
+              <text x="28" y="48" font-family="Georgia,serif" font-size="19" fill="#fff">N66RG</text>
+              <text x="96" y="48" font-family="Helvetica" font-size="12.5" fill="#8794b0">Cirrus SR20 · 2019</text>
+              <rect x="470" y="30" width="142" height="28" rx="14" fill="rgba(233,140,127,.16)" stroke="#E98C7F"/><circle cx="492" cy="44" r="5" fill="#E98C7F"/><text x="506" y="48" font-family="Helvetica" font-size="12" fill="#E98C7F" font-weight="700">GROUNDED</text>
+              <!-- work order -->
+              <rect x="28" y="76" width="360" height="150" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+              <text x="48" y="106" font-family="Helvetica" font-size="13" fill="#fff" font-weight="700">Work order WO-114</text>
+              <rect x="300" y="88" width="72" height="22" rx="11" fill="rgba(233,180,76,.18)"/><text x="336" y="103" font-family="Helvetica" font-size="10" fill="#E9B44C" text-anchor="middle" font-weight="700">OPEN</text>
+              <text x="48" y="130" font-family="Helvetica" font-size="11.5" fill="#C6CFE1">Oil seep at #3 cylinder base</text>
+              <g font-family="Helvetica" font-size="11" fill="#8794b0">
+                <text x="48" y="156">Opened</text><text x="368" y="156" text-anchor="end" fill="#C6CFE1">Jul 14 · C. Reed</text>
+                <text x="48" y="178">Item</text><text x="368" y="178" text-anchor="end" fill="#C6CFE1">Reseal, torque, run-up</text>
+                <text x="48" y="200">Return to service</text><text x="368" y="200" text-anchor="end" fill="#E98C7F">Blocks dispatch until closed</text>
+              </g>
+              <!-- usage -->
+              <rect x="404" y="76" width="208" height="150" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+              <text x="424" y="104" font-family="Helvetica" font-size="12" fill="#C6CFE1" font-weight="600">Usage since overhaul</text>
+              <text x="424" y="136" font-family="Georgia,serif" font-size="24" fill="#fff">1,204.6</text><text x="512" y="136" font-family="Helvetica" font-size="11" fill="#8794b0">Hobbs h</text>
+              <rect x="424" y="156" width="168" height="10" rx="5" fill="#1a2743"/><rect x="424" y="156" width="120" height="10" rx="5" fill="#6AA6F0"/>
+              <text x="424" y="188" font-family="Helvetica" font-size="10.5" fill="#8794b0">100-hr inspection in 19.4 h</text>
+              <text x="424" y="208" font-family="Helvetica" font-size="10.5" fill="#8794b0">Last tach sync · Jul 12</text>
+              <!-- squawks -->
+              <rect x="28" y="242" width="584" height="130" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+              <text x="48" y="270" font-family="Helvetica" font-size="12.5" fill="#C6CFE1" font-weight="600">Squawks</text>
+              <g font-family="Helvetica" font-size="11.5">
+                <circle cx="54" cy="296" r="5" fill="#E98C7F"/><text x="70" y="300" fill="#fff">Oil seep, #3 cylinder</text><text x="592" y="300" text-anchor="end" fill="#E9B44C">Grounding</text>
+                <circle cx="54" cy="322" r="5" fill="#E9B44C"/><text x="70" y="326" fill="#fff">Nav light intermittent</text><text x="592" y="326" text-anchor="end" fill="#8794b0">Open · minor</text>
+                <circle cx="54" cy="348" r="5" fill="#56BE97"/><text x="70" y="352" fill="#C6CFE1">Right brake soft · resolved Jul 8</text><text x="592" y="352" text-anchor="end" fill="#56BE97">Closed</text>
+              </g>
             </svg>
           </div>
-          <div>
-            <h3>Training records that hold their integrity as you grow.</h3>
-            <p>
-              Build your own courses and ordered lessons, enroll members, and let instructors
-              write lesson records that lock the moment they are entered.
-            </p>
-            <ul class="cap-points">
-              <li>Operator-defined courses and ordered lessons, your syllabus and your structure</li>
-              <li>Write-once lesson records; corrections append as new entries, never overwrite</li>
-              <li>Progress at a glance, drawn from actual lesson coverage</li>
-            </ul>
-          </div>
-        </li>
+        </div>
+      </div>
+    </div>
 
-        <li class="cap">
-          <div class="cap-mark">
-            <span class="roman" aria-hidden="true">IV</span>
-            <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">
-              <path d="M6 2.5 h14 v20 l-2.5-1.8 -2.5 1.8 -2.5-1.8 -2.5 1.8 -2.5-1.8 -2.5 1.8 z"/>
-              <line x1="9" y1="8" x2="17" y2="8"/>
-              <line x1="9" y1="12" x2="17" y2="12"/>
-              <line x1="9" y1="16" x2="14" y2="16"/>
-            </svg>
-          </div>
-          <div>
-            <h3>From Hobbs to invoice without a spreadsheet.</h3>
-            <p>
-              The meters your dispatch tickets already capture pre-fill a draft invoice,
-              calculated in exact cents, for a person to review and finalize before anything
-              goes out.
-            </p>
-            <ul class="cap-points">
-              <li>Rate schedules per aircraft, wet or dry, plus instructor time</li>
-              <li>Bank transfer payments cost 1%, capped at $15 per transaction; cards are accepted at processor cost</li>
-              <li>Clean line-item export to QuickBooks Online</li>
+    <!-- 5. REPORTING (dark band) -->
+    <div class="hub-dark">
+      <div class="wrap hubs" style="padding-top:0">
+        <div class="hub reveal" style="padding:84px 0">
+          <div class="hub-copy">
+            <span class="hub-kicker"><span class="hub-no">V</span>Reporting hub</span>
+            <h3>See the whole operation at a glance.</h3>
+            <p>An ops console that answers "how are we doing right now?" and "how did the last thirty days go?" on one screen, then lets you slice the detail underneath.</p>
+            <ul class="feat">
+              <li>An as-of-now snapshot beside last-N-days KPIs</li>
+              <li>Flights, hours, and utilization per tail</li>
+              <li>Custom analysis grids with saved filters</li>
+              <li>Visual dashboards and charts you can read at a glance</li>
+              <li>Grounded aircraft, open squawks, and today's flights, live</li>
             </ul>
           </div>
-        </li>
-      </ol>
+          <div class="hub-media">
+            <div class="device">
+              <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/reporting</span></div>
+              <svg viewBox="0 0 640 400" role="img" aria-label="The reporting dashboard: KPI cards, a flights-by-day bar chart, a fleet utilization donut, and a per-tail table.">
+                <rect width="640" height="400" fill="#0b1220"/>
+                <text x="28" y="44" font-family="Georgia,serif" font-size="18" fill="#fff">Operations dashboard</text>
+                <text x="28" y="64" font-family="Helvetica" font-size="11.5" fill="#8794b0">Last 30 days</text>
+                <!-- KPI cards -->
+                <g>
+                  <rect x="28" y="80" width="138" height="78" rx="11" fill="#111d34" stroke="rgba(255,255,255,.07)"/><text x="44" y="106" font-family="Helvetica" font-size="10.5" fill="#8794b0">FLIGHTS</text><text x="44" y="136" font-family="Georgia,serif" font-size="24" fill="#fff">312</text><text x="120" y="136" font-family="Helvetica" font-size="10.5" fill="#56BE97">▲ 8%</text>
+                  <rect x="176" y="80" width="138" height="78" rx="11" fill="#111d34" stroke="rgba(255,255,255,.07)"/><text x="192" y="106" font-family="Helvetica" font-size="10.5" fill="#8794b0">HOURS</text><text x="192" y="136" font-family="Georgia,serif" font-size="24" fill="#fff">418.7</text><text x="268" y="136" font-family="Helvetica" font-size="10.5" fill="#56BE97">▲ 5%</text>
+                  <rect x="324" y="80" width="138" height="78" rx="11" fill="#111d34" stroke="rgba(255,255,255,.07)"/><text x="340" y="106" font-family="Helvetica" font-size="10.5" fill="#8794b0">GROUNDED</text><text x="340" y="136" font-family="Georgia,serif" font-size="24" fill="#E98C7F">1</text>
+                  <rect x="472" y="80" width="140" height="78" rx="11" fill="#111d34" stroke="rgba(255,255,255,.07)"/><text x="488" y="106" font-family="Helvetica" font-size="10.5" fill="#8794b0">OPEN SQUAWKS</text><text x="488" y="136" font-family="Georgia,serif" font-size="24" fill="#E9B44C">3</text>
+                </g>
+                <!-- bar chart -->
+                <rect x="28" y="172" width="380" height="200" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+                <text x="48" y="198" font-family="Helvetica" font-size="12" fill="#C6CFE1" font-weight="600">Flights by day</text>
+                <g stroke="rgba(255,255,255,.05)"><line x1="48" y1="230" x2="388" y2="230"/><line x1="48" y1="280" x2="388" y2="280"/><line x1="48" y1="330" x2="388" y2="330"/></g>
+                <g fill="#2F6FD1">
+                  <rect x="60" y="292" width="20" height="48" rx="3"/><rect x="98" y="270" width="20" height="70" rx="3"/><rect x="136" y="250" width="20" height="90" rx="3"/><rect x="174" y="284" width="20" height="56" rx="3"/><rect x="212" y="238" width="20" height="102" rx="3"/><rect x="250" y="262" width="20" height="78" rx="3"/><rect x="288" y="224" width="20" height="116" rx="3" fill="#56BE97"/><rect x="326" y="256" width="20" height="84" rx="3"/><rect x="364" y="276" width="20" height="64" rx="3"/>
+                </g>
+                <g font-family="ui-monospace,monospace" font-size="9" fill="#6c789a"><text x="64" y="356">M</text><text x="102" y="356">T</text><text x="140" y="356">W</text><text x="178" y="356">T</text><text x="216" y="356">F</text><text x="254" y="356">S</text><text x="292" y="356">S</text><text x="330" y="356">M</text><text x="368" y="356">T</text></g>
+                <!-- donut + table -->
+                <rect x="420" y="172" width="192" height="200" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
+                <text x="440" y="198" font-family="Helvetica" font-size="12" fill="#C6CFE1" font-weight="600">Fleet utilization</text>
+                <g transform="translate(478,256)">
+                  <circle r="34" fill="none" stroke="#1a2743" stroke-width="12"/>
+                  <circle r="34" fill="none" stroke="#6AA6F0" stroke-width="12" stroke-dasharray="150 64" transform="rotate(-90)"/>
+                  <text y="4" font-family="Georgia,serif" font-size="17" fill="#fff" text-anchor="middle">70%</text>
+                </g>
+                <g font-family="Helvetica" font-size="11">
+                  <rect x="536" y="222" width="9" height="9" rx="2" fill="#6AA6F0"/><text x="551" y="231" fill="#C6CFE1">Booked</text>
+                  <rect x="536" y="244" width="9" height="9" rx="2" fill="#1a2743"/><text x="551" y="253" fill="#8794b0">Idle</text>
+                  <text x="440" y="316" fill="#8794b0" font-size="10.5">N172SP</text><rect x="440" y="322" width="152" height="7" rx="3.5" fill="#1a2743"/><rect x="440" y="322" width="128" height="7" rx="3.5" fill="#6AA6F0"/>
+                  <text x="440" y="346" fill="#8794b0" font-size="10.5">N28K</text><rect x="440" y="352" width="152" height="7" rx="3.5" fill="#1a2743"/><rect x="440" y="352" width="92" height="7" rx="3.5" fill="#56BE97"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -557,11 +926,11 @@ section{padding:96px 0}
   <!-- ============ PRICING ============ -->
   <section class="band-top" id="pricing" aria-labelledby="pricing-title">
     <div class="wrap">
-      <div class="pricing-head">
-        <p class="eyebrow">Pricing</p>
+      <div class="pricing-head reveal">
+        <p class="eyebrow eyebrow--accent">Pricing</p>
         <h2 id="pricing-title">Free.</h2>
         <p>
-          Scheduling, dispatch, maintenance, training records, billing, a public booking page,
+          Scheduling, dispatch, maintenance, training records, billing, reporting, a public booking page,
           and a member portal: no subscription, no per-aircraft fee, no per-seat fee. If you
           collect payments through AeroOps, bank transfers are the default rail at 1%, capped at
           $15 per transaction, so a $5,000 block purchase costs $15 to collect, never $50 or $125.
@@ -572,18 +941,18 @@ section{padding:96px 0}
       </div>
 
       <div class="tiers">
-        <div class="tier">
+        <div class="tier reveal">
           <span class="cap-caption">Free</span>
           <p class="tier-who">Flying clubs &amp; small schools</p>
           <p class="tier-price">$0<span class="tier-sub">Not a trial. Free for good.</span></p>
           <ul>
-            <li>Scheduling, dispatch, maintenance, training, and billing in one system</li>
+            <li>Scheduling, dispatch, maintenance, training, billing, and reporting in one system</li>
             <li>Up to 5 aircraft, with unlimited instructors, students, and staff</li>
             <li>Public booking page and member portal included</li>
             <li>Bank payments cost 1%, capped at $15, only when you collect one</li>
           </ul>
         </div>
-        <div class="tier tier--pro">
+        <div class="tier tier--pro reveal" data-d="1">
           <span class="cap-caption">Pro</span>
           <p class="tier-who">Larger schools &amp; academies</p>
           <p class="tier-price">One flat annual price<span class="tier-sub">Never per aircraft.</span></p>
@@ -593,40 +962,40 @@ section{padding:96px 0}
             <li>One price, no matter how large your fleet grows</li>
             <li><strong>Waived entirely while you run payments through AeroOps</strong></li>
           </ul>
-          <a class="btn btn-line" href="mailto:jredmon07@icloud.com?subject=AeroOps%20Pro" style="margin-top:18px">Get in touch</a>
+          <a class="btn btn-solid-inv" href="mailto:jredmon07@icloud.com?subject=AeroOps%20Pro" style="margin-top:18px">Get in touch</a>
         </div>
       </div>
 
       <!-- ── Savings calculator ── -->
-      <div id="savings-calc" style="margin:56px auto 8px;max-width:860px;border:1px solid rgba(12,19,34,.14);border-radius:10px;padding:32px 34px;background:#fff">
-        <p class="eyebrow">What you'd save</p>
-        <h3 style="margin:.25em 0 .35em;font-size:1.45rem">Run your own numbers.</h3>
+      <div id="savings-calc" class="calc reveal">
+        <p class="eyebrow eyebrow--accent">What you'd save</p>
+        <h3>Run your own numbers.</h3>
         <p style="margin:0 0 26px;font-size:.95rem;opacity:.8">Drag the sliders. Figures use published pricing of leading alternatives, verified July 2026; sources and assumptions below.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px 40px">
           <label style="display:block;font-size:.85rem;font-weight:600">
             Aircraft in your fleet: <span id="sc-tails-out" style="font-variant-numeric:tabular-nums">3</span>
-            <input id="sc-tails" type="range" min="1" max="20" value="3" style="width:100%;margin-top:8px;accent-color:#0C1322">
+            <input id="sc-tails" class="calc-range" type="range" min="1" max="20" value="3">
           </label>
           <label style="display:block;font-size:.85rem;font-weight:600">
             Collected per month: $<span id="sc-vol-out" style="font-variant-numeric:tabular-nums">8,000</span>
-            <input id="sc-vol" type="range" min="2000" max="150000" step="1000" value="8000" style="width:100%;margin-top:8px;accent-color:#0C1322">
+            <input id="sc-vol" class="calc-range" type="range" min="2000" max="150000" step="1000" value="8000">
           </label>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px;text-align:center">
-          <div style="border:1px solid rgba(12,19,34,.12);border-radius:8px;padding:18px 10px">
-            <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.65">AeroOps</div>
-            <div id="sc-aero" style="font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px">$&ndash;</div>
-            <div style="font-size:.72rem;opacity:.6">per year, all-in</div>
+        <div class="calc-out">
+          <div class="calc-cell calc-cell--hero">
+            <div class="k">AeroOps</div>
+            <div class="v" id="sc-aero">$&ndash;</div>
+            <div class="u">per year, all-in</div>
           </div>
-          <div style="border:1px solid rgba(12,19,34,.12);border-radius:8px;padding:18px 10px">
-            <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.65">Typical per-aircraft platform + card processing</div>
-            <div id="sc-fc" style="font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px">$&ndash;</div>
-            <div style="font-size:.72rem;opacity:.6">per year, all-in</div>
+          <div class="calc-cell">
+            <div class="k">Typical per-aircraft platform + card processing</div>
+            <div class="v" id="sc-fc">$&ndash;</div>
+            <div class="u">per year, all-in</div>
           </div>
-          <div style="border:1px solid rgba(12,19,34,.12);border-radius:8px;padding:18px 10px">
-            <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.65">Typical subscription platform + 1% ACH capped at $100</div>
-            <div id="sc-fsp" style="font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px">$&ndash;</div>
-            <div style="font-size:.72rem;opacity:.6">per year, all-in (est.)</div>
+          <div class="calc-cell">
+            <div class="k">Typical subscription platform + 1% ACH capped at $100</div>
+            <div class="v" id="sc-fsp">$&ndash;</div>
+            <div class="u">per year, all-in (est.)</div>
           </div>
         </div>
         <p id="sc-verdict" style="margin:26px 0 4px;text-align:center;font-size:1.05rem;font-weight:600"></p>
@@ -717,8 +1086,8 @@ section{padding:96px 0}
   <!-- ============ DEMO ============ -->
   <section class="on-navy" id="demo" aria-labelledby="demo-title" style="background:var(--navy);color:var(--text-inv-soft)">
     <div class="wrap demo-inner">
-      <div class="section-head" style="margin-bottom:0">
-        <p class="eyebrow">Live demo</p>
+      <div class="section-head reveal" style="margin-bottom:0">
+        <p class="eyebrow eyebrow--accent">Live demo</p>
         <h2 id="demo-title" style="color:var(--white)">Fly the demo before you talk to anyone.</h2>
         <p style="color:var(--text-inv-soft)">
           The full product runs at
@@ -731,7 +1100,7 @@ section{padding:96px 0}
           <a class="btn btn-line-inv" href="https://aeroops-web.vercel.app/o/alpha/login">View the live demo</a>
         </p>
       </div>
-      <div class="cred">
+      <div class="cred reveal" data-d="1">
         <dl>
           <dt>URL</dt><dd><a href="https://aeroops-web.vercel.app/o/alpha/login">aeroops-web.vercel.app/o/alpha</a></dd>
           <dt>EMAIL</dt><dd>owner@alpha.aero</dd>
@@ -750,8 +1119,8 @@ section{padding:96px 0}
   <!-- ============ MIGRATING FROM myFBO ============ -->
   <section id="myfbo" aria-labelledby="myfbo-title">
     <div class="wrap">
-      <div class="section-head">
-        <p class="eyebrow">Switching systems</p>
+      <div class="section-head reveal">
+        <p class="eyebrow eyebrow--accent">Switching systems</p>
         <h2 id="myfbo-title">Migrating from myFBO?</h2>
         <p>
           myFBO retires in August 2026, so its flight schools and clubs are choosing a
@@ -760,7 +1129,7 @@ section{padding:96px 0}
           nothing is created until you confirm. The software itself is free.
         </p>
       </div>
-      <ul style="list-style:none;margin:0 0 32px;padding:0;max-width:60ch;display:grid;gap:14px">
+      <ul class="reveal" style="list-style:none;margin:0 0 32px;padding:0;max-width:60ch;display:grid;gap:14px">
         <li style="padding-left:1.4em;position:relative">
           <span aria-hidden="true" style="position:absolute;left:0">&rarr;</span>
           Import a members/students or aircraft export in minutes, without re-typing your roster.
@@ -774,7 +1143,7 @@ section{padding:96px 0}
           Works with a Flight Circle export too, or any other tool&rsquo;s CSV.
         </li>
       </ul>
-      <p style="margin-bottom:0">
+      <p class="reveal" style="margin-bottom:0">
         <a class="btn btn-solid" href="https://aeroops-web.vercel.app/signup">Create your operation</a>
         <a class="btn btn-line" href="https://aeroops-web.vercel.app/o/alpha/login" style="margin-left:12px">View the live demo</a>
       </p>
@@ -785,12 +1154,12 @@ section{padding:96px 0}
   <section class="band-top" aria-labelledby="explore-title">
     <div class="wrap">
       <div class="section-head" style="margin-bottom:40px">
-        <p class="eyebrow">Read further</p>
+        <p class="eyebrow eyebrow--accent">Read further</p>
         <h2 id="explore-title">Questions and a full walkthrough.</h2>
       </div>
     </div>
     <div class="wrap">
-      <div class="explore-grid">
+      <div class="explore-grid reveal">
         <a class="explore-card" href="faq.html">
           <span class="roman" aria-hidden="true">i</span>
           <h3>FAQ</h3>
@@ -818,7 +1187,7 @@ section{padding:96px 0}
       </a>
       <nav aria-label="Footer">
         <ul class="footer-nav">
-          <li><a href="#product">Platform</a></li>
+          <li><a href="#platform">Platform</a></li>
           <li><a href="#pricing">Pricing</a></li>
           <li><a href="faq.html">FAQ</a></li>
           <li><a href="how-it-works.html">Instructions</a></li>
@@ -843,6 +1212,29 @@ section{padding:96px 0}
     </p>
   </div>
 </footer>
+
+<script>
+  // Reveal-on-scroll + header shadow. Reduced-motion visitors already see
+  // everything (CSS), so this only animates when motion is allowed.
+  (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var els = document.querySelectorAll('.reveal');
+    if (reduce || !('IntersectionObserver' in window)) {
+      els.forEach(function (el) { el.classList.add('is-in'); });
+    } else {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+      els.forEach(function (el) { io.observe(el); });
+    }
+    var header = document.querySelector('.site-header');
+    function onScroll() { header.classList.toggle('scrolled', window.scrollY > 8); }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
 
 </body>
 </html>
