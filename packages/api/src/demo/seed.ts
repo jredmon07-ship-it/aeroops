@@ -663,6 +663,98 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     throw new Error('[demo] alpha dues invoice generation created no invoices — seed cannot continue.');
   }
 
+  // ── 8b. Historical activity backfill (DEMO-ONLY) ────────────────────────
+  // Give the dashboard activity chart, fleet utilization, and reporting trends
+  // a believable month of flights instead of only today's snapshot. Each flight
+  // is created through the REAL gated write paths at a backdated (past) time;
+  // created_at (reservation) and opened_at/closed_at (ticket) are then aligned
+  // to the flight day in one UPDATE so the time-bucketed reports pick them up.
+  // DEFENSIVE: any failure is logged and skipped so the core demo still seeds.
+  // Resets on every demo restart.
+  try {
+    // Two trainers carry the history: the 172 (student-flown) and the Archer
+    // (CFI-flown — satisfies its 'Club checkout: complex' dispatch requirement).
+    // Meters start below today's readings and climb with recency, so the fleet
+    // timeline stays monotonic.
+    // pilot must be an app_user MEMBER (ids.instructorId is the instructor
+    // *resource*, not a user — the Archer is flown by the CFI user, who also
+    // carries the 'Club checkout: complex' tag its dispatch requirement needs).
+    const histPlan = [
+      { tail: 'N172SP', pilot: ids.studentId, hobbs: 3300, tach: 3100 },
+      { tail: 'N28K', pilot: cfiUserId, hobbs: 1500, tach: 1400 },
+    ];
+    const durChoices = [60, 90, 90, 120, 105, 75];
+    const backdated: { resId: string; ticketId: string }[] = [];
+    // 24 flights, one per day over the last 24 days (unique days → no conflicts;
+    // daysAgo = 24 - k so meters climb toward the present). Each flight is
+    // isolated in its own try so one refusal never drops the rest.
+    for (let k = 0; k < 24; k++) {
+      const plan = histPlan[k % histPlan.length]!;
+      const daysAgo = 24 - k;
+      const startH = 8 + (k % 7); // 08:00–14:00 local
+      const durMin = durChoices[k % durChoices.length]!;
+      const startAt = atLocal(-daysAgo, startH, 0);
+      const endAt = new Date(startAt.getTime() + durMin * 60_000);
+      try {
+        const res = await createReservationWithDb(db, ownerSession, {
+          startAt,
+          endAt,
+          resourceIds: [tail(plan.tail)],
+          notes: 'Training flight',
+        });
+        if (!res.ok) continue;
+
+        const durH = durMin / 60;
+        const hobbsOut = Number(plan.hobbs.toFixed(1));
+        const hobbsIn = Number((plan.hobbs + durH).toFixed(1));
+        const tachOut = Number(plan.tach.toFixed(1));
+        const tachIn = Number((plan.tach + durH * 0.95).toFixed(1));
+
+        const op = await openDispatchWithDb(db, ownerSession, {
+          reservationId: res.reservation.id,
+          resourceId: tail(plan.tail),
+          pilotUserId: plan.pilot,
+          hobbsOut,
+          tachOut,
+        });
+        if (!op.ok) continue;
+        const cl = await closeDispatchWithDb(db, ownerSession, {
+          ticketId: op.ticket.id,
+          hobbsIn,
+          tachIn,
+        });
+        if (!cl.ok) continue;
+
+        plan.hobbs = hobbsIn + 0.4; // advance the running meter for this tail
+        plan.tach = tachIn + 0.4;
+        backdated.push({ resId: res.reservation.id, ticketId: op.ticket.id });
+      } catch {
+        // a single refused flight (e.g. a gate) is non-fatal — skip it.
+        continue;
+      }
+    }
+
+    if (backdated.length > 0) {
+      await withOrgContext(db, orgId, async (tx) => {
+        for (const b of backdated) {
+          await tx.execute(sql`
+            UPDATE reservation SET created_at = start_at - interval '2 hours'
+             WHERE id = ${b.resId}`);
+          await tx.execute(sql`
+            UPDATE dispatch_ticket dt
+               SET opened_at = r.start_at, closed_at = r.end_at
+              FROM reservation r
+             WHERE dt.id = ${b.ticketId} AND r.id = ${b.resId}`);
+        }
+      });
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[demo] historical backfill: ${backdated.length} flights over ~24 days`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[demo] historical activity backfill skipped:', err);
+  }
+
   // ── 9. Second org — "Bravo Flying Club" (small club, slug `bravo`) ──
   await seedBravoClub(db);
 }
