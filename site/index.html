@@ -282,7 +282,8 @@ img,svg{max-width:100%;height:auto}
 .device-bar{display:flex;align-items:center;gap:7px;padding:11px 15px;background:#0e1729;border-bottom:1px solid rgba(255,255,255,.06)}
 .device-bar i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16);flex:none}
 .device-bar .addr{margin-left:12px;font:600 .68rem/1 var(--mono);color:#7f8aa6;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.device svg{display:block;width:100%;height:auto}
+.device svg,.device img{display:block;width:100%;height:auto}
+.device-shot{background:#0b1220}
 
 /* ============ Stat strip ============ */
 .stat-strip{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--paper)}
@@ -595,81 +596,8 @@ section{padding:96px 0}
 
         <!-- App window: nav rail + schedule board -->
         <div class="device">
-          <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">aeroops-web.vercel.app/o/alpha/schedule</span></div>
-          <svg viewBox="0 0 1000 600" role="img" aria-label="The AeroOps schedule board: aircraft in rows, colored reservations across the day, one aircraft grounded, live weather and Zulu time in the header.">
-            <rect width="1000" height="600" fill="#0b1220"/>
-            <!-- nav rail -->
-            <rect x="0" y="0" width="196" height="600" fill="#0e1729"/>
-            <rect x="24" y="26" width="26" height="26" rx="6" fill="#fff"/>
-            <path d="M37 31 L45 47 L41 47 L37 39 L33 47 L29 47 Z" fill="#0e1729"/>
-            <text x="60" y="44" font-family="Georgia,serif" font-size="17" fill="#fff">AeroOps</text>
-            <!-- nav items -->
-            <g font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="13.5">
-              <rect x="16" y="86" width="164" height="34" rx="8" fill="rgba(106,166,240,.16)"/>
-              <rect x="30" y="98" width="12" height="10" rx="2" fill="none" stroke="#6AA6F0" stroke-width="1.6"/>
-              <text x="54" y="107" fill="#DCE6F8" font-weight="600">Schedule</text>
-              <text x="54" y="150" fill="#8794b0">Dashboard</text><rect x="30" y="141" width="12" height="12" rx="2" fill="none" stroke="#8794b0" stroke-width="1.4"/>
-              <text x="54" y="188" fill="#8794b0">Fleet</text><circle cx="36" cy="183" r="6" fill="none" stroke="#8794b0" stroke-width="1.4"/>
-              <text x="54" y="226" fill="#8794b0">People</text><circle cx="36" cy="221" r="6" fill="none" stroke="#8794b0" stroke-width="1.4"/>
-              <text x="54" y="264" fill="#8794b0">Training</text><rect x="30" y="255" width="12" height="12" rx="2" fill="none" stroke="#8794b0" stroke-width="1.4"/>
-              <text x="54" y="302" fill="#8794b0">Maintenance</text><path d="M32 296 l4 4 6-6" fill="none" stroke="#8794b0" stroke-width="1.4"/>
-              <text x="54" y="340" fill="#8794b0">Billing</text><path d="M36 331 v10 M32 335 h8" stroke="#8794b0" stroke-width="1.4"/>
-              <text x="54" y="378" fill="#8794b0">Reporting</text><path d="M31 375 v-9 M36 375 v-14 M41 375 v-6" stroke="#8794b0" stroke-width="1.6"/>
-            </g>
-            <circle cx="36" cy="560" r="13" fill="#2F6FD1"/><text x="36" y="565" font-family="Helvetica" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">JR</text>
-            <text x="60" y="558" font-family="Helvetica" font-size="12.5" fill="#DCE6F8" font-weight="600">Jordan Reyes</text>
-            <text x="60" y="574" font-family="Helvetica" font-size="11" fill="#8794b0">Owner</text>
-
-            <!-- top bar -->
-            <text x="224" y="52" font-family="Georgia,serif" font-size="22" fill="#fff">Schedule</text>
-            <text x="224" y="74" font-family="Helvetica" font-size="12.5" fill="#8794b0">Thursday, July 16 · KOSU</text>
-            <!-- METAR + zulu chips -->
-            <rect x="520" y="30" width="196" height="30" rx="8" fill="#111d34" stroke="rgba(255,255,255,.08)"/>
-            <circle cx="537" cy="45" r="4" fill="#56BE97"/><text x="549" y="49" font-family="ui-monospace,monospace" font-size="11" fill="#B9C4DB">KOSU 09010KT 10SM FEW250</text>
-            <rect x="726" y="30" width="86" height="30" rx="8" fill="#111d34" stroke="rgba(255,255,255,.08)"/>
-            <text x="742" y="49" font-family="ui-monospace,monospace" font-size="12" fill="#B9C4DB">14:32Z</text>
-            <rect x="822" y="30" width="150" height="30" rx="8" fill="url(#accentG)"/>
-            <text x="897" y="49" font-family="Helvetica" font-size="12.5" fill="#fff" font-weight="600" text-anchor="middle">+ New reservation</text>
-            <defs>
-              <linearGradient id="accentG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#79B0F5"/><stop offset="1" stop-color="#3D7AD4"/></linearGradient>
-            </defs>
-
-            <!-- board header (time axis) -->
-            <line x1="352" y1="96" x2="352" y2="576" stroke="rgba(255,255,255,.06)"/>
-            <g font-family="ui-monospace,monospace" font-size="11" fill="#6c789a">
-              <text x="372" y="112">8</text><text x="450" y="112">9</text><text x="528" y="112">10</text><text x="606" y="112">11</text><text x="684" y="112">12</text><text x="762" y="112">1</text><text x="840" y="112">2</text><text x="918" y="112">3</text>
-            </g>
-            <g stroke="rgba(255,255,255,.05)">
-              <line x1="440" y1="124" x2="440" y2="576"/><line x1="518" y1="124" x2="518" y2="576"/><line x1="596" y1="124" x2="596" y2="576"/><line x1="674" y1="124" x2="674" y2="576"/><line x1="752" y1="124" x2="752" y2="576"/><line x1="830" y1="124" x2="830" y2="576"/><line x1="908" y1="124" x2="908" y2="576"/>
-            </g>
-            <!-- now line -->
-            <line x1="700" y1="124" x2="700" y2="576" stroke="#E9B44C" stroke-width="1.5" stroke-dasharray="3 3"/>
-            <circle cx="700" cy="124" r="3.5" fill="#E9B44C"/>
-
-            <!-- rows -->
-            <g font-family="Helvetica" font-size="13">
-              <!-- row labels -->
-              <text x="216" y="150" fill="#DCE6F8" font-weight="600">N172SP</text><text x="216" y="166" fill="#6c789a" font-size="10.5">Cessna 172</text>
-              <text x="216" y="212" fill="#DCE6F8" font-weight="600">N152AB</text><text x="216" y="228" fill="#6c789a" font-size="10.5">Cessna 152</text>
-              <text x="216" y="274" fill="#DCE6F8" font-weight="600">N28K</text><text x="216" y="290" fill="#6c789a" font-size="10.5">Piper Archer</text>
-              <text x="216" y="336" fill="#DCE6F8" font-weight="600">N66RG</text><text x="216" y="352" fill="#6c789a" font-size="10.5">Cirrus SR20</text>
-              <text x="216" y="398" fill="#DCE6F8" font-weight="600">Casey Reed</text><text x="216" y="414" fill="#6c789a" font-size="10.5">Instructor</text>
-            </g>
-            <g stroke="rgba(255,255,255,.05)">
-              <line x1="196" y1="180" x2="1000" y2="180"/><line x1="196" y1="242" x2="1000" y2="242"/><line x1="196" y1="304" x2="1000" y2="304"/><line x1="196" y1="366" x2="1000" y2="366"/><line x1="196" y1="428" x2="1000" y2="428"/>
-            </g>
-            <!-- reservation blocks -->
-            <g font-family="Helvetica" font-size="11.5" fill="#fff">
-              <rect x="360" y="134" width="150" height="34" rx="7" fill="#2F6FD1"/><text x="372" y="155">Dual · Rivera</text>
-              <rect x="360" y="196" width="112" height="34" rx="7" fill="#56BE97"/><text x="372" y="217">Solo · Kim</text>
-              <rect x="642" y="196" width="150" height="34" rx="7" fill="#2F6FD1" opacity=".55"/><text x="654" y="217" fill="#dbe6fa">Checkride prep</text>
-              <rect x="516" y="258" width="188" height="34" rx="7" fill="#E9B44C"/><text x="528" y="279" fill="#20170a">Stage check · Ross</text>
-              <!-- grounded row -->
-              <rect x="360" y="320" width="612" height="34" rx="7" fill="rgba(233,140,127,.14)" stroke="#E98C7F" stroke-dasharray="4 3"/>
-              <circle cx="382" cy="337" r="6" fill="#E98C7F"/><text x="398" y="341" fill="#E98C7F">Grounded · oil seep, work order WO-114 open</text>
-              <rect x="516" y="382" width="188" height="34" rx="7" fill="#2F6FD1"/><text x="528" y="403">Stage check · Ross</text>
-            </g>
-          </svg>
+          <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">aeroops-web.vercel.app/o/alpha</span></div>
+          <img class="device-shot" src="shot-dashboard.png" alt="The AeroOps dashboard: live grounded, open-squawk, active-aircraft and member counts, 30-day flight-hour and reservation KPIs, and an activity chart." width="1600" height="1000" loading="eager" decoding="async">
         </div>
       </div>
     </div>
@@ -774,26 +702,8 @@ section{padding:96px 0}
         </div>
         <div class="hub-media">
           <div class="device">
-            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/schedule/board</span></div>
-            <svg viewBox="0 0 640 400" role="img" aria-label="Dispatch board close-up: reservation blocks across a time axis with a live now-line.">
-              <rect width="640" height="400" fill="#0b1220"/>
-              <text x="28" y="42" font-family="Georgia,serif" font-size="19" fill="#fff">Dispatch board</text>
-              <rect x="470" y="26" width="146" height="28" rx="8" fill="url(#accentG2)"/><text x="543" y="44" font-family="Helvetica" font-size="12" fill="#fff" font-weight="600" text-anchor="middle">+ Check out</text>
-              <defs><linearGradient id="accentG2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#79B0F5"/><stop offset="1" stop-color="#3D7AD4"/></linearGradient></defs>
-              <g font-family="ui-monospace,monospace" font-size="10.5" fill="#6c789a"><text x="150" y="82">9</text><text x="248" y="82">10</text><text x="346" y="82">11</text><text x="444" y="82">12</text><text x="542" y="82">1</text></g>
-              <g stroke="rgba(255,255,255,.05)"><line x1="140" y1="92" x2="140" y2="372"/><line x1="238" y1="92" x2="238" y2="372"/><line x1="336" y1="92" x2="336" y2="372"/><line x1="434" y1="92" x2="434" y2="372"/><line x1="532" y1="92" x2="532" y2="372"/></g>
-              <line x1="400" y1="92" x2="400" y2="372" stroke="#E9B44C" stroke-width="1.5" stroke-dasharray="3 3"/>
-              <g font-family="Helvetica" font-size="12" fill="#DCE6F8" font-weight="600"><text x="24" y="126">N172SP</text><text x="24" y="188">N152AB</text><text x="24" y="250">N28K</text><text x="24" y="312">N66RG</text></g>
-              <g stroke="rgba(255,255,255,.05)"><line x1="20" y1="140" x2="620" y2="140"/><line x1="20" y1="202" x2="620" y2="202"/><line x1="20" y1="264" x2="620" y2="264"/><line x1="20" y1="326" x2="620" y2="326"/></g>
-              <g font-family="Helvetica" font-size="11" fill="#fff">
-                <rect x="140" y="106" width="150" height="30" rx="6" fill="#2F6FD1"/><text x="150" y="125">Dual · Rivera</text>
-                <rect x="140" y="168" width="110" height="30" rx="6" fill="#56BE97"/><text x="150" y="187">Solo · Kim</text>
-                <rect x="336" y="230" width="150" height="30" rx="6" fill="#E9B44C"/><text x="346" y="249" fill="#20170a">Stage check</text>
-                <rect x="140" y="292" width="440" height="30" rx="6" fill="rgba(233,140,127,.14)" stroke="#E98C7F" stroke-dasharray="4 3"/><text x="152" y="311" fill="#E98C7F">Grounded · cannot dispatch</text>
-              </g>
-              <!-- conflict toast -->
-              <rect x="300" y="150" width="196" height="40" rx="9" fill="#161f34" stroke="#E98C7F"/><circle cx="322" cy="170" r="8" fill="none" stroke="#E98C7F" stroke-width="1.6"/><path d="M322 166 v5 M322 174 v.4" stroke="#E98C7F" stroke-width="1.6" stroke-linecap="round"/><text x="340" y="167" font-family="Helvetica" font-size="10.5" fill="#E98C7F">Conflict: overlaps 9:00 dual.</text><text x="340" y="181" font-family="Helvetica" font-size="10.5" fill="#8794b0">Reservation refused.</text>
-            </svg>
+            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/schedule</span></div>
+            <img class="device-shot" src="shot-schedule.png" alt="The AeroOps schedule in month view: reservations by tail number across July, colour-coded, with today highlighted." width="1600" height="1000" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
@@ -815,40 +725,8 @@ section{padding:96px 0}
         </div>
         <div class="hub-media">
           <div class="device">
-            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/billing/inv-2048</span></div>
-            <svg viewBox="0 0 640 400" role="img" aria-label="An invoice pre-filled from a dispatch ticket, with a monthly collections chart and a QuickBooks export tag.">
-              <rect width="640" height="400" fill="#0b1220"/>
-              <!-- invoice card -->
-              <rect x="28" y="28" width="330" height="344" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-              <text x="50" y="62" font-family="Georgia,serif" font-size="17" fill="#fff">Invoice 2048</text>
-              <rect x="286" y="46" width="52" height="22" rx="11" fill="rgba(86,190,151,.18)"/><text x="312" y="61" font-family="Helvetica" font-size="10.5" fill="#56BE97" text-anchor="middle" font-weight="700">PAID</text>
-              <text x="50" y="84" font-family="Helvetica" font-size="11.5" fill="#8794b0">Alex Rivera · N172SP · Jul 16</text>
-              <line x1="50" y1="98" x2="336" y2="98" stroke="rgba(255,255,255,.08)"/>
-              <g font-family="Helvetica" font-size="12">
-                <text x="50" y="126" fill="#C6CFE1">Aircraft rental · 1.4 h wet</text><text x="336" y="126" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$203.00</text>
-                <text x="50" y="154" fill="#C6CFE1">Instruction · 1.4 h</text><text x="336" y="154" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$84.00</text>
-                <text x="50" y="182" fill="#C6CFE1">Landing fees</text><text x="336" y="182" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$12.00</text>
-              </g>
-              <line x1="50" y1="200" x2="336" y2="200" stroke="rgba(255,255,255,.08)"/>
-              <text x="50" y="228" font-family="Helvetica" font-size="13" fill="#fff" font-weight="700">Total</text><text x="336" y="228" font-family="ui-monospace,monospace" font-size="14" fill="#fff" text-anchor="end" font-weight="700">$299.00</text>
-              <rect x="50" y="248" width="286" height="30" rx="7" fill="#0e1729"/><text x="64" y="268" font-family="Helvetica" font-size="11" fill="#8794b0">Bank transfer fee (1%, capped $7)</text><text x="322" y="268" font-family="ui-monospace,monospace" font-size="11" fill="#56BE97" text-anchor="end">$2.99</text>
-              <rect x="50" y="300" width="150" height="26" rx="6" fill="#0e1729" stroke="rgba(255,255,255,.09)"/><path d="M64 313 h5 v-6 h5 v6 h5 v-10 h5 v10 h5" fill="none" stroke="#56BE97" stroke-width="1.6"/><text x="112" y="317" font-family="Helvetica" font-size="10.5" fill="#C6CFE1">QBO export ✓</text>
-              <text x="50" y="352" font-family="Helvetica" font-size="10.5" fill="#6c789a">Pre-filled from dispatch ticket DT-771</text>
-              <!-- collections chart -->
-              <rect x="378" y="28" width="234" height="180" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-              <text x="398" y="58" font-family="Helvetica" font-size="12.5" fill="#C6CFE1" font-weight="600">Collected this month</text>
-              <text x="398" y="84" font-family="Georgia,serif" font-size="22" fill="#fff">$41,280</text>
-              <g fill="#2F6FD1"><rect x="398" y="150" width="20" height="34" rx="3"/><rect x="428" y="138" width="20" height="46" rx="3"/><rect x="458" y="120" width="20" height="64" rx="3"/><rect x="488" y="128" width="20" height="56" rx="3"/><rect x="518" y="104" width="20" height="80" rx="3"/><rect x="548" y="92" width="20" height="92" rx="3" fill="#56BE97"/></g>
-              <!-- autopay card -->
-              <rect x="378" y="224" width="234" height="148" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-              <text x="398" y="252" font-family="Helvetica" font-size="12.5" fill="#C6CFE1" font-weight="600">Recurring · auto-pay</text>
-              <g font-family="Helvetica" font-size="11.5">
-                <text x="398" y="282" fill="#DCE6F8">Club dues · monthly</text><text x="592" y="282" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$130.00</text>
-                <text x="398" y="308" fill="#DCE6F8">Annual membership</text><text x="592" y="308" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$600.00</text>
-                <text x="398" y="334" fill="#DCE6F8">Flight tuition · monthly</text><text x="592" y="334" fill="#fff" text-anchor="end" font-family="ui-monospace,monospace">$450.00</text>
-              </g>
-              <rect x="398" y="348" width="120" height="14" rx="7" fill="#0e1729"/><rect x="398" y="348" width="86" height="14" rx="7" fill="#56BE97"/><text x="524" y="359" font-family="Helvetica" font-size="10" fill="#8794b0">bills itself</text>
-            </svg>
+            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/billing/reports</span></div>
+            <img class="device-shot" src="shot-billing-reports.png" alt="AeroOps billing reports: an accounts-receivable aging table and a revenue chart of finalized invoices versus collected payments." width="1600" height="1000" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
@@ -871,33 +749,7 @@ section{padding:96px 0}
         <div class="hub-media">
           <div class="device">
             <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/training/private-pilot</span></div>
-            <svg viewBox="0 0 640 400" role="img" aria-label="A Private Pilot course with ordered lessons, a two-of-five progress ring, and per-student records.">
-              <rect width="640" height="400" fill="#0b1220"/>
-              <text x="28" y="46" font-family="Georgia,serif" font-size="18" fill="#fff">Private Pilot · Part 61</text>
-              <text x="28" y="68" font-family="Helvetica" font-size="12" fill="#8794b0">Sam Ross · enrolled Apr 2</text>
-              <!-- progress ring -->
-              <g transform="translate(548,74)">
-                <circle r="46" fill="none" stroke="#1a2743" stroke-width="10"/>
-                <circle r="46" fill="none" stroke="#56BE97" stroke-width="10" stroke-linecap="round" stroke-dasharray="115 289" transform="rotate(-90)"/>
-                <text y="-2" font-family="Georgia,serif" font-size="22" fill="#fff" text-anchor="middle">2/5</text>
-                <text y="18" font-family="Helvetica" font-size="10" fill="#8794b0" text-anchor="middle">lessons</text>
-              </g>
-              <!-- lesson list -->
-              <g font-family="Helvetica" font-size="12.5">
-                <rect x="28" y="96" width="380" height="44" rx="9" fill="#111d34"/><circle cx="52" cy="118" r="10" fill="#56BE97"/><path d="M47 118 l4 4 6-7" fill="none" stroke="#0b1220" stroke-width="2" stroke-linecap="round"/><text x="74" y="115" fill="#fff">1 · Preflight &amp; taxi</text><text x="74" y="131" fill="#6c789a" font-size="10.5">Recorded by C. Reed · Apr 9</text>
-                <rect x="28" y="150" width="380" height="44" rx="9" fill="#111d34"/><circle cx="52" cy="172" r="10" fill="#56BE97"/><path d="M47 172 l4 4 6-7" fill="none" stroke="#0b1220" stroke-width="2" stroke-linecap="round"/><text x="74" y="169" fill="#fff">2 · Slow flight &amp; stalls</text><text x="74" y="185" fill="#6c789a" font-size="10.5">Recorded by C. Reed · Apr 23</text>
-                <rect x="28" y="204" width="380" height="44" rx="9" fill="#0e1729" stroke="rgba(255,255,255,.06)"/><circle cx="52" cy="226" r="10" fill="none" stroke="#6c789a" stroke-width="1.6"/><text x="74" y="223" fill="#C6CFE1">3 · Ground reference</text><text x="74" y="239" fill="#6c789a" font-size="10.5">Next up</text>
-                <rect x="28" y="258" width="380" height="44" rx="9" fill="#0e1729" stroke="rgba(255,255,255,.06)"/><circle cx="52" cy="280" r="10" fill="none" stroke="#6c789a" stroke-width="1.6"/><text x="74" y="277" fill="#C6CFE1">4 · Takeoffs &amp; landings</text>
-                <rect x="28" y="312" width="380" height="44" rx="9" fill="#0e1729" stroke="rgba(255,255,255,.06)"/><circle cx="52" cy="334" r="10" fill="none" stroke="#6c789a" stroke-width="1.6"/><text x="74" y="331" fill="#C6CFE1">5 · Solo prep &amp; stage check</text>
-              </g>
-              <!-- record panel -->
-              <rect x="424" y="140" width="188" height="216" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-              <text x="444" y="168" font-family="Helvetica" font-size="12" fill="#C6CFE1" font-weight="600">Lesson 2 record</text>
-              <text x="444" y="196" font-family="Helvetica" font-size="10.5" fill="#8794b0">Instructor note</text>
-              <rect x="444" y="204" width="148" height="8" rx="4" fill="#1a2743"/><rect x="444" y="218" width="120" height="8" rx="4" fill="#1a2743"/><rect x="444" y="232" width="140" height="8" rx="4" fill="#1a2743"/>
-              <rect x="444" y="256" width="70" height="22" rx="6" fill="rgba(86,190,151,.16)"/><text x="479" y="271" font-family="Helvetica" font-size="10" fill="#56BE97" text-anchor="middle" font-weight="700">Locked</text>
-              <text x="444" y="304" font-family="Helvetica" font-size="10" fill="#6c789a">Write-once. Corrections append</text><text x="444" y="318" font-family="Helvetica" font-size="10" fill="#6c789a">as a new entry, never edited.</text>
-            </svg>
+            <img class="device-shot" src="shot-training.png" alt="An AeroOps training course — Private Pilot, Part 61 — with ordered lessons and pre-solo, solo-prep and cross-country stage tags." width="1600" height="1000" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
@@ -918,38 +770,8 @@ section{padding:96px 0}
         </div>
         <div class="hub-media">
           <div class="device">
-            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/fleet/n66rg</span></div>
-            <svg viewBox="0 0 640 400" role="img" aria-label="An aircraft detail page showing a grounded badge, an open work order, and tracked squawks.">
-              <rect width="640" height="400" fill="#0b1220"/>
-              <text x="28" y="48" font-family="Georgia,serif" font-size="19" fill="#fff">N66RG</text>
-              <text x="96" y="48" font-family="Helvetica" font-size="12.5" fill="#8794b0">Cirrus SR20 · 2019</text>
-              <rect x="470" y="30" width="142" height="28" rx="14" fill="rgba(233,140,127,.16)" stroke="#E98C7F"/><circle cx="492" cy="44" r="5" fill="#E98C7F"/><text x="506" y="48" font-family="Helvetica" font-size="12" fill="#E98C7F" font-weight="700">GROUNDED</text>
-              <!-- work order -->
-              <rect x="28" y="76" width="360" height="150" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-              <text x="48" y="106" font-family="Helvetica" font-size="13" fill="#fff" font-weight="700">Work order WO-114</text>
-              <rect x="300" y="88" width="72" height="22" rx="11" fill="rgba(233,180,76,.18)"/><text x="336" y="103" font-family="Helvetica" font-size="10" fill="#E9B44C" text-anchor="middle" font-weight="700">OPEN</text>
-              <text x="48" y="130" font-family="Helvetica" font-size="11.5" fill="#C6CFE1">Oil seep at #3 cylinder base</text>
-              <g font-family="Helvetica" font-size="11" fill="#8794b0">
-                <text x="48" y="156">Opened</text><text x="368" y="156" text-anchor="end" fill="#C6CFE1">Jul 14 · C. Reed</text>
-                <text x="48" y="178">Item</text><text x="368" y="178" text-anchor="end" fill="#C6CFE1">Reseal, torque, run-up</text>
-                <text x="48" y="200">Return to service</text><text x="368" y="200" text-anchor="end" fill="#E98C7F">Blocks dispatch until closed</text>
-              </g>
-              <!-- usage -->
-              <rect x="404" y="76" width="208" height="150" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-              <text x="424" y="104" font-family="Helvetica" font-size="12" fill="#C6CFE1" font-weight="600">Usage since overhaul</text>
-              <text x="424" y="136" font-family="Georgia,serif" font-size="24" fill="#fff">1,204.6</text><text x="512" y="136" font-family="Helvetica" font-size="11" fill="#8794b0">Hobbs h</text>
-              <rect x="424" y="156" width="168" height="10" rx="5" fill="#1a2743"/><rect x="424" y="156" width="120" height="10" rx="5" fill="#6AA6F0"/>
-              <text x="424" y="188" font-family="Helvetica" font-size="10.5" fill="#8794b0">100-hr inspection in 19.4 h</text>
-              <text x="424" y="208" font-family="Helvetica" font-size="10.5" fill="#8794b0">Last tach sync · Jul 12</text>
-              <!-- squawks -->
-              <rect x="28" y="242" width="584" height="130" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-              <text x="48" y="270" font-family="Helvetica" font-size="12.5" fill="#C6CFE1" font-weight="600">Squawks</text>
-              <g font-family="Helvetica" font-size="11.5">
-                <circle cx="54" cy="296" r="5" fill="#E98C7F"/><text x="70" y="300" fill="#fff">Oil seep, #3 cylinder</text><text x="592" y="300" text-anchor="end" fill="#E9B44C">Grounding</text>
-                <circle cx="54" cy="322" r="5" fill="#E9B44C"/><text x="70" y="326" fill="#fff">Nav light intermittent</text><text x="592" y="326" text-anchor="end" fill="#8794b0">Open · minor</text>
-                <circle cx="54" cy="348" r="5" fill="#56BE97"/><text x="70" y="352" fill="#C6CFE1">Right brake soft · resolved Jul 8</text><text x="592" y="352" text-anchor="end" fill="#56BE97">Closed</text>
-              </g>
-            </svg>
+            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/maintenance/squawks</span></div>
+            <img class="device-shot" src="shot-squawks.png" alt="AeroOps maintenance squawks: reported discrepancies by aircraft with severity, a grounding flag, and resolve or defer actions." width="1600" height="1000" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
@@ -973,41 +795,8 @@ section{padding:96px 0}
           </div>
           <div class="hub-media">
             <div class="device">
-              <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/reporting</span></div>
-              <svg viewBox="0 0 640 400" role="img" aria-label="The reporting dashboard: KPI cards, a flights-by-day bar chart, a fleet utilization donut, and a per-tail table.">
-                <rect width="640" height="400" fill="#0b1220"/>
-                <text x="28" y="44" font-family="Georgia,serif" font-size="18" fill="#fff">Operations dashboard</text>
-                <text x="28" y="64" font-family="Helvetica" font-size="11.5" fill="#8794b0">Last 30 days</text>
-                <!-- KPI cards -->
-                <g>
-                  <rect x="28" y="80" width="138" height="78" rx="11" fill="#111d34" stroke="rgba(255,255,255,.07)"/><text x="44" y="106" font-family="Helvetica" font-size="10.5" fill="#8794b0">FLIGHTS</text><text x="44" y="136" font-family="Georgia,serif" font-size="24" fill="#fff">312</text><text x="120" y="136" font-family="Helvetica" font-size="10.5" fill="#56BE97">▲ 8%</text>
-                  <rect x="176" y="80" width="138" height="78" rx="11" fill="#111d34" stroke="rgba(255,255,255,.07)"/><text x="192" y="106" font-family="Helvetica" font-size="10.5" fill="#8794b0">HOURS</text><text x="192" y="136" font-family="Georgia,serif" font-size="24" fill="#fff">418.7</text><text x="268" y="136" font-family="Helvetica" font-size="10.5" fill="#56BE97">▲ 5%</text>
-                  <rect x="324" y="80" width="138" height="78" rx="11" fill="#111d34" stroke="rgba(255,255,255,.07)"/><text x="340" y="106" font-family="Helvetica" font-size="10.5" fill="#8794b0">GROUNDED</text><text x="340" y="136" font-family="Georgia,serif" font-size="24" fill="#E98C7F">1</text>
-                  <rect x="472" y="80" width="140" height="78" rx="11" fill="#111d34" stroke="rgba(255,255,255,.07)"/><text x="488" y="106" font-family="Helvetica" font-size="10.5" fill="#8794b0">OPEN SQUAWKS</text><text x="488" y="136" font-family="Georgia,serif" font-size="24" fill="#E9B44C">3</text>
-                </g>
-                <!-- bar chart -->
-                <rect x="28" y="172" width="380" height="200" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-                <text x="48" y="198" font-family="Helvetica" font-size="12" fill="#C6CFE1" font-weight="600">Flights by day</text>
-                <g stroke="rgba(255,255,255,.05)"><line x1="48" y1="230" x2="388" y2="230"/><line x1="48" y1="280" x2="388" y2="280"/><line x1="48" y1="330" x2="388" y2="330"/></g>
-                <g fill="#2F6FD1">
-                  <rect x="60" y="292" width="20" height="48" rx="3"/><rect x="98" y="270" width="20" height="70" rx="3"/><rect x="136" y="250" width="20" height="90" rx="3"/><rect x="174" y="284" width="20" height="56" rx="3"/><rect x="212" y="238" width="20" height="102" rx="3"/><rect x="250" y="262" width="20" height="78" rx="3"/><rect x="288" y="224" width="20" height="116" rx="3" fill="#56BE97"/><rect x="326" y="256" width="20" height="84" rx="3"/><rect x="364" y="276" width="20" height="64" rx="3"/>
-                </g>
-                <g font-family="ui-monospace,monospace" font-size="9" fill="#6c789a"><text x="64" y="356">M</text><text x="102" y="356">T</text><text x="140" y="356">W</text><text x="178" y="356">T</text><text x="216" y="356">F</text><text x="254" y="356">S</text><text x="292" y="356">S</text><text x="330" y="356">M</text><text x="368" y="356">T</text></g>
-                <!-- donut + table -->
-                <rect x="420" y="172" width="192" height="200" rx="12" fill="#111d34" stroke="rgba(255,255,255,.07)"/>
-                <text x="440" y="198" font-family="Helvetica" font-size="12" fill="#C6CFE1" font-weight="600">Fleet utilization</text>
-                <g transform="translate(478,256)">
-                  <circle r="34" fill="none" stroke="#1a2743" stroke-width="12"/>
-                  <circle r="34" fill="none" stroke="#6AA6F0" stroke-width="12" stroke-dasharray="150 64" transform="rotate(-90)"/>
-                  <text y="4" font-family="Georgia,serif" font-size="17" fill="#fff" text-anchor="middle">70%</text>
-                </g>
-                <g font-family="Helvetica" font-size="11">
-                  <rect x="536" y="222" width="9" height="9" rx="2" fill="#6AA6F0"/><text x="551" y="231" fill="#C6CFE1">Booked</text>
-                  <rect x="536" y="244" width="9" height="9" rx="2" fill="#1a2743"/><text x="551" y="253" fill="#8794b0">Idle</text>
-                  <text x="440" y="316" fill="#8794b0" font-size="10.5">N172SP</text><rect x="440" y="322" width="152" height="7" rx="3.5" fill="#1a2743"/><rect x="440" y="322" width="128" height="7" rx="3.5" fill="#6AA6F0"/>
-                  <text x="440" y="346" fill="#8794b0" font-size="10.5">N28K</text><rect x="440" y="352" width="152" height="7" rx="3.5" fill="#1a2743"/><rect x="440" y="352" width="92" height="7" rx="3.5" fill="#56BE97"/>
-                </g>
-              </svg>
+              <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/reporting/reports</span></div>
+              <img class="device-shot" src="shot-reporting.png" alt="AeroOps operational reports: fleet utilization over 30 days with total flights, hours, average hours per flight, and a daily bar chart." width="1600" height="1000" loading="lazy" decoding="async">
             </div>
           </div>
         </div>
