@@ -89,7 +89,6 @@ import { generateInvoiceFromDispatchWithDb } from '../billing/generate-invoice.j
 import { finalizeInvoiceWithDb } from '../billing/invoice-status-commands.js';
 import { recordManualPaymentWithDb } from '../billing/record-manual-payment.js';
 import { orgFeatureConfigTableExists } from '../org-features/org-features-internal.js';
-import { appUserHasAvatarColumn } from '../people/avatar.js';
 
 /** The org address used in the URL: /o/alpha/login */
 export const DEMO_SLUG = 'alpha';
@@ -120,23 +119,6 @@ export const DEMO_LOGINS_BRAVO: DemoLogin[] = [
   { email: 'admin@bravo.aero', fullName: 'Casey Scheduler', role: 'manager', phone: '(614) 555-0202' },
   { email: 'member@bravo.aero', fullName: 'Riley Member', role: 'renter', phone: '(614) 555-0203' },
 ];
-
-/**
- * Tiny 1x1 solid-color PNG data URIs for demo avatars (migration 0048,
- * GRACEFUL ABSENCE if unapplied). One distinct color per seeded user; each is
- * a genuine, valid PNG (not a placeholder string) well under the 160,000-char
- * DB cap. Not exported — internal to the seed.
- */
-const AVATAR_BLUE =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mNQTX4NAAIkAXSk55J4AAAAAElFTkSuQmCC';
-const AVATAR_FUCHSIA =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mO46fYeAAQKAg/O90McAAAAAElFTkSuQmCC';
-const AVATAR_GREEN =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mMQW+wFAAHWAQSgVTXHAAAAAElFTkSuQmCC';
-const AVATAR_ORANGE =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mN4FcEDAAN+AU+fpiGuAAAAAElFTkSuQmCC';
-const AVATAR_CYAN =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mPgmLgJAAHwAUwmFUimAAAAAElFTkSuQmCC';
 
 /**
  * Memoized argon2id hash of the (constant) demo password. The reset-on-open
@@ -174,26 +156,6 @@ function demoPeriodKey(): string {
  * schedule so it is always due in the same period demoPeriodKey() bills. */
 function demoMonthNumber(): number {
   return new Date().getMonth() + 1;
-}
-
-/**
- * maybeSetAvatar — set a demo user's avatar IF migration 0048 is applied.
- * GRACEFUL ABSENCE: probes appUserHasAvatarColumn first (catalog-only, never
- * poisons the transaction) and silently no-ops on a pre-0048 DB. `tx` must
- * already be org-scoped (RLS GUC set) — same contract as avatar.ts's writers.
- */
-async function maybeSetAvatar(
-  tx: AnyDb,
-  orgId: string,
-  userId: string,
-  avatarDataUrl: string,
-): Promise<void> {
-  if (!(await appUserHasAvatarColumn(tx))) return;
-  await tx.execute(sql`
-    UPDATE "app_user"
-    SET "avatar_data" = ${avatarDataUrl}
-    WHERE "id" = ${userId}::uuid AND "org_id" = ${orgId}::uuid
-  `);
 }
 
 /**
@@ -275,9 +237,8 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     const ownerUserId = userIdByEmail.get('owner@alpha.aero')!;
     const studentUserId = userIdByEmail.get('student@alpha.aero')!;
 
-    // Demo avatars (migration 0048, GRACEFUL ABSENCE — no-ops pre-0048).
-    await maybeSetAvatar(tx, orgId, ownerUserId, AVATAR_BLUE);
-    await maybeSetAvatar(tx, orgId, cfiUserId, AVATAR_FUCHSIA);
+    // No seeded avatars — demo users show the shared silhouette placeholder
+    // (a real "default profile photo"); visitors can upload one in the portal.
 
     // Free-text member tags (operator labels ONLY — no computed currency/medical).
     const demoTags: Array<{ userId: string; tag: string }> = [
@@ -913,10 +874,7 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
     // Training / public booking / auto-scheduler off; everything else on.
     await maybeSeedClubMode(tx, orgId);
 
-    // Demo avatars (migration 0048, GRACEFUL ABSENCE — no-ops pre-0048).
-    await maybeSetAvatar(tx, orgId, ownerUserId, AVATAR_GREEN);
-    await maybeSetAvatar(tx, orgId, adminUserId, AVATAR_ORANGE);
-    await maybeSetAvatar(tx, orgId, memberUserId, AVATAR_CYAN);
+    // No seeded avatars — demo users show the shared silhouette placeholder.
 
     // Home base — Bravo Field (KOSU), the same field Alpha uses.
     const [base] = await tx

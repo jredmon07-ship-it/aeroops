@@ -359,16 +359,19 @@ describe('demo seed — Bravo Flying Club (second demo org)', () => {
     });
   });
 
-  it('bravo demo users carry seeded avatars (0048 applied here)', async () => {
+  it('bravo demo users have NO seeded avatar — the silhouette placeholder is the default', async () => {
+    // The seed deliberately leaves avatar_data NULL (a flat-color disc is not
+    // a profile photo); the shared UserAvatar component renders the
+    // head-and-shoulders placeholder, and visitors can upload in the portal.
     const rows = extractRows<{ n: number }>(
       await db.execute(sql`
         select count(*)::int as n
         from app_user u join org o on o.id = u.org_id
         where o.slug = ${DEMO_SLUG_BRAVO}
-          and u.avatar_data like 'data:image/png;base64,%'
+          and u.avatar_data is not null
       `),
     );
-    expect(rows[0]?.n).toBe(3);
+    expect(rows[0]?.n).toBe(0);
   });
 
   it('bravo has dues schedules seeded (admin + member monthly, member annual) with a DRAFT invoice', async () => {

@@ -3,30 +3,21 @@
  *
  * Renders a member's profile photo when one is set (a size-capped data-URI
  * from app_user.avatar_data — plain <img>, no next/image loader needed for
- * data URIs) and deterministic initials on brand-tinted background otherwise.
+ * data URIs) and a classic head-and-shoulders silhouette placeholder
+ * otherwise — a proper "default profile photo", not a bare colored disc.
  * Server-safe: no client hooks; usable in RSCs and client components alike.
  */
 import * as React from 'react';
 
 const SIZE_CLASSES = {
-  xs: 'h-6 w-6 text-[0.625rem]',
-  sm: 'h-8 w-8 text-xs',
-  md: 'h-10 w-10 text-sm',
-  lg: 'h-16 w-16 text-xl',
-  xl: 'h-24 w-24 text-3xl',
+  xs: 'h-6 w-6',
+  sm: 'h-8 w-8',
+  md: 'h-10 w-10',
+  lg: 'h-16 w-16',
+  xl: 'h-24 w-24',
 } as const;
 
 export type UserAvatarSize = keyof typeof SIZE_CLASSES;
-
-/** "Avery Owner" → "AO"; "solo" → "S"; falls back to "?" for empty input. */
-export function initialsFor(name: string | null | undefined): string {
-  const trimmed = (name ?? '').trim();
-  if (!trimmed) return '?';
-  const parts = trimmed.split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase() || '?';
-}
 
 interface UserAvatarProps {
   /** Display name — drives the initials fallback and the img alt text. */
@@ -56,18 +47,30 @@ export function UserAvatar({ name, src, size = 'sm', className }: UserAvatarProp
     );
   }
 
+  // No photo set → the classic head-and-shoulders placeholder. The figure is
+  // slightly oversized and bottom-anchored so the shoulders crop at the frame,
+  // reading as a "default profile photo" at every size.
   return (
     <span
       aria-hidden="true"
       title={label}
       className={[
-        'grid place-items-center rounded-full shrink-0 select-none font-semibold',
-        'bg-brand-ink/10 text-brand-ink dark:bg-slate-700 dark:text-slate-200',
+        'relative block overflow-hidden rounded-full shrink-0 select-none',
+        'bg-slate-200 text-slate-500 dark:bg-slate-600 dark:text-slate-300',
+        'border border-slate-300 dark:border-slate-500',
         sizeClass,
         className ?? '',
       ].join(' ')}
     >
-      {initialsFor(name)}
+      <svg
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="absolute inset-x-0 bottom-[-6%] h-full w-full"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="8.4" r="4.5" />
+        <path d="M12 14.9c-5 0-8.7 2.7-8.7 6.5V24h17.4v-2.6c0-3.8-3.7-6.5-8.7-6.5Z" />
+      </svg>
     </span>
   );
 }
