@@ -388,40 +388,18 @@ section{padding:96px 0}
 /* Pricing */
 .pricing-head{max-width:66ch;margin-bottom:40px}
 .pricing-head p{color:var(--text-soft);font-size:1.08rem;margin-bottom:0}
-.tiers{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:48px}
 .tier{
   position:relative;border:1px solid var(--rule);border-radius:var(--r-card);padding:34px 32px 30px;
-  background:var(--white);box-shadow:var(--shadow-1);transition:transform .2s ease, box-shadow .2s ease;
-}
-.tier:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
-.tier--pro{
-  background:linear-gradient(180deg,#0F1B33,#0C1322);color:#fff;border-color:transparent;
-  box-shadow:var(--shadow-lift);
-}
-.tier--pro::before{
-  content:"Same free software";position:absolute;top:-12px;right:22px;
-  background:linear-gradient(180deg,var(--gold),#D69A2E);color:#20170a;
-  font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  padding:6px 12px;border-radius:100px;box-shadow:0 6px 16px -6px rgba(214,154,46,.6);
+  background:var(--white);box-shadow:var(--shadow-1);
 }
 .tier .cap-caption{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);margin-bottom:14px;display:block}
-.tier--pro .cap-caption{color:#9EC2F5}
-.tier-who{font-size:.92rem;color:var(--text-soft);margin:0 0 18px}
-.tier--pro .tier-who{color:#AEB9CF}
 .tier-price{font-family:var(--serif);font-size:2.2rem;font-weight:560;color:var(--navy);line-height:1.1;margin:0 0 4px}
-.tier--pro .tier-price{color:#fff}
 .tier-price .tier-sub{display:block;font-family:var(--sans);font-size:.82rem;font-weight:600;letter-spacing:.02em;color:var(--text-soft);margin-top:8px}
-.tier--pro .tier-price .tier-sub{color:#AEB9CF}
 .tier ul{list-style:none;margin:20px 0 0;padding:0}
 .tier li{padding:11px 0 11px 28px;border-top:1px solid var(--rule);font-size:.95rem;color:var(--text);position:relative}
 .tier li:first-child{border-top:none}
-.tier li strong{color:var(--navy)}
 .tier li::before{content:"";position:absolute;left:0;top:16px;width:14px;height:8px;border-left:2px solid var(--accent-ink);border-bottom:2px solid var(--accent-ink);transform:rotate(-45deg)}
-.tier--pro li{border-top-color:var(--rule-inv);color:#E7ECF6}
-.tier--pro li strong{color:#fff}
-.tier--pro li::before{border-color:var(--gold)}
 .pricing-detail{max-width:70ch}
-@media (max-width:720px){.tiers{grid-template-columns:1fr}}
 
 /* Demo picker — choose flying club or flight school */
 .demo-choice{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:920px;margin:0 auto}
@@ -586,7 +564,7 @@ section{padding:96px 0}
         <div class="stat reveal"><div class="num"><em>5</em>-in-1</div><div class="lbl">Scheduling, maintenance, training, billing, and reporting under one login</div></div>
         <div class="stat reveal" data-d="1"><div class="num">$<em>7</em></div><div class="lbl">The most it ever costs to collect a payment by bank transfer</div></div>
         <div class="stat reveal" data-d="2"><div class="num">$<em>0</em></div><div class="lbl">Per aircraft, per instructor, per student, per seat. Ever.</div></div>
-        <div class="stat reveal" data-d="3"><div class="num"><em>∞</em></div><div class="lbl">Unlimited instructors, students, and staff on every plan</div></div>
+        <div class="stat reveal" data-d="3"><div class="num"><em>∞</em></div><div class="lbl">Unlimited instructors, students, and staff</div></div>
       </div>
     </div>
   </section>
@@ -644,8 +622,7 @@ section{padding:96px 0}
         </div>
       </div>
       <p class="reveal" style="margin:28px 0 0;color:var(--text-soft)">
-        No per-aircraft fee, no per-member fee, no monthly minimum. The software is free; you pay only
-        when a payment moves. <a class="text-link" href="#pricing">See the pricing</a>.
+        The software is free. <a class="text-link" href="#pricing">See the pricing</a>.
       </p>
     </div>
   </section>
@@ -667,13 +644,12 @@ section{padding:96px 0}
         <div class="hub-copy">
           <span class="hub-kicker"><span class="hub-no">I</span>Scheduling</span>
           <h3>A schedule that refuses to double-book.</h3>
-          <p>Every reservation, recurring series, reschedule, and auto-scheduled slot passes through one conflict gate, so there is no way around it, from any device.</p>
+          <p>Every reservation, recurring series, and reschedule passes through one conflict check.</p>
           <ul class="feat">
-            <li>Unlimited accounts, no per-seat fee: staff and instructors book and manage online, members see their schedule in the portal</li>
-            <li>Drag-and-drop dispatch board, with an in-app heads-up before each flight</li>
-            <li>Check-out and check-in by the front desk, a dispatcher, or an instructor, with write-once Hobbs and tach</li>
+            <li>Drag-and-drop dispatch board</li>
+            <li>Check-out and check-in with write-once Hobbs and tach</li>
             <li>Booking policies you set: duration, advance limits, lead time, blackout windows</li>
-            <li>Live METAR, Zulu clock, and a civil-twilight day/night bar on every screen</li>
+            <li>Live METAR, Zulu clock, and civil twilight on every screen</li>
           </ul>
         </div>
         <div class="hub-media">
@@ -689,14 +665,12 @@ section{padding:96px 0}
         <div class="hub-copy">
           <span class="hub-kicker"><span class="hub-no">II</span>Billing &amp; payments</span>
           <h3>From Hobbs reading to paid, without a spreadsheet.</h3>
-          <p>The meters your dispatch tickets already capture pre-fill a draft invoice, calculated to the exact cent, for a person to review and finalize before anything goes out.</p>
+          <p>A closed flight pre-fills a draft invoice from the recorded meters; a person reviews and finalizes it.</p>
           <ul class="feat">
-            <li>Paperless invoices emailed to members, with statements on demand</li>
-            <li>Turn a closed flight into a draft invoice in one click; ring up fuel and supplies at the counter</li>
-            <li>Rate schedules per aircraft, wet or dry, plus instructor and member rates</li>
-            <li>Recurring dues, tuition, and memberships that bill monthly, quarterly, or annually</li>
-            <li>Clean line-item export to QuickBooks Online</li>
-            <li>Bank transfers cost 1%, capped at $7; cards at processor cost, no markup</li>
+            <li>Invoices emailed to members, statements on demand</li>
+            <li>Rate schedules per aircraft, wet or dry, plus instructor rates</li>
+            <li>Recurring dues that bill monthly, quarterly, or annually</li>
+            <li>Line-item export to QuickBooks Online</li>
           </ul>
         </div>
         <div class="hub-media">
@@ -712,14 +686,12 @@ section{padding:96px 0}
         <div class="hub-copy">
           <span class="hub-kicker"><span class="hub-no">III</span>Training</span>
           <h3>Write-once training records.</h3>
-          <p>Build your own courses and ordered lessons, enroll members, and let instructors write lesson records that lock the moment they are entered.</p>
+          <p>Instructors write lesson records that lock the moment they are entered.</p>
           <ul class="feat">
-            <li>Unlimited courses and enrollments</li>
             <li>Load your own syllabus, lesson by lesson</li>
             <li>Fits both Part 61 and Part 141 training programs</li>
-            <li>Course overview, lesson prep, and a record for every student</li>
-            <li>Write-once lesson records; corrections append, never overwrite</li>
-            <li>Progress drawn from actual lesson coverage, at a glance</li>
+            <li>Corrections append, never overwrite</li>
+            <li>Progress drawn from actual lesson coverage</li>
           </ul>
         </div>
         <div class="hub-media">
@@ -735,13 +707,12 @@ section{padding:96px 0}
         <div class="hub-copy">
           <span class="hub-kicker"><span class="hub-no">IV</span>Maintenance</span>
           <h3>Maintenance that actually grounds aircraft.</h3>
-          <p>When your team grounds an aircraft, nobody can dispatch it until the work order that grounded it is closed. Not a warning. A hard gate.</p>
+          <p>A grounded aircraft cannot be dispatched until the grounding is resolved.</p>
           <ul class="feat">
-            <li>Real-time aircraft usage from the meters dispatch already records</li>
-            <li>Digital work orders, items, and logs</li>
-            <li>Squawks tracked from report to resolution, at the severity your team sets</li>
-            <li>Integrated with aircraft, reservations, reminders, and squawks</li>
-            <li>Full audit and change tracking; write-once sign-offs, never silently edited</li>
+            <li>Aircraft usage from the meters dispatch already records</li>
+            <li>Work orders and squawks, from report to resolution</li>
+            <li>Write-once sign-offs, never silently edited</li>
+            <li>Full audit trail on every record</li>
           </ul>
         </div>
         <div class="hub-media">
@@ -760,13 +731,12 @@ section{padding:96px 0}
           <div class="hub-copy">
             <span class="hub-kicker"><span class="hub-no">V</span>Reporting hub</span>
             <h3>See the whole operation at a glance.</h3>
-            <p>An ops console that answers "how are we doing right now?" and "how did the last thirty days go?" on one screen, then lets you slice the detail underneath.</p>
+            <p>Right now and the last thirty days, on one screen.</p>
             <ul class="feat">
-              <li>An as-of-now snapshot beside last-N-days KPIs</li>
               <li>Flights, hours, and utilization per tail</li>
-              <li>Reservations vs. flights, cancellations, and receivables aging, for any date range</li>
-              <li>Visual dashboards and charts you can read at a glance</li>
+              <li>Reservations vs. flights, cancellations, and receivables aging</li>
               <li>Grounded aircraft, open squawks, and today's flights, live</li>
+              <li>Every report scoped to any date range, exportable to CSV</li>
             </ul>
           </div>
           <div class="hub-media">
@@ -793,9 +763,8 @@ section{padding:96px 0}
         <p class="eyebrow eyebrow--accent">How it compares</p>
         <h2 id="compare-title">How the cost compares.</h2>
         <p>
-          Most flight-ops tools charge by the aircraft or by the seat, every month, whether you fly
-          or not. AeroOps charges nothing to run and takes a small, capped cut only when a payment
-          moves. The rows below are the cost structure; features are covered above.
+          Most flight-ops tools charge by the aircraft or by the seat, every month. The rows
+          below are the cost structure.
         </p>
       </div>
       <div class="compare-wrap reveal">
@@ -857,62 +826,28 @@ section{padding:96px 0}
         <p class="eyebrow eyebrow--accent">Pricing</p>
         <h2 id="pricing-title">Free.</h2>
         <p>
-          Scheduling, dispatch, maintenance, training records, billing, reporting, a public booking page,
-          and a member portal: no subscription, no per-aircraft fee, no per-seat fee. If you
-          collect payments through AeroOps, bank transfers are the default: 1%, capped at
-          $7 per transaction. A $5,000 block purchase costs $7 to collect — not $50.
-          Founding operators keep a $5 cap forever. Cards are accepted too, passed through at
-          processor cost (2.9% plus 30 cents) with no markup. Beyond that, there is nothing else
-          on the price list.
+          No subscription, no per-aircraft fee, no per-seat fee, no fleet-size limit.
+          Bank transfers collected through AeroOps cost 1%, capped at $7 per payment;
+          cards pass through at processor cost. That is the whole price list.
         </p>
       </div>
 
-      <div class="tiers">
-        <div class="tier reveal">
-          <span class="cap-caption">Free</span>
-          <p class="tier-who">Flying clubs &amp; flight schools</p>
-          <p class="tier-price">$0<span class="tier-sub">Not a trial. Free for good.</span></p>
-          <ul>
-            <li>Scheduling, dispatch, maintenance, training, billing, and reporting in one system</li>
-            <li>Unlimited aircraft, instructors, students, and staff</li>
-            <li>Public booking page and member portal included</li>
-            <li>Bank payments cost 1%, capped at $7, only when you collect one</li>
-          </ul>
-        </div>
-        <div class="tier tier--pro reveal" data-d="1">
-          <span class="cap-caption">Larger operations</span>
-          <p class="tier-who">Academies &amp; multi-location schools</p>
-          <p class="tier-price">Still $0<span class="tier-sub">Never per aircraft.</span></p>
-          <ul>
-            <li>The same free software at any fleet size</li>
-            <li>Import members and aircraft from a myFBO, Flight Circle, or spreadsheet CSV</li>
-            <li><strong>Bank payments still capped at $7 — founding operators keep $5</strong></li>
-          </ul>
-          <a class="btn btn-solid-inv" href="mailto:jredmon07@icloud.com?subject=AeroOps" style="margin-top:18px">Get in touch</a>
-        </div>
+      <div class="tier reveal" style="max-width:560px;margin-bottom:48px">
+        <span class="cap-caption">The price</span>
+        <p class="tier-price">$0<span class="tier-sub">Not a trial. No fleet-size limit.</span></p>
+        <ul>
+          <li>Scheduling, dispatch, maintenance, training, billing, and reporting</li>
+          <li>Unlimited aircraft, instructors, students, and staff</li>
+          <li>Public booking page and member portal included</li>
+          <li>Bank payments: 1%, capped at $7</li>
+        </ul>
       </div>
-
 
       <div class="pricing-detail">
         <p>
-          Card processors take a percentage of every rental and lesson you collect: a $3,000
-          block-time purchase costs about $87 in card fees. Route the same payment through
-          AeroOps by bank transfer and it costs $7, the cap, no matter how large the payment
-          gets. Bill monthly statements and you pay one capped fee per member each month, so
-          your effective rate falls as your members fly more. Cards are still accepted for
-          the occasional payment, at processor cost passed through at checkout; routine
-          payments go by bank transfer.
-        </p>
-        <p>
-          A flight is scheduled, dispatched, and closed out with a recorded Hobbs reading; that
-          reading pre-fills a draft invoice for a person to review and finalize. Turn on auto-pay
-          for a member and each finalized invoice collects from their linked bank account
-          automatically. The QuickBooks Online export splits rental and instruction into their
-          own accounts on the way out.
-        </p>
-        <p>
-          Most flight-school software bills you per aircraft, every month, a tax on growing
-          your fleet. AeroOps charges nothing per aircraft, ever.
+          A $3,000 block purchase costs about $87 in card fees; by bank transfer through
+          AeroOps it costs $7. Auto-pay collects finalized invoices automatically, and the
+          QuickBooks export splits rental and instruction on the way out.
         </p>
         <p style="margin-bottom:0">
           <a class="text-link" href="mailto:jredmon07@icloud.com?subject=AeroOps">Ask us anything</a>
@@ -934,9 +869,8 @@ section{padding:96px 0}
         <p class="eyebrow eyebrow--accent" style="justify-content:center">Live demo</p>
         <h2 id="demo-title" style="color:var(--white)">Fly the demo before you talk to anyone.</h2>
         <p style="color:var(--text-inv-soft)">
-          Built for flying clubs first, and just as at home in a flight school. Two sample
-          operations are loaded and ready. Start with the club, or open the full school. Log in
-          and try to double-book an aircraft or dispatch a grounded one — the system won't let you.
+          Two sample operations are loaded: a small flying club and a full flight school.
+          Log in and try to double-book an aircraft — it won't let you.
         </p>
       </div>
 
@@ -946,8 +880,7 @@ section{padding:96px 0}
           <span class="demo-tag">Flying club</span>
           <h3>Bravo Flying Club</h3>
           <p>
-            A small club in club mode: two aircraft, member dues, and only the screens a club
-            needs. The size most clubs actually run.
+            Two aircraft, member dues, and only the screens a club needs.
           </p>
           <dl>
             <dt>EMAIL</dt><dd>owner@bravo.aero</dd>
@@ -961,8 +894,7 @@ section{padding:96px 0}
           <span class="demo-tag">Flight school</span>
           <h3>Alpha Flight School</h3>
           <p>
-            The full product with every module on: scheduling, dispatch, maintenance, training
-            records, billing, and reporting, with a month of activity loaded.
+            Every module on, with a month of activity loaded.
           </p>
           <dl>
             <dt>EMAIL</dt><dd>owner@alpha.aero</dd>
@@ -986,10 +918,8 @@ section{padding:96px 0}
         <p class="eyebrow eyebrow--accent">Switching systems</p>
         <h2 id="myfbo-title">Migrating from myFBO?</h2>
         <p>
-          myFBO retires in August 2026, so its flight schools and clubs are choosing a
-          replacement now. Export your members and aircraft from myFBO to a CSV, upload
-          them in AeroOps, and we match the columns for you. Review a full preview, and
-          nothing is created until you confirm. The software itself is free.
+          myFBO retires in August 2026. Export your members and aircraft to a CSV, upload
+          them in AeroOps, and review a full preview before anything is created.
         </p>
       </div>
       <ul class="reveal" style="list-style:none;margin:0 0 32px;padding:0;max-width:60ch;display:grid;gap:14px">
