@@ -47,9 +47,9 @@ critical algorithms):
 | **Mobile (foundation)** | Token-based mobile auth + a read-only schedule API, with the *identical* org-isolation/RLS/auth posture as the web (the Expo app is the next step). |
 
 **Status:** Phase 1 (Scheduling + Dispatch + the breadth hubs + the optimizer) is
-**feature-complete**. It has **not been deployed yet** — database migrations are
-staged and human-gated (never auto-applied), and a hosted environment is the next
-step (see **[`DEPLOY.md`](./DEPLOY.md)**).
+**feature-complete and deployed**. Database migrations remain staged and
+human-gated (never auto-applied) — see **[`DEPLOY.md`](./DEPLOY.md)** for the
+deployment path.
 
 ---
 

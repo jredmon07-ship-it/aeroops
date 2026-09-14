@@ -1,5 +1,6 @@
 {
   "name": "aeroops",
+  "license": "MIT",
   "private": true,
   "version": "0.0.0",
   "description": "Multi-tenant SaaS for flight schools, clubs, and FBOs. See THE-BIBLE.md.",
