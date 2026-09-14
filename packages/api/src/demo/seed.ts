@@ -651,12 +651,20 @@ export async function seedDemo(db: AnyDb): Promise<void> {
       { tail: 'N28K', pilot: cfiUserId, hobbs: 1500, tach: 1400 },
     ];
     const durChoices = [60, 90, 90, 120, 105, 75];
-    // 24 flights, one per day over the last 24 days (unique days → no conflicts;
-    // daysAgo = 24 - k so meters climb toward the present). Each flight is
+    // 56 flights: BOTH trainers fly once a day for the last 28 days. Pairing the
+    // day index with the aircraft keeps one flight per tail per day, so there is
+    // still no resource conflict — it just doubles the volume. Each flight is
     // isolated in its own try so one refusal never drops the rest.
-    for (let k = 0; k < 24; k++) {
+    //
+    // Owner (2026-09-02): the demo dashboard defaults to a 30-DAY window and was
+    // reading 0 flights. The cause is not volume, it is age — these dates anchor
+    // to the moment the seed RUNS, and the deployed database was last seeded
+    // ~48 days earlier, so every flight had aged past 30 days. Filling 28 days
+    // means a freshly seeded demo is full on arrival; it still needs re-seeding
+    // periodically to stay that way.
+    for (let k = 0; k < 56; k++) {
       const plan = histPlan[k % histPlan.length]!;
-      const daysAgo = 24 - k;
+      const daysAgo = 28 - Math.floor(k / 2);
       const startH = 8 + (k % 7); // 08:00–14:00 local
       const durMin = durChoices[k % durChoices.length]!;
       const startAt = atLocal(-daysAgo, startH, 0);
@@ -1074,8 +1082,10 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
     let tach = 815;
     let invoiced = 0;
     let paid = 0;
-    for (let k = 0; k < 14; k++) {
-      const daysAgo = 18 - k; // 18..5 days ago; meters climb toward the present
+    // Owner (2026-09-02): 14 -> 26 flights, and the window widened to 27..2 days
+    // so the club dashboard's default 30-day view is populated too.
+    for (let k = 0; k < 26; k++) {
+      const daysAgo = 27 - k; // 27..2 days ago; meters climb toward the present
       const startH = 9 + (k % 6); // 09:00–14:00 local
       const durMin = durChoices[k % durChoices.length]!;
       const startAt = atLocal(-daysAgo, startH, 0);
