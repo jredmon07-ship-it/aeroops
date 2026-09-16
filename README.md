@@ -39,8 +39,9 @@ apps/mobile     Expo / React Native foundation (shares packages/core).
 
 **Tenant isolation is the design centre.** Every tenant query is scoped by `org_id`
 in the API layer, with Postgres row-level security as an independent backstop — so a
-bug in application code cannot leak across tenants. Five permission-scoped roles
-(owner, front desk, instructor, member, driver) gate what each user can see and do.
+bug in application code cannot leak across tenants. Eight membership roles
+(owner, manager, dispatcher, CFI, mechanic, renter, student, accountant) map onto a
+capability-based permission model that gates what each user can see and do.
 
 ---
 
@@ -74,7 +75,7 @@ Checks: `pnpm typecheck` · `pnpm test` · `pnpm build`
 
 The repo carries its own build system. `.claude/agents/` holds 17 role-scoped
 subagents (architect, schema-engineer, backend-engineer, frontend-engineer,
-scheduling-engineer, test-writer, reviewer, compliance-officer, devops, and others),
+scheduling-engineer, test-writer, reviewer, compliance-officer, devops-engineer, and others),
 and `.claude/commands/` holds the pipeline that drives them:
 
 ```
