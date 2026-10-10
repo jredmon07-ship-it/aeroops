@@ -24,7 +24,7 @@
  * NO writes, NO audit, NO money, NO migration (read-only slice).
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';

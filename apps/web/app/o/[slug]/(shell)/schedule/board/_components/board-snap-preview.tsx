@@ -6,7 +6,6 @@
  */
 import * as React from 'react';
 import { formatTimeRange } from '../../_utils/format-time';
-import { TRACK_WIDTH_PX } from './board-time-axis';
 
 interface BoardSnapPreviewProps {
   /** Start time of the proposed new slot. */

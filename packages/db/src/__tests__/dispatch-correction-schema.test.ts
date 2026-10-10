@@ -58,7 +58,7 @@ import {
   withOrgContext,
   withPlatformAdminContext,
 } from '../index.js';
-import { org, appUser, resource, reservation, dispatchTicket, dispatchTicketCorrection } from '../schema/index.js';
+import { org, appUser, resource, reservation, dispatchTicketCorrection } from '../schema/index.js';
 import type { PgliteTestClient } from '../client.js';
 
 // ── Path resolution ───────────────────────────────────────────────────────────

@@ -55,7 +55,6 @@ import {
 } from '../availability-actions';
 import type { SerializedAvailabilityWindowView } from '../availability-actions';
 import {
-  minutesToHHMM,
   hhmmToMinutes,
   splitOvernightWindow,
   groupWindowsByDay,

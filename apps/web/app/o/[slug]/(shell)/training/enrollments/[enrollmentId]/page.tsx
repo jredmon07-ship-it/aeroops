@@ -26,7 +26,7 @@
  */
 import * as React from 'react';
 import { Suspense } from 'react';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, AlertCircle, Users } from 'lucide-react';
 import { auth } from '@/auth';

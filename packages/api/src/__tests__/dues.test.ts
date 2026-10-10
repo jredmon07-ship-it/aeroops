@@ -102,7 +102,7 @@ class FakeStripeClient implements StripeClient {
     return JSON.parse(rawBody) as StripeWebhookEvent;
   }
 
-  async createSetupIntent(input: StripeCreateSetupIntentInput): Promise<StripeSetupIntentResult> {
+  async createSetupIntent(_input: StripeCreateSetupIntentInput): Promise<StripeSetupIntentResult> {
     globalSetupCounter += 1;
     return {
       stripeSetupIntentId: `seti_fake_${globalSetupCounter}`,

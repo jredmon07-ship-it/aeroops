@@ -13,7 +13,6 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { AlertTriangle, WrenchIcon } from 'lucide-react';
 import type { AircraftListRow } from '@aeroops/api';
 import { StatusBadge } from '@/components/ui/status-badge';

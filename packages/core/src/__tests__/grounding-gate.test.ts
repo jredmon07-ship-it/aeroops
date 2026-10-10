@@ -30,7 +30,6 @@ import {
   evaluateGroundingGate,
 } from '../maintenance/grounding-gate.js';
 import type {
-  GroundingHit,
   GroundingGateResult,
 } from '../maintenance/grounding-gate.js';
 
@@ -50,14 +49,6 @@ const aircraftResource = fc.record({
   resourceId: resourceId,
   kind: fc.constant(AIRCRAFT_KIND),
   grounded: fc.boolean(),
-  reason: reasonOrNull,
-});
-
-/** A grounded aircraft resource (grounded=true). */
-const groundedAircraftResource = fc.record({
-  resourceId: resourceId,
-  kind: fc.constant(AIRCRAFT_KIND),
-  grounded: fc.constant(true),
   reason: reasonOrNull,
 });
 

@@ -15,7 +15,7 @@
  *   listResources(session, opts?)          — app code; uses getDb() internally.
  *   listResourcesWithDb(db, session, opts) — tests; inject pglite client.
  */
-import { asc, eq, or } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { resource } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';

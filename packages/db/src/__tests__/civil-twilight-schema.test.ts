@@ -46,12 +46,9 @@ import {
   createTestClient,
   applyMigrationSql,
   withPlatformAdminContext,
-  withOrgContext,
 } from '../index.js';
 import {
   org,
-  location,
-  dispatchConfig,
 } from '../schema/index.js';
 
 // ── Path resolution ───────────────────────────────────────────────────────────
@@ -221,7 +218,7 @@ describe('civil-twilight-schema: migration 0010 + constraints', () => {
   // ── T4: dispatch_config inserts omitting twilight columns succeed ──────────
 
   it('T4: additive — dispatch_config insert without twilight columns succeeds', async () => {
-    const { pglite, orgId } = env;
+    const { pglite } = env;
     // Use a fresh org to avoid dispatch_config_org_id_unique collision.
     await pglite.exec(`SET ROLE postgres`);
     const orgResult = await pglite.query<{ id: string }>(

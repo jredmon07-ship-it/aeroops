@@ -29,7 +29,7 @@
  * Ranking: R1 (prefix before non-prefix).
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import {

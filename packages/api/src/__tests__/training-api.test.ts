@@ -66,7 +66,7 @@
  * seedTwoOrgs → additional seed → setTestAppRole.
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
@@ -78,8 +78,6 @@ import {
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { auditLog } from '@aeroops/db';
-import { eq } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { listCoursesWithDb } from '../training/list-courses.js';
@@ -144,25 +142,6 @@ beforeAll(async () => {
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Assert exactly N audit rows with action filter, return them. */
-async function countAuditRows(
-  db: PgliteTestClient,
-  orgId: string,
-  action: string,
-  entityId?: string,
-): Promise<number> {
-  return withOrgContext(db, orgId, async (tx) => {
-    const result = await tx.execute(
-      entityId
-        ? require('drizzle-orm').sql`SELECT COUNT(*)::int AS c FROM audit_log WHERE action = ${action} AND entity_id = ${entityId}::uuid`
-        : require('drizzle-orm').sql`SELECT COUNT(*)::int AS c FROM audit_log WHERE action = ${action}`,
-    );
-    const rows = (result.rows ?? result) as Array<{ c: number | string }>;
-    const count = typeof rows[0]?.c === 'string' ? parseInt(rows[0].c, 10) : (rows[0]?.c ?? 0);
-    return count;
-  });
-}
 
 // ── T1: listCourses — empty then populated ────────────────────────────────────
 
@@ -414,8 +393,8 @@ describe('T7 — addCourseLesson', () => {
     if (!c.ok) return;
     const { courseId } = c.course;
 
-    const r1 = await addCourseLessonWithDb(env.db, sess, { courseId, title: 'L1' });
-    const r2 = await addCourseLessonWithDb(env.db, sess, { courseId, title: 'L2' });
+    await addCourseLessonWithDb(env.db, sess, { courseId, title: 'L1' });
+    await addCourseLessonWithDb(env.db, sess, { courseId, title: 'L2' });
     const r3 = await addCourseLessonWithDb(env.db, sess, { courseId, title: 'L3' });
 
     expect(r3.ok).toBe(true);

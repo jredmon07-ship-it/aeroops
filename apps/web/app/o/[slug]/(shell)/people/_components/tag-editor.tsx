@@ -10,10 +10,9 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, X, Loader2, XCircle } from 'lucide-react';
+import { Plus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { addMemberTagAction, removeMemberTagAction } from '../actions';
 import type { SerializedMemberDetail, SerializedMemberTagView } from '../actions';
 import type { MemberTagColor } from '@aeroops/api';
@@ -93,7 +92,7 @@ export function TagEditor({ member, canManage, onUpdate }: TagEditorProps) {
     }
   }
 
-  async function handleRemove(tagId: string, tagLabel: string) {
+  async function handleRemove(tagId: string, _tagLabel: string) {
     setRemovingIds((prev) => new Set(prev).add(tagId));
     setRemoveErrors((prev) => {
       const next = { ...prev };

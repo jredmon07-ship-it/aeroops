@@ -8,7 +8,7 @@
     "dev": "next dev",
     "build": "next build",
     "typecheck": "tsc --noEmit",
-    "lint": "echo \"(web) no lint configured yet — ESLint wiring is Slice 0.4\"",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {
@@ -34,9 +34,15 @@
     "tailwindcss": "3.4.17"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "@next/eslint-plugin-next": "15.5.19",
     "@types/node": "22.15.30",
     "@types/react": "19.1.6",
+    "eslint": "9.39.4",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "globals": "17.4.0",
     "typescript": "5.8.3",
+    "typescript-eslint": "8.71.1",
     "vitest": "^4.1.8"
   }
 }

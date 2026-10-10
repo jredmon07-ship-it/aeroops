@@ -21,7 +21,7 @@
  */
 import { z } from 'zod';
 import { sql, eq, and } from 'drizzle-orm';
-import { membership, duesSchedule, auditLog } from '@aeroops/db';
+import { membership, auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { DUES_CADENCES } from '@aeroops/core';
 import type { DuesCadence } from '@aeroops/core';

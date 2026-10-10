@@ -105,7 +105,6 @@ export function DispatchBoard({
   initialDispatchTickets,
   canMaintenanceAccess,
   canGround,
-  slug,
   initialGroundingStatus,
   initialOpenSquawkCounts,
 }: DispatchBoardProps) {

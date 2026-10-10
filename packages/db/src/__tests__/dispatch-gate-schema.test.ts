@@ -47,8 +47,6 @@ import {
   org,
   appUser,
   resource,
-  reservation,
-  dispatchTicket,
   dispatchRequirement,
   dispatchConfig,
 } from '../schema/index.js';

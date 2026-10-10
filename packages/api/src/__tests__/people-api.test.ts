@@ -32,7 +32,7 @@
  * covered by boundary cases per spec §5 "No property tests" note).
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
@@ -219,7 +219,7 @@ describe('T9 — listMembers', () => {
 
 describe('T10 — listMembers tenant isolation', () => {
   it('cross-org member is invisible in org-A list', async () => {
-    const { db, orgAId, orgBId, userAId, userBId } = sharedEnv;
+    const { db, orgAId, userAId, userBId } = sharedEnv;
     const sessA = makeSession(orgAId, userAId, 'owner');
     const rows = await listMembersWithDb(db, sessA);
     const bobVisible = rows.find((r) => r.userId === userBId);
@@ -527,7 +527,7 @@ describe('T16 — updateMember', () => {
   });
 
   it('cross-org userId → not_found', async () => {
-    const { db, orgAId, orgBId, userAId, userBId } = sharedEnv;
+    const { db, orgAId, userAId, userBId } = sharedEnv;
     const sessA = makeSession(orgAId, userAId, 'owner');
     const result = await updateMemberWithDb(db, sessA, { userId: userBId, fullName: 'Hacker' });
     expect(result.ok).toBe(false);
@@ -737,7 +737,7 @@ describe('T20 — addMemberTag', () => {
   });
 
   it('cross-org userId → not_found', async () => {
-    const { db, orgAId, orgBId, userAId, userBId } = sharedEnv;
+    const { db, orgAId, userAId, userBId } = sharedEnv;
     const sessA = makeSession(orgAId, userAId, 'owner');
     const result = await addMemberTagWithDb(db, sessA, { userId: userBId, tag: 'CrossOrg' });
     expect(result.ok).toBe(false);

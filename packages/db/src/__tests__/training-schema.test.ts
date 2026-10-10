@@ -473,7 +473,7 @@ describe('training-schema: migration 0012 + constraints + RLS', () => {
     await pglite.exec(`BEGIN`);
     await pglite.exec(`SET LOCAL "app.current_org_id" = '${orgBId}'`);
     const courseBId = await insertCourse(pglite, orgBId, userBId, 'B Course T4g');
-    const lessonBId = await insertLesson(pglite, orgBId, courseBId, userBId, 'B Lesson T4g', 0);
+    await insertLesson(pglite, orgBId, courseBId, userBId, 'B Lesson T4g', 0);
     const enrollBId = await insertEnrollment(pglite, orgBId, courseBId, userBId, userBId);
     await pglite.exec(`COMMIT`);
 

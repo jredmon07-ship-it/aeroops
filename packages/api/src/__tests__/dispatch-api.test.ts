@@ -31,13 +31,11 @@ import {
   applyMigrationSql,
   setTestAppRole,
   withOrgContext,
-  withPlatformAdminContext,
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { appUser, membership, resource, reservation, reservationResource, auditLog, dispatchTicket } from '@aeroops/db';
+import { auditLog, dispatchTicket } from '@aeroops/db';
 import { eq, and } from 'drizzle-orm';
-import { sql } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { createResourceWithDb } from '../scheduling/resource-commands.js';
@@ -88,35 +86,6 @@ const T = {
 };
 
 let sharedEnv: TestEnv;
-
-/**
- * seedReservationWithAircraft — creates a new aircraft + booked reservation
- * in orgA and returns { aircraftId, reservationId }.
- * Must be called as superuser (before setTestAppRole) or inside a withOrgContext
- * block that runs at superuser level. We call this in beforeAll/test setup
- * when the role is still superuser.
- */
-async function seedReservationWithAircraft(
-  db: PgliteTestClient,
-  orgId: string,
-  userId: string,
-  tag: string,
-  start = T.W1_start,
-  end = T.W1_end,
-): Promise<{ aircraftId: string; reservationId: string }> {
-  const sess = makeSession(orgId, userId, 'owner');
-
-  const aircraft = await createResourceWithDb(db, sess, {
-    kind: 'aircraft',
-    displayName: `N-${tag}`,
-    tailNumber: `N${tag}`,
-  });
-
-  const rResult = await createReservationWithDb(db, sess, { startAt: start, endAt: end, resourceIds: [aircraft.id] });
-  if (!rResult.ok) throw new Error(`seed reservation failed: ${rResult.reason}`);
-
-  return { aircraftId: aircraft.id, reservationId: rResult.reservation.id };
-}
 
 beforeAll(async () => {
   const { db, pglite } = await createTestClient();
@@ -378,7 +347,7 @@ describe('VALIDATION: openDispatch input schema', () => {
 
 describe('HAPPY PATH: openDispatch', () => {
   it('opens a ticket → ok:true, status=open, audit row written', async () => {
-    const { db, pglite, orgAId, userAId } = sharedEnv;
+    const { db, orgAId, userAId } = sharedEnv;
     const sess = makeSession(orgAId, userAId, 'owner');
 
     // Seed a fresh reservation (as the app role — createResourceWithDb/createReservationWithDb are gated)

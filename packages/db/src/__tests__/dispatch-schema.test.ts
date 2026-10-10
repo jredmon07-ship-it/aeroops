@@ -385,7 +385,7 @@ describe('dispatch-schema smoke: migration 0005 + constraints + RLS', () => {
       insertOpenTicket(pglite, orgAId, reservationAId, aircraftAId, userAId, userAId),
     ).resolves.toMatch(/^[0-9a-f-]{36}$/);
     // Void it so subsequent tests can open a new ticket on the same aircraft
-    const ticketId = await insertOpenTicket(
+    await insertOpenTicket(
       pglite, orgAId, reservationAId, aircraftAId, userAId, userAId,
     ).catch(() => null);
     // The second open attempt on same aircraft in same TX should have already failed.

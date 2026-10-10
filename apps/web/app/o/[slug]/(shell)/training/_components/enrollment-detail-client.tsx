@@ -18,7 +18,6 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import {
   CheckCircle2, Circle, XCircle, Loader2, AlertTriangle,
   ClipboardList, BookOpen, PenLine, ShieldCheck,

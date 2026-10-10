@@ -39,8 +39,6 @@ import {
 } from '../scheduling/civil-twilight.js';
 import type {
   SolarEvents,
-  TwilightHit,
-  TwilightGateResult,
 } from '../scheduling/civil-twilight.js';
 
 const TWO_MIN_MS = 2 * 60_000;

@@ -24,7 +24,7 @@ import * as React from 'react';
 import { Suspense } from 'react';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
 import { requireCapability, hasCapability, getOrgFeatures } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';

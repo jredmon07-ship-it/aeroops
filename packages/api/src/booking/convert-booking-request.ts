@@ -47,7 +47,7 @@
 
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
-import { bookingRequest, auditLog } from '@aeroops/db';
+import { auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';

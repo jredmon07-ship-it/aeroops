@@ -145,7 +145,7 @@ function RetentionSettingsCardInner({ slug }: { slug: string }) {
 
   // ── Save settings ──────────────────────────────────────────────────────────
 
-  async function handleSave(prevConfig: RetentionConfig) {
+  async function handleSave(_prevConfig: RetentionConfig) {
     setEditError(null);
 
     // Inline validation: 0–3650

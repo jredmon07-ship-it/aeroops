@@ -48,7 +48,6 @@ import {
   buildHref,
   flattenGroups,
   clampIndex,
-  type FlatResult,
 } from '../command-palette-helpers';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────

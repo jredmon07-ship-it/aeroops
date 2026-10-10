@@ -88,7 +88,6 @@ import {
   appUser,
   resource,
   reservation,
-  dispatchTicket,
   rateSchedule,
   invoice,
   invoiceLineItem,
@@ -490,7 +489,7 @@ describe('billing-records-schema: migration 0019 + constraints + RLS', () => {
   // ── BR3: RLS isolation (cross-org SELECT → 0) ────────────────────────────────
 
   it('BR3a: RLS isolation — org A cannot see org B rate_schedule rows', async () => {
-    const { pglite, db, orgAId, orgBId, userAId, userBId } = env;
+    const { pglite, db, orgAId, orgBId, userBId } = env;
 
     // Seed one rate in org B (superuser).
     await pglite.exec(`SET ROLE postgres`);
@@ -516,7 +515,7 @@ describe('billing-records-schema: migration 0019 + constraints + RLS', () => {
   });
 
   it('BR3b: RLS isolation — org A cannot see org B invoice rows', async () => {
-    const { pglite, db, orgAId, orgBId, userAId, userBId } = env;
+    const { pglite, db, orgAId, orgBId, userBId } = env;
 
     await pglite.exec(`SET ROLE postgres`);
     await pglite.exec(`BEGIN`);
@@ -539,7 +538,7 @@ describe('billing-records-schema: migration 0019 + constraints + RLS', () => {
   });
 
   it('BR3c: RLS isolation — org A cannot see org B invoice_line_item rows', async () => {
-    const { pglite, db, orgAId, orgBId, userAId, userBId } = env;
+    const { pglite, db, orgAId, orgBId, userBId } = env;
 
     await pglite.exec(`SET ROLE postgres`);
     await pglite.exec(`BEGIN`);

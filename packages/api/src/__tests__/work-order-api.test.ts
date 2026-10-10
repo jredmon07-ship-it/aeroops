@@ -70,9 +70,9 @@
  *   existing squawk/grounding public-fn tests still green after extraction
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
 import {
   createTestClient,
@@ -82,8 +82,8 @@ import {
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { auditLog, aircraftGrounding } from '@aeroops/db';
-import { eq, and, sql } from 'drizzle-orm';
+import { auditLog } from '@aeroops/db';
+import { eq } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import {

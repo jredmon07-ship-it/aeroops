@@ -27,7 +27,7 @@
  * NO property tests (no engine logic per spec).
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
@@ -108,11 +108,6 @@ async function seedReservation(
   });
   if (!r.ok) throw new Error(`seedReservation failed: ${r.reason}`);
   return { aircraftId: aircraft.id, reservationId: r.reservation.id };
-}
-
-/** A date offset from now by `hours` hours. */
-function hoursFromNow(hours: number): Date {
-  return new Date(Date.now() + hours * 60 * 60 * 1000);
 }
 
 // ── Shared test env ───────────────────────────────────────────────────────────
@@ -241,7 +236,7 @@ describe('N10 — empty result when no upcoming reservations', () => {
 
 describe('HEADLINE — self-scoping (same org, two members, disjoint reservations)', () => {
   it('member A only gets alerts for their own reservations, not B', async () => {
-    const { db, orgAId, memberAId, memberBId, aircraft2Id } = env;
+    const { db, orgAId, memberAId } = env;
     // Use a `now` where both reservations are ≤24h away
     const nowA = new Date('2027-09-10T09:00:00Z'); // A's res starts at 10:00; B's is 2027-09-12
 
@@ -328,7 +323,7 @@ describe('N1 — reservation_upcoming as booker', () => {
 
 describe('N2 — reservation_upcoming as dispatched-pilot', () => {
   it('dispatched pilot (not booker) gets reservation_upcoming alert', async () => {
-    const { db, orgAId, memberAId, memberBId, ownerAId } = env;
+    const { db, orgAId, memberAId, ownerAId } = env;
 
     // Create a fresh reservation booked by OWNER (not memberA), then open dispatch
     // as memberA (pilot). memberA didn't book it but IS the pilot.
@@ -598,7 +593,7 @@ describe('N7 — both alert kinds at once: distinct ids and sorted at ASC', () =
 
 describe('N8 — multi-resource reservation: grounded resource only, single upcoming', () => {
   it('multi-resource: aircraft_grounded fires only for grounded resource; one upcoming alert', async () => {
-    const { db, orgAId, ownerAId, memberAId } = env;
+    const { db, orgAId, ownerAId } = env;
     const ownerSess = makeSession(orgAId, ownerAId, 'owner');
 
     // Create two aircraft
@@ -661,7 +656,7 @@ describe('N8 — multi-resource reservation: grounded resource only, single upco
 
 describe('N9 — cancelled reservations excluded', () => {
   it('cancelled reservation does not yield any alert', async () => {
-    const { db, orgAId, memberAId, ownerAId } = env;
+    const { db, orgAId, memberAId } = env;
     const memberSess = makeSession(orgAId, memberAId, 'owner'); // owner cap to cancel
 
     // Create a reservation, then cancel it
@@ -725,8 +720,6 @@ describe('N11 — cap 20: nearest 20 alerts kept', () => {
     // The furthest (i=20..24) have the latest starts → should be dropped.
     // The nearest 20 (i=0..19) should be present.
     const presentIds = upcomingAlerts.map((a) => a.id);
-    // First 20 reservation IDs (nearest in time)
-    const nearest20 = reservationIds.slice(0, 20);
     // Verify at least some of the nearest are present and count doesn't exceed 20
     expect(presentIds.length).toBeLessThanOrEqual(20);
   }, 60_000);
@@ -818,13 +811,6 @@ describe('N14 — deterministic under injected `now`', () => {
       .map((a) => a.id);
     expect(includedIds).toContain(alertId('reservation', [reservationA1Id, 'upcoming']));
 
-    // now = reservationStart - 24h + 1ms → cutoff = reservationStart - 1ms → start > cutoff → EXCLUDED
-    const nowPastBoundary = new Date(reservationStart.getTime() - windowMs + 1);
-    // Wait — cutoff = now + 24h = reservationStart - 24h + 1ms + 24h = reservationStart + 1ms
-    // No: cutoff = nowPastBoundary + windowMs = (reservationStart - windowMs + 1) + windowMs
-    //           = reservationStart + 1
-    // start(=reservationStart) ≤ cutoff(=reservationStart+1) → INCLUDED
-    // That's wrong. Let me recalculate:
     // We want start > cutoff, i.e., reservationStart > now + 24h
     // → now < reservationStart - 24h
     // → now = reservationStart - 24h - 1ms → cutoff = reservationStart - 1ms → start > cutoff → EXCLUDED

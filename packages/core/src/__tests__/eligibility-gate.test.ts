@@ -32,7 +32,6 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { evaluateEligibilityGate } from '../dispatch-gate/eligibility-gate.js';
-import type { EligibilityGateResult } from '../dispatch-gate/eligibility-gate.js';
 
 // ─── Generators ──────────────────────────────────────────────────────────────
 

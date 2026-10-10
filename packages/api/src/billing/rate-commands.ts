@@ -20,7 +20,7 @@
  */
 
 import { z } from 'zod';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import { rateSchedule, invoiceLineItem, auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';

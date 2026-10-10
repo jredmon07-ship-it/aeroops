@@ -62,8 +62,6 @@ import type {
   RemoveMemberTagInput,
   AddMemberInput,
   MemberCursor,
-  PilotLog,
-  PilotLogEntry,
   MemberExpirationView,
   MemberExpirationStatus,
   AddMemberExpirationInput,

@@ -478,7 +478,7 @@ describe('fleet-schema: migration 0007 + constraints + additive guarantee', () =
   // ── T5(c): deleting linked location SET-NULLs home_base_location_id ───────
 
   it('T5c: deleting the linked location SET-NULLs home_base_location_id but NOT org_id', async () => {
-    const { db, pglite, orgAId } = env;
+    const { pglite, orgAId } = env;
 
     // We need superuser context to create a location + resource, then delete the location.
     // After setTestAppRole the session is aeroops_app.
@@ -566,7 +566,7 @@ describe('fleet-schema: migration 0007 + constraints + additive guarantee', () =
   it('T7: down migration 0007 removes all Slice 5 additions and resource still functional', async () => {
     // Use a fresh PGlite instance to apply forward + down without disturbing
     // the shared env used by T1–T6.
-    const { db: db2, pglite: pg2 } = await createTestClient();
+    const { pglite: pg2 } = await createTestClient();
     await applyMigrationSql({ pglite: pg2 }, MIGRATION_SQL_THROUGH_0007);
 
     // Apply the down migration.

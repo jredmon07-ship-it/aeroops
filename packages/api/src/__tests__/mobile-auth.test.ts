@@ -47,7 +47,6 @@ const MIGRATION_SQL = loadMigrationSql('0022');
 let db: PgliteTestClient;
 let pglite: PGlite;
 let orgAId: string;
-let orgBId: string;
 let userAId: string;
 let noMemberUserId: string;
 
@@ -64,7 +63,6 @@ beforeAll(async () => {
   // 2. Seed two orgs with users.
   const seed = await seedTwoOrgs(db);
   orgAId = seed.orgAId;
-  orgBId = seed.orgBId;
   userAId = seed.userAId;
 
   // 3. Hash passwords (real argon2id — ~200 ms each).

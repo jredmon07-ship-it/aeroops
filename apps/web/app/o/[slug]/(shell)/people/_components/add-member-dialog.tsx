@@ -31,10 +31,6 @@ import type { MembershipRole } from '@aeroops/core';
 import { addMemberAction } from '../actions';
 import type { SerializedMemberDetail } from '../actions';
 
-const MANAGEABLE_ROLES: MembershipRole[] = MEMBERSHIP_ROLES.filter(
-  (r) => r !== 'renter' && r !== 'student',
-) as MembershipRole[];
-
 interface AddMemberDialogProps {
   onSuccess?: (member: SerializedMemberDetail) => void;
 }

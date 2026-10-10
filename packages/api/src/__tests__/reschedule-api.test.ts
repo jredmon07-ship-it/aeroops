@@ -45,7 +45,7 @@ import {
   loadMigrationSql,
 } from '@aeroops/db';
 import { auditLog, reservation, reservationResource } from '@aeroops/db';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { PgliteTestClient, AnyDb } from '@aeroops/db';
 
 import { createReservationWithDb } from '../scheduling/create-reservation.js';

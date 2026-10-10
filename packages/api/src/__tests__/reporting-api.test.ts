@@ -41,7 +41,7 @@
  * seedTwoOrgs → additional seed → setTestAppRole.
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
@@ -130,70 +130,6 @@ beforeAll(async () => {
 }, 60_000);
 
 // ── Helper: seed a dispatch cycle (open + close) returning flightTimeHours ──
-
-async function seedClosedDispatch(
-  db: PgliteTestClient,
-  orgId: string,
-  userId: string,
-  tailTag: string,
-  hobbsOut: number,
-  hobbsIn: number,
-  closedAtOverride?: Date,
-): Promise<{ aircraftId: string; reservationId: string; ticketId: string; flightTimeHours: number }> {
-  const sess = makeSession(orgId, userId, 'owner');
-
-  const aircraft = await createResourceWithDb(db, sess, {
-    kind: 'aircraft',
-    displayName: `N-${tailTag}`,
-    tailNumber: tailTag,
-  });
-
-  const rResult = await createReservationWithDb(db, sess, {
-    startAt: T.W1_start,
-    endAt: T.W1_end,
-    resourceIds: [aircraft.id],
-  });
-  if (!rResult.ok) throw new Error(`seed reservation failed: ${rResult.reason}`);
-
-  const openResult = await openDispatchWithDb(db, sess, {
-    reservationId: rResult.reservation.id,
-    resourceId: aircraft.id,
-    pilotUserId: userId,
-    hobbsOut,
-    tachOut: hobbsOut,
-  });
-  if (!openResult.ok) throw new Error(`seed open failed: ${JSON.stringify(openResult)}`);
-
-  const closeResult = await closeDispatchWithDb(db, sess, {
-    ticketId: openResult.ticket.id,
-    hobbsIn,
-    tachIn: hobbsIn,
-  });
-  if (!closeResult.ok) throw new Error(`seed close failed: ${JSON.stringify(closeResult)}`);
-
-  // If a custom closedAt is provided, backdate it via raw SQL so range tests work.
-  if (closedAtOverride) {
-    await withOrgContext(db, orgId, async (tx) => {
-      await tx.execute(
-        { sql: `UPDATE dispatch_ticket SET closed_at = $1 WHERE id = $2`, params: [closedAtOverride, openResult.ticket.id] } as never,
-      );
-    });
-    // Use Drizzle sql tag for the update
-    const { sql: drizzleSql } = await import('drizzle-orm');
-    await withOrgContext(db, orgId, async (tx) => {
-      await tx.execute(drizzleSql`UPDATE dispatch_ticket SET closed_at = ${closedAtOverride} WHERE id = ${openResult.ticket.id}`);
-    });
-  }
-
-  const flightTimeHours = Math.round((hobbsIn - hobbsOut) * 10) / 10;
-
-  return {
-    aircraftId: aircraft.id,
-    reservationId: rResult.reservation.id,
-    ticketId: openResult.ticket.id,
-    flightTimeHours,
-  };
-}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SECTION 0 — resolveRange unit tests
@@ -1043,7 +979,7 @@ describe('getAircraftUtilization: inactive aircraft excluded', () => {
 
     const sess = makeSession(seed.orgAId, seed.userAId, 'owner');
 
-    const acActive = await createResourceWithDb(inactDb, sess, {
+    await createResourceWithDb(inactDb, sess, {
       kind: 'aircraft', displayName: 'N-ACTIVE', tailNumber: 'NACTIVE',
     });
     const acInactive = await createResourceWithDb(inactDb, sess, {

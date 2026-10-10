@@ -45,7 +45,7 @@
 'use client';
 
 import * as React from 'react';
-import { XCircle, AlertTriangle, CheckCircle } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,

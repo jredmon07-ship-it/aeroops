@@ -115,7 +115,7 @@ function solarDeclinationAndEoT(jd: number): { declDeg: number; eotMin: number }
 
   // Mean obliquity of the ecliptic (deg) + correction
   const seconds = 21.448 - t * (46.815 + t * (0.00059 - t * 0.001813));
-  let epsilon0 = 23 + (26 + seconds / 60) / 60;
+  const epsilon0 = 23 + (26 + seconds / 60) / 60;
   const epsilon = epsilon0 + 0.00256 * Math.cos(omega * DEG);
 
   // Solar declination (deg)

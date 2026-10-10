@@ -39,7 +39,7 @@
  * seedTwoOrgs → additional seed → setTestAppRole.
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
@@ -906,18 +906,15 @@ describe('T22 — updateAircraft: non-editable fields unwritable', () => {
 
     // The Zod schema does not accept tailNumber — it either throws ValidationError
     // or strips the field. Either way, the tail number is unchanged after the call.
-    let resultOk = false;
     try {
-      const result = await updateAircraftWithDb(db, sess, {
+      await updateAircraftWithDb(db, sess, {
         resourceId: id,
         // tailNumber not in schema — extra field silently stripped by Zod.
         ...(({ tailNumber: 'HACKED' }) as Record<string, unknown>),
         make: 'Cessna',
       });
-      resultOk = result.ok;
     } catch {
       // ValidationError also acceptable.
-      resultOk = false;
     }
 
     // Either way, verify the tail # was not changed.
@@ -977,7 +974,7 @@ describe('T23 — updateAircraft target not found', () => {
 
 describe('T24 — updateAircraft invalid_home_base', () => {
   it('cross-org location id → invalid_home_base', async () => {
-    const { db, orgAId, orgBId, userAId, userBId, locationBId } = sharedEnv;
+    const { db, orgAId, userAId, locationBId } = sharedEnv;
     const sessA = makeSession(orgAId, userAId, 'owner');
 
     const id = await seedAircraft(db, orgAId, userAId, 'HOMEBAD01');

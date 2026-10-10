@@ -47,7 +47,7 @@
 import { z } from 'zod';
 import { eq, and, sql, or } from 'drizzle-orm';
 import { invoice, auditLog, ledgerEntry } from '@aeroops/db';
-import type { AnyDb, InvoiceSelect } from '@aeroops/db';
+import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';

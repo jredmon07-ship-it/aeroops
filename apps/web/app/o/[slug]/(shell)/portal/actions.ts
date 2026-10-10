@@ -44,8 +44,6 @@ import {
   listMyCalendarFeeds,
   revokeCalendarFeed,
   regenerateCalendarFeed,
-  getMyDocuments,
-  getMyDocumentDownloadUrl,
   getMyPilotLog,
   exportMyPilotLogCsv,
   annotateFlight,
@@ -61,9 +59,6 @@ import type {
   SavedPaymentMethodView,
   AutopaySettingView,
   CalendarFeedView,
-  DocumentView,
-  PilotLog,
-  PilotLogEntry,
   BlockPurchaseView,
   MyDuesScheduleView,
 } from '@aeroops/api';

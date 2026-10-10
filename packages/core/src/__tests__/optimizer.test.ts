@@ -26,7 +26,6 @@ import { proposeSchedule } from '../scheduling/optimizer.js';
 import type {
   DemandRequest,
   AvailabilityWindow,
-  PerResourceTwilight,
   ProposalSet,
 } from '../scheduling/optimizer.js';
 import { intervalsOverlap } from '../scheduling/overlap.js';

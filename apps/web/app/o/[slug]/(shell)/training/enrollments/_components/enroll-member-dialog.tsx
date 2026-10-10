@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { CourseListRow } from '@aeroops/api';
-import { enrollMemberAction, listCoursesAction } from '../../actions';
+import { enrollMemberAction } from '../../actions';
 import { listMembersAction } from '../../../people/actions';
 import type { SerializedEnrollmentDetail } from '../../actions';
 

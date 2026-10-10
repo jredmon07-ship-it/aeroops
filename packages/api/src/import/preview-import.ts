@@ -38,7 +38,7 @@ import {
   normalizeMemberRow,
   normalizeAircraftRow,
 } from '@aeroops/core';
-import type { ImportKind, ColumnMapping } from '@aeroops/core';
+import type { ColumnMapping } from '@aeroops/core';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';

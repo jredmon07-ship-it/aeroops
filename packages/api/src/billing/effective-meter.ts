@@ -23,7 +23,7 @@
  *   consumes the corrected meter (flagged from the correction schema).
  */
 
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { dispatchTicket, dispatchTicketCorrection } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 

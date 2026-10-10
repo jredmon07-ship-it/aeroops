@@ -9,7 +9,6 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import type { CourseListRow } from '@aeroops/api';
 import { courseStatusLabel } from './training-utils';
 

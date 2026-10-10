@@ -41,7 +41,7 @@
  */
 import { z } from 'zod';
 import { sql, eq } from 'drizzle-orm';
-import { reservation, reservationResource, auditLog, bookingPolicy, resourceBlackout, resource } from '@aeroops/db';
+import { reservation, auditLog, bookingPolicy, resource } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { withOrgContext } from '@aeroops/db';
 import {

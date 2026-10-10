@@ -397,7 +397,6 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
 
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const activeCount = counts[activeStatus];
   const emptyLabel: Record<ActiveStatus, string> = {
     new: 'No new requests',
     contacted: 'No contacted requests',

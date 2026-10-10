@@ -55,7 +55,7 @@
  * No FAA determination, no money, no reservation created, no session required.
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { sql } from 'drizzle-orm';
@@ -99,7 +99,6 @@ let env: TestEnv;
 
 // A future date well in range: 2027-01-15T14:00:00Z
 const FUTURE_START = '2027-01-15T14:00:00.000Z';
-const FUTURE_END   = '2027-01-15T16:00:00.000Z';
 
 /**
  * A minimal valid booking-request input (all required fields, no honeypot).
@@ -643,7 +642,7 @@ describe('DB — Stored row fields', () => {
 
 describe('RATE — Per-org rate guard', () => {
   it('RATE-1: (N+1)th submit within 1 minute returns fake ok, no new row', async () => {
-    const { db, orgBId, slugB } = env;
+    const { db } = env;
 
     // We need a fresh org to test the rate guard cleanly (so we control the count).
     // Create a third org under superuser context.
@@ -658,7 +657,6 @@ describe('RATE — Per-org rate guard', () => {
     // Insert RATE_LIMIT_PER_ORG_PER_MIN rows directly into the DB (bypassing the
     // orchestrator) to simulate having hit the limit. We use withOrgContext to
     // satisfy RLS. This does NOT go through the rate guard, so we can control the count.
-    const startTime = new Date(Date.now() - 30_000); // 30 seconds ago (within the 1-min window)
     for (let i = 0; i < RATE_LIMIT_PER_ORG_PER_MIN; i++) {
       await withOrgContext(db, rateOrg.id, async (tx) => {
         await (tx as PgliteTestClient).insert(bookingRequest).values({

@@ -63,7 +63,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import * as fc from 'fast-check';
-import { sql, eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { PGlite } from '@electric-sql/pglite';
 import {
   createTestClient,
@@ -74,7 +74,6 @@ import {
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { auditLog, bookingRequest } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import type { MembershipRole } from '@aeroops/core';

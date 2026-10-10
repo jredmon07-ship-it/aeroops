@@ -50,15 +50,6 @@
 
 export type AgingBucketKey = 'current' | 'd30' | 'd60' | 'd90' | 'd90plus';
 
-/** Ordered rank of each bucket, oldest-last — used to prove monotonic aging. */
-const BUCKET_RANK: Record<AgingBucketKey, number> = {
-  current: 0,
-  d30: 1,
-  d60: 2,
-  d90: 3,
-  d90plus: 4,
-};
-
 export interface AgingBuckets {
   readonly current: number;
   readonly d30: number;

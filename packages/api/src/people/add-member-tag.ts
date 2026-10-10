@@ -22,7 +22,6 @@
  */
 
 import { z } from 'zod';
-import { sql } from 'drizzle-orm';
 import { membership, memberTag, auditLog } from '@aeroops/db';
 import { eq } from 'drizzle-orm';
 import type { AnyDb } from '@aeroops/db';

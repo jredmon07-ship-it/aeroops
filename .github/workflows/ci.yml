@@ -1,7 +1,7 @@
 # .github/workflows/ci.yml — AeroOps CI
 #
 # Runs on every push and pull request.
-# Gates: typecheck → test → build (in that order; build is last because it is
+# Gates: typecheck → lint → test → build (in that order; build is last because it is
 # the most expensive and catches config/env issues, not logic errors).
 #
 # NEVER runs migrations or deploys to any environment.
@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   ci:
-    name: typecheck / test / build
+    name: typecheck / lint / test / build
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -64,6 +64,9 @@ jobs:
 
       - name: Typecheck (all packages)
         run: pnpm -r typecheck
+
+      - name: Lint (all packages)
+        run: pnpm -r lint
 
       - name: Test (all packages)
         run: pnpm -r test

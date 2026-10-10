@@ -272,7 +272,7 @@ describe('work-order-schema: migration 0013 + constraints + RLS', () => {
   // ── W3: RLS isolation (org A cannot see org B rows) ──────────────────────────
 
   it('W3: RLS isolation — org A cannot see org B work_order rows', async () => {
-    const { pglite, db, orgAId, orgBId, userAId, userBId, aircraftAId, aircraftBId } = env;
+    const { pglite, db, orgAId, orgBId, userBId, aircraftBId } = env;
 
     // Seed one WO in each org (superuser).
     await pglite.exec(`SET ROLE postgres`);
@@ -362,7 +362,7 @@ describe('work-order-schema: migration 0013 + constraints + RLS', () => {
   // ── W5: ON DELETE RESTRICT ────────────────────────────────────────────────────
 
   it('W5a: deleting a resource with WO rows is blocked (RESTRICT)', async () => {
-    const { pglite, orgAId, orgBId, userBId, aircraftBId } = env;
+    const { pglite, orgBId, userBId, aircraftBId } = env;
 
     // Seed a WO on aircraftB in orgB.
     await pglite.exec(`SET ROLE postgres`);
@@ -379,7 +379,7 @@ describe('work-order-schema: migration 0013 + constraints + RLS', () => {
   });
 
   it('W5b: deleting opened_by user with WO rows is blocked (RESTRICT)', async () => {
-    const { pglite, orgAId, orgBId, userBId, aircraftBId } = env;
+    const { pglite, userBId } = env;
 
     // The user B already has a WO from W5a; try to delete user B → must fail.
     await pglite.exec(`SET ROLE postgres`);
@@ -392,7 +392,7 @@ describe('work-order-schema: migration 0013 + constraints + RLS', () => {
   // ── W6: ON DELETE SET NULL column-list (org_id preserved) ────────────────────
 
   it('W6a: deleting linked squawk → squawk_id = NULL, org_id preserved', async () => {
-    const { pglite, orgAId, userAId, userA2Id, aircraftAId } = env;
+    const { pglite, orgAId, userAId, aircraftAId } = env;
 
     // Create a fresh squawk and a WO linked to it.
     await pglite.exec(`SET ROLE postgres`);
@@ -614,7 +614,7 @@ describe('work-order-schema: migration 0013 + constraints + RLS', () => {
   // ── W10: Happy-path round-trips ───────────────────────────────────────────────
 
   it('W10a: open WO inserts and reads back correctly', async () => {
-    const { pglite, db, orgAId, userAId, aircraftAId, squawkAId } = env;
+    const { pglite, orgAId, userAId, aircraftAId, squawkAId } = env;
 
     await pglite.exec(`SET ROLE postgres`);
     await pglite.exec(`BEGIN`);
@@ -697,7 +697,7 @@ describe('work-order-schema: migration 0013 + constraints + RLS', () => {
 
   it('W11: down migration reverses 0013 — table and enum gone', async () => {
     // Spin up a separate isolated client for down-migration test.
-    const { db: db2, pglite: pg2 } = await createTestClient();
+    const { pglite: pg2 } = await createTestClient();
     await applyMigrationSql({ pglite: pg2 }, MIGRATION_SQL);
 
     // Verify table exists before down.

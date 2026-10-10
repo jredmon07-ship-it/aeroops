@@ -49,7 +49,7 @@ interface SummaryContentProps {
   memberId: string;
 }
 
-async function SummaryContent({ slug, memberId }: SummaryContentProps) {
+async function SummaryContent({ memberId }: SummaryContentProps) {
   const result = await getMemberBlockSummaryAction(memberId);
 
   if ('error' in result) {

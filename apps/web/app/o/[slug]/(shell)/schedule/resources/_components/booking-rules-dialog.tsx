@@ -70,16 +70,6 @@ import type {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Format a Date as a local datetime-local string (YYYY-MM-DDTHH:mm). */
-function toDatetimeLocal(d: Date): string {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-}
-
 /** Format a Date as "Mon DD, YYYY HH:mm" for display. */
 function formatDatetime(d: Date): string {
   return d.toLocaleString(undefined, {

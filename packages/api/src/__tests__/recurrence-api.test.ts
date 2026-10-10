@@ -31,7 +31,7 @@ import {
   loadMigrationSql,
 } from '@aeroops/db';
 import { auditLog, reservation, reservationSeries } from '@aeroops/db';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { PgliteTestClient, AnyDb } from '@aeroops/db';
 
 import { createReservationWithDb } from '../scheduling/create-reservation.js';
@@ -1133,8 +1133,6 @@ describe('SERIES RACE: post-INSERT 23P01 → ROLLBACK TO SAVEPOINT + re-probe on
     //   savepoint B: try to insert a DUPLICATE → 23P01 → savepoint B aborted.
     //   After ROLLBACK TO SAVEPOINT B, the outer tx is still alive.
     //   Insert a sentinel row (unrelated resource) to prove outer tx is clean.
-    const { sql: coreSql } = await import('drizzle-orm');
-
     let outerTxSurvived = false;
 
     await withOrgContext(db, orgAId, async (tx: AnyDb) => {

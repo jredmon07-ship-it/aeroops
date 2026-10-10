@@ -36,7 +36,7 @@ import {
   withOrgContext,
   withPlatformAdminContext,
 } from '../index.js';
-import { org, appUser, resource, reservation, reservationSeries } from '../schema/index.js';
+import { org, appUser, resource, reservationSeries } from '../schema/index.js';
 import type { PgliteTestClient } from '../client.js';
 
 // ── Path resolution ───────────────────────────────────────────────────────────
@@ -581,7 +581,7 @@ describe('recurrence-schema smoke: migration 0004 + constraints + RLS', () => {
   // ── reservation.series_id cross-org composite FK rejection ────────────────
 
   it('reservation.series_id composite FK: cross-org series is rejected', async () => {
-    const { pglite, orgAId, orgBId, userAId, userBId, resourceAId, resourceBId } = env;
+    const { pglite, orgAId, orgBId, userAId, userBId, resourceBId } = env;
 
     // Create a valid series in org B.
     await pglite.exec(`SET ROLE postgres`);

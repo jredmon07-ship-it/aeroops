@@ -14,7 +14,6 @@ import type { BoardBlock as BoardBlockData } from '../_utils/board-layout';
 import { BoardBlock } from './board-block';
 import { BoardDropZones } from './board-drop-zones';
 import { BoardSnapPreview } from './board-snap-preview';
-import { reservationHue } from './board-block';
 import { TRACK_WIDTH_PX } from './board-time-axis';
 
 interface BoardResourceRowProps {

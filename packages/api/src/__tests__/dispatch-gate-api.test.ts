@@ -26,24 +26,14 @@ import {
   applyMigrationSql,
   setTestAppRole,
   withOrgContext,
-  withPlatformAdminContext,
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
 import {
-  appUser,
-  membership,
-  resource,
-  reservation,
-  reservationResource,
   auditLog,
   memberTag,
-  dispatchRequirement,
-  dispatchConfig,
-  aircraftGrounding,
 } from '@aeroops/db';
 import { eq, and } from 'drizzle-orm';
-import { sql } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { createResourceWithDb } from '../scheduling/resource-commands.js';
@@ -616,10 +606,6 @@ describe('openDispatch eligibility gate', () => {
 
     // Set mode to block (default; make explicit)
     await updateDispatchConfigWithDb(db, sess, { eligibilityMode: 'block' });
-
-    const beforeTickets = await withOrgContext(db, orgAId, (tx) =>
-      tx.select({ id: dispatchRequirement.id }).from(dispatchRequirement),
-    );
 
     const beforeOpen = await countAuditRows(db, orgAId, 'dispatch.opened');
 

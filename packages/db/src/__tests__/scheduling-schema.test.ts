@@ -36,7 +36,7 @@ import {
   withOrgContext,
   withPlatformAdminContext,
 } from '../index.js';
-import { org, appUser, resource, reservation, reservationResource } from '../schema/index.js';
+import { org, appUser, resource, reservationResource } from '../schema/index.js';
 import type { PgliteTestClient } from '../client.js';
 
 // ── Path resolution ───────────────────────────────────────────────────────────
@@ -159,49 +159,6 @@ async function setupSchedulingEnv(): Promise<SchedulingTestEnv> {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Insert a reservation + one reservation_resource join row in a single
- * transaction. Returns the IDs.
- *
- * `during` must be a Postgres tstzrange literal built by the caller, e.g.:
- *   tstzrange('2026-06-15 10:00:00+00', '2026-06-15 11:00:00+00', '[)')
- * The raw SQL form is used via pglite.exec to keep the test self-contained
- * without needing the API layer.
- */
-async function insertBookedReservation(
-  pglite: PGlite,
-  orgId: string,
-  resourceId: string,
-  userId: string,
-  startIso: string,
-  endIso: string,
-  status: 'booked' | 'cancelled' = 'booked',
-): Promise<{ reservationId: string; joinId: string }> {
-  // Use raw SQL via pglite.exec so we can embed tstzrange() constructor directly.
-  // The test runs as aeroops_app (after setTestAppRole) — RLS is enforced.
-  // We set the GUC at session level for this helper (no transaction wrapper here,
-  // as we want to confirm RLS filters the row after the insert).
-  await pglite.exec(`SET LOCAL app.current_org_id = '${orgId}'`);
-
-  const resResult = await pglite.query<{ id: string }>(
-    `INSERT INTO reservation (org_id, start_at, end_at, status, created_by)
-     VALUES ($1, $2::timestamptz, $3::timestamptz, $4::reservation_status, $5)
-     RETURNING id`,
-    [orgId, startIso, endIso, status, userId],
-  );
-  const reservationId = resResult.rows[0]!.id;
-
-  const joinResult = await pglite.query<{ id: string }>(
-    `INSERT INTO reservation_resource (org_id, reservation_id, resource_id, during, status)
-     VALUES ($1, $2, $3, tstzrange($4::timestamptz, $5::timestamptz, '[)'), $6::reservation_status)
-     RETURNING id`,
-    [orgId, reservationId, resourceId, startIso, endIso, status],
-  );
-  const joinId = joinResult.rows[0]!.id;
-
-  return { reservationId, joinId };
-}
 
 // ── Test suite ────────────────────────────────────────────────────────────────
 

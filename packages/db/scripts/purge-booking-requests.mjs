@@ -46,9 +46,8 @@
 
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
 // ── ESM self-path ─────────────────────────────────────────────────────────────
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -124,7 +123,6 @@ async function main() {
   // that takes (db, orgId, { dryRun }) — no session required.
   let purgeExpiredBookingRequestsForOrg;
   let withPlatformAdminContext;
-  let drizzleOrm;
 
   try {
     // Import drizzle-orm sql tag and withPlatformAdminContext.

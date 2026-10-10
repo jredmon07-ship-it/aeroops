@@ -13,7 +13,7 @@
     "purge:booking": "node scripts/purge-booking-requests.mjs",
     "purge:booking:apply": "node scripts/purge-booking-requests.mjs --apply",
     "typecheck": "tsc --noEmit",
-    "lint": "echo \"(db) no lint configured yet\"",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {
@@ -23,11 +23,15 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.2",
+    "@eslint/js": "9.39.4",
     "@types/node": "^25.9.3",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
+    "eslint": "9.39.4",
     "fast-check": "^4.8.0",
+    "globals": "17.4.0",
     "typescript": "^6.0.3",
+    "typescript-eslint": "8.71.1",
     "vitest": "^4.1.8"
   }
 }

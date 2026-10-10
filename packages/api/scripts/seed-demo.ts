@@ -59,7 +59,6 @@ import * as schema from '@aeroops/db';
 import {
   seedDemo,
   DEMO_LOGINS,
-  DEMO_LOGINS_BRAVO,
   DEMO_PASSWORD,
   DEMO_SLUG,
   DEMO_SLUG_BRAVO,

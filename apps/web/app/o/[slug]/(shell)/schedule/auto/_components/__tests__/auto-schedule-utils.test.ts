@@ -195,7 +195,7 @@ describe('6. Unschedulable reasons — known values', () => {
 
   it('over_constrained maps to descriptive copy', () => {
     // Use a mutable variable so TS does not narrow to a specific literal.
-    let reason: string = 'over_constrained';
+    const reason: string = 'over_constrained';
     const copy =
       reason === 'no_feasible_window'
         ? 'No feasible window in the scheduling range'

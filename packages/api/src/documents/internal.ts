@@ -58,7 +58,7 @@ export function isAllowedContentType(contentType: string): boolean {
 function sanitizeFilenameForKey(filename: string): string {
   const cleaned = filename
     .replace(/[/\\]/g, '_')
-    .replace(/[^\w.\-]/g, '_')
+    .replace(/[^\w.-]/g, '_')
     .slice(-80);
   return cleaned.length > 0 ? cleaned : 'file';
 }

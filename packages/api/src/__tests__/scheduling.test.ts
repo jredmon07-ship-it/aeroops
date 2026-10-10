@@ -30,11 +30,10 @@ import {
   applyMigrationSql,
   setTestAppRole,
   withOrgContext,
-  withPlatformAdminContext,
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { appUser, auditLog, reservation, reservationResource } from '@aeroops/db';
+import { auditLog, reservation, reservationResource } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { createReservationWithDb } from '../scheduling/create-reservation.js';
@@ -204,10 +203,6 @@ describe('HAPPY PATH: createReservation — single resource', () => {
       displayName: 'N-Happy1',
       tailNumber: 'N-HAPPY1',
     });
-
-    const beforeAudit = await withOrgContext(db, orgAId, (tx) =>
-      tx.select().from(auditLog).execute(),
-    );
 
     const result = await createReservationWithDb(db, sess, {
       startAt: T.W1_start,
@@ -1065,7 +1060,7 @@ describe('TENANT ISOLATION: org A cannot see org B resources or reservations', (
   });
 
   it('reservation: org A cannot see org B reservations', async () => {
-    const { db, orgAId, orgBId, userAId, userBId } = sharedEnv;
+    const { db, orgAId, orgBId, userBId } = sharedEnv;
     const sessB = makeSession(orgBId, userBId, 'owner');
 
     const resB = await createResourceWithDb(db, sessB, {

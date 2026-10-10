@@ -50,24 +50,22 @@
  *   NO-RSV-1  reservation count unchanged after converting a request.
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
-import { sql, eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { PGlite } from '@electric-sql/pglite';
 import {
   createTestClient,
   applyMigrationSql,
   setTestAppRole,
   withOrgContext,
-  withPlatformAdminContext,
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { bookingRequest, auditLog } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 
-import { CAPABILITIES, ROLE_CAPABILITIES, can } from '@aeroops/core';
+import { CAPABILITIES, can } from '@aeroops/core';
 import type { MembershipRole } from '@aeroops/core';
 
 import {
@@ -385,7 +383,7 @@ describe('LIST — listBookingRequests', () => {
   });
 
   it('LIST-2: status filter returns only matching rows', async () => {
-    const { db, orgAId, orgBId, userAId } = env;
+    const { db, orgAId, userAId } = env;
 
     // Insert a new row, then update it to 'declined' via the API.
     const id = await insertBookingRequest(db, orgAId, { requesterEmail: 'list2@test.example' });

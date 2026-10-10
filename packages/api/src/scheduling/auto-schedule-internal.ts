@@ -33,7 +33,6 @@ import { ValidationError, loadTwilightContext, loadAvailabilityContext } from '.
 import type { TwilightConfigView, AvailabilityConfigView } from './internal.js';
 import { makeApiZonedToUtcResolver } from './internal.js';
 import { extractRows } from '../db-rows.js';
-import type { AutoScheduleInput, DemandInput } from './types.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

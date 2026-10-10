@@ -37,9 +37,9 @@
  * No real HTTP calls. No money. No FAA determination.
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { sql } from 'drizzle-orm';
 import type { PGlite } from '@electric-sql/pglite';
 import {
@@ -47,11 +47,9 @@ import {
   applyMigrationSql,
   setTestAppRole,
   withOrgContext,
-  withPlatformAdminContext,
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { org } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { submitBookingRequestWithDb } from '../booking/submit-booking-request.js';

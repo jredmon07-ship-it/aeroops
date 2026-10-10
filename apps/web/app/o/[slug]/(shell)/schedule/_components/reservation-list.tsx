@@ -12,12 +12,10 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, PlaneTakeoff } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { ReservationCard } from './reservation-card';
 import { buildResourceMap } from '../_utils/resource-map';
-import { formatTimeRange } from '../_utils/format-time';
 import type { ReservationRow, ResourceRow } from '@aeroops/api';
 
 interface ReservationListProps {

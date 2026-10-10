@@ -86,7 +86,6 @@ import {
   seedAuthCredential,
   seedUserWithoutMembership,
   withOrgContext,
-  withPlatformAdminContext,
 } from '@aeroops/db';
 import { authCredential } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';

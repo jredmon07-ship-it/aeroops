@@ -51,7 +51,7 @@ import {
   importRow,
   loadMigrationSql,
 } from '@aeroops/db';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 import type { PGlite } from '@electric-sql/pglite';
 

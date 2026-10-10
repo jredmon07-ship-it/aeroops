@@ -58,7 +58,7 @@ import {
   withOrgContext,
   withPlatformAdminContext,
 } from '../index.js';
-import { org, appUser, resource, dispatchConfig, resourceAvailabilityWindow } from '../schema/index.js';
+import { org, appUser, resource, resourceAvailabilityWindow } from '../schema/index.js';
 import type { PgliteTestClient } from '../client.js';
 
 // ── Path resolution ───────────────────────────────────────────────────────────
@@ -290,7 +290,7 @@ describe('availability-schema: migration 0014 + constraints + RLS', () => {
   // ── AV4: RLS isolation (org A cannot see org B rows) ─────────────────────────
 
   it('AV4: RLS isolation — org A cannot see org B resource_availability_window rows', async () => {
-    const { pglite, db, orgAId, orgBId, userAId, userBId, aircraftAId, aircraftBId } = env;
+    const { pglite, db, orgAId, orgBId, userBId, aircraftBId } = env;
 
     // Seed one window in each org (superuser).
     await pglite.exec(`SET ROLE postgres`);
@@ -598,7 +598,7 @@ describe('availability-schema: migration 0014 + constraints + RLS', () => {
   });
 
   it('AV9b: same window on a different resource → accepted', async () => {
-    const { pglite, orgAId, userAId, aircraftAId, aircraftA2Id } = env;
+    const { pglite, orgAId, userAId, aircraftA2Id } = env;
 
     await pglite.exec(`SET ROLE postgres`);
     await pglite.exec(`BEGIN`);
@@ -725,7 +725,7 @@ describe('availability-schema: migration 0014 + constraints + RLS', () => {
   // ── AV11: Happy-path round-trip ───────────────────────────────────────────────
 
   it('AV11: window inserts and reads back correctly', async () => {
-    const { pglite, db, orgAId, userAId, aircraftAId } = env;
+    const { pglite, orgAId, userAId, aircraftAId } = env;
 
     await pglite.exec(`SET ROLE postgres`);
     await pglite.exec(`BEGIN`);

@@ -586,7 +586,7 @@ describe('booking-request-schema: migration 0015 + constraints + RLS', () => {
   // ── BR9: Happy-path round-trips ───────────────────────────────────────────────
 
   it('BR9a: new (anon) booking request inserts and reads back correctly', async () => {
-    const { pglite, db, orgAId } = env;
+    const { pglite, orgAId } = env;
 
     await pglite.exec(`SET ROLE postgres`);
     await pglite.exec(`BEGIN`);

@@ -43,17 +43,6 @@ interface PreviewPanelProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(d);
-}
-
 function formatTimeRange(startIso: string, endIso: string): string {
   const start = new Date(startIso);
   const end = new Date(endIso);

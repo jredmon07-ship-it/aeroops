@@ -30,7 +30,7 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { escapeLike } from '../search/escape-like.js';
-import { rankResults, makePrefixComparator } from '../search/rank-results.js';
+import { rankResults } from '../search/rank-results.js';
 import type { Rankable } from '../search/rank-results.js';
 
 // ─── Generators ──────────────────────────────────────────────────────────────

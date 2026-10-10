@@ -13,7 +13,6 @@
 import * as React from 'react';
 import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ResolveSquawkDialog } from './resolve-squawk-dialog';
 import { ReportSquawkDialog } from './report-squawk-dialog';
 import type { SquawkView, ResourceRow } from '@aeroops/api';

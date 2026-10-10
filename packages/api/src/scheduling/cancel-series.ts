@@ -22,8 +22,8 @@
  *   cancelSeriesWithDb(db, session, input, opts?)      — tests; inject pglite.
  */
 
-import { eq, sql, and, gt } from 'drizzle-orm';
-import { reservationSeries, reservation, reservationResource, auditLog } from '@aeroops/db';
+import { eq, sql, and } from 'drizzle-orm';
+import { reservationSeries, reservation, auditLog } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';

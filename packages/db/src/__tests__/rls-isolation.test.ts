@@ -30,7 +30,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import * as fc from 'fast-check';
 import type { PGlite } from '@electric-sql/pglite';
 import {
@@ -40,7 +40,6 @@ import {
   seedTwoOrgs,
   withOrgContext,
   withPlatformAdminContext,
-  execRaw,
 } from '../index.js';
 // FIX 6: bare session-scope primitives are not on the public index — import
 // directly from the module for test/internal use only.
@@ -53,7 +52,6 @@ import {
   auditLog,
   plan,
   subscription,
-  membershipRole,
 } from '../schema/index.js';
 import { MEMBERSHIP_ROLES } from '@aeroops/core';
 import type { PgliteTestClient } from '../client.js';
@@ -534,7 +532,7 @@ describe('T10: org self-scoping (SELECT org under A → exactly Org A)', () => {
   beforeAll(async () => { env = await setupFreshEnv(); });
 
   it('SELECT org under Org A context returns exactly 1 row (Org A)', async () => {
-    const { db, orgAId, orgBId } = env;
+    const { db, orgAId } = env;
     const rows = await withOrgContext(db, orgAId, (tx) =>
       tx.select().from(org).execute(),
     );

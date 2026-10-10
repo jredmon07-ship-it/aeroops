@@ -13,7 +13,6 @@
  */
 import { pgTable, uuid, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { org } from './org.js';
-import { appUser } from './user.js';
 import { membershipRole } from './enums.js';
 
 export const membership = pgTable(

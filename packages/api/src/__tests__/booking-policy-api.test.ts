@@ -28,7 +28,7 @@ import {
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { auditLog, reservation, reservationResource } from '@aeroops/db';
+import { auditLog, reservation } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { createReservationWithDb } from '../scheduling/create-reservation.js';

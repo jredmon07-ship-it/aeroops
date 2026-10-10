@@ -66,7 +66,7 @@
  *   "NO property tests (aggregation is I/O)".
  */
 
-import { resolve, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
@@ -845,9 +845,6 @@ describe('T-ISO: Tenant isolation — all 5 R1.1 report fns', () => {
   let isoUserAId: string;
   let isoUserBId: string;
 
-  // Org A aircraft ID (for T-ISO-HOURSBYTAIL LEFT JOIN check)
-  let isoAcAId: string;
-
   beforeAll(async () => {
     const { db, pglite } = await createTestClient();
     await applyMigrationSql({ pglite }, MIGRATION_SQL);
@@ -868,7 +865,6 @@ describe('T-ISO: Tenant isolation — all 5 R1.1 report fns', () => {
     const { aircraftId: acAId, ticketId: ticketAId, reservationId: rAId } = await seedClosedFlight(
       isoDb, isoOrgAId, isoUserAId, 'ISOA1', 100, 101.5, TS.W1s, TS.W1e,
     );
-    isoAcAId = acAId;
     await backdateDispatchClose(isoDb, isoOrgAId, ticketAId, fiveDaysAgo);
     await backdateReservationCreated(isoDb, isoOrgAId, rAId, fiveDaysAgo);
 

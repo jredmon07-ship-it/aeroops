@@ -22,7 +22,6 @@
  */
 import { pgTable, text, uuid, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { org } from './org.js';
-import { appUser } from './user.js';
 
 export const authCredential = pgTable(
   'auth_credential',

@@ -28,7 +28,6 @@ import type { AnyDb } from '@aeroops/db';
 import type { AppSession } from '../auth/types.js';
 import type { CreateReservationResult } from './types.js';
 import {
-  ValidationError,
   OccurrenceRaceError,
   parseReservationWindow,
   gatedCreateOccurrence,
