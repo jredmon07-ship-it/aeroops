@@ -26,6 +26,9 @@
       ],
       "@/*": [
         "./src/*"
+      ],
+      "zod": [
+        "./node_modules/zod"
       ]
     }
   },
@@ -38,8 +41,7 @@
     "node_modules",
     "dist",
     ".expo",
-    "../../packages/core/src/__tests__/**",
-    "../../packages/core/src/scheduling/__tests__/**"
+    "../../packages/core/src/**/__tests__/**"
   ],
   "extends": "expo/tsconfig.base"
 }

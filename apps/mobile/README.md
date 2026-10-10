@@ -52,12 +52,18 @@ Next.js dev server is `http://localhost:3000`. For Android emulator, use
 
 ## Typecheck
 
+apps/mobile is excluded from the pnpm workspace, so it installs and typechecks on
+its own (this is exactly what the `mobile-typecheck` CI job runs):
+
 ```bash
-# From the repo root:
-pnpm --filter @aeroops/mobile typecheck
-# or from apps/mobile:
-cd apps/mobile && npx tsc --noEmit
+cd apps/mobile
+pnpm install --frozen-lockfile --ignore-workspace
+pnpm run typecheck
 ```
+
+The typecheck also covers the `packages/core` source the app imports. Core's `zod`
+import resolves to apps/mobile's own copy (see `paths` in `tsconfig.json`), so no
+root install is needed.
 
 ## Security notes (ADR-0010)
 

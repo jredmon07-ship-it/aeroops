@@ -78,3 +78,37 @@ jobs:
           # the auth module config without a real secret. auth.ts rejects this
           # placeholder at request-time, so it is never used at runtime.
           AUTH_SECRET: build-time-placeholder-not-a-real-secret-replace-me
+
+  # apps/mobile (Expo SDK 51) is deliberately excluded from the pnpm workspace:
+  # its React Native React 18 types must not share an install with apps/web's
+  # React 19 types. It has its own lockfile (apps/mobile/pnpm-lock.yaml) and
+  # .npmrc (node-linker=hoisted), so it gets its own job and its own install.
+  # --ignore-workspace stops pnpm from walking up to the root workspace.
+  mobile-typecheck:
+    name: mobile typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        # Same pnpm as the root (packageManager in root package.json).
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: apps/mobile/pnpm-lock.yaml
+
+      - name: Install dependencies (apps/mobile only)
+        run: pnpm install --frozen-lockfile --ignore-workspace
+
+      - name: Typecheck (apps/mobile)
+        run: pnpm run typecheck
