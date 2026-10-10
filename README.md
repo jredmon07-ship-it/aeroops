@@ -1,11 +1,15 @@
 # AeroOps
 
 Multi-tenant flight-operations software for flight schools, flying clubs, and FBOs —
-scheduling, dispatch, maintenance squawks, billing, a student/renter portal, and a
-public booking flow, with tenant isolation enforced in the database.
+scheduling, dispatch, maintenance, training records, billing and payments, a
+student/renter portal, and a public booking flow, with tenant isolation enforced in
+the database.
 
-Built in a month by orchestrating 17 role-scoped Claude Code agents against specs and
-merge gates defined up front. Released under the MIT license.
+Built over about seven weeks (June–July 2026) by orchestrating 17 role-scoped Claude
+Code agents against specs and merge gates defined up front. It was built to sell;
+operators would not migrate off the tools they already used, so it is released under
+the MIT license instead. A public demo runs at
+[aeroops-web.vercel.app](https://aeroops-web.vercel.app).
 
 ---
 
@@ -15,12 +19,16 @@ merge gates defined up front. Released under the MIT license.
 |---|---|
 | **Scheduling** | Reservations with conflict detection, recurrence, and an operator-configurable civil-twilight day/night constraint |
 | **Dispatch** | Aircraft check-out/in, write-once Hobbs/tach meters, derived flight time, and a layered pre-flight gate (grounded → ineligible → balance) |
-| **Maintenance** | Squawks and operator-set grounding, surfaced *before* booking and enforced at check-out |
+| **Maintenance** | Squawks and operator-set grounding (surfaced *before* booking, enforced at check-out), work orders, and operator-defined maintenance items with due tracking |
+| **Training** | Operator-defined courses and lessons, enrollments, write-once lesson records entered by the instructor, optional instructor attestation (not an FAA e-signature), optional stage-check enforcement |
 | **Fleet & People** | Per-aircraft detail (grounding, open squawks, dispatch history, meters, upcoming reservations); members, roles, tags |
 | **Reporting** | Utilization over time, hours by tail, reservations vs flights, training and maintenance trends |
-| **Portal** | Read-only student/renter self-service, each read locked to that user's own data |
+| **Portal** | Student/renter self-service: own schedule, logbook, block time, billing, auto-pay settings; each read and write scoped to that user's own data |
 | **Public booking** | Unauthenticated request capture → staff triage inbox → conversion to a real reservation through the same gated path every booking uses |
-| **Billing** | Rate schedules and draft invoice generation with integer-cents math (no payment processing wired) |
+| **Billing** | Rate schedules, draft invoices from recorded meters (integer-cents math), a member ledger, block time, recurring dues, counter sales, and billing reports |
+| **Payments** | Card and ACH payments, saved payment methods, and auto-pay through a server-side Stripe integration (inert until a Stripe key is configured; the in-browser card/bank entry form is not wired) |
+| **QuickBooks** | QuickBooks Online connection with invoice and payment export (needs your own Intuit app credentials) |
+| **Mobile** | Expo app: sign-in, schedule, fleet, squawks, and alerts (read-only), against a token-authenticated mobile API |
 
 ## Architecture
 
@@ -34,7 +42,7 @@ packages/db     Drizzle schema + Postgres migrations + Row-Level-Security polici
 packages/api    The only layer that talks to the database. Auth, gated writes,
                 per-tenant reads.
 apps/web        Next.js (App Router) ops console.
-apps/mobile     Expo / React Native foundation (shares packages/core).
+apps/mobile     Expo / React Native app (shares packages/core).
 ```
 
 **Tenant isolation is the design centre.** Every tenant query is scoped by `org_id`
@@ -108,12 +116,15 @@ and [`THE-BIBLE.md`](./THE-BIBLE.md).
 
 ## Status
 
-Feature-complete through Phase 1 and deployed. Billing exists behind an off-by-default
-flag with no payment processing wired — see [`DEPLOY.md`](./DEPLOY.md) for the full
-deployment path and [`CHANGELOG.md`](./CHANGELOG.md) for what landed when.
+Released as open source. The live site at
+[aeroops-web.vercel.app](https://aeroops-web.vercel.app) is a public demo with seeded
+sample data, not a hosted service. It has no production users and no support is implied.
 
-This is a portfolio project, not a hosted service. It is not accepting production
-users, and no support is implied.
+The repo has 51 forward migrations (`packages/db/migrations/0000`–`0050`, each with a
+`.down.sql`) and about 155 test files (`*.test.ts`/`*.test.tsx` across `packages/` and
+`apps/web`). Stripe and QuickBooks code paths do nothing until you supply your own
+keys. See [`DEPLOY.md`](./DEPLOY.md) for deployment and [`CHANGELOG.md`](./CHANGELOG.md)
+for what landed when.
 
 ## License
 

@@ -101,9 +101,21 @@ function makeSession(
   return { userId, orgId, slug: 'test', role, user: { email: 'test@example.com' } };
 }
 
-// Future dates so booking-policy min-advance checks pass.
-const D  = '2026-09-15';
-const D2 = '2026-09-16';
+// Fixture days are computed relative to the real clock, not hardcoded.
+// getAircraftDetail's "upcoming reservations" facet filters on the database's
+// NOW() (lower(during) > NOW()), so a fixed calendar date silently turns into a
+// past date once the wall clock passes it and T12 starts failing. Anchoring both
+// windows 30 days ahead (at a UTC midnight boundary) keeps them in the future on
+// any run date, and keeps W1/W2 on two consecutive days as before.
+const DAY_MS = 86_400_000;
+const FIXTURE_LEAD_DAYS = 30;
+function utcDayFromNow(offsetDays: number): string {
+  const now = new Date();
+  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return new Date(midnight + offsetDays * DAY_MS).toISOString().slice(0, 10);
+}
+const D  = utcDayFromNow(FIXTURE_LEAD_DAYS);
+const D2 = utcDayFromNow(FIXTURE_LEAD_DAYS + 1);
 const T = {
   W1_start: new Date(`${D}T08:00:00Z`),
   W1_end:   new Date(`${D}T10:00:00Z`),

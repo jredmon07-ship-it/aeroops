@@ -4,7 +4,7 @@
 -- !! HUMAN-GATED — NEVER AUTO-RUN !!
 --
 -- REMOVES the AeroStudy integration (founder decision 2026-07-11:
--- "remove the AeroStudy integration").
+-- remove the study feature).
 --
 -- Drops study_grant + study_progress, introduced by migration 0035
 -- (which IS applied in production — hence a forward drop migration,
