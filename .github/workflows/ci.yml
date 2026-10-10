@@ -69,7 +69,7 @@ jobs:
         run: pnpm -r lint
 
       - name: Test (all packages)
-        run: pnpm -r test
+        run: pnpm -r --workspace-concurrency=1 test  # one package at a time: the heavy property tests time out under full parallelism
 
       - name: Build (all packages)
         run: pnpm -r build
