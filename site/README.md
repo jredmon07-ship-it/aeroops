@@ -18,6 +18,15 @@ restraint: one navy/white palette, a roman-numeral capability list instead of fa
 Copy follows the compliance guardrail: operator-defined rules only, no
 FAA-determination claims, no fabricated testimonials, logos, or prices.
 
+## 2026-10-10 — Reframed as an open-source project
+
+The site was reframed as open source on 2026-10-10: pricing, signup CTAs, the cost-comparison
+table, and the myFBO migration pitch were removed; the primary CTA is now "View on GitHub"
+(https://github.com/jredmon07-ship-it/aeroops), index has an `#open-source` section in place of
+`#pricing`, the FAQ covers the MIT license and the public demo, and Privacy/Terms were rewritten as
+short pages for an open-source project with a public demo. Billing features are described as using
+the operator's own Stripe account. Older notes below describe the earlier commercial site.
+
 ## 2026-07-04 — Pricing made scannable + Instructions rewritten and verified against the real app
 
 Two edits, both against the accepted white/navy base (untouched: palette, Fraunces, the
@@ -251,6 +260,11 @@ opened and read:**
    mobile) — not graded from source.
 
 ## Deploy
+
+**Order matters:** deploy the site (`scripts/deploy-site.sh`) only after the
+`jredmon07-ship-it/aeroops` repo is public (release guide Step 4), and after the app's signup gate
+(`ALLOW_SIGNUP` unset) is live on aeroops-web.vercel.app. Every "View on GitHub", issues and license
+link on the site points at that repo and returns 404 while it is private.
 
 Four static HTML files plus two media files, no build step. Any of these works:
 
