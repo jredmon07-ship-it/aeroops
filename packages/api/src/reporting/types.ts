@@ -1,10 +1,10 @@
 /**
  * reporting/types.ts — Shared output types for R1.1 report reads.
  *
- * All types are OPERATIONAL operator data — NO money, NO billing, NO computed
+ * All types are OPERATIONAL operator data — NO computed
  * FAA determination, NO airworthiness statement.
  *
- * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT billing/airworthiness.
+ * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT airworthiness.
  * [VERIFY-T1-B] Training counts = operator state; NOT Part-141 or FAA determination.
  * [VERIFY-M1-A] Maintenance counts = operator data; NOT Part-43/airworthiness/RTS.
  * [VERIFY-R1-TZ] All bucketing UTC; display layer handles localisation.
@@ -30,7 +30,7 @@ export interface ReportRange {
  * UtilizationTrendBucket — one row per UTC bucket.
  *
  * [VERIFY-A] flightHours = Hobbs-derived operational utilization.
- * NOT billing or airworthiness hours.
+ * NOT airworthiness hours.
  */
 export interface UtilizationTrendBucket {
   /** UTC-aligned bucket start (midnight for day; Monday 00:00 for week). */
@@ -39,7 +39,7 @@ export interface UtilizationTrendBucket {
   flightCount: number;
   /**
    * SUM of flight_time_hours for closed tickets in this bucket, rounded to 1dp.
-   * OPERATIONAL — NOT billing or logbook-authoritative. [VERIFY-A]
+   * OPERATIONAL — NOT logbook-authoritative. [VERIFY-A]
    */
   flightHours: number;
 }
@@ -62,12 +62,12 @@ export interface UtilizationTrendResult {
   totalFlights: number;
   /**
    * Sum of flight_time_hours for closed tickets in range, rounded to 1dp.
-   * OPERATIONAL — NOT billing. [VERIFY-A]
+   * OPERATIONAL. [VERIFY-A]
    */
   totalFlightHours: number;
   /**
    * safeAvg(totalFlightHours, totalFlights): 0 when no flights.
-   * OPERATIONAL — NOT billing. [VERIFY-A]
+   * OPERATIONAL. [VERIFY-A]
    */
   avgHoursPerFlight: number;
 }

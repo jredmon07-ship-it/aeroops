@@ -10,10 +10,12 @@ Drizzle schema + Postgres migrations + Row-Level-Security policies. Owned by the
 - Every tenant-scoped table carries a non-null `org_id` and an RLS policy.
 - Control-plane tables (`plan`, `subscription`) are NOT org-scoped for RLS —
   they are platform-level and intentionally kept separate.
-- Audited records (invoices, payments, Hobbs/tach, endorsements, stage checks,
+- Audited records (Hobbs/tach, endorsements, stage checks,
   maintenance sign-offs) are append-only / change-logged. `audit_log` has
   ENABLE + FORCE RLS and SELECT + INSERT policies only (no UPDATE, no DELETE).
-- Money is integer minor units (cents).
+- The money tables from before 2026-10-10 (invoices, ledger, Stripe, QuickBooks,
+  dues, block time, POS) stay in the schema and migration history so existing
+  databases are untouched; no application code uses them.
 - **Migrations are human-gated** — generate the SQL, then a human reviews before it
   runs. Never auto-apply to a real database. The `migrate` script is an informational
   echo stub.

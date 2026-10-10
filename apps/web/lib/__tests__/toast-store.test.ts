@@ -19,10 +19,10 @@ describe('createToastStore', () => {
 
   it('add() appends a toast with kind + message and returns its id', () => {
     const store = createToastStore();
-    const id = store.add('success', 'Payment recorded.');
+    const id = store.add('success', 'Squawk reported.');
     const snapshot = store.getSnapshot();
     expect(snapshot).toHaveLength(1);
-    expect(snapshot[0]).toEqual({ id, kind: 'success', message: 'Payment recorded.' });
+    expect(snapshot[0]).toEqual({ id, kind: 'success', message: 'Squawk reported.' });
   });
 
   it('assigns unique, increasing ids', () => {

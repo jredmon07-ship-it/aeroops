@@ -1,3 +1,5 @@
+> Removed 2026-10-10: money features were removed from AeroOps; kept as a design record.
+
 # Slice — Financial / Accounts-Receivable reporting — build spec
 
 **Turns the billing engine (B0/B1/B2/B3-foundation) into operator-usable financials for the treasurer/accountant

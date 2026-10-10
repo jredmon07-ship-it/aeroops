@@ -3,9 +3,8 @@
  * lookup (the public .ics route path only, Slice P1.4).
  *
  * SANCTIONED PLATFORM-ADMIN READ (mirrors auth/resolve-org.ts's
- * resolveOrgBySlug / integrations/stripe/resolve-payment-intent.ts's
- * resolveOrgByStripePaymentIntentId EXACTLY — same justification, a
- * DIFFERENT unauthenticated entry point):
+ * resolveOrgBySlug EXACTLY — same justification, a DIFFERENT
+ * unauthenticated entry point):
  *   resolveFeedByToken is the ONLY function in the public calendar-feed path
  *   that is permitted to use withPlatformAdminContext. It is:
  *     - Read-only (SELECT only — no mutation).

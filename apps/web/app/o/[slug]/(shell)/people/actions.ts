@@ -40,7 +40,6 @@ import {
   addMemberExpiration,
   deactivateMemberExpiration,
   listMemberExpirations,
-  getMemberBalance,
   getMemberAvatars,
   updateMemberAvatar,
 } from '@aeroops/api';
@@ -577,34 +576,6 @@ export async function deactivateMemberExpirationAction(input: {
     if (authErr) return authErr;
     if (isValidationError(err)) return { error: 'validation', message: err.message };
     return { error: 'server' };
-  }
-}
-
-// ─── getMemberBalanceSummaryAction (billing:access, fail-closed) ──────────────
-// Sourced from the EXISTING getMemberBalance read so the People detail page can
-// surface a member's account balance WITHOUT importing the billing module.
-// billing:access is enforced INSIDE getMemberBalance; a viewer who lacks it (or
-// any other error) gets null → the caller hides the balance card entirely,
-// mirroring how the dispatch preflight balance row degrades to hidden. This is
-// display-only: NO Stripe, NO card/bank data, integer cents.
-
-export type MemberBalanceSummary = { balanceCents: number; minimumBalanceCents: number };
-
-export async function getMemberBalanceSummaryAction(
-  memberUserId: string,
-): Promise<MemberBalanceSummary | null> {
-  const session = await auth();
-  try {
-    const result = await getMemberBalance(session, { memberUserId });
-    if (!result.ok) return null;
-    return {
-      balanceCents: result.balanceCents,
-      minimumBalanceCents: result.minimumBalanceCents,
-    };
-  } catch {
-    // Forbidden (no billing:access), unauthenticated, or any read failure →
-    // hide the card. Never surfaces an error to a people:access-only viewer.
-    return null;
   }
 }
 

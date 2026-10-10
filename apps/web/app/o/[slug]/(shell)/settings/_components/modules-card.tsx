@@ -5,7 +5,7 @@
  * Rendered on /o/[slug]/settings (page-level org:manage_settings gate). The
  * server actions re-enforce the caps (app:access for the read, org:manage_settings
  * for the write) — this component never trusts the page gate alone. Self-fetches
- * on mount (mirrors qbo-settings-card.tsx) rather than taking server-fetched
+ * on mount rather than taking server-fetched
  * initial props, since it owns both the mode picker and the per-module toggles.
  *
  * "HIDE, DON'T DESTROY": turning a module off only hides it from nav/search and

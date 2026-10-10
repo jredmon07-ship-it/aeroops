@@ -3,8 +3,7 @@
 # deploy-demo.sh — one-command deploy of the current branch to the hosted demo.
 #
 #   Migrates Neon (0046–0050), wipes + reseeds the demo orgs (Alpha + Bravo with
-#   the month of flights + finalized/paid invoices), and pushes to main so Vercel
-#   redeploys the app. Stripe is NEVER touched — no step reads a Stripe key.
+#   the month of flights), and pushes to main so Vercel redeploys the app.
 #
 # USAGE (run from the repo root):
 #   DATABASE_URL='postgres://neondb_owner:PASSWORD@HOST.neon.tech/neondb?sslmode=require' \
@@ -54,7 +53,7 @@ else
 fi
 echo
 
-# ── 3. Reseed both orgs (Alpha + Bravo, full month of activity + billing) ─────
+# ── 3. Reseed both orgs (Alpha + Bravo, full month of activity) ──────────────
 echo "▸ [3/4] Seeding demo data…"
 ALLOW_DEMO_SEED=1 pnpm db:seed:demo
 echo

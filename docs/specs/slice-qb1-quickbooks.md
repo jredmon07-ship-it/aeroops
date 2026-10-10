@@ -1,3 +1,5 @@
+> Removed 2026-10-10: money features were removed from AeroOps; kept as a design record.
+
 # Slice QB1 — QuickBooks Online integration foundation
 
 **Bookkeeping EXPORT only. NOT a payment processor. NEVER moves money.** Pushes operator-created, already-

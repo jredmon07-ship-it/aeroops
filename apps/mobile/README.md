@@ -71,7 +71,7 @@ root install is needed.
 - `AUTH_SECRET` (the signing key) is NEVER in the bundle or device storage.
 - org_id is NEVER sent from the client — it comes from the signed token server-side.
 - All auth failures show a generic error (anti-enumeration).
-- This slice is READ-ONLY. Write operations (dispatch, booking, payment) require the
+- This slice is READ-ONLY. Write operations (dispatch, booking) require the
   instant-revocation / token-refresh predecessor [VERIFY-4M-SEC-1] before they can
   ship in a future slice.
 
@@ -79,7 +79,6 @@ root install is needed.
 
 - Push notifications (future slice)
 - Deep links beyond login/schedule (future slice)
-- Payments — Stripe mobile path (future slice; MONEY BOUNDARY)
 - Any write operation (dispatch check-out/in, booking, etc.) — deferred
 - Android-specific icon / splash assets
 

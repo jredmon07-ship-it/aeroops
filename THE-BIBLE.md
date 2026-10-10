@@ -1,3 +1,5 @@
+> Note 2026-10-10: money features (billing, POS, payments, QuickBooks) were removed from AeroOps; the billing parts of this original spec are kept as a design record.
+
 # The FBO SaaS Bible
 
 A complete build manual for **AeroOps** (working name): a multi-tenant SaaS that

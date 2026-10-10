@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How to set up AeroOps</title>
-<meta name="description" content="A real, step-by-step setup: sign in, add your aircraft and people, schedule and dispatch. Billing, day/night-aware scheduling, and QuickBooks are optional, turned on whenever you're ready.">
+<meta name="description" content="A step-by-step setup: sign in, add your aircraft and people, schedule and dispatch. Day/night-aware scheduling, messages, and reports are optional.">
 <meta property="og:title" content="How to set up AeroOps">
-<meta property="og:description" content="Sign in, add your aircraft and people, then schedule and dispatch. Billing and QuickBooks are optional, on your own schedule.">
+<meta property="og:description" content="Sign in, add your aircraft and people, then schedule and dispatch.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://aeroops-web.vercel.app/how-it-works.html">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230C1322'/%3E%3Cpath d='M16 6 L25 24 L20.7 24 L16 14.7 L11.3 24 L7 24 Z' fill='%23FFFFFF'/%3E%3C/svg%3E">
@@ -364,7 +364,7 @@ section{padding:96px 0}
     <div class="wrap">
       <p class="eyebrow">Getting started</p>
       <h1 id="how-title">Add your aircraft and people, and you're scheduling.</h1>
-      <p>The first three steps are the whole setup; everything else, including billing, is optional.</p>
+      <p>The first three steps are the whole setup; everything else is optional.</p>
     </div>
   </section>
 
@@ -482,7 +482,7 @@ section{padding:96px 0}
             dispatch board, or the whole month on the calendar view, whichever fits the moment.</p>
             <p>When the aircraft flies, check it out on the dispatch board. The confirm screen
             shows a pre-flight checklist first: grounding status, the pilot's reminder dates,
-            account balance, and open squawks. Then it records Hobbs (and tach, if it tracks one).
+            and open squawks. Then it records Hobbs (and tach, if it tracks one).
             Check it back in the same way when it returns.</p>
             <p>Something needs attention: log a squawk at check-in. An aircraft grounded for a
             squawk cannot be dispatched again until the grounding is resolved.</p>
@@ -494,36 +494,6 @@ section{padding:96px 0}
             <span class="step-num" aria-hidden="true">6</span>
             <div class="step-diagram" aria-hidden="true">
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4">
-                <rect x="8" y="5" width="20" height="28" rx="1.5"/>
-                <line x1="12" y1="12" x2="24" y2="12"/>
-                <line x1="12" y1="17" x2="24" y2="17"/>
-                <line x1="12" y1="22" x2="20" y2="22"/>
-                <path d="M28 24 h7 M32 20.5 l3 3 -3 3" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-          </div>
-          <div>
-            <h3>Billing, payments, and QuickBooks <span class="step-tag">Optional</span></h3>
-            <p>Turn billing on when you're ready and set your rate schedule, per aircraft and
-            for instruction. From there, every closed dispatch pre-fills a draft
-            invoice from the recorded Hobbs time for you to review in <strong>Billing</strong>
-            and finalize. With auto-pay enabled, a finalized invoice collects from the member's
-            linked bank account automatically; otherwise, collect it yourself by card or another
-            method. Payments run through your own Stripe account, with no fee to AeroOps. Clubs
-            can also set recurring dues —
-            monthly, quarterly, or annual — that bill on schedule and collect through the same
-            auto-pay.</p>
-            <p>Connect QuickBooks Online once, in <strong>Settings</strong>, and finalized
-            invoices export straight to QuickBooks as line items, split between rental and
-            instruction accounts.</p>
-          </div>
-        </li>
-
-        <li class="step">
-          <div>
-            <span class="step-num" aria-hidden="true">7</span>
-            <div class="step-diagram" aria-hidden="true">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4">
                 <rect x="5" y="10" width="30" height="20" rx="1.5"/>
                 <path d="M5 12 L20 22 L35 12" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -532,12 +502,11 @@ section{padding:96px 0}
           <div>
             <h3>Messages and reports <span class="step-tag">Optional</span></h3>
             <p>From <strong>Messages</strong>, email an announcement to every active member or
-            to one role (a runway closure, a rate change, an event) with a live recipient
+            to one role (a runway closure, a policy change, an event) with a live recipient
             count before you hit send. Members who opt out of announcements are skipped
             automatically.</p>
             <p>And when you want the numbers, <strong>Reports</strong> covers utilization,
-            hours by tail, reservations versus flights, and accounts-receivable aging, all
-            scoped to any date range.</p>
+            hours by tail, and reservations versus flights, all scoped to any date range.</p>
           </div>
         </li>
 

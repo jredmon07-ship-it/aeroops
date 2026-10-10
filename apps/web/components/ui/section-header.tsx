@@ -3,7 +3,7 @@
  *
  * Usage:
  *   <SectionHeader eyebrow="As of now" />
- *   <SectionHeader eyebrow="Billing" title="Invoices" hint="Newest first" />
+ *   <SectionHeader eyebrow="Maintenance" title="Work orders" hint="Newest first" />
  *
  * The eyebrow is the tiny tracked-uppercase slate label the dashboard uses
  * above every panel ("As of now", "Last 30 days", "On the board").

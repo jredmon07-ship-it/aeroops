@@ -19,8 +19,7 @@
  *     (by email/tail) is SKIPPED, never overwritten.
  *   - ATOMIC PER ROW via a savepoint: a bad row (write-path throw, or a
  *     duplicate surfaced only now) marks that import_row 'error'/'skipped'
- *     and the loop continues — it never aborts the whole batch (mirrors
- *     generate-dues-invoices.ts's per-schedule savepoint pattern).
+ *     and the loop continues — it never aborts the whole batch.
  *   - Members import as ROSTER ENTRIES ONLY via addMember — default role
  *     'renter' (least-privilege; the operator can promote via the existing
  *     People hub afterward). NO auth_credential is created (addMember's own
@@ -185,7 +184,7 @@ async function _commitImportImpl(
         // internal withOrgContext → tx.transaction()) inside this already-
         // open outer tx; a throw there rolls back ONLY this row's writes;
         // the outer tx (and every prior row's committed savepoint) stays
-        // alive (mirrors generate-dues-invoices.ts's per-schedule savepoint).
+        // alive.
         try {
           const memberResult = await addMemberWithDb(tx, session, {
             email: normalized.value.email,

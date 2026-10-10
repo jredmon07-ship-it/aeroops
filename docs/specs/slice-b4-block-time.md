@@ -1,3 +1,5 @@
+> Removed 2026-10-10: money features were removed from AeroOps; kept as a design record.
+
 # Slice B4 — Block-time / prepaid packages
 
 **Status:** build-complete, awaiting human review. Migration `0034_block_time.sql` +

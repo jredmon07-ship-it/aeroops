@@ -1,8 +1,8 @@
 /**
  * correct-dispatch-meter.ts — Append-only correction to a CLOSED dispatch
- * ticket's recorded meters (Slice B0 / B1, ADR-0007 §1).
+ * ticket's recorded meters (Slice B0, ADR-0007 §1).
  *
- * EFFECTIVE METER: billing CONSUMES the latest correction ?? original.
+ * EFFECTIVE METER: readers consume the latest correction ?? original.
  * This command APPENDS one row to dispatch_ticket_correction (INSERT-only table).
  * It NEVER mutates dispatch_ticket (the FROZEN close path is untouched).
  *
@@ -11,9 +11,7 @@
  *   in Slice 3a). Rationale: correcting a dispatch meter is a dispatch record
  *   operation — the same authority that can close a ticket (and thus record meters)
  *   should be able to correct a recorded meter. This avoids a new capability and
- *   correctly scopes to owner/manager/dispatcher/cfi. A separate `billing:manage`
- *   alternative is not used here because billing:manage is about invoice records,
- *   not dispatch meter records. If a higher authority is needed in a future
+ *   correctly scopes to owner/manager/dispatcher/cfi. If a higher authority is needed in a future
  *   compliance ruling (e.g. owner/manager only), a new cap can be added without
  *   changing the correction table structure.
  *   [VERIFY-B0-COMP-1]: dual-signature/audit-chain ruling may override this.
@@ -116,14 +114,14 @@ async function _correctDispatchMeterImpl(
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     throw new ValidationError(
-      `[billing] invalid correctDispatchMeter input: ${first?.message ?? 'unknown'}`,
+      `[dispatch] invalid correctDispatchMeter input: ${first?.message ?? 'unknown'}`,
     );
   }
   const { dispatchTicketId, correctedHobbs, correctedTach, reason } = parsed.data;
 
   // Trim-check reason (belt-and-suspenders beyond zod min(1)).
   if (reason.trim().length === 0) {
-    throw new ValidationError('[billing] correctDispatchMeter: reason must not be blank');
+    throw new ValidationError('[dispatch] correctDispatchMeter: reason must not be blank');
   }
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
@@ -162,7 +160,7 @@ async function _correctDispatchMeterImpl(
 
     const row = inserted[0];
     if (!row) {
-      throw new Error('[billing] correctDispatchMeter: INSERT returned no rows');
+      throw new Error('[dispatch] correctDispatchMeter: INSERT returned no rows');
     }
 
     // 5. Audit row — one per correction (records integrity).

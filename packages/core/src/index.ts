@@ -158,13 +158,6 @@ export type {
 export { evaluateEligibilityGate } from './dispatch-gate/eligibility-gate.js';
 export type { EligibilityGateResult } from './dispatch-gate/eligibility-gate.js';
 
-export { stubBalanceSeam } from './dispatch-gate/balance-seam.js';
-export type {
-  BalanceCheckRequest,
-  BalanceCheckResult,
-  BalanceSeam,
-} from './dispatch-gate/balance-seam.js';
-
 // ─── Slice T1.1 — Training enum tuples (single source of truth for DB + app) ──
 export {
   ENROLLMENT_STATUSES,
@@ -232,96 +225,6 @@ export type {
   MobileAlertDTO,
   MobileAlertsResponse,
 } from './mobile/dto.js';
-
-// ─── Phase-2 B1 — Pure invoice / billing math (integer cents, no Stripe) ────────
-// applyRate: line amount = round-half-up(hours × ratePerHourCents) → integer cents.
-// computeLineTotal: alias for applyRate (line-total vocabulary).
-// computeInvoiceTotals: subtotal = Σ lineTotalCents (exact integer sum); in B1
-//   totalCents === subtotalCents (tax/discount seam noted in module-level comment).
-// applyPricingGroupDiscount: bps discount helper (B4 seam; NOT wired into totals yet).
-// computeCounterSaleLineTotal (Slice P2 — POS): line total = quantity ×
-//   unitPriceCents, EXACT integer product (no rounding — both operands are
-//   already integers). Consumed by createCounterSale.
-// PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
-// Property-tested (hard guardrail): P1..P17 in __tests__/invoice-math.test.ts;
-//   P-CS-1..3 (Slice P2) cover computeCounterSaleLineTotal.
-// [VERIFY-B-MONEY-1]: flight_time_hours is the billable basis (ADR-0007, frozen).
-export {
-  applyRate,
-  computeLineTotal,
-  computeInvoiceTotals,
-  applyPricingGroupDiscount,
-  computeCounterSaleLineTotal,
-} from './billing/invoice-math.js';
-export type { InvoiceLine, InvoiceTotals } from './billing/invoice-math.js';
-
-// ─── Slice B2 — Pure ledger balance math (integer cents, no Stripe) ───────────
-// computeBalance: balance = Σ(credit amounts) − Σ(debit amounts). Order-
-//   independent, deterministic, integer-closed. Does NOT clamp (a negative
-//   balance is a legitimate "member owes money" result).
-// PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
-// Property-tested (hard guardrail): P1..P10 in __tests__/ledger-math.test.ts.
-// [VERIFY-B2-MONEY]: consumed ONLY by packages/api/src/billing/real-balance-seam.ts,
-//   which is NOT injected into the FROZEN openDispatch() app-code path in this slice.
-export { computeBalance } from './billing/ledger-math.js';
-export type { LedgerEntryAmount } from './billing/ledger-math.js';
-
-// ─── Fee-passing — Pure ACH pass-through processing-fee math (integer cents) ──
-// computeAchPassthroughFeeCents: fee = min(round(baseCents × 0.01), 700) — the
-//   1%-capped-$7 ACH pricing, optionally passed through to the member
-//   at checkout when the operator opts in (dispatch_config.pass_ach_fee_to_member).
-// PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
-// Property-tested (hard guardrail): __tests__/fee-math.test.ts.
-// MONEY BOUNDARY: computes a QUOTED amount only; moves no money. The ledger
-//   credit posts the BASE (see packages/api/src/integrations/stripe/*).
-export {
-  computeAchPassthroughFeeCents,
-  ACH_FEE_RATE,
-  ACH_FEE_CAP_CENTS,
-} from './billing/fee-math.js';
-
-// ─── Slice B4 — Pure block-time (prepaid package) summary math ───────────────
-// aggregateBlockPurchases: Σ hours + Σ amountCents across a member's block
-//   purchases. Hours sum via an integer-tenths accumulator (no float drift,
-//   mirrors packages/api/src/logbook/internal.ts's buildPilotLog convention).
-//   totalAmountCents is integer-closed (property-tested).
-// computeEffectiveRateCentsPerHour: price_cents / hours — DISPLAY ONLY,
-//   never summed/stored/fed back into money math.
-// PURE: no I/O, no clock, no Stripe, no DB. Money as INTEGER CENTS only.
-// Property-tested (hard guardrail): __tests__/block-summary-math.test.ts.
-export {
-  aggregateBlockPurchases,
-  computeEffectiveRateCentsPerHour,
-} from './billing/block-summary-math.js';
-export type { BlockPurchaseAmount, BlockPurchaseTotals } from './billing/block-summary-math.js';
-
-// ─── Financial / AR reporting slice — pure AR-aging bucketer ─────────────────
-// ageDaysBetween/classifyAgingBucket/bucketAgingItem/sumAgingBuckets/aggregateAging:
-//   buckets an outstanding {balanceCents, asOf, referenceDate} into one of 5 AR-aging
-//   tiers (current/1-30/31-60/61-90/90+). See module-level METRIC DEFINITION in
-//   billing/ar-aging.ts for the exact day-boundary rule. NEVER throws (a reporting
-//   surface must degrade gracefully); integer cents only.
-// PURE: no I/O, no clock read internally (asOf is always caller-injected), no Stripe.
-// Property-tested (hard guardrail): P1..P6 in __tests__/ar-aging.test.ts.
-// [VERIFY-AR-AGING-1]: "age of the oldest unpaid invoice" is a per-account proxy —
-//   this system has no per-invoice payment allocation. See getAccountsReceivable
-//   (packages/api/src/billing/get-accounts-receivable.ts) for the exact reference-date
-//   choice made at the call site.
-export {
-  ageDaysBetween,
-  classifyAgingBucket,
-  bucketAgingItem,
-  sumAgingBuckets,
-  aggregateAging,
-  emptyAgingBuckets,
-} from './billing/ar-aging.js';
-export type {
-  AgingBucketKey,
-  AgingBuckets,
-  AgingItem,
-  AgingItemResult,
-  AggregateAgingResult,
-} from './billing/ar-aging.js';
 
 // ─── Slice PB1.1 — Public booking-request submit schema (ADR-0013) ────────────
 // bookingRequestSchema: zod bounds for the unauthenticated public submit.
@@ -430,24 +333,3 @@ export {
   deriveSlugCandidate,
   isValidSlug,
 } from './signup.js';
-
-// ─── Dues/tuition cadence — pure helpers (migration 0050) ─────────────────────
-// isDuesScheduleDue: is a schedule of a given cadence due in a calendar month
-//   (monthly always; quarterly/semiannual/annual anchored to a month). Keeps
-//   the generation engine's per-month run model — monthly is byte-identical.
-// recurringChargeNoun: 'Tuition' for a school, 'Dues' for a club (operating
-//   mode drives the label; one engine).
-export {
-  DUES_CADENCES,
-  isDuesCadence,
-  isDuesScheduleDue,
-  duesChargesPerYear,
-  duesMonthlyEquivalentCents,
-  DUES_CADENCE_META,
-  recurringChargeNoun,
-  DUES_MONTH_NAMES,
-  duesMonthName,
-  duesCadenceSuffix,
-  duesCadenceLabel,
-} from './dues.js';
-export type { DuesCadence } from './dues.js';

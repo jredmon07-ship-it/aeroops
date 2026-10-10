@@ -13,7 +13,7 @@
  * BOUNDARY: imports ONLY from @aeroops/api — NEVER @aeroops/db.
  * RLS + org_id scoping are enforced inside the API functions (session only).
  *
- * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT billing/airworthiness.
+ * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT airworthiness.
  * [VERIFY-T1-B] Training counts = operator state; NOT Part-141 or FAA determination.
  * [VERIFY-M1-A] Maintenance counts = operator data; NOT Part-43/airworthiness/RTS.
  * [VERIFY-R1-TZ] UTC bucketing; display layer handles formatting.

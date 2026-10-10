@@ -24,9 +24,8 @@
  * only to_email + subject (see migration 0026 header).
  *
  * CALLING CONTEXT: called from the WEB ACTION LAYER, AFTER the triggering
- * command's own transaction has already committed (mirrors
- * triggerAutopayOnFinalize — external I/O, including this DB write, must
- * never be held inside the core command's own tx). Opens its OWN fresh
+ * command's own transaction has already committed (external I/O, including
+ * this DB write, must never be held inside the core command's own tx). Opens its OWN fresh
  * withSessionOrgContext(WithDb) scope.
  *
  * TWO CALLING FORMS:

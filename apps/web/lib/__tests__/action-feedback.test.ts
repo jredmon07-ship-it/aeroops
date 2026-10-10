@@ -44,8 +44,8 @@ describe('actionErrorMessage', () => {
   });
 
   it('honors a custom fallback', () => {
-    expect(actionErrorMessage({ error: 'server' }, "Couldn't save the payment.")).toBe(
-      "Couldn't save the payment.",
+    expect(actionErrorMessage({ error: 'server' }, "Couldn't save the squawk.")).toBe(
+      "Couldn't save the squawk.",
     );
   });
 });

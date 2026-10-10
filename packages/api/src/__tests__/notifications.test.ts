@@ -164,35 +164,6 @@ describe('renderNotificationTemplate — pure per-event templates', () => {
     expect(r.text).toContain('Engine inspection');
     expect(r.text.toLowerCase()).not.toContain('part 91');
   });
-
-  it('invoice.finalized', () => {
-    const r = renderNotificationTemplate('invoice.finalized', {
-      invoiceId: 'inv-1',
-      totalCents: 12345,
-    });
-    expect(r.subject).toMatch(/invoice/i);
-    expect(r.text).toContain('$123.45');
-  });
-
-  it('payment.failed', () => {
-    const r = renderNotificationTemplate('payment.failed', {
-      invoiceId: 'inv-1',
-      amountCents: 500,
-    });
-    expect(r.subject.toLowerCase()).toContain('payment');
-    expect(r.text).toContain('$5.00');
-  });
-
-  it('dues.generated', () => {
-    const r = renderNotificationTemplate('dues.generated', {
-      invoiceId: 'inv-1',
-      periodKey: '2026-08',
-      amountCents: 7500,
-    });
-    expect(r.subject.toLowerCase()).toContain('dues');
-    expect(r.text).toContain('2026-08');
-    expect(r.text).toContain('$75.00');
-  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -274,7 +245,7 @@ describe('sendNotification — logging + opt-out + provider-error behaviour', ()
       result = await sendNotificationWithDb(
         env.db,
         sess,
-        { toUserId: member.id, eventType: 'invoice.finalized', templateData: { invoiceId: 'inv-x', totalCents: 100 } },
+        { toUserId: member.id, eventType: 'aircraft.grounded', templateData: { resourceId: 'res-x', reason: 'Test grounding' } },
         provider,
       );
     } catch {
@@ -288,7 +259,7 @@ describe('sendNotification — logging + opt-out + provider-error behaviour', ()
       tx
         .select()
         .from(notificationLog)
-        .where(and(eq(notificationLog.userId, member.id), eq(notificationLog.eventType, 'invoice.finalized'))),
+        .where(and(eq(notificationLog.userId, member.id), eq(notificationLog.eventType, 'aircraft.grounded'))),
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]!.status).toBe('failed');
@@ -303,8 +274,8 @@ describe('sendNotification — logging + opt-out + provider-error behaviour', ()
       sess,
       {
         toUserId: '00000000-0000-0000-0000-000000000000',
-        eventType: 'invoice.finalized',
-        templateData: { invoiceId: 'inv-x', totalCents: 100 },
+        eventType: 'aircraft.grounded',
+        templateData: { resourceId: 'res-x', reason: 'Test grounding' },
       },
       provider,
     );
@@ -316,8 +287,8 @@ describe('sendNotification — logging + opt-out + provider-error behaviour', ()
     const provider = new FakeEmailProvider();
     const input: SendNotificationInput = {
       toUserId: env.userAId,
-      eventType: 'invoice.finalized',
-      templateData: { invoiceId: 'inv-x', totalCents: 100 },
+      eventType: 'aircraft.grounded',
+      templateData: { resourceId: 'res-x', reason: 'Test grounding' },
     };
     const result = await sendNotificationWithDb(env.db, null, input, provider);
     expect(result.sent).toBe(false);
@@ -362,8 +333,8 @@ describe('email-provider seam — unconfigured stub path', () => {
       const member = await seedMember(env.db, env.orgAId, 'StubPath');
       const result = await sendNotificationWithDb(env.db, sess, {
         toUserId: member.id,
-        eventType: 'invoice.finalized',
-        templateData: { invoiceId: 'inv-stub', totalCents: 100 },
+        eventType: 'aircraft.grounded',
+        templateData: { resourceId: 'res-x', reason: 'Test grounding' },
       });
       expect(result).toEqual({ sent: true });
     } finally {
@@ -389,13 +360,13 @@ describe('T-ISO — tenant isolation on notification_log + notification_pref', (
     await sendNotificationWithDb(
       env.db,
       sessA,
-      { toUserId: memberA.id, eventType: 'invoice.finalized', templateData: { invoiceId: 'a', totalCents: 1 } },
+      { toUserId: memberA.id, eventType: 'aircraft.grounded', templateData: { resourceId: 'res-x', reason: 'Test grounding' } },
       provider,
     );
     await sendNotificationWithDb(
       env.db,
       sessB,
-      { toUserId: memberB.id, eventType: 'invoice.finalized', templateData: { invoiceId: 'b', totalCents: 1 } },
+      { toUserId: memberB.id, eventType: 'aircraft.grounded', templateData: { resourceId: 'res-x', reason: 'Test grounding' } },
       provider,
     );
 
@@ -411,19 +382,19 @@ describe('T-ISO — tenant isolation on notification_log + notification_pref', (
     const memberB = await seedMember(env.db, env.orgBId, 'IsoPrefB');
 
     await setMyNotificationPrefWithDb(env.db, makeSession(env.orgAId, memberA.id, 'renter'), {
-      eventType: 'invoice.finalized',
+      eventType: 'aircraft.grounded',
       emailEnabled: false,
     });
     await setMyNotificationPrefWithDb(env.db, makeSession(env.orgBId, memberB.id, 'renter'), {
-      eventType: 'invoice.finalized',
+      eventType: 'aircraft.grounded',
       emailEnabled: true,
     });
 
     const prefsA = await getMyNotificationPrefsWithDb(env.db, makeSession(env.orgAId, memberA.id, 'renter'));
     const prefsB = await getMyNotificationPrefsWithDb(env.db, makeSession(env.orgBId, memberB.id, 'renter'));
 
-    expect(prefsA.find((p) => p.eventType === 'invoice.finalized')?.emailEnabled).toBe(false);
-    expect(prefsB.find((p) => p.eventType === 'invoice.finalized')?.emailEnabled).toBe(true);
+    expect(prefsA.find((p) => p.eventType === 'aircraft.grounded')?.emailEnabled).toBe(false);
+    expect(prefsB.find((p) => p.eventType === 'aircraft.grounded')?.emailEnabled).toBe(true);
 
     const rowsAsA = await withOrgContext(env.db, env.orgAId, (tx) => tx.select().from(notificationPref));
     expect(rowsAsA.some((r) => r.userId === memberB.id)).toBe(false);
@@ -506,14 +477,14 @@ describe('getMyNotificationPrefs / setMyNotificationPref', () => {
     const member = await seedMember(env.db, env.orgAId, 'UpsertIdem');
     const sess = makeSession(env.orgAId, member.id, 'student');
 
-    await setMyNotificationPrefWithDb(env.db, sess, { eventType: 'dues.generated', emailEnabled: false });
-    await setMyNotificationPrefWithDb(env.db, sess, { eventType: 'dues.generated', emailEnabled: true });
+    await setMyNotificationPrefWithDb(env.db, sess, { eventType: 'maintenance.due', emailEnabled: false });
+    await setMyNotificationPrefWithDb(env.db, sess, { eventType: 'maintenance.due', emailEnabled: true });
 
     const rows = await withOrgContext(env.db, env.orgAId, (tx) =>
       tx
         .select()
         .from(notificationPref)
-        .where(and(eq(notificationPref.userId, member.id), eq(notificationPref.eventType, 'dues.generated'))),
+        .where(and(eq(notificationPref.userId, member.id), eq(notificationPref.eventType, 'maintenance.due'))),
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]!.emailEnabled).toBe(true);

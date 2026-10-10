@@ -4,6 +4,32 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-10-10 — Money features removed
+
+AeroOps is now an operations tool only: scheduling, dispatch, fleet, maintenance, training,
+people, reporting, public booking requests, and mobile.
+
+**Removed**
+
+- Billing hub, rate schedules, invoices, the member ledger and balances, block time, recurring
+  dues/tuition, counter sales (POS), fee passing, and the billing/AR/revenue reports.
+- Stripe payments (saved payment methods, self-pay, auto-pay, the webhook route) and the
+  QuickBooks Online integration (OAuth routes, export, sync).
+- The dispatch balance arm (`balance_block`) and its seam; the pre-flight gate is now
+  grounded → ineligible. The dispatch config no longer reads or writes the balance columns.
+- The `billing:access` / `billing:manage` capabilities (23 → 21). The accountant role stays
+  (it is a Postgres enum value) as a read-only Dashboard/Reports/Activity viewer.
+- The `billing` org module, the invoice/payment/dues notification types, the rates and
+  payments setup steps, the money help articles, money demo data, and money tests.
+- Billing, pricing, and fee copy on the project site; the FAQ keeps plain product questions.
+
+**Kept**
+
+- The append-only dispatch meter correction (`dispatch_ticket_correction`) and the effective
+  meter read, moved to `packages/api/src/dispatch/`.
+- Every migration and the Drizzle schema for the money tables, so the live database and the
+  migration history are untouched. No application code reads or writes those tables.
+
 ## [Unreleased] — Deployment + Reporting depth (post-deploy, branch `slice/post-deploy`)
 
 **Deployed** — the full product went live on Vercel + Neon Postgres (migrations applied human-gated, demo

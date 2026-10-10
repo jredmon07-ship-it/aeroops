@@ -16,7 +16,7 @@
  *     toast.error(actionErrorMessage(result));
  *     return;
  *   }
- *   toast.success('Payment recorded');
+ *   toast.success('Squawk reported');
  *
  * PURE MODULE: no React, no DOM — unit-testable under vitest's node env.
  */

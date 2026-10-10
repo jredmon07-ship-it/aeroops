@@ -12,7 +12,7 @@
  *   Zero-fill:   enumerateBuckets() in memory — every bucket appears even if empty.
  *   avgHoursPerFlight: safeAvg(totalFlightHours, totalFlights) — 0 when no flights.
  *
- * OPERATIONAL — NOT billing/airworthiness. [VERIFY-A] Hours = Hobbs-derived.
+ * OPERATIONAL — NOT airworthiness. [VERIFY-A] Hours = Hobbs-derived.
  *
  * AUTHZ: requireCapability('reporting:access') FIRST.
  * TENANT ISOLATION: org_id from session only; single withSessionOrgContextWithDb.

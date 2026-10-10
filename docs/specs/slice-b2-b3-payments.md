@@ -1,3 +1,5 @@
+> Removed 2026-10-10: money features were removed from AeroOps; kept as a design record.
+
 # Slice B2 + B3-foundation — Billing ledger, balance, and the Stripe seam-to-the-key-boundary
 
 **STATUS: BUILD-COMPLETE, human-gated.** Migrations `0022_billing_ledger.sql` + `0023_stripe_foundation.sql`

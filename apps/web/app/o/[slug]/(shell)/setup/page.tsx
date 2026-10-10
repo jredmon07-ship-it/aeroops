@@ -3,7 +3,7 @@
  *
  * A guided, encouraging setup surface that scales from a 2-plane flying club to
  * a large academy: the two ESSENTIALS (aircraft + people) are front-and-centre,
- * OPTIONAL depth (base airport, rates, policies, payments) sits below.
+ * OPTIONAL depth (base airport, booking policies) sits below.
  *
  * SERVER-SIDE RBAC GATE:
  *   requireCapability(session, 'org:manage_settings') is called first (setup is
@@ -82,26 +82,12 @@ const STEP_META: Record<OnboardingStepKey, StepMeta> = {
     href: (slug) => `/o/${slug}/fleet/locations`,
     doneNote: (n) => `${n} base${n === 1 ? '' : 's'} with coordinates`,
   },
-  rates: {
-    title: 'Define your rates',
-    description: 'Set hourly and flat rates so you can generate invoices later.',
-    cta: 'Go to Billing rates',
-    href: (slug) => `/o/${slug}/billing/catalog`,
-    doneNote: (n) => `${n} rate schedule${n === 1 ? '' : 's'} defined`,
-  },
   policies: {
     title: 'Set booking policies',
     description: 'Add per-aircraft rules — max duration, advance limits, and blackout windows.',
     cta: 'Go to Schedule',
     href: (slug) => `/o/${slug}/schedule`,
     doneNote: (n) => `${n} booking polic${n === 1 ? 'y' : 'ies'} set`,
-  },
-  payments: {
-    title: 'Connect payments',
-    description: 'Link QuickBooks or Stripe to bill members and export your books.',
-    cta: 'Go to Settings',
-    href: (slug) => `/o/${slug}/settings`,
-    doneNote: (n) => `${n} payment provider${n === 1 ? '' : 's'} connected`,
   },
 };
 

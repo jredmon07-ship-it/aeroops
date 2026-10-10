@@ -24,7 +24,7 @@
  *
  * BOUNDARY: imports ONLY from '@aeroops/api'. Never '@aeroops/db'.
  *
- * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT billing/airworthiness.
+ * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT airworthiness.
  * [VERIFY-T1-B] Training counts = operator state; NOT Part-141 or FAA determination.
  * [VERIFY-M1-A] Maintenance counts = operator data; NOT Part-43/airworthiness/RTS.
  * [VERIFY-R1-TZ] UTC bucketing throughout.
@@ -58,7 +58,7 @@ import { csvDate, csvFilename } from '@/lib/csv-format';
 // ─── Hours footnote (verbatim per spec) ──────────────────────────────────────
 
 const HOURS_FOOTNOTE =
-  'Utilization hours derived from recorded Hobbs at check-in. Operational figure only — not a billing or airworthiness statement.';
+  'Utilization hours derived from recorded Hobbs at check-in. Operational figure only — not an airworthiness statement.';
 
 const OPERATOR_COUNT_CAPTION =
   'Operator counts — not a Part-141, airworthiness, or regulatory determination.';

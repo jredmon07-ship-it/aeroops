@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 export interface ExportCsvButtonProps {
   /** Full grid: row 0 is the header, the rest are data rows. All cells stringified. */
   rows: string[][];
-  /** e.g. "aeroops-payments-2026-07.csv". */
+  /** e.g. "aeroops-utilization-2026-07.csv". */
   filename: string;
   label?: string;
   disabled?: boolean;

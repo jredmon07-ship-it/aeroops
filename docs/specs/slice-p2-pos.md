@@ -1,3 +1,5 @@
+> Removed 2026-10-10: money features were removed from AeroOps; kept as a design record.
+
 # Slice P2 — POS / Counter Sales
 
 **Status:** BUILD-COMPLETE (awaiting human review). Branch `slice/code-health-rows-helper`. Migration `0031_pos_sales.sql` staged + human-gated, NOT applied.

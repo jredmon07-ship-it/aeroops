@@ -16,16 +16,13 @@
  * notification_pref.event_type are free text (see migration 0026).
  *
  * PLAIN, operator-operational copy only — see templates.ts. NO FAA/
- * airworthiness/currency determinations, no money advice.
+ * airworthiness/currency determinations.
  */
 
 export const NOTIFICATION_EVENT_TYPES = [
   'reservation.created',
   'squawk.reported',
   'aircraft.grounded',
-  'invoice.finalized',
-  'payment.failed',
-  'dues.generated',
   'maintenance.due',
   'org.announcement',
 ] as const;
@@ -60,22 +57,6 @@ export interface AircraftGroundedData {
   reason: string;
 }
 
-export interface InvoiceFinalizedData {
-  invoiceId: string;
-  totalCents: number;
-}
-
-export interface PaymentFailedData {
-  invoiceId: string;
-  amountCents: number;
-}
-
-export interface DuesGeneratedData {
-  invoiceId: string;
-  periodKey: string;
-  amountCents: number;
-}
-
 /**
  * MaintenanceDueData — Slice P1.5's "heads-up" digest data for
  * notifyMaintenanceDue. `items` is bounded (≤10, caller-side) — this is a
@@ -107,9 +88,6 @@ export interface NotificationTemplateDataMap {
   'reservation.created': ReservationCreatedData;
   'squawk.reported': SquawkReportedData;
   'aircraft.grounded': AircraftGroundedData;
-  'invoice.finalized': InvoiceFinalizedData;
-  'payment.failed': PaymentFailedData;
-  'dues.generated': DuesGeneratedData;
   'maintenance.due': MaintenanceDueData;
   'org.announcement': OrgAnnouncementData;
 }

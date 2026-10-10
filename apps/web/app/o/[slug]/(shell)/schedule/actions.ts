@@ -45,7 +45,6 @@ import {
   getGroundingStatus,
   getOpenSquawkCounts,
   listMemberExpirations,
-  getMemberBalance,
   previewAvailability,
   sendNotification,
   getMetarForAircraft,
@@ -626,7 +625,7 @@ export interface DispatchPreflightExpirationRow {
  * Every facet is null when its read was unavailable (missing capability or a
  * transient failure) — the dialog hides that row gracefully. WARN-ONLY:
  * nothing here blocks the dispatch; the FROZEN openDispatch gate (grounded →
- * ineligible → balance) still runs unchanged when the user submits.
+ * ineligible) still runs unchanged when the user submits.
  */
 export interface DispatchPreflight {
   /** Aircraft grounding status (operator-set grounding record). */
@@ -640,8 +639,6 @@ export interface DispatchPreflight {
     expiredCount: number;
     dueSoonCount: number;
   } | null;
-  /** Pilot balance — null when the caller lacks billing:access (row hidden). */
-  balance: { balanceCents: number; minimumBalanceCents: number } | null;
   /** Open squawk count on the aircraft. */
   openSquawkCount: number | null;
 }
@@ -654,11 +651,11 @@ export type GetDispatchPreflightActionResult =
 /**
  * getDispatchPreflightAction — assemble the pre-flight checklist for the
  * check-out dialog in ONE round trip. READ-ONLY composition of EXISTING
- * scoped reads (grounding, squawk counts, member expirations, balance) —
+ * scoped reads (grounding, squawk counts, member expirations) —
  * no new query surface, no writes, no gate changes.
  *
- * Facet-level failures (e.g. a dispatcher without billing:access hitting
- * getMemberBalance's Forbidden) degrade that facet to null instead of
+ * Facet-level failures (e.g. a role without maintenance:access hitting
+ * getGroundingStatus's Forbidden) degrade that facet to null instead of
  * failing the whole action — the dialog hides the row.
  */
 export async function getDispatchPreflightAction(input: {
@@ -671,7 +668,6 @@ export async function getDispatchPreflightAction(input: {
   const preflight: DispatchPreflight = {
     grounding: null,
     expirations: null,
-    balance: null,
     openSquawkCount: null,
   };
 
@@ -710,19 +706,6 @@ export async function getDispatchPreflightAction(input: {
     }
   } catch {
     // Row hidden.
-  }
-
-  // Pilot balance (billing:access) — hidden gracefully on Forbidden.
-  try {
-    const r = await getMemberBalance(session, { memberUserId: input.pilotUserId });
-    if (r.ok) {
-      preflight.balance = {
-        balanceCents: r.balanceCents,
-        minimumBalanceCents: r.minimumBalanceCents,
-      };
-    }
-  } catch {
-    // Row hidden (e.g. dispatcher/cfi lack billing:access).
   }
 
   return { ok: true, preflight };

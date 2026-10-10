@@ -22,18 +22,6 @@ const EVENT_LABELS: Record<NotificationEventType, EventLabelInfo> = {
     label: 'Aircraft grounded alerts',
     description: 'When you ground an aircraft.',
   },
-  'invoice.finalized': {
-    label: 'Invoice ready notices',
-    description: 'When an invoice on your account is finalized.',
-  },
-  'payment.failed': {
-    label: 'Payment failed alerts',
-    description: 'When a payment on your account does not go through.',
-  },
-  'dues.generated': {
-    label: 'Dues invoice notices',
-    description: 'When a new recurring dues invoice is generated for you.',
-  },
   'maintenance.due': {
     label: 'Maintenance due',
     description: 'A maintenance item on an aircraft is coming due or overdue.',

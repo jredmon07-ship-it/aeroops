@@ -1,8 +1,7 @@
 /**
  * notifications/email-provider.ts — the email provider SEAM (Slice P1.3).
  *
- * Mirrors the house pattern established by booking/captcha.ts and
- * integrations/stripe/client.ts / integrations/qbo/client.ts: an interface +
+ * Mirrors the house pattern established by booking/captcha.ts: an interface +
  * a stub that is INERT when unconfigured + a real implementation selected by
  * env, behind a single memoized factory.
  *
@@ -16,8 +15,8 @@
  *       shape whether or not email is configured.
  *     - Both set    → RealEmailProvider — raw fetch against Resend's API
  *       (https://api.resend.com/emails), Bearer EMAIL_API_KEY. NO npm SDK
- *       (per the no-new-heavy-deps posture — mirrors the Stripe client).
- *   Memoized per-process (module-level singleton) — mirrors getStripeClient's
+ *       (per the no-new-heavy-deps posture).
+ *   Memoized per-process (module-level singleton) — the
  *   memoization rationale: these are deployment-level config that does not
  *   change mid-process. __resetEmailProviderForTests clears it for tests.
  *

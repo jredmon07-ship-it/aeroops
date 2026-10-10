@@ -1,15 +1,14 @@
 /**
  * weather/provider.ts — the METAR weather provider SEAM (Slice W1).
  *
- * Mirrors the house pattern established by integrations/qbo/client.ts and
- * integrations/stripe/client.ts: a small interface + a real implementation
- * behind a single factory. UNLIKE those two, the AWC Aviation Weather Center
+ * Mirrors the house pattern established by notifications/email-provider.ts:
+ * a small interface + a real implementation behind a single factory. UNLIKE
+ * that one, the AWC Aviation Weather Center
  * Data API is free and keyless (no signup, no secret to configure) — so there
  * is no "unconfigured stub" arm here; `getWeatherProvider()` always returns
  * the real (live-fetching) provider. Tests inject a FAKE WeatherProvider
- * directly into the `*WithDb` command form (see get-metar-for-aircraft.ts) —
- * mirroring how QBO/Stripe tests inject a fake client rather than making a
- * real HTTP call.
+ * directly into the `*WithDb` command form (see get-metar-for-aircraft.ts)
+ * rather than making a real HTTP call.
  *
  * ── API SURFACE (confirmed 2026-07 against aviationweather.gov/data/schema/openapi.yaml
  *    + a live sample fetch) ──────────────────────────────────────────────────
@@ -80,7 +79,7 @@ let _memoizedProvider: WeatherProvider | null = null;
 /**
  * getWeatherProvider — returns the process-memoized WeatherProvider. Always
  * AwcWeatherProvider (no env-gated stub — AWC needs no key). Memoized like
- * getQboClient/getStripeClient for consistency, though there is no per-
+ * getEmailProvider for consistency, though there is no per-
  * process config to re-resolve here.
  */
 export function getWeatherProvider(): WeatherProvider {

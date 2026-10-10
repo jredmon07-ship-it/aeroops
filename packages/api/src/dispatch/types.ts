@@ -84,12 +84,9 @@ export interface DispatchTicketView {
  *                                        is missing some (mode='block'). missingTags
  *                                        lists the absent tags. No write/audit occurs.
  *                                        [VERIFY-3c-A] operator enforcement only, no FAR.
- *   ok:false reason:'balance_block'    → RESERVED (Phase 1 unreachable via stub).
- *                                        The balance seam returned { ok:false }.
- *                                        No write/audit occurs. [VERIFY-3c-MONEY]
  *
  * ADDITIVE: existing arms (not_found / already_open / grounded) are byte-identical.
- * New arms (ineligible / balance_block) and the eligibilityWarnings optional field
+ * The ineligible arm and the eligibilityWarnings optional field
  * are the only additions (ADR-0009 §2).
  */
 export type OpenDispatchResult =
@@ -97,8 +94,7 @@ export type OpenDispatchResult =
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'already_open'; openTicketId: string }
   | { ok: false; reason: 'grounded'; grounding: { resourceId: string; reason: string | null } }
-  | { ok: false; reason: 'ineligible'; missingTags: string[] }
-  | { ok: false; reason: 'balance_block' };
+  | { ok: false; reason: 'ineligible'; missingTags: string[] };
 
 // ─── closeDispatch result union ───────────────────────────────────────────────
 

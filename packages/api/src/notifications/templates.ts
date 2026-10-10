@@ -5,13 +5,9 @@
  *
  * COPY POSTURE (compliance-load-bearing):
  *   PLAIN, operator-operational language only. NO FAA/airworthiness/
- *   currency/Part-61/141/91/43 determination language anywhere. NO money
- *   advice (a payment-failed email states the fact + points the member back
- *   to the operator; it does not instruct them on debt/collections). Text-
+ *   currency/Part-61/141/91/43 determination language anywhere. Text-
  *   first: every template returns a `text` body that stands alone; `html`
  *   is a minimal, unstyled wrapper (no external assets, no tracking pixels).
- *
- * money is rendered from INTEGER CENTS via formatCents — never a float.
  */
 import type {
   NotificationTemplateDataMap,
@@ -19,22 +15,10 @@ import type {
   ReservationCreatedData,
   SquawkReportedData,
   AircraftGroundedData,
-  InvoiceFinalizedData,
-  PaymentFailedData,
-  DuesGeneratedData,
   MaintenanceDueData,
   OrgAnnouncementData,
 } from './email-event-types.js';
 import type { NotificationEventType } from './email-event-types.js';
-
-/** INTEGER CENTS → "$12.34" — never float math. */
-function formatCents(amountCents: number): string {
-  const sign = amountCents < 0 ? '-' : '';
-  const abs = Math.abs(amountCents);
-  const dollars = Math.floor(abs / 100);
-  const cents = String(abs % 100).padStart(2, '0');
-  return `${sign}$${dollars}.${cents}`;
-}
 
 function formatDateTime(d: Date): string {
   return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
@@ -116,50 +100,6 @@ function renderAircraftGrounded(data: AircraftGroundedData): RenderedEmail {
   };
 }
 
-function renderInvoiceFinalized(data: InvoiceFinalizedData): RenderedEmail {
-  const amount = formatCents(data.totalCents);
-  const text = `Your invoice is ready.\n\nInvoice: ${data.invoiceId}\nAmount: ${amount}\n`;
-  return {
-    subject: 'Invoice ready',
-    text,
-    html: wrapHtml([`Your invoice is ready.`, `Invoice: ${data.invoiceId}`, `Amount: ${amount}`]),
-  };
-}
-
-function renderPaymentFailed(data: PaymentFailedData): RenderedEmail {
-  const amount = formatCents(data.amountCents);
-  const text =
-    `A payment on your account did not go through.\n\n` +
-    `Invoice: ${data.invoiceId}\nAmount: ${amount}\n\n` +
-    `Please contact your operator to arrange payment.`;
-  return {
-    subject: 'Payment did not go through',
-    text,
-    html: wrapHtml([
-      'A payment on your account did not go through.',
-      `Invoice: ${data.invoiceId}`,
-      `Amount: ${amount}`,
-      'Please contact your operator to arrange payment.',
-    ]),
-  };
-}
-
-function renderDuesGenerated(data: DuesGeneratedData): RenderedEmail {
-  const amount = formatCents(data.amountCents);
-  const text =
-    `Your dues invoice for ${data.periodKey} is ready.\n\n` +
-    `Invoice: ${data.invoiceId}\nAmount: ${amount}\n`;
-  return {
-    subject: 'Dues invoice ready',
-    text,
-    html: wrapHtml([
-      `Your dues invoice for ${data.periodKey} is ready.`,
-      `Invoice: ${data.invoiceId}`,
-      `Amount: ${amount}`,
-    ]),
-  };
-}
-
 function renderMaintenanceDue(data: MaintenanceDueData): RenderedEmail {
   const lines = data.items.map((i) => `- ${i.title} (${i.status === 'overdue' ? 'overdue' : 'due soon'})`);
   const text =
@@ -210,12 +150,6 @@ export function renderNotificationTemplate<E extends NotificationEventType>(
       return renderSquawkReported(data as SquawkReportedData);
     case 'aircraft.grounded':
       return renderAircraftGrounded(data as AircraftGroundedData);
-    case 'invoice.finalized':
-      return renderInvoiceFinalized(data as InvoiceFinalizedData);
-    case 'payment.failed':
-      return renderPaymentFailed(data as PaymentFailedData);
-    case 'dues.generated':
-      return renderDuesGenerated(data as DuesGeneratedData);
     case 'maintenance.due':
       return renderMaintenanceDue(data as MaintenanceDueData);
     case 'org.announcement':

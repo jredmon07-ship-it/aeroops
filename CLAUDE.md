@@ -8,9 +8,14 @@ and per-slice build specs are in [`docs/specs/`](./docs/specs).
 ## What AeroOps is
 
 Multi-tenant flight-operations software for flying clubs, flight schools, and FBOs:
-scheduling, dispatch, maintenance squawks and grounding, training records, billing,
-reporting, a student/renter portal, and a public booking-request page. One tenant
-is one operator (an "org"). It was built as a commercial product, did not find
+scheduling, dispatch, maintenance squawks and grounding, training records,
+reporting, a student/renter portal, and a public booking-request page. It is an
+operations tool only: money features (billing, payments, dues, QuickBooks) were
+removed on 2026-10-10 and should not be re-added. Their tables remain in the
+migration history but no application code uses them. One tenant is one operator
+(an "org"). Eight roles (owner, manager, dispatcher, cfi, mechanic, renter,
+student, accountant) map onto 21 capabilities; accountant is a read-only
+reporting viewer. It was built as a commercial product, did not find
 operators willing to migrate off their existing tools, and is now released as open
 source under the MIT license. A public demo runs at https://aeroops-web.vercel.app.
 
@@ -23,11 +28,11 @@ packages/core   Pure domain logic (conflict detection, booking policy, recurrenc
                 flight-time math, civil twilight, auto-scheduler). No I/O.
 packages/db     Drizzle schema, Postgres migrations (each with a .down.sql), RLS policies.
 packages/api    The only layer that talks to the database: auth, gated writes,
-                per-tenant reads, Stripe and QuickBooks Online integrations.
+                per-tenant reads.
 apps/web        Next.js App Router ops console (Auth.js, Tailwind, shadcn).
 apps/mobile     Expo app. Kept OUT of the pnpm workspace on purpose (its React 18
                 types clash with apps/web's React 19); run `pnpm install` inside it.
-site/           Static marketing site.
+site/           Static project site.
 ```
 
 Common commands: `pnpm dev`, `pnpm typecheck`, `pnpm lint`, `pnpm test`,
@@ -36,9 +41,8 @@ Common commands: `pnpm dev`, `pnpm typecheck`, `pnpm lint`, `pnpm test`,
 ## Domain glossary (use these terms exactly)
 
 - **Tail #** = aircraft N-number; aircraft are scheduled by tail #.
-- **Hobbs/Tach** = engine meters; billable time derives from them.
+- **Hobbs/Tach** = engine meters; flight time derives from them.
 - **Wet/dry** = with/without fuel.
-- **Block time** = prepaid discounted hour bundles.
 - **Dispatch** = releasing an aircraft; produces a ticket.
 - **Squawk** = reported discrepancy.
 - **Currency** = pilot legal recency (medical, flight review, IPC, 90-day).
@@ -55,9 +59,7 @@ Common commands: `pnpm dev`, `pnpm typecheck`, `pnpm lint`, `pnpm test`,
   session or a server-side lookup, never from client input. Never write a query
   that can read across orgs.
 - **Secrets** live in `.env` files only. Never hardcode or commit keys.
-- **Money** goes through Stripe. Never store raw card or bank data. Money math is
-  integer cents.
-- **Records integrity.** Invoices, Hobbs/tach readings, training records,
+- **Records integrity.** Hobbs/tach readings, training records,
   endorsements, stage checks, and maintenance sign-offs are audited and never
   silently mutated. Corrections are append-only (e.g. dispatch meter corrections,
   voided lesson records).

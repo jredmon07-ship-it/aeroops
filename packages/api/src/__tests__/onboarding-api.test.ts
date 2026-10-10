@@ -7,14 +7,14 @@
  *   - Reality: 0 aircraft → aircraft step not done; add aircraft → done + count.
  *   - essentialDone flips ONLY when aircraft AND >1 active member exist.
  *   - base_airport requires BOTH latitude and longitude (coords), not just ICAO.
- *   - rates / policies / payments steps reflect real config.
+ *   - the policies step reflects real config.
  *   - percentComplete math (doneCount / totalCount).
  *   - T-ISO: org-B config never leaks into org-A's counts.
  *   - Brand-new empty org → sensible all-incomplete checklist (people has the
  *     sole seeded owner → not done; nothing NaN/null).
  *
  * Setup mirrors reporting-api.test.ts: createTestClient() → applyMigrationSql
- * (0000–0023, through stripe_customer) → seedTwoOrgs → setTestAppRole.
+ * → seedTwoOrgs → setTestAppRole.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -92,21 +92,6 @@ async function setBaseCoords(db: PgliteTestClient, orgId: string): Promise<void>
   });
 }
 
-async function addRate(
-  db: PgliteTestClient,
-  orgId: string,
-  userId: string,
-): Promise<void> {
-  await withOrgContext(db, orgId, async (tx) => {
-    await tx.execute(sql`
-      INSERT INTO rate_schedule
-        (org_id, name, rate_kind, amount_cents, effective_from, created_by)
-      VALUES
-        (${orgId}, ${'C172 Wet Hourly'}, ${'wet_hourly'}, ${15000}, ${'2027-01-01T00:00:00Z'}::timestamptz, ${userId})
-    `);
-  });
-}
-
 async function addPolicy(
   db: PgliteTestClient,
   orgId: string,
@@ -116,15 +101,6 @@ async function addPolicy(
     await tx.execute(sql`
       INSERT INTO booking_policy (org_id, resource_id, max_duration_minutes)
       VALUES (${orgId}, ${resourceId}, ${240})
-    `);
-  });
-}
-
-async function connectQbo(db: PgliteTestClient, orgId: string): Promise<void> {
-  await withOrgContext(db, orgId, async (tx) => {
-    await tx.execute(sql`
-      INSERT INTO qbo_connection (org_id, realm_id, status)
-      VALUES (${orgId}, ${'realm-123'}, 'connected')
     `);
   });
 }
@@ -226,7 +202,7 @@ describe('AUTHZ: getOnboardingStatus', () => {
   it('owner → passes gate (resolves a checklist)', async () => {
     const { db, orgAId, userAId } = sharedEnv;
     const result = await getOnboardingStatusWithDb(db, makeSession(orgAId, userAId, 'owner'));
-    expect(result.steps).toHaveLength(6);
+    expect(result.steps).toHaveLength(4);
   });
 
   it('manager → passes gate', async () => {
@@ -259,9 +235,7 @@ describe('Brand-new empty org', () => {
       'aircraft',
       'people',
       'base_airport',
-      'rates',
       'policies',
-      'payments',
     ]);
 
     // Essentials
@@ -275,7 +249,7 @@ describe('Brand-new empty org', () => {
     expect(step(status, 'people').essential).toBe(true);
 
     // Optionals all undone
-    for (const key of ['base_airport', 'rates', 'policies', 'payments'] as const) {
+    for (const key of ['base_airport', 'policies'] as const) {
       expect(step(status, key).done).toBe(false);
       expect(step(status, key).essential).toBe(false);
     }
@@ -286,7 +260,7 @@ describe('Brand-new empty org', () => {
     expect(status.essentialCount).toBe(0);
     expect(status.essentialTotal).toBe(2);
     expect(status.doneCount).toBe(0);
-    expect(status.totalCount).toBe(6);
+    expect(status.totalCount).toBe(4);
     expect(status.percentComplete).toBe(0);
     expect(Number.isNaN(status.percentComplete)).toBe(false);
   });
@@ -351,31 +325,23 @@ describe('Steps reflect reality', () => {
     expect(step(status, 'base_airport').count).toBe(1);
   });
 
-  it('rates + policies + payments reflect config; percentComplete tracks doneCount', async () => {
+  it('policies reflect config; percentComplete tracks doneCount', async () => {
     const { db, seed } = await freshEnv();
     const sess = makeSession(seed.orgAId, seed.userAId, 'owner');
 
-    // Rate
-    await addRate(db, seed.orgAId, seed.userAId);
     // Policy (needs an aircraft to attach to)
     const acId = await addAircraft(db, seed.orgAId, seed.userAId, 'N303EF');
     await addPolicy(db, seed.orgAId, acId);
-    // Payments via QBO connected
-    await connectQbo(db, seed.orgAId);
 
     const status = await getOnboardingStatusWithDb(db, sess);
-    expect(step(status, 'rates').done).toBe(true);
-    expect(step(status, 'rates').count).toBe(1);
     expect(step(status, 'policies').done).toBe(true);
     expect(step(status, 'policies').count).toBe(1);
-    expect(step(status, 'payments').done).toBe(true);
-    expect(step(status, 'payments').count).toBe(1);
 
-    // Done so far: aircraft, rates, policies, payments = 4 of 6.
+    // Done so far: aircraft, policies = 2 of 4.
     // (people still 1 → not done; base_airport no coords → not done)
-    expect(status.doneCount).toBe(4);
-    expect(status.totalCount).toBe(6);
-    expect(status.percentComplete).toBe(Math.round((4 / 6) * 100)); // 67
+    expect(status.doneCount).toBe(2);
+    expect(status.totalCount).toBe(4);
+    expect(status.percentComplete).toBe(50);
     expect(status.optionalDone).toBe(false); // base_airport still undone
   });
 
@@ -386,15 +352,13 @@ describe('Steps reflect reality', () => {
     const acId = await addAircraft(db, seed.orgAId, seed.userAId, 'N404GH');
     await addActiveMember(db, seed.orgAId, 'second@alpha.example');
     await setBaseCoords(db, seed.orgAId);
-    await addRate(db, seed.orgAId, seed.userAId);
     await addPolicy(db, seed.orgAId, acId);
-    await connectQbo(db, seed.orgAId);
 
     const status = await getOnboardingStatusWithDb(db, sess);
     expect(status.steps.every((s) => s.done)).toBe(true);
     expect(status.essentialDone).toBe(true);
     expect(status.optionalDone).toBe(true);
-    expect(status.doneCount).toBe(6);
+    expect(status.doneCount).toBe(4);
     expect(status.percentComplete).toBe(100);
   });
 });
@@ -411,9 +375,7 @@ describe('T-ISO: org-B config never leaks into org-A counts', () => {
     const acB = await addAircraft(db, seed.orgBId, seed.userBId, 'N999ZZ');
     await addActiveMember(db, seed.orgBId, 'extra@beta.example');
     await setBaseCoords(db, seed.orgBId);
-    await addRate(db, seed.orgBId, seed.userBId);
     await addPolicy(db, seed.orgBId, acB);
-    await connectQbo(db, seed.orgBId);
 
     // Org A session must be unaffected.
     const statusA = await getOnboardingStatusWithDb(
@@ -423,9 +385,7 @@ describe('T-ISO: org-B config never leaks into org-A counts', () => {
     expect(step(statusA, 'aircraft').count).toBe(0);
     expect(step(statusA, 'people').count).toBe(1); // only org-A's seeded owner
     expect(step(statusA, 'base_airport').count).toBe(0);
-    expect(step(statusA, 'rates').count).toBe(0);
     expect(step(statusA, 'policies').count).toBe(0);
-    expect(step(statusA, 'payments').count).toBe(0);
     expect(statusA.doneCount).toBe(0);
     expect(statusA.percentComplete).toBe(0);
 

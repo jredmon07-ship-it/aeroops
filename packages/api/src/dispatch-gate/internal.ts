@@ -13,11 +13,10 @@
  * They NEVER set org context themselves.
  *
  * ADR-0009 §2: absent dispatch_config row → defaults:
- *   { eligibilityMode: 'block', balanceCheckEnabled: false }
+ *   { eligibilityMode: 'block' }
  *
  * [VERIFY-3c-A]: requiredTag values are FREE-TEXT operator labels. No FAA/currency/
  * medical/regulatory meaning is attached or inferred.
- * [VERIFY-3c-MONEY]: balanceCheckEnabled is a FEATURE FLAG only. No dollar value.
  */
 
 import { eq } from 'drizzle-orm';
@@ -32,16 +31,14 @@ import type { DispatchConfigView, RequiredTagView } from './types.js';
  *
  * Reads the 0..1 dispatch_config row for orgId (RLS-scoped by tx). When no row
  * exists, returns the canonical defaults per ADR-0009:
- *   { eligibilityMode: 'block', balanceCheckEnabled: false }
+ *   { eligibilityMode: 'block' }
  *
  * SHARED by:
  *   - getDispatchConfig (API read endpoint)
- *   - _openDispatchImpl (eligibility + balance arms, called with sess.orgId)
+ *   - _openDispatchImpl (eligibility arm, called with sess.orgId)
  *
  * NEVER diverge these two callers — always call this function, never inline the
  * default logic.
- *
- * [VERIFY-3c-MONEY]: balanceCheckEnabled is a feature flag. No money concept.
  */
 export async function loadDispatchConfig(
   tx: AnyDb,
@@ -50,7 +47,6 @@ export async function loadDispatchConfig(
   const rows = await tx
     .select({
       eligibilityMode:           dispatchConfig.eligibilityMode,
-      balanceCheckEnabled:       dispatchConfig.balanceCheckEnabled,
       twilightConstraintEnabled: dispatchConfig.twilightConstraintEnabled,
       twilightMode:              dispatchConfig.twilightMode,
       twilightExemptTag:         dispatchConfig.twilightExemptTag,
@@ -58,7 +54,6 @@ export async function loadDispatchConfig(
       availabilityMode:              dispatchConfig.availabilityMode,
       bookingRequestRetentionDays:              dispatchConfig.bookingRequestRetentionDays,
       bookingRequestRetentionIncludesConverted: dispatchConfig.bookingRequestRetentionIncludesConverted,
-      minimumBalanceCents:                      dispatchConfig.minimumBalanceCents,
     })
     .from(dispatchConfig)
     .where(eq(dispatchConfig.orgId, orgId))
@@ -69,7 +64,6 @@ export async function loadDispatchConfig(
     // Absent row → canonical defaults (ADR-0009 + Slice 4a + AV1.2 + PB-LR.A).
     return {
       eligibilityMode:           'block',
-      balanceCheckEnabled:       false,
       twilightConstraintEnabled: false,
       twilightMode:              'warn',
       twilightExemptTag:         null,
@@ -77,13 +71,11 @@ export async function loadDispatchConfig(
       availabilityMode:              'warn',
       bookingRequestRetentionDays:              365,
       bookingRequestRetentionIncludesConverted: false,
-      minimumBalanceCents:                      0,
     };
   }
 
   return {
     eligibilityMode:           row.eligibilityMode as 'block' | 'warn',
-    balanceCheckEnabled:       row.balanceCheckEnabled,
     twilightConstraintEnabled: row.twilightConstraintEnabled,
     twilightMode:              row.twilightMode as 'block' | 'warn',
     twilightExemptTag:         row.twilightExemptTag,
@@ -91,7 +83,6 @@ export async function loadDispatchConfig(
     availabilityMode:              row.availabilityMode as 'block' | 'warn',
     bookingRequestRetentionDays:              row.bookingRequestRetentionDays,
     bookingRequestRetentionIncludesConverted: row.bookingRequestRetentionIncludesConverted,
-    minimumBalanceCents:                      row.minimumBalanceCents,
   };
 }
 

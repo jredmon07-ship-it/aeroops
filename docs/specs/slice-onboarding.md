@@ -1,3 +1,5 @@
+> Note 2026-10-10: money features were removed from AeroOps; the rates and payments steps described here no longer exist (the checklist has 4 steps).
+
 # Slice: Guided Onboarding / Setup
 
 Status: BUILD-COMPLETE (awaiting human review). Branch `slice/code-health-rows-helper`.

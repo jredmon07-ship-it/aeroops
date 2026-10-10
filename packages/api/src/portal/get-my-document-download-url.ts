@@ -9,7 +9,7 @@
  * are checked against ('member', session.userId) AFTER the org-RLS-scoped
  * read — a mismatch (another member's document, or an aircraft document)
  * returns the SAME 'not_found' shape as a truly-missing id (anti-
- * enumeration — mirrors pay-invoice.ts's self-scope-mismatch posture).
+ * enumeration).
  *
  * GUARANTEES:
  *   - requireCapability('portal:access') FIRST.

@@ -3,10 +3,6 @@
  *
  * Manages the 0..1 dispatch_config row per org. Absent row → canonical defaults.
  *
- * [VERIFY-3c-MONEY] (HARD MONEY BOUNDARY): balanceCheckEnabled is a FEATURE FLAG
- * ONLY. No dollar value, minimum, Stripe, or payment concept anywhere in this file.
- * The balance seam is always the stub (returns {ok:true}) in Phase 1.
- *
  * FUNCTIONS:
  *   getDispatchConfig    — dispatch:access → DispatchConfigView (defaults when absent)
  *   updateDispatchConfig — dispatch:manage_requirements → upsert + audit
@@ -16,7 +12,7 @@
  *   - org_id from session only (withSessionOrgContextWithDb + RLS backstop).
  *   - eligibilityMode validated ∈ {'block','warn'} → ValidationError if invalid.
  *   - updateDispatchConfig: ON CONFLICT(org_id) DO UPDATE preserving unprovided field.
- *   - ONE audit row 'dispatch.config_updated' (before/after snapshot). NO dollar value.
+ *   - ONE audit row 'dispatch.config_updated' (before/after snapshot).
  *   - Refusals returned; auth+validation thrown.
  *
  * TWO CALLING FORMS per function:
@@ -40,7 +36,6 @@ import type { DispatchConfigView, GetDispatchConfigResult, UpdateDispatchConfigR
 
 const updateConfigInputSchema = z.object({
   eligibilityMode:           z.enum(['block', 'warn']).optional(),
-  balanceCheckEnabled:       z.boolean().optional(),
   twilightConstraintEnabled: z.boolean().optional(),
   twilightMode:              z.enum(['block', 'warn']).optional(),
   // omit = preserve; null = clear the exempt tag; non-empty trimmed string = set it.
@@ -51,14 +46,10 @@ const updateConfigInputSchema = z.object({
   // Slice PB-LR.A — booking-request retention config (0=keep-forever, NOT delete-all).
   bookingRequestRetentionDays:              z.number().int().min(0).max(3650).optional(),
   bookingRequestRetentionIncludesConverted: z.boolean().optional(),
-  // Slice B2 — operator-set minimum ledger balance, INTEGER CENTS.
-  // [VERIFY-B2-MONEY]: DATA ONLY — see dispatch-gate/types.ts DispatchConfigView.
-  minimumBalanceCents: z.number().int().min(0).optional(),
 });
 
 export interface UpdateDispatchConfigInput {
   eligibilityMode?:           'block' | 'warn';
-  balanceCheckEnabled?:       boolean;
   twilightConstraintEnabled?: boolean;
   twilightMode?:              'block' | 'warn';
   twilightExemptTag?:         string | null;
@@ -66,7 +57,6 @@ export interface UpdateDispatchConfigInput {
   availabilityMode?:              'block' | 'warn';
   bookingRequestRetentionDays?:              number;
   bookingRequestRetentionIncludesConverted?: boolean;
-  minimumBalanceCents?: number;
 }
 
 // ─── getDispatchConfig ────────────────────────────────────────────────────────
@@ -125,7 +115,6 @@ async function _updateDispatchConfigImpl(
 
     // 4. Compute the merged (after) values — unprovided fields preserved.
     const afterMode        = input.eligibilityMode           !== undefined ? input.eligibilityMode           : before.eligibilityMode;
-    const afterBalance     = input.balanceCheckEnabled        !== undefined ? input.balanceCheckEnabled        : before.balanceCheckEnabled;
     const afterTwEnabled   = input.twilightConstraintEnabled  !== undefined ? input.twilightConstraintEnabled  : before.twilightConstraintEnabled;
     const afterTwMode      = input.twilightMode               !== undefined ? input.twilightMode               : before.twilightMode;
     const afterTwExempt    = input.twilightExemptTag          !== undefined ? input.twilightExemptTag          : before.twilightExemptTag;
@@ -133,11 +122,9 @@ async function _updateDispatchConfigImpl(
     const afterAvMode      = input.availabilityMode              !== undefined ? input.availabilityMode              : before.availabilityMode;
     const afterRetDays     = input.bookingRequestRetentionDays              !== undefined ? input.bookingRequestRetentionDays              : before.bookingRequestRetentionDays;
     const afterRetConverted = input.bookingRequestRetentionIncludesConverted !== undefined ? input.bookingRequestRetentionIncludesConverted : before.bookingRequestRetentionIncludesConverted;
-    const afterMinBalance  = input.minimumBalanceCents !== undefined ? input.minimumBalanceCents : before.minimumBalanceCents;
 
     const after: DispatchConfigView = {
       eligibilityMode:           afterMode,
-      balanceCheckEnabled:       afterBalance,
       twilightConstraintEnabled: afterTwEnabled,
       twilightMode:              afterTwMode,
       twilightExemptTag:         afterTwExempt,
@@ -145,22 +132,19 @@ async function _updateDispatchConfigImpl(
       availabilityMode:              afterAvMode,
       bookingRequestRetentionDays:              afterRetDays,
       bookingRequestRetentionIncludesConverted: afterRetConverted,
-      minimumBalanceCents:                      afterMinBalance,
     };
 
     // 5. No-op short-circuit: if nothing actually changes, write NOTHING — no
     //    upsert (no updated_at bump) and no audit row (spec §4: no-ops write zero).
     const changed =
       before.eligibilityMode !== after.eligibilityMode ||
-      before.balanceCheckEnabled !== after.balanceCheckEnabled ||
       before.twilightConstraintEnabled !== after.twilightConstraintEnabled ||
       before.twilightMode !== after.twilightMode ||
       before.twilightExemptTag !== after.twilightExemptTag ||
       before.availabilityConstraintEnabled !== after.availabilityConstraintEnabled ||
       before.availabilityMode !== after.availabilityMode ||
       before.bookingRequestRetentionDays !== after.bookingRequestRetentionDays ||
-      before.bookingRequestRetentionIncludesConverted !== after.bookingRequestRetentionIncludesConverted ||
-      before.minimumBalanceCents !== after.minimumBalanceCents;
+      before.bookingRequestRetentionIncludesConverted !== after.bookingRequestRetentionIncludesConverted;
     if (!changed) {
       return { ok: true, config: after } as const;
     }
@@ -169,11 +153,10 @@ async function _updateDispatchConfigImpl(
     //    The DO UPDATE SET must include ALL columns because the excluded row may
     //    have the opposite partial-preserve. We set to the computed after-values.
     await tx.execute(sql`
-      INSERT INTO dispatch_config (org_id, eligibility_mode, balance_check_enabled, twilight_constraint_enabled, twilight_mode, twilight_exempt_tag, availability_constraint_enabled, availability_mode, booking_request_retention_days, booking_request_retention_includes_converted, minimum_balance_cents, created_at, updated_at)
+      INSERT INTO dispatch_config (org_id, eligibility_mode, twilight_constraint_enabled, twilight_mode, twilight_exempt_tag, availability_constraint_enabled, availability_mode, booking_request_retention_days, booking_request_retention_includes_converted, created_at, updated_at)
       VALUES (
         ${sess.orgId}::uuid,
         ${afterMode},
-        ${afterBalance},
         ${afterTwEnabled},
         ${afterTwMode},
         ${afterTwExempt},
@@ -181,13 +164,11 @@ async function _updateDispatchConfigImpl(
         ${afterAvMode},
         ${afterRetDays},
         ${afterRetConverted},
-        ${afterMinBalance},
         NOW(),
         NOW()
       )
       ON CONFLICT (org_id) DO UPDATE SET
         eligibility_mode                             = EXCLUDED.eligibility_mode,
-        balance_check_enabled                        = EXCLUDED.balance_check_enabled,
         twilight_constraint_enabled                  = EXCLUDED.twilight_constraint_enabled,
         twilight_mode                                = EXCLUDED.twilight_mode,
         twilight_exempt_tag                          = EXCLUDED.twilight_exempt_tag,
@@ -195,12 +176,10 @@ async function _updateDispatchConfigImpl(
         availability_mode                            = EXCLUDED.availability_mode,
         booking_request_retention_days               = EXCLUDED.booking_request_retention_days,
         booking_request_retention_includes_converted = EXCLUDED.booking_request_retention_includes_converted,
-        minimum_balance_cents                        = EXCLUDED.minimum_balance_cents,
         updated_at                                   = NOW()
     `);
 
-    // 7. ONE audit row — before/after snapshot. NO dollar value in metadata
-    //    (twilight is an operator scheduling rule from astronomy; no money).
+    // 7. ONE audit row — before/after snapshot.
     await tx.insert(auditLog).values({
       orgId:       sess.orgId,
       actorUserId: sess.userId,
@@ -210,7 +189,6 @@ async function _updateDispatchConfigImpl(
       metadata: {
         before: {
           eligibilityMode:           before.eligibilityMode,
-          balanceCheckEnabled:       before.balanceCheckEnabled,
           twilightConstraintEnabled: before.twilightConstraintEnabled,
           twilightMode:              before.twilightMode,
           twilightExemptTag:         before.twilightExemptTag,
@@ -218,11 +196,9 @@ async function _updateDispatchConfigImpl(
           availabilityMode:              before.availabilityMode,
           bookingRequestRetentionDays:              before.bookingRequestRetentionDays,
           bookingRequestRetentionIncludesConverted: before.bookingRequestRetentionIncludesConverted,
-          minimumBalanceCents:                      before.minimumBalanceCents,
         },
         after: {
           eligibilityMode:           after.eligibilityMode,
-          balanceCheckEnabled:       after.balanceCheckEnabled,
           twilightConstraintEnabled: after.twilightConstraintEnabled,
           twilightMode:              after.twilightMode,
           twilightExemptTag:         after.twilightExemptTag,
@@ -230,7 +206,6 @@ async function _updateDispatchConfigImpl(
           availabilityMode:              after.availabilityMode,
           bookingRequestRetentionDays:              after.bookingRequestRetentionDays,
           bookingRequestRetentionIncludesConverted: after.bookingRequestRetentionIncludesConverted,
-          minimumBalanceCents:                      after.minimumBalanceCents,
         },
       },
     });

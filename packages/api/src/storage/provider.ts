@@ -1,8 +1,8 @@
 /**
  * storage/provider.ts — the object-storage provider SEAM (Slice P1.6).
  *
- * Mirrors the house pattern established by booking/captcha.ts,
- * integrations/stripe/client.ts, and notifications/email-provider.ts: an
+ * Mirrors the house pattern established by booking/captcha.ts and
+ * notifications/email-provider.ts: an
  * interface + a stub that is INERT when unconfigured + a real implementation
  * selected by env, behind a single memoized factory.
  *
@@ -25,7 +25,7 @@
  *       operator" — never a crash, never a 500.
  *     - All four set → RealStorageProvider — SigV4 presigned URLs computed
  *       locally (storage/sigv4.ts, node:crypto only — NO aws-sdk / S3 client
- *       library; mirrors the Stripe/email/captcha "raw fetch, no heavy SDK"
+ *       library; mirrors the email/captcha "raw fetch, no heavy SDK"
  *       posture). STORAGE_ENDPOINT overrides the default AWS endpoint for
  *       S3-compatible providers (R2/MinIO/Backblaze/etc).
  *   Memoized per-process (module-level singleton) — mirrors getEmailProvider's
@@ -38,9 +38,6 @@
  * internal.ts's generateStorageKey, which is ALWAYS called with the
  * session's own org_id — never a caller-supplied value. This file is a pure
  * mechanism; documents/*.ts is the policy.
- *
- * ── PCI / MONEY ────────────────────────────────────────────────────────────────
- * No payment data of any kind flows through this seam. Unrelated to Stripe.
  */
 import { presignS3Url } from './sigv4.js';
 

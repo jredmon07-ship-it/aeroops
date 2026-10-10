@@ -25,8 +25,8 @@
  *   candidate against every stored row). sha256 is deterministic (enables
  *   the index), fast (no artificial latency on every schedule read's silent
  *   refresh), and — given the token's own entropy already defeats brute
- *   force — loses no real security by being fast. This mirrors how GitHub/
- *   Stripe-style opaque API/session tokens are stored (fast hash of a
+ *   force — loses no real security by being fast. This mirrors how GitHub-
+ *   style opaque API/session tokens are stored (fast hash of a
  *   high-entropy token), a DIFFERENT and correct precedent from password
  *   storage.
  *

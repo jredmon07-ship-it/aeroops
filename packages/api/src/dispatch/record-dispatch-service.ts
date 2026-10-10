@@ -3,7 +3,7 @@
  * uplift + note) to a CLOSED dispatch ticket.
  *
  * This is OPERATOR LINE-OPS data (fuel/oil uplift) — NOT a maintenance record,
- * NOT a Part-43/airworthiness determination, NOT a billing instrument. It backs
+ * NOT a Part-43/airworthiness determination. It backs
  * the FC-parity Aircraft report's per-tail Oil Added / Fuel Added columns.
  *
  * RELATION TO THE FROZEN CLOSE PATH:

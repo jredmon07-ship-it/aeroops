@@ -6,13 +6,10 @@
  *
  * Controls:
  *   Eligibility mode — Block (default) / Warn
- *   Balance check toggle — Feature flag preview; copy states it is NOT yet active.
  *   Civil-twilight constraint (Slice 4a):
  *     Enabled toggle + Warn/Block mode selector + exempt-tag text field.
  *
  * [VERIFY-3c-A] Copy uses operator-data framing; never currency/endorsement language.
- * [VERIFY-3c-MONEY] Balance toggle copy explicitly states it has no effect in Phase 1.
- *   The stub always returns {ok:true}; balance_block is reserved + unreachable.
  * [VERIFY-4a-A] Twilight controls MUST carry the mandatory compliance disclaimer
  *   per spec §4a.3: NOT an FAA night-currency/§61.57 determination.
  * [VERIFY-4a-D] twilightExemptTag is FREE-TEXT only; no computed currency.
@@ -61,7 +58,6 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
 
   // Local form state (mirrors config when loaded)
   const [eligibilityMode, setEligibilityMode] = React.useState<'block' | 'warn'>('block');
-  const [balanceCheckEnabled, setBalanceCheckEnabled] = React.useState(false);
 
   // Slice 4a — Civil-twilight constraint fields
   // [VERIFY-4a-A]: operator scheduling rule from astronomy, NOT FAA night-currency.
@@ -95,7 +91,6 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
         const cfg = result.config;
         setConfig(cfg);
         setEligibilityMode(cfg.eligibilityMode);
-        setBalanceCheckEnabled(cfg.balanceCheckEnabled);
         // Slice 4a twilight fields
         setTwilightConstraintEnabled(cfg.twilightConstraintEnabled);
         setTwilightMode(cfg.twilightMode);
@@ -135,7 +130,6 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
     try {
       const result = await updateDispatchConfigAction({
         eligibilityMode,
-        balanceCheckEnabled,
         twilightConstraintEnabled,
         twilightMode,
         twilightExemptTag: trimmedExemptTag.length > 0 ? trimmedExemptTag : null,
@@ -468,36 +462,6 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
                     <strong>NOT</strong> an FAA flight/duty-time, rest, or §117 determination.
                   </p>
                 </div>
-              </div>
-
-              {/* ── Balance check toggle ──────────────────────────────────── */}
-              {/* [VERIFY-3c-MONEY] FEATURE FLAG ONLY. No money concept.        */}
-              {/* Stub always returns {ok:true}; balance_block is reserved.     */}
-              <div className="rounded-md border border-slate-200 dark:border-slate-800 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Pre-flight balance check
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Coming in Billing. Not yet active — turning this on has no
-                      effect until account balances ship.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer" aria-label="Enable pre-flight balance check (not yet active)">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={balanceCheckEnabled}
-                      onChange={(e) => setBalanceCheckEnabled(e.target.checked)}
-                      disabled={saving}
-                    />
-                    <div className="w-9 h-5 rounded-full bg-slate-200 dark:bg-slate-700 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
-                  </label>
-                </div>
-                <p className="text-[0.6875rem] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded px-2 py-1">
-                  Preview only — this toggle has no operational effect in Phase 1.
-                </p>
               </div>
 
               {/* ── Save error ────────────────────────────────────────────── */}

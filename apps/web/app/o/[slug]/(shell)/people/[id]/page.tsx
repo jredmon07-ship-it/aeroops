@@ -44,7 +44,6 @@ import { MemberDetailClient } from '../_components/member-detail-client';
 import { MemberExpirationsCard } from '../_components/member-expirations-card';
 import { MemberTrainingCard } from '../_components/member-training-card';
 import { MemberLogbookCard } from '../_components/member-logbook-card';
-import { MemberBalanceCard } from '../_components/member-balance-card';
 import { DocumentsCard } from '../../documents-card';
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
@@ -255,10 +254,9 @@ interface DetailContentProps {
   userId: string;
   slug: string;
   canManage: boolean;
-  canViewBilling: boolean;
 }
 
-async function DetailContent({ userId, slug, canManage, canViewBilling }: DetailContentProps) {
+async function DetailContent({ userId, slug, canManage }: DetailContentProps) {
   const result = await getMemberDetailAction({ userId });
 
   if ('error' in result) {
@@ -334,20 +332,6 @@ async function DetailContent({ userId, slug, canManage, canViewBilling }: Detail
       {/* ── Static cards ────────────────────────────────────────────────────── */}
       <StaticContactCard member={member} />
 
-      {/* ── Account balance chip — billing:access only, fail-closed hidden ──── */}
-      {canViewBilling && (
-        <Suspense
-          fallback={
-            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 animate-pulse" aria-busy="true">
-              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
-              <div className="h-7 w-24 bg-slate-100 dark:bg-slate-800 rounded" />
-            </div>
-          }
-        >
-          <MemberBalanceCard memberUserId={member.userId} slug={slug} />
-        </Suspense>
-      )}
-
       {/* ── Expirations card (Slice FC-P2) [VERIFY-FC-P2-A] ─────────────────── */}
       {/* Operator-entered reminder dates — warn-only, never blocks dispatch. */}
       <MemberExpirationsCard memberUserId={member.userId} canManage={canManage} />
@@ -414,11 +398,10 @@ export default async function MemberDetailPage({ params }: MemberDetailPageProps
   }
 
   const canManage = hasCapability(session, 'people:manage');
-  const canViewBilling = hasCapability(session, 'billing:access');
 
   return (
     <Suspense fallback={<DetailSkeleton />}>
-      <DetailContent userId={id} slug={slug} canManage={canManage} canViewBilling={canViewBilling} />
+      <DetailContent userId={id} slug={slug} canManage={canManage} />
     </Suspense>
   );
 }

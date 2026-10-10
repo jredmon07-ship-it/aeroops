@@ -11,7 +11,7 @@
  *
  * There is deliberately NO Drizzle table object for org_feature_config: all
  * access goes through the guarded raw projections here (exactly the
- * qbo-sync-internal / fee-passing pattern), so no unguarded
+ * guarded raw-SQL pattern), so no unguarded
  * `select().from(...)` can ever hit a DB that lacks the table.
  *
  * All helpers run on the passed tx (RLS-scoped by caller — org GUC already
@@ -61,7 +61,6 @@ export async function loadOrgFeatureState(tx: AnyDb, orgId: string): Promise<Org
     operating_mode: string;
     module_training: boolean;
     module_maintenance: boolean;
-    module_billing: boolean;
     module_booking: boolean;
     module_portal: boolean;
     module_reports: boolean;
@@ -73,7 +72,6 @@ export async function loadOrgFeatureState(tx: AnyDb, orgId: string): Promise<Org
         "operating_mode",
         "module_training",
         "module_maintenance",
-        "module_billing",
         "module_booking",
         "module_portal",
         "module_reports",
@@ -92,7 +90,6 @@ export async function loadOrgFeatureState(tx: AnyDb, orgId: string): Promise<Org
     features: {
       training: row.module_training === true,
       maintenance: row.module_maintenance === true,
-      billing: row.module_billing === true,
       booking: row.module_booking === true,
       portal: row.module_portal === true,
       reports: row.module_reports === true,

@@ -6,7 +6,7 @@
  *   orgSlug     — URL slug for the tenant (used in /o/[slug]/* routes)
  *   locationCount — number of locations in the org (a non-zero sanity-check count)
  *
- * All other Hub counts (aircraft, members, invoices, etc.) are NOT included here.
+ * All other Hub counts (aircraft, members, etc.) are NOT included here.
  * They will be added by their respective Hub slices.
  *
  * TENANT ISOLATION:

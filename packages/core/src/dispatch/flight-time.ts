@@ -1,13 +1,12 @@
 /**
- * dispatch/flight-time.ts — pure billable-flight-time derivation.
+ * dispatch/flight-time.ts — pure flight-time derivation.
  *
  * The `@aeroops/core` half of ADR-0007 §4. No I/O, no Drizzle, no React, no
- * clock (`Date.now()`), no randomness. This computes the billable flight-time
- * HOURS for a dispatch ticket from its meter pair. It produces OPS/RECORDS data
- * — a duration in hours — and is NEVER a price. Pricing/billing live in Phase 2
- * and consume this number; they do not live here.
+ * clock (`Date.now()`), no randomness. This computes the flight-time HOURS for
+ * a dispatch ticket from its meter pair. It produces OPS/RECORDS data — a
+ * duration in hours.
  *
- * BASIS-AGNOSTIC: the caller passes whichever meter pair is the billing basis
+ * BASIS-AGNOSTIC: the caller passes whichever meter pair is the flight-time basis
  * (Hobbs by default per ADR-0007 §4; tach is stored for maintenance, Phase 4).
  * This function does not know or care which basis it was handed.
  *

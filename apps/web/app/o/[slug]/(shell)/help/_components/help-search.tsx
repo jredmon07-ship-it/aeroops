@@ -80,7 +80,7 @@ export function HelpSearch({ slug, categories, articles }: HelpSearchProps) {
           <Input
             id="help-search-input"
             type="search"
-            placeholder="e.g. dispatch, invoice, QuickBooks…"
+            placeholder="e.g. dispatch, squawk, logbook…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-9"

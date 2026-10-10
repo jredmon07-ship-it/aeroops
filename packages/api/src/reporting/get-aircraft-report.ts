@@ -22,7 +22,7 @@
  *     is invisible to the session; no explicit org_id predicate is needed.
  *   - T-ISO-AIRCRAFTREPORT in the test suite exercises this exact path.
  *
- * OPERATIONAL / LINE-OPS — NOT billing/airworthiness. [VERIFY-A] Hours = Hobbs-derived.
+ * OPERATIONAL / LINE-OPS — NOT airworthiness. [VERIFY-A] Hours = Hobbs-derived.
  * Oil/fuel are operator line-ops uplift figures, NOT a maintenance record.
  *
  * AUTHZ: requireCapability('reporting:access') FIRST.

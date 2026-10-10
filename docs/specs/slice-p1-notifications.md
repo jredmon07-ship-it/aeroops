@@ -1,3 +1,5 @@
+> Note 2026-10-10: money features were removed from AeroOps; the invoice, payment, and dues notification types described here no longer exist.
+
 # Slice P1.3 — Email notifications
 
 Status: BUILD-COMPLETE (awaiting human review/merge). Branch `slice/code-health-rows-helper`.

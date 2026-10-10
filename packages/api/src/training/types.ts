@@ -29,8 +29,7 @@
  *   grouping label (e.g. "Ground School", "Solo Prep"). It is NOT a Part-141
  *   stage or any regulatory curriculum milestone.
  *
- * NO MONEY: Training records carry no price, rate, or billing data.
- *   Derived flight time and billing are Phase 2. [MONEY BOUNDARY]
+ * Training records carry no price or rate data.
  */
 
 import type { EnrollmentStatus, ProgressRatioResult } from '@aeroops/core';

@@ -1,8 +1,8 @@
 # AeroOps — Overview
 
 Open-source (MIT) flight-operations software for flying clubs, flight schools, and
-FBOs: scheduling, dispatch, maintenance, training records, billing and payments, and
-reporting. It was built to sell; operators would not migrate off the tools they
+FBOs: scheduling, dispatch, maintenance, training records, and reporting. It is an
+operations tool only, with no billing, payment, or accounting features. It was built to sell; operators would not migrate off the tools they
 already used, so it is released as open source. A public demo with seeded sample
 data runs at [aeroops-web.vercel.app](https://aeroops-web.vercel.app). There are no
 production users.
@@ -32,15 +32,15 @@ For a real Postgres setup, see [`README.md`](./README.md) and [`DEPLOY.md`](./DE
 | Area | What's there |
 |---|---|
 | **Scheduling** | Conflict detection backed by a Postgres `EXCLUDE` constraint, booking policies, weekly recurrence, drag-and-drop reschedule, civil-twilight day/night constraint, an auto-scheduler |
-| **Dispatch** | Check-out/in, write-once Hobbs/tach, derived flight time, a pre-flight gate (grounded → ineligible → balance) |
+| **Dispatch** | Check-out/in, write-once Hobbs/tach, derived flight time, a pre-flight gate (grounded → ineligible) |
 | **Maintenance** | Squawks, operator-set grounding, work orders, maintenance items with due tracking |
 | **Training** | Courses, lessons, enrollments, write-once lesson records entered by the instructor, optional instructor attestation (not an FAA e-signature) |
-| **Billing & payments** | Rate schedules, invoices from recorded meters, member ledger, block time, recurring dues, server-side Stripe card/ACH payments and auto-pay (the in-browser card/bank entry form is not wired), QuickBooks Online export |
 | **Fleet, people, reporting** | Per-aircraft detail, members/roles/tags, an ops dashboard and operational reports |
 | **Portal & public booking** | Student/renter self-service; a public booking-request page with a staff triage inbox |
 | **Mobile** | Expo app (sign-in, schedule, fleet, squawks, alerts; read-only) on a token-authenticated API |
 
-Stripe and QuickBooks do nothing until you configure your own keys.
+Money features (billing, payments, dues, QuickBooks) were removed on 2026-10-10. Their
+tables stay in the migration history, unused by application code.
 
 ---
 
@@ -63,12 +63,14 @@ Counts at this commit, and how they were taken:
 
 - **Migrations:** 51 forward migrations, `0000`–`0050` (`packages/db/migrations/*.sql`
   excluding `*.down.sql`), each with a down migration.
-- **Tests:** about 155 test files (git-tracked `*.test.ts` / `*.test.tsx`: 81 in
-  `packages/api`, 28 in `packages/core`, 21 in `packages/db`, 25 in `apps/web`).
+- **Tests:** 125 test files (git-tracked `*.test.ts` / `*.test.tsx`: 59 in
+  `packages/api`, 21 in `packages/core`, 20 in `packages/db`, 25 in `apps/web`).
   Each file holds many cases; property-based tests cover conflict detection, booking
   policy, flight time, the grounding/eligibility gates, civil twilight, and the optimizer.
 - **Roles:** 8 (owner, manager, dispatcher, CFI, mechanic, renter, student,
-  accountant — `packages/core/src/roles.ts`), mapped to a capability-based permission model.
+  accountant — `packages/core/src/roles.ts`), mapped to 21 capabilities
+  (`packages/core/src/capabilities.ts`). The accountant role is a read-only
+  reporting viewer.
 - **Agents:** 17 role-scoped Claude Code subagents in `.claude/agents/`.
 - **Docs:** 9 ADRs in `docs/adr/`, 40 files in `docs/specs/`.
 
@@ -84,9 +86,6 @@ Counts at this commit, and how they were taken:
   same verification pipeline via signed tokens.
 - **Records integrity.** Hobbs/tach meters, lesson records, sign-offs, grounding
   events, and audit rows are write-once or append-only; corrections are appended.
-- **Payments.** Payments go through Stripe (PaymentIntents, SetupIntents, a signed
-  webhook). The code never stores raw card or bank data. The in-browser card form is
-  not wired.
 - **Regulations.** The software does not compute FAA determinations. Grounding and
   pilot eligibility are operator data; civil twilight is astronomy, not a night-currency ruling.
 - **Migrations.** Staged for human review; never auto-applied.

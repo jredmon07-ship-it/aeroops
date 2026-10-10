@@ -336,13 +336,12 @@ describe('demo seed — Bravo Flying Club (second demo org)', () => {
       module_training: boolean;
       module_booking: boolean;
       module_auto_schedule: boolean;
-      module_billing: boolean;
       module_maintenance: boolean;
       module_portal: boolean;
     }>(
       await db.execute(sql`
         select f.operating_mode, f.module_training, f.module_booking,
-               f.module_auto_schedule, f.module_billing, f.module_maintenance, f.module_portal
+               f.module_auto_schedule, f.module_maintenance, f.module_portal
         from org_feature_config f join org o on o.id = f.org_id
         where o.slug = ${DEMO_SLUG_BRAVO}
       `),
@@ -353,7 +352,6 @@ describe('demo seed — Bravo Flying Club (second demo org)', () => {
       module_training: false,
       module_booking: false,
       module_auto_schedule: false,
-      module_billing: true,
       module_maintenance: true,
       module_portal: true,
     });
@@ -372,39 +370,6 @@ describe('demo seed — Bravo Flying Club (second demo org)', () => {
       `),
     );
     expect(rows[0]?.n).toBe(0);
-  });
-
-  it('bravo has dues schedules seeded (admin + member monthly, member annual) with a DRAFT invoice', async () => {
-    const schedules = extractRows<{ email: string; cadence: string; amount_cents: number; active: boolean }>(
-      await db.execute(sql`
-        select u.email, ds.cadence, ds.amount_cents, ds.active
-        from dues_schedule ds
-        join app_user u on u.id = ds.user_id and u.org_id = ds.org_id
-        join org o on o.id = ds.org_id
-        where o.slug = ${DEMO_SLUG_BRAVO}
-        order by u.email, ds.cadence
-      `),
-    );
-    // At least the two monthly schedules (admin + member) always exist; the
-    // member's annual schedule is graceful-absence (skipped pre-migration-0050).
-    expect(schedules.length).toBeGreaterThanOrEqual(2);
-    for (const row of schedules) {
-      expect(row.active).toBe(true);
-      expect(row.amount_cents).toBeGreaterThan(0);
-    }
-    expect(schedules.some((r) => r.email === 'admin@bravo.aero' && r.cadence === 'monthly')).toBe(true);
-    expect(schedules.some((r) => r.email === 'member@bravo.aero' && r.cadence === 'monthly')).toBe(true);
-
-    // A DRAFT dues invoice was generated for the current period (no money moves).
-    const invoices = extractRows<{ n: number }>(
-      await db.execute(sql`
-        select count(*)::int as n
-        from invoice i
-        join org o on o.id = i.org_id
-        where o.slug = ${DEMO_SLUG_BRAVO} and i.status = 'draft' and i.dispatch_ticket_id is null
-      `),
-    );
-    expect(invoices[0]?.n).toBeGreaterThanOrEqual(2);
   });
 
   it('all three bravo credentials authenticate with the shared demo password', async () => {

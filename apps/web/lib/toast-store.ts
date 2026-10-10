@@ -3,7 +3,7 @@
  *
  * THE TOAST-ON-MUTATION STANDARD (design-system core):
  *   Every primary mutation gives feedback:
- *     - ok result        → toast.success('Payment recorded')
+ *     - ok result        → toast.success('Squawk reported')
  *     - error result     → toast.error(actionErrorMessage(result))  — OR keep
  *       the existing inline dialog/form error when one exists (inline beats
  *       toast for correctable input errors; toast is for fire-and-forget

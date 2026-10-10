@@ -23,7 +23,6 @@
 export const ORG_MODULES = [
   'training',
   'maintenance',
-  'billing',
   'booking',
   'portal',
   'reports',
@@ -46,7 +45,6 @@ export type OperatingMode = (typeof OPERATING_MODES)[number];
 export const ALL_MODULES_ENABLED: OrgFeatureFlags = Object.freeze({
   training: true,
   maintenance: true,
-  billing: true,
   booking: true,
   portal: true,
   reports: true,
@@ -56,8 +54,8 @@ export const ALL_MODULES_ENABLED: OrgFeatureFlags = Object.freeze({
 
 /**
  * Mode presets. 'club' is the small-flying-club starting point: no instruction
- * records, no public booking inbox, no auto-scheduler — squawks, dues/invoices,
- * the member portal, and reports stay on. Every flag remains individually
+ * records, no public booking inbox, no auto-scheduler — squawks, the member
+ * portal, and reports stay on. Every flag remains individually
  * editable after the preset is applied.
  */
 export const OPERATING_MODE_PRESETS: Record<OperatingMode, OrgFeatureFlags> = Object.freeze({
@@ -65,7 +63,6 @@ export const OPERATING_MODE_PRESETS: Record<OperatingMode, OrgFeatureFlags> = Ob
   club: Object.freeze({
     training: false,
     maintenance: true,
-    billing: true,
     booking: false,
     portal: true,
     reports: true,
@@ -86,17 +83,13 @@ export const ORG_MODULE_META: Record<OrgModuleKey, { label: string; description:
       label: 'Maintenance',
       description: 'Squawks, grounding, work orders, and maintenance-due reminders.',
     },
-    billing: {
-      label: 'Billing',
-      description: 'Invoices, member balances, block time, point of sale, and QuickBooks export.',
-    },
     booking: {
       label: 'Public booking requests',
       description: 'The public request page and the staff triage inbox.',
     },
     portal: {
       label: 'Member portal',
-      description: 'Self-service reservations, balances, and documents for members.',
+      description: 'Self-service reservations, training progress, and logbook for members.',
     },
     reports: {
       label: 'Reports & activity',
@@ -121,7 +114,7 @@ export const OPERATING_MODE_META: Record<OperatingMode, { label: string; descrip
     club: {
       label: 'Small flying club',
       description:
-        'A leaner setup for member-owned clubs: scheduling, squawks, dues, and the member portal, without instruction records or a public booking inbox. Turn any module back on whenever you need it.',
+        'A leaner setup for member-owned clubs: scheduling, squawks, and the member portal, without instruction records or a public booking inbox. Turn any module back on whenever you need it.',
     },
   });
 

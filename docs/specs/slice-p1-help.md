@@ -1,3 +1,5 @@
+> Note 2026-10-10: money features were removed from AeroOps; the Billing & payments and QuickBooks help categories and their articles no longer exist.
+
 # Slice P1.8 — Help / knowledge base
 
 **Status:** BUILD-COMPLETE. Branch `slice/code-health-rows-helper`. Frontend-only —

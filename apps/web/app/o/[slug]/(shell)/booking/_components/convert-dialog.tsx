@@ -32,7 +32,7 @@
  * NO money. NO new endpoint.
  *
  * COMPLIANCE [VERIFY-PB2-COMP-1]:
- *   - No money / Stripe / price.
+ *   - No price.
  *   - Twilight disclaimer is verbatim (NOT an FAA §61.57 determination).
  *   - Availability disclaimer mirrors the existing form wording.
  */

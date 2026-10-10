@@ -28,10 +28,7 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { QboSettingsCard } from './_components/qbo-settings-card';
-import { FeePassingCard } from './_components/fee-passing-card';
 import { ModulesCard } from './_components/modules-card';
-import { getFeePassingAction } from './actions';
 import { PageHeader } from '@/components/ui/page-header';
 
 interface OrgSettingsPageProps {
@@ -62,11 +59,6 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
   // ── Fetch org display data ────────────────────────────────────────────────
   // session is non-null here (requireCapability succeeded).
   const orgData = await getSessionOrg(session);
-  const feePassingResult = await getFeePassingAction();
-  const feePassing =
-    'ok' in feePassingResult && feePassingResult.ok
-      ? feePassingResult.setting
-      : { passAchFeeToMember: false, available: false };
 
   if (!orgData) {
     // Org row missing despite a valid session → bounce to no-access.
@@ -135,14 +127,6 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps) 
 
       {/* ── Modules + operating mode (migration 0047) ──────────────────────── */}
       <ModulesCard slug={slug} />
-
-      {/* ── Payment processing fee passing (migration 0045) ───────────────── */}
-      <FeePassingCard slug={slug} initial={feePassing} />
-
-      {/* ── QuickBooks Online integration card (Slice QB1) ────────────────── */}
-      <div className="max-w-2xl">
-        <QboSettingsCard slug={slug} />
-      </div>
 
       {/* ── Member messaging / announcements (FC-parity) ───────────────────── */}
       <Card className="max-w-2xl">

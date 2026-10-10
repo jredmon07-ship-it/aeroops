@@ -22,7 +22,6 @@
  * RLS + org_id scoping are enforced inside the API functions.
  *
  * [VERIFY-3c-A] requiredTag is FREE-TEXT only; no FAA/currency/medical meaning.
- * [VERIFY-3c-MONEY] balance is a stub; no dollar/Stripe/payment concept.
  */
 'use server';
 

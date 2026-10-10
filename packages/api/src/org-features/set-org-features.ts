@@ -50,7 +50,6 @@ const featurePatchSchema = z
   .object({
     training: z.boolean().optional(),
     maintenance: z.boolean().optional(),
-    billing: z.boolean().optional(),
     booking: z.boolean().optional(),
     portal: z.boolean().optional(),
     reports: z.boolean().optional(),
@@ -134,13 +133,13 @@ async function _setOrgFeaturesImpl(
     await tx.execute(sql`
       INSERT INTO "org_feature_config" (
         "org_id", "operating_mode",
-        "module_training", "module_maintenance", "module_billing", "module_booking",
+        "module_training", "module_maintenance", "module_booking",
         "module_portal", "module_reports", "module_auto_schedule", "module_messages",
         "created_at", "updated_at"
       )
       VALUES (
         ${sess.orgId}::uuid, ${nextMode},
-        ${nextFeatures.training}, ${nextFeatures.maintenance}, ${nextFeatures.billing}, ${nextFeatures.booking},
+        ${nextFeatures.training}, ${nextFeatures.maintenance}, ${nextFeatures.booking},
         ${nextFeatures.portal}, ${nextFeatures.reports}, ${nextFeatures.auto_schedule}, ${nextFeatures.messages},
         NOW(), NOW()
       )
@@ -148,7 +147,6 @@ async function _setOrgFeaturesImpl(
         "operating_mode"       = EXCLUDED."operating_mode",
         "module_training"      = EXCLUDED."module_training",
         "module_maintenance"   = EXCLUDED."module_maintenance",
-        "module_billing"       = EXCLUDED."module_billing",
         "module_booking"       = EXCLUDED."module_booking",
         "module_portal"        = EXCLUDED."module_portal",
         "module_reports"       = EXCLUDED."module_reports",

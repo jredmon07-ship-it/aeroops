@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AeroOps: open-source flight operations software for flying clubs, flight schools, and FBOs</title>
-<meta name="description" content="AeroOps is open-source software for scheduling, dispatch, maintenance, training records, billing, and reporting at flying clubs, flight schools, and FBOs. MIT-licensed, with a public live demo.">
+<title>AeroOps: flight operations software for flying clubs, flight schools, and FBOs</title>
+<meta name="description" content="AeroOps is software for scheduling, dispatch, maintenance, training records, and reporting at flying clubs, flight schools, and FBOs, with a public live demo.">
 <meta property="og:title" content="AeroOps: flight operations software">
-<meta property="og:description" content="Open-source scheduling, dispatch, maintenance, training records, billing, and reporting for flying clubs, flight schools, and FBOs. MIT license.">
+<meta property="og:description" content="Scheduling, dispatch, maintenance, training records, and reporting for flying clubs, flight schools, and FBOs.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://aeroops-web.vercel.app">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230C1322'/%3E%3Cpath d='M16 6 L25 24 L20.7 24 L16 14.7 L11.3 24 L7 24 Z' fill='%23FFFFFF'/%3E%3C/svg%3E">
@@ -278,7 +278,7 @@ img,svg{max-width:100%;height:auto}
 
 /* ============ Stat strip ============ */
 .stat-strip{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--paper)}
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr)}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr)}
 .stat{padding:40px 28px;border-left:1px solid var(--rule)}
 .stat:first-child{border-left:none}
 .stat .num{font-family:var(--serif);font-weight:560;font-size:clamp(1.9rem,3.4vw,2.7rem);color:var(--navy);line-height:1;letter-spacing:-.02em}
@@ -473,8 +473,8 @@ section{padding:96px 0}
       <div class="hero-inner">
         <h1 id="hero-title">The whole operation. <em>One</em> system.</h1>
         <p class="hero-lede">
-          Scheduling, dispatch, maintenance, training records, billing, and reporting for
-          flying clubs, flight schools, and FBOs, released as open source.
+          Scheduling, dispatch, maintenance, training records, and reporting for
+          flying clubs, flight schools, and FBOs.
         </p>
         <div class="hero-ctas">
           <a class="btn btn-solid-inv" href="https://github.com/jredmon07-ship-it/aeroops">View on GitHub</a>
@@ -492,7 +492,7 @@ section{padding:96px 0}
       <div class="showcase-head reveal">
         <p class="eyebrow eyebrow--accent" style="justify-content:center">The platform</p>
         <h2 id="showcase-title">Everything the aircraft touches, on one screen.</h2>
-        <p>From the booking to the Hobbs reading to the invoice, one system follows the aircraft through the day, so nothing is retyped and nothing slips.</p>
+        <p>From the booking to the Hobbs reading to the squawk, one system follows the aircraft through the day, so nothing is retyped and nothing slips.</p>
       </div>
 
       <div class="showcase-stage reveal" data-d="1">
@@ -517,9 +517,8 @@ section{padding:96px 0}
   <section class="stat-strip" style="padding:0" aria-label="At a glance">
     <div class="wrap" style="padding:0">
       <div class="stat-grid">
-        <div class="stat reveal"><div class="num"><em>5</em>-in-1</div><div class="lbl">Scheduling, maintenance, training, billing, and reporting under one login</div></div>
+        <div class="stat reveal"><div class="num"><em>4</em>-in-1</div><div class="lbl">Scheduling, maintenance, training, and reporting under one login</div></div>
         <div class="stat reveal" data-d="1"><div class="num"><em>2</em></div><div class="lbl">Sample operations in the live demo: a flying club and a flight school</div></div>
-        <div class="stat reveal" data-d="2"><div class="num"><em>∞</em></div><div class="lbl">Unlimited instructors, students, and staff</div></div>
       </div>
     </div>
   </section>
@@ -529,7 +528,7 @@ section{padding:96px 0}
     <div class="wrap">
       <p class="reveal">
         <strong>Most scheduling tools stop at the calendar.</strong> AeroOps follows the aircraft
-        through the whole day: booking, dispatch, maintenance, training, and billing. One system,
+        through the whole day: booking, dispatch, maintenance, and training. One system,
         one source of truth, no spreadsheets in between.
       </p>
     </div>
@@ -542,8 +541,8 @@ section{padding:96px 0}
         <p class="eyebrow eyebrow--accent">For flying clubs</p>
         <h2 id="clubs-title">Built for flying clubs.</h2>
         <p>
-          AeroOps starts with the club: a shared fleet, volunteer officers, and members who pay
-          dues and fly on their own time.
+          AeroOps starts with the club: a shared fleet, volunteer officers, and members who
+          fly on their own time.
         </p>
       </div>
       <div class="club-grid reveal">
@@ -553,20 +552,6 @@ section{padding:96px 0}
           </span>
           <h3>One shared calendar</h3>
           <p>One schedule for every tail that can&rsquo;t double-book, with per-airplane checkout rules.</p>
-        </div>
-        <div class="club-card">
-          <span class="club-ico" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </span>
-          <h3>Recurring billing</h3>
-          <p>Monthly, quarterly, or annual dues that bill on schedule and collect through the club&rsquo;s own Stripe account.</p>
-        </div>
-        <div class="club-card">
-          <span class="club-ico" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v6h6"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="13" y2="18"/></svg>
-          </span>
-          <h3>Invoicing from Hobbs</h3>
-          <p>Hobbs readings become draft invoices an officer finalizes, with an unbilled-flights check and a clean QuickBooks export.</p>
         </div>
         <div class="club-card">
           <span class="club-ico" aria-hidden="true">
@@ -584,8 +569,8 @@ section{padding:96px 0}
     <div class="wrap">
       <div class="section-head section-head--center">
         <p class="eyebrow eyebrow--accent" style="justify-content:center">The platform</p>
-        <h2 id="platform-title">Five hubs, one system.</h2>
-        <p>Everything a flying club, flight school, or FBO runs on: scheduling, billing, training, maintenance, and reporting in one place.</p>
+        <h2 id="platform-title">Four hubs, one system.</h2>
+        <p>Everything a flying club, flight school, or FBO runs on: scheduling, training, maintenance, and reporting in one place.</p>
       </div>
     </div>
 
@@ -612,31 +597,10 @@ section{padding:96px 0}
         </div>
       </div>
 
-      <!-- 2. BILLING -->
+      <!-- 2. TRAINING -->
       <div class="hub hub--rev reveal">
         <div class="hub-copy">
-          <span class="hub-kicker"><span class="hub-no">II</span>Billing &amp; payments</span>
-          <h3>From Hobbs reading to paid, without a spreadsheet.</h3>
-          <p>A closed flight pre-fills a draft invoice from the recorded meters; a person reviews and finalizes it.</p>
-          <ul class="feat">
-            <li>Card and bank payments through your own Stripe account</li>
-            <li>Rate schedules per aircraft, wet or dry, plus instructor rates</li>
-            <li>Recurring dues that bill monthly, quarterly, or annually</li>
-            <li>Line-item export to QuickBooks Online</li>
-          </ul>
-        </div>
-        <div class="hub-media">
-          <div class="device">
-            <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/billing/reports</span></div>
-            <img class="device-shot" src="shot-billing-reports.png" alt="AeroOps billing reports: an accounts-receivable aging table and a revenue chart of finalized invoices versus collected payments." width="1600" height="1000" loading="lazy" decoding="async">
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. TRAINING -->
-      <div class="hub reveal">
-        <div class="hub-copy">
-          <span class="hub-kicker"><span class="hub-no">III</span>Training</span>
+          <span class="hub-kicker"><span class="hub-no">II</span>Training</span>
           <h3>Write-once training records.</h3>
           <p>Instructors write lesson records that lock the moment they are entered.</p>
           <ul class="feat">
@@ -654,10 +618,10 @@ section{padding:96px 0}
         </div>
       </div>
 
-      <!-- 4. MAINTENANCE -->
-      <div class="hub hub--rev reveal">
+      <!-- 3. MAINTENANCE -->
+      <div class="hub reveal">
         <div class="hub-copy">
-          <span class="hub-kicker"><span class="hub-no">IV</span>Maintenance</span>
+          <span class="hub-kicker"><span class="hub-no">III</span>Maintenance</span>
           <h3>Maintenance that actually grounds aircraft.</h3>
           <p>A grounded aircraft cannot be dispatched until the grounding is resolved.</p>
           <ul class="feat">
@@ -676,17 +640,17 @@ section{padding:96px 0}
       </div>
     </div>
 
-    <!-- 5. REPORTING (dark band) -->
+    <!-- 4. REPORTING (dark band) -->
     <div class="hub-dark">
       <div class="wrap hubs" style="padding-top:0">
         <div class="hub reveal" style="padding:84px 0">
           <div class="hub-copy">
-            <span class="hub-kicker"><span class="hub-no">V</span>Reporting hub</span>
+            <span class="hub-kicker"><span class="hub-no">IV</span>Reporting hub</span>
             <h3>See the whole operation at a glance.</h3>
             <p>Right now and the last thirty days, on one screen.</p>
             <ul class="feat">
               <li>Flights, hours, and utilization per tail</li>
-              <li>Reservations vs. flights, cancellations, and receivables aging</li>
+              <li>Reservations vs. flights and cancellations</li>
               <li>Grounded aircraft, open squawks, and today's flights, live</li>
               <li>Every report scoped to any date range, exportable to CSV</li>
             </ul>
@@ -714,10 +678,9 @@ section{padding:96px 0}
       <div class="section-head reveal" style="margin-bottom:32px">
         <p class="eyebrow eyebrow--accent">Open source</p>
         <h2 id="open-source-title">Open source.</h2>
-        <p>AeroOps is MIT-licensed, so you can read the code and run it yourself.</p>
+        <p>AeroOps is free and open source under the MIT license. You can read the code and run it yourself.</p>
       </div>
       <ul class="feat reveal" style="margin:0 0 32px">
-        <li>MIT license</li>
         <li>Next.js and PostgreSQL with row-level security</li>
         <li>Self-host on Vercel and Neon, or any Postgres</li>
         <li>Setup steps in the README</li>
@@ -731,7 +694,7 @@ section{padding:96px 0}
   <!-- ============ PHOTO: cockpit ============ -->
   <figure class="photo-band">
     <img src="img-cockpit.jpg" alt="Cockpit of a single-engine aircraft at golden hour, a pilot's hands resting on the yoke" loading="lazy" width="1376" height="768">
-    <figcaption>From the flight line to the books, one system</figcaption>
+    <figcaption>From the flight line to the hangar, one system</figcaption>
   </figure>
 
   <!-- ============ DEMO ============ -->
@@ -751,7 +714,7 @@ section{padding:96px 0}
           <span class="demo-tag">Flying club</span>
           <h3>Bravo Flying Club</h3>
           <p>
-            Two aircraft, member dues, and only the screens a club needs.
+            Two aircraft and only the screens a club needs.
           </p>
           <dl>
             <dt>EMAIL</dt><dd>owner@bravo.aero</dd>
@@ -795,13 +758,13 @@ section{padding:96px 0}
         <a class="explore-card" href="faq.html">
           <span class="roman" aria-hidden="true">i</span>
           <h3>FAQ</h3>
-          <p>Licensing, self-hosting, the live demo, and data security.</p>
+          <p>Data security, mobile, setup, and FAA determinations.</p>
           <span class="goto">Read the FAQ &rarr;</span>
         </a>
         <a class="explore-card" href="how-it-works.html">
           <span class="roman" aria-hidden="true">ii</span>
           <h3>Instructions</h3>
-          <p>A step-by-step setup: aircraft and people first, billing and QuickBooks whenever you're ready.</p>
+          <p>A step-by-step setup: aircraft and people first, then scheduling and dispatch.</p>
           <span class="goto">See how it works &rarr;</span>
         </a>
       </div>

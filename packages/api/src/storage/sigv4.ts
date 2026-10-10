@@ -3,8 +3,8 @@
  * (presigned URL) signer for S3-compatible object storage (Slice P1.6).
  *
  * Deliberately NOT using the aws-sdk (or any S3 client library) — this repo's
- * standing posture is "no heavy provider SDKs" (mirrors integrations/stripe/
- * client.ts and notifications/email-provider.ts, both raw `fetch`). SigV4
+ * standing posture is "no heavy provider SDKs" (mirrors
+ * notifications/email-provider.ts, raw `fetch`). SigV4
  * query-string auth needs only node:crypto (HMAC-SHA256 + SHA256), so a thin
  * ~120-line signer keeps the zero-heavy-dependency posture while still being
  * a correct, standard implementation.

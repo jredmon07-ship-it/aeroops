@@ -37,8 +37,6 @@ export type HelpCategoryId =
   | 'scheduling-dispatch'
   | 'maintenance'
   | 'training-records'
-  | 'billing-payments'
-  | 'quickbooks'
   | 'people-fleet'
   | 'mobile-app'
   | 'account-data';
@@ -87,17 +85,7 @@ export const HELP_CATEGORIES: readonly HelpCategory[] = [
   {
     id: 'training-records',
     label: 'Training records',
-    description: 'Courses, lessons, enrollments, and instructor sign-off.',
-  },
-  {
-    id: 'billing-payments',
-    label: 'Billing & payments',
-    description: 'Invoices, the ledger, online payments, dues, and counter sales.',
-  },
-  {
-    id: 'quickbooks',
-    label: 'QuickBooks',
-    description: 'Connecting QuickBooks Online and exporting invoices.',
+    description: 'Courses, lessons, enrollments, instructor sign-off, and the logbook.',
   },
   {
     id: 'people-fleet',
@@ -126,9 +114,9 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     category: 'getting-started',
     summary: 'What AeroOps does and how the pieces fit together.',
     body: [
-      { kind: 'p', text: 'AeroOps is one connected system for a flight school, club, or FBO: scheduling and dispatch, maintenance tracking, training records, billing and payments, and reporting, plus a public booking page and a self-service portal for students and renters.' },
+      { kind: 'p', text: 'AeroOps is one connected system for a flight school, club, or FBO: scheduling and dispatch, maintenance tracking, training records, and reporting, plus a public booking page and a self-service portal for students and renters.' },
       { kind: 'p', text: 'Every organization ("tenant") gets its own isolated data — your reservations, aircraft, members, and records are never visible to another operator, even though everyone shares the same app.' },
-      { kind: 'p', text: 'The left-hand sidebar is your home base. What you see there depends on your role — a mechanic sees Fleet and Maintenance; an accountant sees Dashboard, Billing, and Reports; students and renters land in the Portal. See "Roles and permissions" for the full breakdown.' },
+      { kind: 'p', text: 'The left-hand sidebar is your home base. What you see there depends on your role — a mechanic sees Fleet and Maintenance; an accountant sees Dashboard and Reports; students and renters land in the Portal. See "Roles and permissions" for the full breakdown.' },
       { kind: 'p', text: 'This Help center only documents features that are actually built and turned on. If something below isn’t visible in your sidebar, your role or your operator’s configuration doesn’t include it yet.' },
     ],
   },
@@ -140,12 +128,12 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     body: [
       { kind: 'p', text: 'AeroOps has eight roles: owner, manager, dispatcher, CFI, mechanic, accountant, renter, and student. An owner or manager assigns roles from the People page.' },
       { kind: 'ul', items: [
-        'Owner / Manager — full access: scheduling, dispatch, maintenance, training, billing, people, fleet, reporting, and org settings.',
-        'Dispatcher — scheduling, dispatch, maintenance, people, training, and the booking-requests inbox, but not billing or org settings.',
+        'Owner / Manager — full access: scheduling, dispatch, maintenance, training, people, fleet, reporting, and org settings.',
+        'Dispatcher — scheduling, dispatch, maintenance, people, training, and the booking-requests inbox, but not org settings.',
         'CFI — scheduling, dispatch, training records (including lesson sign-off), people, maintenance (view + squawks), and reports.',
         'Mechanic — Fleet and Maintenance only (work orders, squawks, grounding).',
-        'Accountant — Dashboard, Billing (invoices, QuickBooks), and Reports.',
-        'Renter / Student — the read-only self-service Portal only (their own reservations, training progress, and billing).',
+        'Accountant — Dashboard, Reports, and Activity (read-only).',
+        'Renter / Student — the read-only self-service Portal only (their own reservations, training progress, and logbook).',
       ] },
       { kind: 'note', text: 'Hiding a link in the sidebar is a convenience, not the security boundary — every action is re-checked on the server against your role, so directly visiting a URL you don’t have access to is refused there too.' },
     ],
@@ -157,7 +145,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     summary: 'Let prospects request a discovery flight or intro lesson from your website.',
     body: [
       { kind: 'p', text: 'Every organization gets a public lead-capture page at /book/[your-org-slug]. Anyone can submit a request — name, contact info, a preferred aircraft type (free text), and a requested time window — without creating an account.' },
-      { kind: 'note', text: 'This is a REQUEST, not an instant booking. No reservation is created, no money changes hands, and your fleet or schedule is never exposed publicly — the page only ever shows your organization’s name.' },
+      { kind: 'note', text: 'This is a REQUEST, not an instant booking. No reservation is created and your fleet or schedule is never exposed publicly — the page only ever shows your organization’s name.' },
       { kind: 'p', text: 'Requests land in your Booking requests inbox (owner, manager, and dispatcher). From there, staff pick a real tail number and time and convert the request into an actual reservation — see "Triaging public booking requests".' },
       { kind: 'p', text: 'Share the /book/ link on your website or social profiles. There’s nothing to configure to turn it on — it’s live for every organization by default.' },
     ],
@@ -173,7 +161,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
       { kind: 'ul', items: [
         'Members import as roster entries via the same path as adding a member by hand. They start with the least-privileged renter role — promote anyone who needs more access afterward from People.',
         'Imported members do not get a login automatically; that’s a separate step your operator handles later.',
-        'Financial/ledger history is not part of this importer — it brings over roster and fleet only.',
+        'This importer brings over roster and fleet only.',
       ] },
     ],
   },
@@ -319,97 +307,17 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
       { kind: 'note', text: 'This attestation artifact is NOT an FAA-recognized digital/electronic signature and is NOT a §61.51/§61.65 or Part 141 endorsement of record. It records who attested to what and when — it computes no training-completion, stage, graduation, or currency determination. A human still makes every regulatory call.' },
     ],
   },
-
-  // ── Billing & payments ───────────────────────────────────────────────────
-  {
-    slug: 'how-invoices-are-generated',
-    title: 'How an invoice is generated from a Hobbs reading',
-    category: 'billing-payments',
-    summary: 'From a closed dispatch ticket to a draft invoice.',
-    body: [
-      { kind: 'p', text: 'When a dispatch ticket closes, the derived flight time (from the Hobbs difference) can be turned into a draft invoice against your operator’s rate schedule (wet/dry hourly, instruction, or a flat rate). Every dollar amount is computed in integer cents — never floating-point — so totals always add up exactly.' },
-      { kind: 'p', text: 'A draft invoice can be reviewed and edited before it’s finalized. Finalizing (or voiding) is a deliberate, explicit step — invoices are never silently created or changed.' },
-      { kind: 'p', text: 'Finalizing an invoice posts one debit to the member’s ledger automatically — see "The ledger, balances, and manual payments".' },
-      { kind: 'note', text: 'A correction to a dispatch meter reading is its own append-only record, never a silent edit of the original — so a billing dispute always has a clean history to point to.' },
-    ],
-  },
-  {
-    slug: 'ledger-and-balance',
-    title: 'The ledger, balances, and manual payments',
-    category: 'billing-payments',
-    summary: 'Where a member’s balance comes from and how to record cash or check.',
-    body: [
-      { kind: 'p', text: 'Every member has a ledger: an append-only history of debits (invoices) and credits (payments). Balance is always calculated from that history, never stored separately — so it can’t drift out of sync with the entries behind it.' },
-      { kind: 'p', text: 'Staff with billing access can log a manual payment (check, cash, an external payment) — it posts as a credit immediately.' },
-      { kind: 'p', text: 'If your operator has turned on a minimum-balance check, dispatch can require a member to be above that balance before checking out — this is an operator-configured threshold, not automatic collections.' },
-    ],
-  },
-  {
-    slug: 'online-payments-and-autopay',
-    title: 'Online self-pay and autopay',
-    category: 'billing-payments',
-    summary: 'Let members pay from the portal and opt in to automatic payment.',
-    body: [
-      { kind: 'p', text: 'From the Portal’s Billing page, a member can save a payment method and pay an invoice directly. Card/bank details are entered through Stripe’s own hosted element and never touch AeroOps’s servers directly.' },
-      { kind: 'p', text: 'A member can opt in to autopay: once enabled, finalizing an invoice for that member automatically charges the saved payment method off-session. Each charge is protected against being triggered twice for the same invoice.' },
-      { kind: 'p', text: 'A ledger credit is only ever posted once the payment is independently confirmed successful — never optimistically, and never based on a client-side signal alone.' },
-    ],
-  },
-  {
-    slug: 'recurring-dues',
-    title: 'Recurring dues billing',
-    category: 'billing-payments',
-    summary: 'Bill membership dues on a schedule without double-billing.',
-    body: [
-      { kind: 'p', text: 'Set up a dues schedule for a member (an amount and a recurring period) and AeroOps generates one invoice per period automatically. Running the same period twice never creates a duplicate invoice — it’s a hard, structural guarantee, not just an application check.' },
-      { kind: 'p', text: 'A dues invoice for an autopay member is charged the same way as any other invoice — finalizing it triggers the off-session charge.' },
-    ],
-  },
-  {
-    slug: 'counter-sales-pos',
-    title: 'Counter sales (non-flight items)',
-    category: 'billing-payments',
-    summary: 'Sell a headset, chart, or fuel add-on outside of a dispatch.',
-    body: [
-      { kind: 'p', text: 'A counter sale is a quick invoice for things that aren’t derived from a flight — merchandise, a chart, fuel, an instructional add-on — using your operator’s product catalog or a one-off ad-hoc line.' },
-      { kind: 'p', text: 'A counter sale is billed to an existing member — there’s no separate "guest" checkout today, since every invoice and the ledger behind it needs a member account to bill against.' },
-      { kind: 'p', text: 'From there it’s a normal invoice: it posts to the member’s ledger and can be paid or auto-charged the same as any other invoice.' },
-    ],
-  },
   {
     slug: 'pilot-logbook',
     title: 'The pilot logbook',
-    category: 'billing-payments',
+    category: 'training-records',
     summary: 'A derived, read-only flight history with CSV export.',
     body: [
       { kind: 'p', text: 'The logbook is a read-only view built from your closed dispatch tickets — date, aircraft, and derived flight time — with a CSV export for your own records.' },
-      { kind: 'p', text: 'It reads the raw closed-ticket meters, not any later billing correction, so treat it as a convenience flight history, not a billing or legal logbook of record.' },
+      { kind: 'p', text: 'It reads the raw closed-ticket meters, not any later meter correction, so treat it as a convenience flight history, not a legal logbook of record.' },
     ],
   },
 
-  // ── QuickBooks ───────────────────────────────────────────────────────────
-  {
-    slug: 'connecting-quickbooks',
-    title: 'Connecting QuickBooks Online',
-    category: 'quickbooks',
-    summary: 'Authorize AeroOps to push invoices into your QBO company file.',
-    body: [
-      { kind: 'p', text: 'From Org settings, the QuickBooks card walks an owner or manager through connecting your QuickBooks Online company file via QuickBooks’ own sign-in and consent screen.' },
-      { kind: 'p', text: 'Once connected, set up an account mapping: which QuickBooks item/account each kind of invoice line (wet-hourly, dry-hourly, instruction, flat, or other) should post to. A line whose kind has no mapping is refused as a whole export rather than lumped into the wrong account.' },
-      { kind: 'p', text: 'You can disconnect at any time from the same card.' },
-    ],
-  },
-  {
-    slug: 'exporting-invoices-to-quickbooks',
-    title: 'Exporting invoices to QuickBooks',
-    category: 'quickbooks',
-    summary: 'Push a finalized invoice, with each line item mapped to its own account.',
-    body: [
-      { kind: 'p', text: 'From an invoice’s detail page (once it’s finalized), use "Export to QuickBooks" to push it as a QuickBooks invoice — each AeroOps line item becomes its own line, mapped to your configured account.' },
-      { kind: 'p', text: 'Exporting the same invoice twice never creates a duplicate in QuickBooks — it’s idempotent, and you can always see the last 20 export attempts (success or error) on the settings card.' },
-      { kind: 'note', text: 'This is a one-way, invoice-record export you trigger per invoice. AeroOps never reads anything back from QuickBooks (no two-way sync, no payment reconciliation) and never touches your QuickBooks payment records.' },
-    ],
-  },
 
   // ── People & fleet ───────────────────────────────────────────────────────
   {
@@ -466,7 +374,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     category: 'account-data',
     summary: 'What triggers an email, and how to turn a given kind on or off.',
     body: [
-      { kind: 'p', text: 'AeroOps sends a best-effort email for a handful of events: your reservation is confirmed, a squawk you reported, an aircraft you grounded, your invoice is ready, a payment on your account failed, and a dues invoice is ready.' },
+      { kind: 'p', text: 'AeroOps sends a best-effort email for a handful of events: your reservation is confirmed, a squawk you reported, an aircraft you grounded, a maintenance item coming due, and an announcement from your operator.' },
       { kind: 'p', text: 'Manage which of these you receive from the Notifications link in the top header (next to your name) — it’s a personal preference, available to every role.' },
       { kind: 'p', text: 'If email delivery fails for any reason, the action you took (booking, reporting a squawk, etc.) still completes — email is a best-effort notice, never a blocker.' },
     ],
@@ -487,8 +395,8 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     category: 'account-data',
     summary: 'What students and renters see when they sign in.',
     body: [
-      { kind: 'p', text: 'Students and renters land in the Portal — a read-only view scoped entirely to their own data: their own upcoming and past reservations, their own training progress, and their own billing/ledger.' },
-      { kind: 'p', text: 'From the Portal they can also subscribe to their personal calendar feed, download their logbook CSV, and (if your operator has payments turned on) view and pay an invoice or enable autopay.' },
+      { kind: 'p', text: 'Students and renters land in the Portal — a read-only view scoped entirely to their own data: their own upcoming and past reservations and their own training progress.' },
+      { kind: 'p', text: 'From the Portal they can also subscribe to their personal calendar feed, and download their logbook CSV.' },
       { kind: 'note', text: 'The portal never shows another member’s data — every read is scoped to the signed-in user, not just filtered in the browser.' },
     ],
   },
@@ -500,7 +408,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     body: [
       { kind: 'p', text: 'The Dashboard is an "as of now" snapshot (grounded aircraft, open squawks, active fleet, members) alongside recent-days KPIs (flights, hours, reservations) and today’s at-a-glance lists.' },
       { kind: 'p', text: 'Reports adds deeper operational aggregates: utilization and hours by tail, reservations vs. actual flights, and training/maintenance trends over a selectable date range.' },
-      { kind: 'note', text: 'These are operational utilization numbers, not billing or airworthiness figures — hours here are for visibility into how your fleet is used, not a computed regulatory record.' },
+      { kind: 'note', text: 'These are operational utilization numbers, not airworthiness figures — hours here are for visibility into how your fleet is used, not a computed regulatory record.' },
     ],
   },
 ] as const;

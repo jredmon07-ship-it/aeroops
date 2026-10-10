@@ -3,7 +3,7 @@
  * (migration 0047): getOrgFeatures / setOrgFeatures, plus the downstream
  * consumers that gate on the flags (global search, public booking submit).
  *
- * Modeled on qbo-sync.test.ts's two-env structure:
+ * Two-env structure:
  *   env0047 — migration 0047 applied (org_feature_config table exists).
  *   envAbsent — only migration 0046 applied (0047 absent) → GRACEFUL ABSENCE:
  *     getOrgFeatures reads available:false / all-enabled; setOrgFeatures
@@ -14,11 +14,11 @@
  *     role, incl. student, can read). setOrgFeatures requires
  *     org:manage_settings (student/renter → Forbidden; owner → OK).
  *   DEFAULT STATE: an org with no org_feature_config row reads operatingMode
- *     'school', all 8 modules true, available:true.
+ *     'school', all 7 modules true, available:true.
  *   APPLY PRESET: operatingMode:'club' + applyPreset:true persists the club
  *     preset (training/booking/auto_schedule false, rest true) + writes ONE
  *     audit row 'org.feature_config_changed'.
- *   PARTIAL PATCH: { features: { billing:false } } flips only billing; mode
+ *   PARTIAL PATCH: { features: { messages:false } } flips only messages; mode
  *     and every other flag are untouched.
  *   NO-OP: writing the exact current state writes NO new audit row.
  *   T-ISO: org A's config changes are invisible to org B's read.
@@ -150,7 +150,7 @@ describe('org features (migration 0047 applied)', () => {
   // ── DEFAULT STATE ─────────────────────────────────────────────────────────
 
   describe('default state (no org_feature_config row yet)', () => {
-    it('org A reads operatingMode "school", all 8 modules true, available:true', async () => {
+    it('org A reads operatingMode "school", all 7 modules true, available:true', async () => {
       const view = await getOrgFeaturesWithDb(env.db, makeSession(env.orgAId, env.userAId, 'owner'));
       expect(view.available).toBe(true);
       expect(view.operatingMode).toBe('school');
@@ -164,7 +164,7 @@ describe('org features (migration 0047 applied)', () => {
     it('student → ForbiddenError', async () => {
       await expect(
         setOrgFeaturesWithDb(env.db, makeSession(env.orgAId, env.userAId, 'student'), {
-          features: { billing: false },
+          features: { messages: false },
         }),
       ).rejects.toBeInstanceOf(ForbiddenError);
     });
@@ -172,13 +172,13 @@ describe('org features (migration 0047 applied)', () => {
     it('renter → ForbiddenError', async () => {
       await expect(
         setOrgFeaturesWithDb(env.db, makeSession(env.orgAId, env.userAId, 'renter'), {
-          features: { billing: false },
+          features: { messages: false },
         }),
       ).rejects.toBeInstanceOf(ForbiddenError);
     });
 
     it('null session → UnauthenticatedError', async () => {
-      await expect(setOrgFeaturesWithDb(env.db, null, { features: { billing: false } })).rejects.toBeInstanceOf(
+      await expect(setOrgFeaturesWithDb(env.db, null, { features: { messages: false } })).rejects.toBeInstanceOf(
         UnauthenticatedError,
       );
     });
@@ -209,7 +209,6 @@ describe('org features (migration 0047 applied)', () => {
         expect(result.features.booking).toBe(false);
         expect(result.features.auto_schedule).toBe(false);
         expect(result.features.maintenance).toBe(true);
-        expect(result.features.billing).toBe(true);
         expect(result.features.portal).toBe(true);
         expect(result.features.reports).toBe(true);
         expect(result.features.messages).toBe(true);
@@ -228,20 +227,19 @@ describe('org features (migration 0047 applied)', () => {
   // ── PARTIAL PATCH ─────────────────────────────────────────────────────────
 
   describe('partial patch', () => {
-    it('{ features: { billing:false } } flips only billing; mode + other flags unchanged', async () => {
+    it('{ features: { messages:false } } flips only messages; mode + other flags unchanged', async () => {
       const sess = makeSession(env.orgAId, env.userAId, 'owner');
-      const result = await setOrgFeaturesWithDb(env.db, sess, { features: { billing: false } });
+      const result = await setOrgFeaturesWithDb(env.db, sess, { features: { messages: false } });
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.operatingMode).toBe('club'); // unchanged from the applyPreset test
-        expect(result.features.billing).toBe(false);
+        expect(result.features.messages).toBe(false);
         expect(result.features.training).toBe(false); // unchanged (club preset)
         expect(result.features.booking).toBe(false); // unchanged (club preset)
         expect(result.features.auto_schedule).toBe(false); // unchanged (club preset)
         expect(result.features.maintenance).toBe(true); // unchanged
         expect(result.features.portal).toBe(true); // unchanged
         expect(result.features.reports).toBe(true); // unchanged
-        expect(result.features.messages).toBe(true); // unchanged
       }
     });
   });
@@ -253,19 +251,18 @@ describe('org features (migration 0047 applied)', () => {
       const sess = makeSession(env.orgAId, env.userAId, 'owner');
       const before = await countFeatureAuditRows(env.db, env.orgAId);
 
-      // Current state: club mode, billing:false (from the previous two tests),
+      // Current state: club mode, messages:false (from the previous two tests),
       // every other flag = the club preset value. Re-send that exact shape.
       const result = await setOrgFeaturesWithDb(env.db, sess, {
         operatingMode: 'club',
         features: {
           training: false,
           maintenance: true,
-          billing: false,
           booking: false,
           portal: true,
           reports: true,
           auto_schedule: false,
-          messages: true,
+          messages: false,
         },
       });
       expect(result.ok).toBe(true);
@@ -278,7 +275,7 @@ describe('org features (migration 0047 applied)', () => {
   // ── T-ISO ─────────────────────────────────────────────────────────────────
 
   describe('T-ISO', () => {
-    it('org A club-mode + billing:false changes are invisible to org B', async () => {
+    it('org A club-mode + messages:false changes are invisible to org B', async () => {
       const bView = await getOrgFeaturesWithDb(env.db, makeSession(env.orgBId, env.userBId, 'owner'));
       expect(bView.operatingMode).toBe('school');
       expect(bView.features).toEqual(ALL_MODULES_ENABLED);
@@ -369,7 +366,7 @@ describe('org features — graceful absence (migration 0047 NOT applied)', () =>
     env = { db, pglite, orgAId: seed.orgAId, orgBId: seed.orgBId, userAId: seed.userAId, userBId: seed.userBId };
   }, 120_000);
 
-  it('getOrgFeatures → available:false, "school", all 8 modules true', async () => {
+  it('getOrgFeatures → available:false, "school", all 7 modules true', async () => {
     const view = await getOrgFeaturesWithDb(env.db, makeSession(env.orgAId, env.userAId, 'owner'));
     expect(view.available).toBe(false);
     expect(view.operatingMode).toBe('school');

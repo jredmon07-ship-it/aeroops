@@ -1,7 +1,7 @@
 # @aeroops/api
 
 Server actions / API surface and the clean interfaces that wrap external providers
-(Stripe, QuickBooks, weather, SMS/email/push, logbook). Owned by the
+(weather, email, object storage, CAPTCHA). Owned by the
 `backend-engineer` and `integration-engineer`.
 
 Rules: every tenant call scoped by `org_id`; authz checked on every mutation; input

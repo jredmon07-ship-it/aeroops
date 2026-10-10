@@ -5,7 +5,7 @@
  * returns a typed setup checklist. It is a DERIVED read — there is NO onboarding
  * table and NO migration. Each step is computed from an RLS-scoped aggregate over
  * the tables the operator would populate on the real setup surfaces (Fleet,
- * People, base-airport location, billing rates, booking policies, payments).
+ * People, base-airport location, booking policies).
  *
  * PURPOSE: power a "Set up your operation" page and a dashboard setup banner that
  * scale from a 2-plane flying club to a large academy — essentials front-and-
@@ -21,15 +21,13 @@
  *   - One COUNT query per step — independently org-auditable, no cross-org N+1.
  *   - Zero rows → 0 (COALESCE / COUNT), never null/NaN/throw.
  *   - ESSENTIAL steps (aircraft + people) are the minimum to start scheduling.
- *     OPTIONAL steps (base_airport, rates, policies, payments) add depth for
+ *     OPTIONAL steps (base_airport, policies) add depth for
  *     larger operations but never block the essentials.
  *
  * "people" is done when the org has MORE THAN ONE active member — the sole
  *   seeded owner alone does not count as "invited your team".
  * "base_airport" requires a location with BOTH latitude AND longitude
  *   (the civil-twilight calc needs coords; an ICAO-only base is not enough).
- * "payments" is done when a QBO connection is 'connected' OR a Stripe customer
- *   record exists for the org — otherwise false (no external call is made).
  *
  * TWO CALLING FORMS:
  *   getOnboardingStatus(session)          — app code.
@@ -51,9 +49,7 @@ export type OnboardingStepKey =
   | 'aircraft'
   | 'people'
   | 'base_airport'
-  | 'rates'
-  | 'policies'
-  | 'payments';
+  | 'policies';
 
 export interface OnboardingStep {
   /** Stable step identifier. */
@@ -66,9 +62,8 @@ export interface OnboardingStep {
    */
   essential: boolean;
   /**
-   * How many of the relevant records exist (aircraft/members/rates/policies),
-   * the count of coord-bearing base locations, or the count of configured
-   * payment providers. Always a number ≥ 0 (never null/NaN).
+   * How many of the relevant records exist (aircraft/members/policies) or the
+   * count of coord-bearing base locations. Always a number ≥ 0 (never null/NaN).
    */
   count: number;
 }
@@ -135,15 +130,6 @@ async function _getOnboardingStatusImpl(
       extractRows<{ count: number | string }>(baseResult)[0]?.count ?? 0,
     );
 
-    // ── Rates: operator-defined billing rate schedules (OPTIONAL) ─────────────
-    const rateResult = await tx.execute(sql`
-      SELECT COUNT(*)::int AS "count"
-      FROM rate_schedule
-    `);
-    const rateCount = Number(
-      extractRows<{ count: number | string }>(rateResult)[0]?.count ?? 0,
-    );
-
     // ── Policies: per-resource booking policies (OPTIONAL) ────────────────────
     const policyResult = await tx.execute(sql`
       SELECT COUNT(*)::int AS "count"
@@ -153,38 +139,13 @@ async function _getOnboardingStatusImpl(
       extractRows<{ count: number | string }>(policyResult)[0]?.count ?? 0,
     );
 
-    // ── Payments: QBO connected OR a Stripe customer exists (OPTIONAL) ────────
-    // No external call — purely inspects the org's own connection records.
-    const qboResult = await tx.execute(sql`
-      SELECT COUNT(*)::int AS "count"
-      FROM qbo_connection
-      WHERE status = 'connected'
-    `);
-    const qboConnectedCount = Number(
-      extractRows<{ count: number | string }>(qboResult)[0]?.count ?? 0,
-    );
-
-    const stripeResult = await tx.execute(sql`
-      SELECT COUNT(*)::int AS "count"
-      FROM stripe_customer
-    `);
-    const stripeCount = Number(
-      extractRows<{ count: number | string }>(stripeResult)[0]?.count ?? 0,
-    );
-
-    // Count of configured payment providers (0, 1, or 2).
-    const paymentsProviderCount =
-      (qboConnectedCount > 0 ? 1 : 0) + (stripeCount > 0 ? 1 : 0);
-
     // ── Assemble the ordered checklist ────────────────────────────────────────
     const steps: OnboardingStep[] = [
       { key: 'aircraft', done: aircraftCount > 0, essential: true, count: aircraftCount },
       // >1: the sole seeded owner alone is not "invited your team".
       { key: 'people', done: memberCount > 1, essential: true, count: memberCount },
       { key: 'base_airport', done: baseCoordsCount > 0, essential: false, count: baseCoordsCount },
-      { key: 'rates', done: rateCount > 0, essential: false, count: rateCount },
       { key: 'policies', done: policyCount > 0, essential: false, count: policyCount },
-      { key: 'payments', done: paymentsProviderCount > 0, essential: false, count: paymentsProviderCount },
     ];
 
     const essentialSteps = steps.filter((s) => s.essential);

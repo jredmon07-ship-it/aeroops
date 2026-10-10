@@ -1,9 +1,9 @@
 # AeroOps
 
 Multi-tenant flight-operations software for flight schools, flying clubs, and FBOs —
-scheduling, dispatch, maintenance, training records, billing and payments, a
-student/renter portal, and a public booking flow, with tenant isolation enforced in
-the database.
+scheduling, dispatch, maintenance, training records, reporting, a student/renter
+portal, and a public booking flow, with tenant isolation enforced in the database.
+It is an operations tool only: there are no billing, payment, or accounting features.
 
 Built over about seven weeks (June–July 2026) by orchestrating 17 role-scoped Claude
 Code agents against specs and merge gates defined up front. It was built to sell;
@@ -18,16 +18,13 @@ the MIT license instead. A public demo runs at
 | Area | What's there |
 |---|---|
 | **Scheduling** | Reservations with conflict detection, recurrence, and an operator-configurable civil-twilight day/night constraint |
-| **Dispatch** | Aircraft check-out/in, write-once Hobbs/tach meters, derived flight time, and a layered pre-flight gate (grounded → ineligible → balance) |
+| **Dispatch** | Aircraft check-out/in, write-once Hobbs/tach meters, derived flight time, and a layered pre-flight gate (grounded → ineligible) |
 | **Maintenance** | Squawks and operator-set grounding (surfaced *before* booking, enforced at check-out), work orders, and operator-defined maintenance items with due tracking |
 | **Training** | Operator-defined courses and lessons, enrollments, write-once lesson records entered by the instructor, optional instructor attestation (not an FAA e-signature), optional stage-check enforcement |
 | **Fleet & People** | Per-aircraft detail (grounding, open squawks, dispatch history, meters, upcoming reservations); members, roles, tags |
 | **Reporting** | Utilization over time, hours by tail, reservations vs flights, training and maintenance trends |
-| **Portal** | Student/renter self-service: own schedule, logbook, block time, billing, auto-pay settings; each read and write scoped to that user's own data |
+| **Portal** | Student/renter self-service: own schedule, training progress, logbook, documents, and calendar feed; each read and write scoped to that user's own data |
 | **Public booking** | Unauthenticated request capture → staff triage inbox → conversion to a real reservation through the same gated path every booking uses |
-| **Billing** | Rate schedules, draft invoices from recorded meters (integer-cents math), a member ledger, block time, recurring dues, counter sales, and billing reports |
-| **Payments** | Card and ACH payments, saved payment methods, and auto-pay through a server-side Stripe integration (inert until a Stripe key is configured; the in-browser card/bank entry form is not wired) |
-| **QuickBooks** | QuickBooks Online connection with invoice and payment export (needs your own Intuit app credentials) |
 | **Mobile** | Expo app: sign-in, schedule, fleet, squawks, and alerts (read-only), against a token-authenticated mobile API |
 
 ## Architecture
@@ -48,8 +45,9 @@ apps/mobile     Expo / React Native app (shares packages/core).
 **Tenant isolation is the design centre.** Every tenant query is scoped by `org_id`
 in the API layer, with Postgres row-level security as an independent backstop — so a
 bug in application code cannot leak across tenants. Eight membership roles
-(owner, manager, dispatcher, CFI, mechanic, renter, student, accountant) map onto a
-capability-based permission model that gates what each user can see and do.
+(owner, manager, dispatcher, CFI, mechanic, renter, student, accountant) map onto 21
+capabilities that gate what each user can see and do. The accountant role is a
+read-only reporting viewer (Dashboard, Reports, Activity).
 
 ---
 
@@ -106,7 +104,6 @@ and [`THE-BIBLE.md`](./THE-BIBLE.md).
 **Invariants that never bent:**
 
 - Tenant isolation is the whole game — every query scoped by `org_id`, RLS as backstop
-- PCI stays with the processor — no raw card data, ever
 - No fabricated regulation — Part 61/141/135 claims get flagged `[VERIFY]` and routed
   to the compliance agent
 - Human gates on migrations, anything irreversible, anything customer-facing
@@ -121,9 +118,10 @@ Released as open source. The live site at
 sample data, not a hosted service. It has no production users and no support is implied.
 
 The repo has 51 forward migrations (`packages/db/migrations/0000`–`0050`, each with a
-`.down.sql`) and about 155 test files (`*.test.ts`/`*.test.tsx` across `packages/` and
-`apps/web`). Stripe and QuickBooks code paths do nothing until you supply your own
-keys. See [`DEPLOY.md`](./DEPLOY.md) for deployment and [`CHANGELOG.md`](./CHANGELOG.md)
+`.down.sql`) and about 125 test files (`*.test.ts`/`*.test.tsx` across `packages/` and
+`apps/web`). Money features (billing, payments, dues, QuickBooks) were removed on
+2026-10-10; their tables remain in the migration history but no application code uses
+them. See [`DEPLOY.md`](./DEPLOY.md) for deployment and [`CHANGELOG.md`](./CHANGELOG.md)
 for what landed when.
 
 ## License

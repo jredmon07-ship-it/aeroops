@@ -5,9 +5,7 @@
  * EFFECTIVE METER RULE (ADR-0007 §1 + dispatch-ticket-correction schema):
  *   effective = latest correction ?? original closed _in values
  *
- * This is the ONLY canonical place to derive the billable meter for a ticket.
- * Billing (generateInvoiceFromDispatch) calls this; it never reads raw ticket
- * columns directly.
+ * This is the ONLY canonical place to derive the effective meter for a ticket.
  *
  * GUARANTEES:
  *   - READ-ONLY: does not mutate any row.
@@ -15,12 +13,10 @@
  *   - RLS-scoped via the calling tx (withSessionOrgContextWithDb).
  *   - Returns effective hobbs/tach as numbers (parsed from numeric(10,1) strings).
  *   - flightTimeHours = the write-once flight_time_hours from the closed ticket
- *     (NOT recomputed from effective meters — ADR-0007 §4 frozen). Billing uses
- *     the stored flight_time_hours as the quantity basis.
+ *     (NOT recomputed from effective meters — ADR-0007 §4 frozen).
  *
- * [VERIFY-B-MONEY-1]: flight_time_hours is the billable quantity (ADR-0007, frozen).
- * [VERIFY-B0-COMP-1]: correction chain for dual-signature before Phase-2 billing
- *   consumes the corrected meter (flagged from the correction schema).
+ * [VERIFY-B0-COMP-1]: correction chain for dual-signature (flagged from the
+ *   correction schema).
  */
 
 import { eq, desc } from 'drizzle-orm';
@@ -44,7 +40,7 @@ export interface EffectiveMeterOk {
   effectiveHobbsIn: number;
   /** Effective tach-in (correction ?? original), as a decimal number. */
   effectiveTachIn: number;
-  /** The STORED write-once flight_time_hours (the billing quantity). NOT recomputed. */
+  /** The STORED write-once flight_time_hours. NOT recomputed. */
   flightTimeHours: number;
   /** Whether a correction row was used (for audit/UI informational purposes). */
   correctionApplied: boolean;

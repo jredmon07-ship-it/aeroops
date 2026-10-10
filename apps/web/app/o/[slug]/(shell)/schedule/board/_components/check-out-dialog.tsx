@@ -15,8 +15,6 @@
  *   ok:false reason:'grounded'    → inline "Aircraft is grounded" (blocking)
  *   ok:false reason:'ineligible'  → blocking inline error listing missingTags
  *                                   [VERIFY-3c-A] operator labels, no FAR
- *   ok:false reason:'balance_block' → generic blocking message (reserved/stub)
- *                                   [VERIFY-3c-MONEY] no money concept
  *   { error: 'validation' }       → inline field error
  *   { error: 'forbidden' }        → inline auth error
  *   { error: 'server' }           → generic inline error
@@ -30,8 +28,8 @@
  *
  * PRE-FLIGHT CHECKLIST (Slice FC-P2 — Confirm-Dispatch parity, ADDITIVE):
  * once a pilot is selected, getDispatchPreflightAction renders READ-ONLY
- * status rows (grounding / open squawks / pilot expirations / balance when
- * billing caps allow) BEFORE the Dispatch button. WARN-ONLY — these rows
+ * status rows (grounding / open squawks / pilot expirations) BEFORE the
+ * Dispatch button. WARN-ONLY — these rows
  * never block; the actual openDispatch call and its gate handling below are
  * byte-identical to before this slice. [VERIFY-FC-P2-A]: expirations are
  * operator-entered reminder dates, NOT a medical/currency/legal determination.
@@ -120,12 +118,6 @@ function formatDateOnly(iso: string): string {
   if (!y || !m || !d) return iso;
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${monthNames[Number(m) - 1] ?? m} ${Number(d)}, ${y}`;
-}
-
-function formatCents(cents: number): string {
-  const sign = cents < 0 ? '-' : '';
-  const abs = Math.abs(cents);
-  return `${sign}$${(abs / 100).toFixed(2)}`;
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -242,8 +234,8 @@ export function CheckOutDialog({
   }, [pilotUserId]);
 
   // ── Load the pre-flight checklist when a pilot is selected ─────────────────
-  // Read-only, warn-only status snapshot (grounding / squawks / expirations /
-  // balance). Failures degrade to hidden rows — never block the form.
+  // Read-only, warn-only status snapshot (grounding / squawks / expirations).
+  // Failures degrade to hidden rows — never block the form.
   // Only fires for a full UUID (select values always are; the free-text
   // fallback fires once the pasted/typed id is complete — not per keystroke).
   React.useEffect(() => {
@@ -378,11 +370,6 @@ export function CheckOutDialog({
             `This pilot is missing required tag(s): ${tags}. ` +
               `Add the tag to the pilot, choose a qualified pilot, or remove the requirement.`,
           );
-          return;
-        }
-        if (result.reason === 'balance_block') {
-          // Reserved for Phase 2 billing — unreachable with the Phase-1 stub seam.
-          setDialogError('Dispatch is blocked by an account-balance hold.');
           return;
         }
         setDialogError('Something went wrong. Please try again.');
@@ -656,24 +643,6 @@ export function CheckOutDialog({
                           operator&apos;s and pilot&apos;s responsibility.
                         </p>
                       </>
-                    }
-                  />
-                )}
-
-                {/* Pilot balance — hidden entirely without billing:access. */}
-                {preflight.balance !== null && (
-                  <PreflightRow
-                    label="Account balance"
-                    chip={
-                      preflight.balance.balanceCents < preflight.balance.minimumBalanceCents ? (
-                        <PreflightChip tone="warn">
-                          {formatCents(preflight.balance.balanceCents)} — below minimum
-                        </PreflightChip>
-                      ) : (
-                        <PreflightChip tone="muted">
-                          {formatCents(preflight.balance.balanceCents)}
-                        </PreflightChip>
-                      )
                     }
                   />
                 )}

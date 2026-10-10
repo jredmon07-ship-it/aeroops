@@ -4,7 +4,7 @@
  * Tests the persistence/DB layer for:
  *   - getResourceRequiredTags / addResourceRequiredTag / removeResourceRequiredTag
  *   - getDispatchConfig / updateDispatchConfig
- *   - openDispatch additive arms: eligibility (block/warn/no-rules) + balance
+ *   - openDispatch additive arm: eligibility (block/warn/no-rules)
  *   - Tenant isolation (cross-org → not_found)
  *   - Grounded PRECEDES ineligible
  *   - Audit exactness (one per mutation; refusals write zero)
@@ -16,7 +16,6 @@
  * applyMigrationSql([0000–0009]) → seedTwoOrgs → additional seed → setTestAppRole.
  *
  * [VERIFY-3c-A]: requiredTag is FREE-TEXT; no FAA/currency/medical meaning.
- * [VERIFY-3c-MONEY]: balanceCheckEnabled is a stub flag; no dollar/Stripe/money.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -53,7 +52,6 @@ import { ValidationError } from '../scheduling/internal.js';
 import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
-import type { BalanceSeam, BalanceCheckRequest, BalanceCheckResult } from '@aeroops/core';
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
 const MIGRATION_SQL = loadMigrationSql('0042');
@@ -143,13 +141,6 @@ async function countAuditRows(
   );
   return result.length;
 }
-
-/** Fake balance seam that always returns below_minimum. */
-const fakeBelowMinimumSeam: BalanceSeam = {
-  async check(_req: BalanceCheckRequest): Promise<BalanceCheckResult> {
-    return { ok: false, reason: 'below_minimum' };
-  },
-};
 
 beforeAll(async () => {
   const { db, pglite } = await createTestClient();
@@ -467,7 +458,7 @@ describe('getDispatchConfig', () => {
     const sess = makeSession(orgAId, userAId, 'owner');
     const config = await getDispatchConfigWithDb(db, sess);
     expect(config.eligibilityMode).toBe('block');
-    expect(config.balanceCheckEnabled).toBe(false);
+    expect(config.twilightConstraintEnabled).toBe(false);
   });
 
   it('authz: accountant (no dispatch:access) → ForbiddenError', async () => {
@@ -493,7 +484,7 @@ describe('updateDispatchConfig', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.config.eligibilityMode).toBe('warn');
-      expect(result.config.balanceCheckEnabled).toBe(false); // preserved default
+      expect(result.config.twilightConstraintEnabled).toBe(false); // preserved default
     }
 
     const afterAudit = await countAuditRows(db, orgBId, 'dispatch.config_updated');
@@ -505,29 +496,18 @@ describe('updateDispatchConfig', () => {
     const sess = makeSession(orgBId, userBId, 'owner');
 
     // First: set both
-    await updateDispatchConfigWithDb(db, sess, { eligibilityMode: 'warn', balanceCheckEnabled: true });
-    // Second: only change mode, balance should be preserved
+    await updateDispatchConfigWithDb(db, sess, { eligibilityMode: 'warn', twilightConstraintEnabled: true });
+    // Second: only change mode, the twilight flag should be preserved
     const result = await updateDispatchConfigWithDb(db, sess, { eligibilityMode: 'block' });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.config.eligibilityMode).toBe('block');
-      expect(result.config.balanceCheckEnabled).toBe(true); // preserved
+      expect(result.config.twilightConstraintEnabled).toBe(true); // preserved
     }
   });
 
-  it('audit metadata carries NO Stripe/card/payment-processor concept (Slice B2 boundary)', async () => {
-    // [VERIFY-3c-MONEY] ORIGINALLY asserted dispatch_config's audit metadata
-    // carried zero money concept whatsoever. Slice B2 (ADR-0015) deliberately
-    // and reviewedly adds ONE operator-set integer-cents field —
-    // `minimumBalanceCents` — as DATA ONLY: it is consumed exclusively by
-    // `realBalanceSeam` (packages/api/src/billing/real-balance-seam.ts),
-    // which is NOT injected into openDispatch()'s app-code form (see
-    // open-dispatch.ts:338 — still hard-coded to stubBalanceSeam). This test
-    // now guards the NARROWER, still-load-bearing invariant: NO Stripe/
-    // payment-processor/raw-instrument concept ever appears here — no
-    // provider name, no card/bank/account data, no price/currency beyond the
-    // one reviewed integer-cents threshold field.
+  it('audit metadata carries a before/after snapshot of the gate config', async () => {
     const { db, orgBId, userBId } = sharedEnv;
     const sess = makeSession(orgBId, userBId, 'owner');
 
@@ -543,12 +523,8 @@ describe('updateDispatchConfig', () => {
 
     expect(rows.length).toBeGreaterThan(0);
     const meta = JSON.stringify(rows[rows.length - 1]!.metadata);
-    // No Stripe/card/bank/payment-processor concept, no dollar/price fields
-    // beyond the one reviewed minimumBalanceCents integer-cents field.
-    expect(meta).not.toMatch(/stripe|card|bank|pan|cvv|account_number|dollar|price/i);
-    // The reviewed field IS expected to be present (proves this test is not
-    // vacuously passing on an empty/malformed metadata blob).
-    expect(meta).toMatch(/minimumBalanceCents/);
+    expect(meta).toMatch(/eligibilityMode/);
+    expect(meta).not.toMatch(/balance/i);
   });
 
   it('invalid eligibilityMode value → ValidationError (thrown)', async () => {
@@ -712,94 +688,6 @@ describe('openDispatch eligibility gate', () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
-// SECTION 7 — openDispatch balance arm
-// ════════════════════════════════════════════════════════════════════════════════
-
-describe('openDispatch balance gate', () => {
-  it('flag off → balance seam NOT consulted (stub ok with flag off)', async () => {
-    const { db, orgAId, userAId } = sharedEnv;
-    const sess = makeSession(orgAId, userAId, 'owner');
-    const { aircraftId, reservationId } = await seedAircraftAndReservation(
-      db, orgAId, userAId, 'GBAL1',
-    );
-    // Ensure flag is off (default)
-    await updateDispatchConfigWithDb(db, sess, { balanceCheckEnabled: false });
-
-    // Use a fake seam that would return below_minimum — but flag is off so it shouldn't be called
-    let seamCalled = false;
-    const trackingSeam: BalanceSeam = {
-      async check(_req): Promise<BalanceCheckResult> {
-        seamCalled = true;
-        return { ok: false, reason: 'below_minimum' };
-      },
-    };
-
-    const result = await openDispatchWithDb(db, sess, {
-      reservationId,
-      resourceId: aircraftId,
-      pilotUserId: userAId,
-      hobbsOut: 600,
-      tachOut: 600,
-    }, trackingSeam);
-
-    expect(seamCalled).toBe(false);
-    expect(result.ok).toBe(true);
-  });
-
-  it('flag on + stub → ok (Phase 1: stub always returns ok)', async () => {
-    const { db, orgAId, userAId } = sharedEnv;
-    const sess = makeSession(orgAId, userAId, 'owner');
-    const { aircraftId, reservationId } = await seedAircraftAndReservation(
-      db, orgAId, userAId, 'GBAL2',
-    );
-    // Enable flag
-    await updateDispatchConfigWithDb(db, sess, { balanceCheckEnabled: true });
-
-    // Uses default stubBalanceSeam (always ok)
-    const result = await openDispatchWithDb(db, sess, {
-      reservationId,
-      resourceId: aircraftId,
-      pilotUserId: userAId,
-      hobbsOut: 700,
-      tachOut: 700,
-    });
-
-    expect(result.ok).toBe(true);
-  });
-
-  it('flag on + fake seam returning below_minimum → balance_block (no ticket, no audit)', async () => {
-    const { db, orgAId, userAId } = sharedEnv;
-    const sess = makeSession(orgAId, userAId, 'owner');
-    const { aircraftId, reservationId } = await seedAircraftAndReservation(
-      db, orgAId, userAId, 'GBAL3',
-    );
-    // Enable flag
-    await updateDispatchConfigWithDb(db, sess, { balanceCheckEnabled: true });
-
-    const beforeOpen = await countAuditRows(db, orgAId, 'dispatch.opened');
-
-    const result = await openDispatchWithDb(
-      db,
-      sess,
-      {
-        reservationId,
-        resourceId: aircraftId,
-        pilotUserId: userAId,
-        hobbsOut: 800,
-        tachOut: 800,
-      },
-      fakeBelowMinimumSeam,
-    );
-
-    expect(result).toEqual({ ok: false, reason: 'balance_block' });
-
-    // No ticket inserted, no dispatch.opened audit
-    const afterOpen = await countAuditRows(db, orgAId, 'dispatch.opened');
-    expect(afterOpen).toBe(beforeOpen);
-  });
-});
-
-// ════════════════════════════════════════════════════════════════════════════════
 // SECTION 8 — Grounded PRECEDES ineligible
 // ════════════════════════════════════════════════════════════════════════════════
 
@@ -912,30 +800,6 @@ describe('audit exactness', () => {
       hobbsOut: 1100,
       tachOut: 1100,
     });
-    expect(await countAuditRows(db, orgAId, 'dispatch.opened')).toBe(beforeOpen);
-  });
-
-  it('balance_block openDispatch writes zero audit rows', async () => {
-    const { db, orgAId, userAId } = sharedEnv;
-    const sess = makeSession(orgAId, userAId, 'owner');
-    const { aircraftId, reservationId } = await seedAircraftAndReservation(
-      db, orgAId, userAId, 'GAUD3',
-    );
-    await updateDispatchConfigWithDb(db, sess, { balanceCheckEnabled: true });
-
-    const beforeOpen = await countAuditRows(db, orgAId, 'dispatch.opened');
-    await openDispatchWithDb(
-      db,
-      sess,
-      {
-        reservationId,
-        resourceId: aircraftId,
-        pilotUserId: userAId,
-        hobbsOut: 1200,
-        tachOut: 1200,
-      },
-      fakeBelowMinimumSeam,
-    );
     expect(await countAuditRows(db, orgAId, 'dispatch.opened')).toBe(beforeOpen);
   });
 });

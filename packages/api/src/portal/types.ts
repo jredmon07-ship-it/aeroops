@@ -24,7 +24,7 @@
  *   system attaches NO FAA currency, medical, flight-review, Part 61/141,
  *   endorsement, or eligibility status from a tag.
  *
- * NO MONEY: the portal carries no price, rate, balance, or billing data.
+ * The portal carries no price or rate data.
  *   [MONEY BOUNDARY held — zero dollars.]
  */
 

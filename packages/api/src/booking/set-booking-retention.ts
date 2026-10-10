@@ -173,7 +173,6 @@ async function _setBookingRetentionImpl(
       INSERT INTO dispatch_config (
         org_id,
         eligibility_mode,
-        balance_check_enabled,
         twilight_constraint_enabled,
         twilight_mode,
         twilight_exempt_tag,
@@ -187,7 +186,6 @@ async function _setBookingRetentionImpl(
       VALUES (
         ${sess.orgId}::uuid,
         'block',
-        false,
         false,
         'warn',
         NULL,

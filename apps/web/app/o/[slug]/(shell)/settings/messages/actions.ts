@@ -2,7 +2,7 @@
  * settings/messages/actions.ts — Server actions for member messaging /
  * announcements (FC-parity "Engage with Messaging by Email").
  *
- * Pattern mirrors billing/actions.ts:
+ * Pattern mirrors people/actions.ts:
  *   1. await auth() → session.
  *   2. Call @aeroops/api fn (requireCapability('org:manage_settings') inside).
  *   3. Map ForbiddenError/UnauthenticatedError → tagged error result.

@@ -106,7 +106,7 @@ interface RecipientRow {
  * resolveActiveRecipientsTx — active app_user rows in this org, optionally
  * filtered to one membership.role. Runs on an ALREADY org-scoped tx (RLS is
  * the enforcement backstop — no explicit org_id predicate needed beyond
- * what the join already requires, matching ledger-internal.ts's convention).
+ * what the join already requires).
  */
 async function resolveActiveRecipientsTx(
   tx: AnyDb,

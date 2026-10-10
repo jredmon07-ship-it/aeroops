@@ -739,7 +739,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
         {/* Mandatory hours footnote [VERIFY-A] */}
         <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
           * Utilization hours derived from recorded Hobbs at check-in. Operational
-          figure only — not a billing or airworthiness statement.
+          figure only — not an airworthiness statement.
         </p>
       </section>
 

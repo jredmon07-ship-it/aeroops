@@ -2,7 +2,7 @@
  * settings/import/actions.ts — Server actions for the Flight Circle data
  * importer (Slice P1.7).
  *
- * Pattern mirrors settings/actions.ts (QBO integration): auth() → call
+ * Pattern mirrors settings/actions.ts: auth() → call
  * @aeroops/api fn (requireCapability inside, gated per kind: people:manage/
  * people:access for members, fleet:manage/fleet:access for aircraft) → map
  * ForbiddenError/UnauthenticatedError/ValidationError → tagged error result.

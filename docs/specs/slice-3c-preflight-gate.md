@@ -1,3 +1,5 @@
+> Note 2026-10-10: money features were removed from AeroOps; the balance arm and stub balance seam described here no longer exist (the gate is grounded → ineligible).
+
 # Slice 3c — Full pre-flight (dispatch) gate (build spec)
 
 ## Conductor decisions (2026-06-19) — RESOLVED, builders may proceed

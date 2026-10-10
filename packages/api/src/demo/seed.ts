@@ -14,17 +14,12 @@
  *      - a weekly recurring lesson series.
  *      - one CLOSED dispatch ticket (flown earlier today, Hobbs/tach recorded)
  *        and one OPEN dispatch ticket (aircraft currently checked out).
- *      - a monthly tuition dues_schedule on the student (school mode labels
- *        this "Tuition") + one generated DRAFT invoice for the current period.
  *
  *   2. "Bravo Flying Club" (slug `bravo`) — a SMALL CLUB counter-example:
  *      - three logins (owner / admin / member), two aircraft, one location.
  *      - a modest slice of life: a couple of upcoming member reservations, one
  *        flown+closed dispatch ticket, one open low-severity squawk, a booking
  *        policy. NO training course (club operating mode turns training off).
- *      - monthly $130 club-dues schedules on BOTH the admin and the member,
- *        plus an annual $600 membership schedule on the member (shows both
- *        cadences at once) + generated DRAFT invoices for the current period.
  *      - CLUB OPERATING MODE (migration 0047, GRACEFUL ABSENCE if unapplied):
  *        the org_feature_config row is written with the 'club' preset
  *        (training/booking/auto-schedule off).
@@ -82,12 +77,6 @@ import { createCourseWithDb } from '../training/create-course.js';
 import { addCourseLessonWithDb } from '../training/add-course-lesson.js';
 import { enrollMemberWithDb } from '../training/enroll-member.js';
 import { recordLessonWithDb } from '../training/record-lesson.js';
-import { createDuesScheduleWithDb } from '../billing/dues-schedule-commands.js';
-import { generateDuesInvoicesWithDb } from '../billing/generate-dues-invoices.js';
-import { createRateScheduleWithDb } from '../billing/rate-commands.js';
-import { generateInvoiceFromDispatchWithDb } from '../billing/generate-invoice.js';
-import { finalizeInvoiceWithDb } from '../billing/invoice-status-commands.js';
-import { recordManualPaymentWithDb } from '../billing/record-manual-payment.js';
 import { orgFeatureConfigTableExists } from '../org-features/org-features-internal.js';
 
 /** The org address used in the URL: /o/alpha/login */
@@ -143,22 +132,6 @@ function atLocal(dayOffset: number, hour: number, minute = 0): Date {
 }
 
 /**
- * The current calendar period as "YYYY-MM" — the periodKey generateDuesInvoices
- * bills against. Matches atLocal()'s "today" basis, so re-seeding on any date
- * always drafts an invoice for the schedules created below.
- */
-function demoPeriodKey(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-/** The current calendar month (1–12) — used to anchor the demo's annual dues
- * schedule so it is always due in the same period demoPeriodKey() bills. */
-function demoMonthNumber(): number {
-  return new Date().getMonth() + 1;
-}
-
-/**
  * maybeSeedClubMode — write the org_feature_config row for a small-club org
  * IF migration 0047 is applied. GRACEFUL ABSENCE: probes
  * orgFeatureConfigTableExists first and silently no-ops on a pre-0047 DB (the
@@ -173,11 +146,11 @@ async function maybeSeedClubMode(tx: AnyDb, orgId: string): Promise<void> {
   await tx.execute(sql`
     INSERT INTO "org_feature_config" (
       "org_id", "operating_mode",
-      "module_training", "module_maintenance", "module_billing", "module_booking",
+      "module_training", "module_maintenance", "module_booking",
       "module_portal", "module_reports", "module_auto_schedule", "module_messages"
     ) VALUES (
       ${orgId}::uuid, 'club',
-      ${preset.training}, ${preset.maintenance}, ${preset.billing}, ${preset.booking},
+      ${preset.training}, ${preset.maintenance}, ${preset.booking},
       ${preset.portal}, ${preset.reports}, ${preset.auto_schedule}, ${preset.messages}
     )
   `);
@@ -605,30 +578,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     }
   }
 
-  // ── 8a. Recurring dues (Slice P0-REV, C5/C6) ────────────────────────────
-  // A monthly tuition schedule on the student — Alpha is school-mode, so the
-  // billing UI's recurringChargeNoun() labels this "Tuition". Configuring a
-  // schedule never charges anything; generateDuesInvoicesWithDb below drafts
-  // ONE invoice for the current period so the billing surface isn't empty.
-  const tuitionSchedule = await createDuesScheduleWithDb(db, ownerSession, {
-    memberUserId: ids.studentId,
-    amountCents: 45000,
-    dayOfMonth: 1,
-    cadence: 'monthly',
-    memo: 'Flight training tuition',
-  });
-  if (!tuitionSchedule.ok) {
-    throw new Error(`[demo] alpha tuition schedule failed (${tuitionSchedule.reason}) — seed cannot continue.`);
-  }
-
-  const alphaDuesRun = await generateDuesInvoicesWithDb(db, ownerSession, {
-    periodKey: demoPeriodKey(),
-  });
-  if (alphaDuesRun.created.length < 1) {
-    throw new Error('[demo] alpha dues invoice generation created no invoices — seed cannot continue.');
-  }
-
-  // ── 8b. Historical activity backfill (DEMO-ONLY) ────────────────────────
+  // ── 8a. Historical activity backfill (DEMO-ONLY) ────────────────────────
   // Give the dashboard activity chart, fleet utilization, and reporting trends
   // a believable month of flights instead of only today's snapshot. Each flight
   // is created through the REAL gated write paths at a backdated (past) time;
@@ -636,8 +586,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   // to the flight day in one UPDATE so the time-bucketed reports pick them up.
   // DEFENSIVE: any failure is logged and skipped so the core demo still seeds.
   // Resets on every demo restart.
-  // Declared out here so the billing backfill (8c) can bill from the same flights.
-  const backdated: { resId: string; ticketId: string; tail: string; startAt: Date }[] = [];
+  const backdated: { resId: string; ticketId: string }[] = [];
   try {
     // Two trainers carry the history: the 172 (student-flown) and the Archer
     // (CFI-flown — satisfies its 'Club checkout: complex' dispatch requirement).
@@ -701,7 +650,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
 
         plan.hobbs = hobbsIn + 0.4; // advance the running meter for this tail
         plan.tach = tachIn + 0.4;
-        backdated.push({ resId: res.reservation.id, ticketId: op.ticket.id, tail: plan.tail, startAt });
+        backdated.push({ resId: res.reservation.id, ticketId: op.ticket.id });
       } catch {
         // a single refused flight (e.g. a gate) is non-fatal — skip it.
         continue;
@@ -729,101 +678,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     console.warn('[demo] historical activity backfill skipped:', err);
   }
 
-  // ── 8c. Billing backfill (DEMO-ONLY) — the Hobbs → invoice → paid story ──
-  // Turn the backfilled flights into money: a wet-hourly rate per trainer, a
-  // finalized rental invoice per flight (billed to the student), most of them
-  // paid by ACH. issued_at + the payment ledger entry are backdated to the
-  // flight day so the revenue chart, A/R, and payments report all populate.
-  // DEFENSIVE + best-effort; resets on demo restart.
-  try {
-    const rateByTail = new Map<string, string>();
-    const rateSpec = [
-      { tail: 'N172SP', name: 'C172 — wet hourly', amountCents: 15500 },
-      { tail: 'N28K', name: 'Archer — wet hourly', amountCents: 16500 },
-    ];
-    for (const rs of rateSpec) {
-      const created = await createRateScheduleWithDb(db, ownerSession, {
-        resourceId: tail(rs.tail),
-        name: rs.name,
-        rateKind: 'wet_hourly',
-        amountCents: rs.amountCents,
-        effectiveFrom: atLocal(-120, 0, 0),
-      });
-      if (created.ok) rateByTail.set(rs.tail, created.rate.id);
-    }
-
-    let invoiced = 0;
-    let paid = 0;
-    for (let i = 0; i < backdated.length; i++) {
-      const f = backdated[i]!;
-      const rateId = rateByTail.get(f.tail);
-      if (!rateId) continue;
-      try {
-        const gen = await generateInvoiceFromDispatchWithDb(db, ownerSession, {
-          dispatchTicketId: f.ticketId,
-          rateScheduleId: rateId,
-          memberUserId: ids.studentId,
-        });
-        if (!gen.ok) continue;
-        const invId = gen.invoice.id;
-        const totalCents = gen.invoice.totalCents;
-
-        const fin = await finalizeInvoiceWithDb(db, ownerSession, { id: invId });
-        if (!fin.ok) continue;
-        invoiced++;
-
-        const issuedIso = f.startAt.toISOString();
-        await withOrgContext(db, orgId, async (tx) => {
-          await tx.execute(sql`
-            UPDATE invoice
-               SET issued_at = ${issuedIso}::timestamptz, created_at = ${issuedIso}::timestamptz
-             WHERE id = ${invId}`);
-          // Also backdate the invoice_finalized DEBIT ledger entry finalize wrote
-          // at now(): A/R aging keys on its created_at, and the member statement
-          // orders by it — leaving it at now() ages every receivable as "current"
-          // and inverts the statement's running balance.
-          await tx.execute(sql`
-            UPDATE ledger_entry SET created_at = ${issuedIso}::timestamptz
-             WHERE invoice_id = ${invId} AND entry_type = 'invoice_finalized'`);
-        });
-
-        // Pay ~3 of every 4 (skip every 4th) → a believable outstanding balance.
-        if (i % 4 !== 3) {
-          const pay = await recordManualPaymentWithDb(db, ownerSession, {
-            memberUserId: ids.studentId,
-            amountCents: totalCents,
-            methodNote: 'ACH',
-            memo: 'Auto-pay (demo)',
-          });
-          if (pay.ok) {
-            paid++;
-            // Paid ~2 days after the flight, but never in the future (the most
-            // recent flights are <2 days old) — a future payment is dropped from
-            // the collected-revenue total and is nonsensical in the ledger.
-            const payMs = Math.min(
-              f.startAt.getTime() + 2 * 24 * 60 * 60 * 1000,
-              Date.now() - 3 * 60 * 60 * 1000,
-            );
-            const payIso = new Date(payMs).toISOString();
-            await withOrgContext(db, orgId, async (tx) => {
-              await tx.execute(sql`
-                UPDATE ledger_entry SET created_at = ${payIso}::timestamptz
-                 WHERE id = ${pay.entry.id}`);
-            });
-          }
-        }
-      } catch {
-        continue;
-      }
-    }
-    // eslint-disable-next-line no-console
-    console.log(`[demo] billing backfill: ${invoiced} invoices finalized, ${paid} paid`);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[demo] billing backfill skipped:', err);
-  }
-
-  // ── 9. Second org — "Bravo Flying Club" (small club, slug `bravo`) ──
+  // ── 8b. Second org — "Bravo Flying Club" (small club, slug `bravo`) ──
   await seedBravoClub(db);
 }
 
@@ -1014,74 +869,17 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
     throw new Error('[demo] bravo report squawk failed — seed cannot continue.');
   }
 
-  // ── Dues schedules (Slice P0-REV, C5/C6) ──────────────────────────────────
-  // A monthly $130 club-dues schedule on BOTH the admin and the member (a
-  // club's whole roster pays dues), plus an annual $600 membership schedule
-  // on the member only — showing both cadences side by side. Configuring a
-  // schedule never charges anything; generateDuesInvoicesWithDb below drafts
-  // invoices for the current period only, left DRAFT (no money moves here).
-  const adminDues = await createDuesScheduleWithDb(db, ownerSession, {
-    memberUserId: ids.adminId,
-    amountCents: 13000,
-    dayOfMonth: 1,
-    cadence: 'monthly',
-    memo: 'Monthly club dues',
-  });
-  if (!adminDues.ok) {
-    throw new Error(`[demo] bravo admin dues schedule failed (${adminDues.reason}) — seed cannot continue.`);
-  }
-  const memberMonthlyDues = await createDuesScheduleWithDb(db, ownerSession, {
-    memberUserId: ids.memberId,
-    amountCents: 13000,
-    dayOfMonth: 1,
-    cadence: 'monthly',
-    memo: 'Monthly club dues',
-  });
-  if (!memberMonthlyDues.ok) {
-    throw new Error(`[demo] bravo member monthly dues schedule failed (${memberMonthlyDues.reason}) — seed cannot continue.`);
-  }
-  // Annual — GRACEFUL ABSENCE: a pre-0050 DB only supports 'monthly', so a
-  // 'cadence_not_available' refusal here is expected and skipped, not fatal.
-  const memberAnnualDues = await createDuesScheduleWithDb(db, ownerSession, {
-    memberUserId: ids.memberId,
-    amountCents: 60000,
-    dayOfMonth: 1,
-    cadence: 'annual',
-    anchorMonth: demoMonthNumber(),
-    memo: 'Annual membership',
-  });
-  if (!memberAnnualDues.ok && memberAnnualDues.reason !== 'cadence_not_available') {
-    throw new Error(`[demo] bravo member annual dues schedule failed (${memberAnnualDues.reason}) — seed cannot continue.`);
-  }
-
-  const bravoDuesRun = await generateDuesInvoicesWithDb(db, ownerSession, {
-    periodKey: demoPeriodKey(),
-  });
-  if (bravoDuesRun.created.length < 2) {
-    throw new Error('[demo] bravo dues invoice generation created fewer than expected invoices — seed cannot continue.');
-  }
-
-  // ── Historical activity + billing backfill (DEMO-ONLY) ───────────────────
-  // Make the club demo look lived-in, since it's the primary demo: ~14 Skyhawk
-  // flights over the last ~18 days flown by the member, each turned into a
-  // finalized rental invoice (most paid by ACH), with timestamps backdated so
-  // the dashboard, utilization, and billing all populate. Skyhawk only — the
+  // ── Historical activity backfill (DEMO-ONLY) ─────────────────────────────
+  // Make the club demo look lived-in, since it's the primary demo: Skyhawk
+  // flights over the last ~27 days flown by the member, with timestamps
+  // backdated so the dashboard and utilization populate. Skyhawk only — the
   // Warrior's min-lead booking policy refuses past-dated reservations.
   // DEFENSIVE + best-effort; resets on demo restart.
   try {
-    const clubRate = await createRateScheduleWithDb(db, ownerSession, {
-      resourceId: tail('N735BW'),
-      name: 'Skyhawk — wet hourly',
-      rateKind: 'wet_hourly',
-      amountCents: 13500,
-      effectiveFrom: atLocal(-120, 0, 0),
-    });
-    const rateId = clubRate.ok ? clubRate.rate.id : null;
     const durChoices = [60, 90, 90, 120, 75];
     let hobbs = 852;
     let tach = 815;
-    let invoiced = 0;
-    let paid = 0;
+    let flown = 0;
     // Owner (2026-09-02): 14 -> 26 flights, and the window widened to 27..2 days
     // so the club dashboard's default 30-day view is populated too.
     for (let k = 0; k < 26; k++) {
@@ -1121,8 +919,8 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
         if (!cl.ok) continue;
         hobbs = hobbsIn + 0.3;
         tach = tachIn + 0.3;
+        flown++;
 
-        const issuedIso = startAt.toISOString();
         await withOrgContext(db, orgId, async (tx) => {
           await tx.execute(sql`
             UPDATE reservation SET created_at = start_at - interval '2 hours'
@@ -1131,58 +929,12 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
             UPDATE dispatch_ticket dt SET opened_at = r.start_at, closed_at = r.end_at
               FROM reservation r WHERE dt.id = ${op.ticket.id} AND r.id = ${res.reservation.id}`);
         });
-
-        if (rateId) {
-          const gen = await generateInvoiceFromDispatchWithDb(db, ownerSession, {
-            dispatchTicketId: op.ticket.id,
-            rateScheduleId: rateId,
-            memberUserId: ids.memberId,
-          });
-          if (gen.ok) {
-            const fin = await finalizeInvoiceWithDb(db, ownerSession, { id: gen.invoice.id });
-            if (fin.ok) {
-              invoiced++;
-              await withOrgContext(db, orgId, async (tx) => {
-                await tx.execute(sql`
-                  UPDATE invoice SET issued_at = ${issuedIso}::timestamptz, created_at = ${issuedIso}::timestamptz
-                   WHERE id = ${gen.invoice.id}`);
-                // Backdate the invoice_finalized debit too (see Alpha note): keeps
-                // A/R aging + the member statement consistent with the issue date.
-                await tx.execute(sql`
-                  UPDATE ledger_entry SET created_at = ${issuedIso}::timestamptz
-                   WHERE invoice_id = ${gen.invoice.id} AND entry_type = 'invoice_finalized'`);
-              });
-              if (k % 4 !== 3) {
-                const pay = await recordManualPaymentWithDb(db, ownerSession, {
-                  memberUserId: ids.memberId,
-                  amountCents: gen.invoice.totalCents,
-                  methodNote: 'ACH',
-                  memo: 'Auto-pay (demo)',
-                });
-                if (pay.ok) {
-                  paid++;
-                  // ~2 days after the flight, but never in the future.
-                  const payMs = Math.min(
-                    startAt.getTime() + 2 * 24 * 60 * 60 * 1000,
-                    Date.now() - 3 * 60 * 60 * 1000,
-                  );
-                  const payIso = new Date(payMs).toISOString();
-                  await withOrgContext(db, orgId, async (tx) => {
-                    await tx.execute(sql`
-                      UPDATE ledger_entry SET created_at = ${payIso}::timestamptz
-                       WHERE id = ${pay.entry.id}`);
-                  });
-                }
-              }
-            }
-          }
-        }
       } catch {
         continue;
       }
     }
     // eslint-disable-next-line no-console
-    console.log(`[demo] bravo backfill: ${invoiced} invoices finalized, ${paid} paid`);
+    console.log(`[demo] bravo backfill: ${flown} flights`);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[demo] bravo backfill skipped:', err);

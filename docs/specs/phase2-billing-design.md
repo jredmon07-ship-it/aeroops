@@ -1,3 +1,5 @@
+> Removed 2026-10-10: money features were removed from AeroOps; kept as a design record.
+
 # Phase-2 Billing — Architecture & Design + ADR-0015 (Stripe) — FOUNDER DECISION PACKET
 
 **DESIGN. The money boundary (CLAUDE.md/THE-BIBLE §11) stays until the founder says go AND provides Stripe test keys.**

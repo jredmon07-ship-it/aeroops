@@ -40,8 +40,8 @@ training, public booking, and auto-scheduler turned off for a leaner nav):
 | Email | Role | What they can do |
 |---|---|---|
 | `owner@bravo.aero` | owner | Full access; see Org settings → Modules to flip club/school mode |
-| `admin@bravo.aero` | manager | Scheduling + billing + settings |
-| `member@bravo.aero` | renter | The member portal view (balance, reservations, recurring dues) |
+| `admin@bravo.aero` | manager | Scheduling + dispatch + settings |
+| `member@bravo.aero` | renter | The member portal view (reservations, logbook) |
 
 Sign in as **`owner@alpha.aero`** for the full walkthrough below, or
 **`owner@bravo.aero`** to see club mode.
@@ -72,19 +72,10 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
 - **A training course:** "Private Pilot — Part 61" (5 lessons); the student is
   **enrolled at 2/5 progress** (two lessons recorded by the CFI).
 - **Profile photos** on several accounts (avatars in the roster + header).
-- **Recurring dues / tuition** (migration 0050): a **$450/mo "Flight training
-  tuition"** on the Alpha student; on Bravo, **$130/mo club dues** for two
-  members plus a **$600/yr annual membership**. See it operator-side at
-  `/o/<slug>/billing/recurring` and member-side in the portal (`member@bravo.aero`).
-  A school shows "Tuition", a club shows "Dues" — same engine.
-- **A month of activity + billing (both orgs):** ~24 flights over the last ~24
-  days on Alpha (14 on Bravo), each a closed dispatch turned into a finalized
-  **rental invoice**, most **paid by ACH**. So the **dashboard** shows a populated
-  reservations-vs-flights **activity chart** + KPI **sparklines**, **Fleet
-  utilization** shows real per-tail hours, and **Billing → Reports** shows a
-  **revenue chart** (finalized vs collected), A/R aging, payments, and an
-  **Unbilled flights** card — a flown flight with no invoice yet, i.e. revenue to
-  capture. The **Reports** hub (`/reporting/reports`) charts utilization and
+- **A month of activity (both orgs):** ~56 flights over the last ~28 days on
+  Alpha (~26 on Bravo), each a closed dispatch. So the **dashboard** shows a
+  populated reservations-vs-flights **activity chart** + KPI **sparklines**, and
+  **Fleet utilization** shows real per-tail hours. The **Reports** hub (`/reporting/reports`) charts utilization and
   reservations-vs-flights over time.
 
 > Bravo Flying Club seeds the same shape at small-club scale (2 aircraft, 3
@@ -123,12 +114,7 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
    open **Enrollments → Sam Student** to see the **2 / 5 progress**, the per-lesson
    checklist, and **Record lesson** / **Void** (an instructor data-entry record, not
    an e-signature).
-9. **Billing → Reports** (`/o/alpha/billing/reports`) — the money view: **A/R
-   aging**, a **revenue chart** (finalized vs collected over the period), items
-   sold, payments, and an **Unbilled flights** card flagging a flown flight that
-   hasn't been invoiced yet (open it on the board to bill it — revenue capture).
-   The recurring hub is at *Billing → Recurring* (dues/tuition + MRR).
-10. **Roles** — sign out and back in as `student@alpha.aero` to see the
+9. **Roles** — sign out and back in as `student@alpha.aero` to see the
     capability-gated, locked-down view (no Fleet/People/Training/Reporting).
 
 ## How it works (and what it is *not*)
@@ -146,9 +132,10 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
   and never runs here.
 - **Compliance posture:** grounding, eligibility, and "night" are operator data /
   astronomy — the app computes **no** FAA determination (no currency, medical,
-  Part-61/141, or airworthiness ruling). There is **no money** anywhere in the demo.
-- Not in this demo: the native mobile app UI (the mobile **API** is built + tested),
-  payments/billing (Phase 2), and maintenance work orders (Phase 4). See `CLAUDE.md`.
+  Part-61/141, or airworthiness ruling). AeroOps has **no money features**
+  (billing, payments, and QuickBooks were removed on 2026-10-10).
+- Not in this demo: the native mobile app UI (the mobile **API** is built + tested).
+  See `CLAUDE.md`.
 
 ## Want a persistent (hosted) demo instead?
 

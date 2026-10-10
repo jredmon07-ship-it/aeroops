@@ -46,8 +46,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { isUniqueViolation, toDispatchTicketView } from './internal.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
-import { evaluateEligibilityGate, stubBalanceSeam } from '@aeroops/core';
-import type { BalanceSeam } from '@aeroops/core';
+import { evaluateEligibilityGate } from '@aeroops/core';
 import { loadRequiredTags, loadPilotTags, loadDispatchConfig } from '../dispatch-gate/internal.js';
 import type { OpenDispatchResult } from './types.js';
 
@@ -111,7 +110,6 @@ async function _openDispatchImpl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: unknown,
-  balanceSeam: BalanceSeam = stubBalanceSeam,
 ): Promise<OpenDispatchResult> {
   // 1. AUTHZ FIRST — before any data access.
   requireCapability(session, 'dispatch:create');
@@ -221,7 +219,7 @@ async function _openDispatchImpl(
       //     Load requiredTags for this aircraft. If empty → skip (no gate, no
       //     pilot-tag query). [VERIFY-3c-A] tags are FREE-TEXT opaque labels.
       //
-      //     Load config once; used by both eligibility and balance gates.
+      //     Load the gate config once.
       const requiredTags = await loadRequiredTags(tx, resourceId);
       const gateCfg      = await loadDispatchConfig(tx, sess.orgId);
       let eligibilityWarnings: string[] | undefined;
@@ -239,20 +237,6 @@ async function _openDispatchImpl(
         if (gate.warnings.length > 0) {
           // warn mode + missing tags → proceed but carry warnings onto ok:true.
           eligibilityWarnings = gate.warnings;
-        }
-      }
-
-      // 3h. Balance gate — AFTER eligibility, BEFORE INSERT.
-      //     [VERIFY-3c-MONEY]: stubBalanceSeam ALWAYS returns {ok:true} in Phase 1.
-      //     Only a test-injected fake seam can trigger balance_block.
-      if (gateCfg.balanceCheckEnabled) {
-        const balanceResult = await balanceSeam.check({
-          orgId: sess.orgId,
-          pilotUserId,
-        });
-        if (!balanceResult.ok) {
-          // Balance refused — NO write/audit.
-          return { ok: false, reason: 'balance_block' } as const;
         }
       }
 
@@ -334,8 +318,7 @@ export async function openDispatch(
   input: unknown,
 ): Promise<OpenDispatchResult> {
   const db = await getDb();
-  // Always uses stubBalanceSeam in app code (Phase 1 money boundary).
-  return _openDispatchImpl(db, session, input, stubBalanceSeam);
+  return _openDispatchImpl(db, session, input);
 }
 
 // ─── Test/injectable form ─────────────────────────────────────────────────────
@@ -344,7 +327,6 @@ export async function openDispatchWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   input: unknown,
-  balanceSeam: BalanceSeam = stubBalanceSeam,
 ): Promise<OpenDispatchResult> {
-  return _openDispatchImpl(db, session, input, balanceSeam);
+  return _openDispatchImpl(db, session, input);
 }

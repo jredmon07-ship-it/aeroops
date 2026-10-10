@@ -21,7 +21,7 @@
  *
  * COMPLIANCE [VERIFY-PB2-COMP-1]: convertBookingRequestAction parses ISO→Date at
  * the action boundary; serializes the returned reservation Dates→ISO back to the
- * client. No money/Stripe/price. Twilight disclaimer is verbatim (not §61.57).
+ * client. No price. Twilight disclaimer is verbatim (not §61.57).
  */
 'use server';
 

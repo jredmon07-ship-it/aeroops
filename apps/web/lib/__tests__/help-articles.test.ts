@@ -140,9 +140,9 @@ describe('5. searchHelpArticles', () => {
   });
 
   it('matches case-insensitively against the title', () => {
-    const target = HELP_ARTICLES.find((a) => a.title.includes('QuickBooks'));
+    const target = HELP_ARTICLES.find((a) => a.title.includes('logbook'));
     expect(target).toBeDefined();
-    const result = searchHelpArticles('quickbooks');
+    const result = searchHelpArticles('LOGBOOK');
     expect(result.some((a) => a.slug === target!.slug)).toBe(true);
   });
 

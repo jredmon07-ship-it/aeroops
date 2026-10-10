@@ -1,18 +1,9 @@
 /**
  * csv-format.ts — pure cell formatters for building report CSV grids.
  *
- * DISPLAY-ONLY. Money is emitted as a plain decimal string (no "$", no thousands
- * separators) so a spreadsheet reads it as a number; integer cents stay the
- * source of truth upstream (@aeroops/core). Dates are emitted as YYYY-MM-DD
- * (the report grain), derived from an ISO timestamp string.
+ * DISPLAY-ONLY. Dates are emitted as YYYY-MM-DD (the report grain), derived
+ * from an ISO timestamp string.
  */
-
-/** Integer cents → plain decimal dollars, e.g. 45999 → "459.99". */
-export function centsToAmount(cents: number): string {
-  const sign = cents < 0 ? '-' : '';
-  const abs = Math.abs(cents);
-  return `${sign}${(abs / 100).toFixed(2)}`;
-}
 
 /** ISO timestamp string → "YYYY-MM-DD" (UTC calendar date). */
 export function csvDate(iso: string): string {

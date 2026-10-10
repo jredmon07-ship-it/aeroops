@@ -16,7 +16,7 @@
  * the two export commands.
  *
  * COMPLIANCE: reads raw closed-ticket meters — deliberately does NOT apply
- * dispatch_ticket_correction (a convenience view, not a billing read).
+ * dispatch_ticket_correction (a convenience view).
  * See [VERIFY-P2-LOG-A] in docs/specs/slice-p2-logbook.md.
  */
 import { sql } from 'drizzle-orm';

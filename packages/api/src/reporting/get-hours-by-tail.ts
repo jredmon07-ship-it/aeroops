@@ -15,7 +15,7 @@
  *     ticket is invisible to the RLS-scoped session; no d.org_id predicate needed.
  *   - T-ISO-HOURSBYTAIL in the R1.1 test suite exercises this exact path.
  *
- * OPERATIONAL — NOT billing/airworthiness. [VERIFY-A] Hours = Hobbs-derived.
+ * OPERATIONAL — NOT airworthiness. [VERIFY-A] Hours = Hobbs-derived.
  *
  * AUTHZ: requireCapability('reporting:access') FIRST.
  * READ-ONLY: zero writes, zero audit.

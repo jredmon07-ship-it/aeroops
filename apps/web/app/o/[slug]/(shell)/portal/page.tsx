@@ -36,7 +36,6 @@
  *
  * [VERIFY-T1-B]: progressRatio is content-coverage, NOT a regulatory outcome.
  * [VERIFY-6-A]: tags are free-text only.
- * [MONEY BOUNDARY]: No price, rate, balance, or billing data.
  */
 
 import * as React from 'react';
@@ -51,9 +50,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SectionHeader } from '@/components/ui/section-header';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
-import { getMyPortalSummaryAction, getMyBillingAction, getMyAvatarAction } from './actions';
+import { getMyPortalSummaryAction, getMyAvatarAction } from './actions';
 import type { SerializedMyPortalSummary } from './actions';
-import { formatCents } from '../billing/_components/format-cents';
 // Pure display helpers — extracted to a separate file so they can be
 // unit-tested without the Next.js/React imports in this page.
 // Imported for use within this file; the utils file is the canonical export.
@@ -416,17 +414,12 @@ interface PortalContentProps {
 }
 
 async function PortalContent({ slug }: PortalContentProps) {
-  // Balance + avatar are best-effort — any failure just hides that piece and
-  // falls back gracefully (never blocks the portal).
-  const [result, billingResult, avatarResult] = await Promise.all([
+  // The avatar is best-effort — any failure just hides that piece and falls
+  // back gracefully (never blocks the portal).
+  const [result, avatarResult] = await Promise.all([
     getMyPortalSummaryAction(),
-    getMyBillingAction().catch(() => null),
     getMyAvatarAction().catch(() => null),
   ]);
-  const balanceCents =
-    billingResult && 'ok' in billingResult && billingResult.ok
-      ? billingResult.billing.balanceCents
-      : null;
   const avatarDataUrl =
     avatarResult && 'ok' in avatarResult && avatarResult.ok ? avatarResult.avatarDataUrl : null;
   const avatarAvailable =
@@ -478,47 +471,6 @@ async function PortalContent({ slug }: PortalContentProps) {
         initialAvatarDataUrl={avatarDataUrl}
         available={avatarAvailable}
       />
-
-      {/* ── Billing (Slice P0-REV) — hero balance metric ──────────────────── */}
-      {balanceCents !== null ? (
-        <section aria-label="Account balance">
-          <SectionHeader eyebrow="Account balance" />
-          <Link
-            href={`/o/${slug}/portal/billing`}
-            className="flex items-end justify-between gap-4 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 shadow-xs hover:border-brand/40"
-          >
-            <span
-              className={[
-                'nums text-3xl font-bold leading-none',
-                balanceCents < 0 ? 'text-danger' : 'text-slate-900 dark:text-slate-100',
-              ].join(' ')}
-            >
-              {formatCents(balanceCents)}
-            </span>
-            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Billing — invoices &amp; payment methods{' '}
-              <span aria-hidden="true">→</span>
-            </span>
-          </Link>
-        </section>
-      ) : (
-        <Link
-          href={`/o/${slug}/portal/billing`}
-          className="flex items-center justify-between rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-xs hover:border-brand/40 hover:text-brand-ink"
-        >
-          Billing — balance, invoices, and payment methods
-          <span aria-hidden="true">→</span>
-        </Link>
-      )}
-
-      {/* ── Block time (Slice B4) ─────────────────────────────────────────── */}
-      <Link
-        href={`/o/${slug}/portal/block-time`}
-        className="flex items-center justify-between rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-xs hover:border-brand/40 hover:text-brand-ink"
-      >
-        Block time — your prepaid hours and balance
-        <span aria-hidden="true">→</span>
-      </Link>
 
       {/* ── Logbook (Slice P2) ──────────────────────────────────────────── */}
       <Link
