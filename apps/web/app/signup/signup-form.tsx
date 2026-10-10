@@ -15,7 +15,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { signupAction } from './actions';
+import { signupAction, type SignupActionResult } from './actions';
+
+/**
+ * One message per refusal reason. Typed as an exhaustive Record so adding a new
+ * reason to SignupActionResult is a compile error here until it gets copy.
+ */
+type SignupRefusalReason = Extract<SignupActionResult, { ok: false }>['reason'];
+const REASON_MESSAGE: Record<SignupRefusalReason, string> = {
+  signup_disabled: 'Signup is turned off on this server.',
+  invalid_name: 'Please use a name with a few letters or numbers.',
+  slug_unavailable: 'That name is taken. Try a slightly different one.',
+};
 
 type FormState =
   | { status: 'idle' }
@@ -73,10 +84,7 @@ export function SignupForm() {
       if (!result.ok) {
         setState({
           status: 'error',
-          message:
-            result.reason === 'invalid_name'
-              ? 'Please use a name with a few letters or numbers.'
-              : 'That name is taken. Try a slightly different one.',
+          message: REASON_MESSAGE[result.reason],
         });
         return;
       }

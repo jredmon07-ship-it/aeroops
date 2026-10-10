@@ -63,6 +63,11 @@ Generate `AUTH_SECRET` with `openssl rand -base64 32`. `DATABASE_URL` is the poo
 runtime connection; `DIRECT_URL` is the direct connection used by migrations (on a
 single-endpoint local Postgres, set both the same).
 
+Self-serve signup (`/signup`, which creates a new operation and its owner) is off
+by default so the public demo can't be used to create real operations. On your own
+deployment, set `ALLOW_SIGNUP=true` to create your first operation, or skip it and
+sign in to the orgs created by `pnpm db:seed:demo`.
+
 Checks: `pnpm typecheck` · `pnpm test` · `pnpm build`
 
 > **Note:** `apps/mobile` is intentionally outside the pnpm workspace — its
