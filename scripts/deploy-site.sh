@@ -30,7 +30,7 @@ if grep -ql 'localhost:3000' "$PUB"/*.html 2>/dev/null; then
   exit 1
 fi
 
-echo "▸ Rewriting og:url to $HOST…"
+echo "▸ Rewriting og:url to ${HOST}…"
 for f in "$PUB"/*.html; do
   page="$(basename "$f")"
   if [[ "$page" == "index.html" ]]; then
@@ -40,7 +40,7 @@ for f in "$PUB"/*.html; do
   fi
 done
 
-echo "▸ Pushing to $REPO…"
+echo "▸ Pushing to ${REPO}…"
 cd "$PUB"
 touch .nojekyll
 git init -q -b main
