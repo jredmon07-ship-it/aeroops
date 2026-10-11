@@ -8,7 +8,7 @@
  * operator attaches to a member (e.g. 'Medical', 'Flight review', 'Rental
  * agreement'), surfaced WARN-ONLY on the member detail page and in the
  * check-out dialog's pre-flight checklist. Expirations NEVER block dispatch —
- * the FROZEN openDispatch gate (grounded → ineligible → balance) is untouched
+ * the FROZEN openDispatch gate (grounded → ineligible) is untouched
  * by this slice.
  *
  * COMPLIANCE (HARD LINE) [VERIFY-FC-P2-A]: Operator-entered reminder dates.

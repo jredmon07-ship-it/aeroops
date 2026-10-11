@@ -3,15 +3,8 @@
  *
  * Controls gate dimensions at check-out:
  *   eligibility_mode: whether a missing required tag BLOCKS or WARNS.
- *   balance_check_enabled: feature flag for the future balance seam.
- *
- * [VERIFY-3c-MONEY] (HARD MONEY BOUNDARY): balance_check_enabled is a
- * FEATURE FLAG ONLY. It controls whether the balance-seam stub is invoked.
- * There is NO dollar value, minimum balance, payment reference, Stripe
- * integration, or financial data anywhere in this table. The balance seam
- * always returns {ok:true} in Phase 1 — this flag is wired but inert.
- * Billing / real balance enforcement is Phase 2. UI copy must say
- * "Not yet active — turning this on has no effect until account balances ship."
+ *   balance_check_enabled: retained so the table matches its migrations. No
+ *     application code reads it; billing was removed.
  *
  * Civil-twilight scheduling constraint (Slice 4a, migration 0010):
  *   twilight_constraint_enabled: operator opt-in (default false → gate inert).
@@ -58,15 +51,9 @@
  *   These are the times the operator has decided to make a resource available for
  *   scheduling — nothing more. Compliance confirms at QA.
  *
- * Balance minimum threshold (Slice B2, migration 0022):
- *   minimum_balance_cents: operator-set integer-cents threshold. DATA ONLY —
- *   consumed EXCLUSIVELY by packages/api/src/billing/real-balance-seam.ts
- *   (realBalanceSeam), which is NOT injected into openDispatch()'s app-code
- *   form in Slice B2/B3-foundation (the FROZEN gate keeps calling
- *   stubBalanceSeam, always {ok:true}, regardless of this value or of
- *   balance_check_enabled). Default 0. [VERIFY-B2-MONEY]: adding/reading this
- *   column changes NO dispatch gate behaviour by itself — see migration 0022
- *   header for the full boundary rationale.
+ * Balance minimum threshold (migration 0022):
+ *   minimum_balance_cents: retained so the table matches its migrations. No
+ *   application code reads it; billing was removed.
  */
 import {
   pgTable,
@@ -94,8 +81,7 @@ export const dispatchConfig = pgTable(
     // dispatch when a rule exists. CHECK hand-written in migration 0009.
     eligibilityMode: text('eligibility_mode').notNull().default('block'),
 
-    // FEATURE FLAG — Phase 1 stub only. [VERIFY-3c-MONEY]: no money concept.
-    // false = balance seam not invoked. true = stub still returns {ok:true}.
+    // Unused; kept to match migration 0009. See file-level comment.
     balanceCheckEnabled: boolean('balance_check_enabled').notNull().default(false),
 
     // Civil-twilight gate (Slice 4a, migration 0010).
@@ -129,8 +115,8 @@ export const dispatchConfig = pgTable(
     // When true: the retention window also applies to 'converted' rows.
     bookingRequestRetentionIncludesConverted: boolean('booking_request_retention_includes_converted').notNull().default(false),
 
-    // Balance minimum threshold (Slice B2, migration 0022). DATA ONLY — see
-    // file-level comment. CHECK (minimum_balance_cents >= 0) in migration 0022.
+    // Unused; kept to match migration 0022. CHECK (minimum_balance_cents >= 0)
+    // in migration 0022.
     minimumBalanceCents: integer('minimum_balance_cents').notNull().default(0),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

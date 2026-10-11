@@ -15,7 +15,7 @@
  *   dispatchRequirement (table: dispatch_requirement) — Slice 3c / ADR-0009 (migration 0009)
  *     FREE-TEXT per-aircraft dispatch tags. [VERIFY-3c-A]: no computed currency/medical.
  *   dispatchConfig (table: dispatch_config) — Slice 3c / ADR-0009 (migration 0009)
- *     Per-org gate config. [VERIFY-3c-MONEY]: balance_check_enabled is a stub flag only.
+ *     Per-org gate config. balance_check_enabled / minimum_balance_cents are unused.
  *   scheduleOptimizationRun (table: schedule_optimization_run) — Slice 4b (migration 0011)
  *     Audited optimizer-run header. Per-proposal outcomes reconstructable from each
  *     created reservation's audit row (metadata.optimizationRunId). NO money.
@@ -167,8 +167,8 @@ export type { MemberTagSelect, MemberTagInsert } from './member-tag.js';
 // dispatch_requirement: FREE-TEXT per-aircraft required tags for check-out.
 //   [VERIFY-3c-A]: no computed currency/medical/endorsement/FAA meaning.
 // dispatch_config: per-org gate settings.
-//   [VERIFY-3c-MONEY]: balance_check_enabled is a Phase-1 stub flag ONLY;
-//   no dollar value, minimum balance, or payment data in this table.
+//   balance_check_enabled and minimum_balance_cents are kept to match the
+//   migrations; no application code reads them.
 export { dispatchRequirement } from './dispatch-requirement.js';
 export type {
   DispatchRequirementSelect,

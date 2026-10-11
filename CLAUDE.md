@@ -9,15 +9,12 @@ and per-slice build specs are in [`docs/specs/`](./docs/specs).
 
 Multi-tenant flight-operations software for flying clubs, flight schools, and FBOs:
 scheduling, dispatch, maintenance squawks and grounding, training records,
-reporting, a student/renter portal, and a public booking-request page. It is an
-operations tool only: money features (billing, payments, dues, QuickBooks) were
-removed on 2026-10-10 and should not be re-added. Their tables remain in the
-migration history but no application code uses them. One tenant is one operator
+reporting, a student/renter portal, and a public booking-request page. Do not add
+billing or payment features. One tenant is one operator
 (an "org"). Eight roles (owner, manager, dispatcher, cfi, mechanic, renter,
 student, accountant) map onto 21 capabilities; accountant is a read-only
-reporting viewer. It was built as a commercial product, did not find
-operators willing to migrate off their existing tools, and is now released as open
-source under the MIT license. A public demo runs at https://aeroops-web.vercel.app.
+reporting viewer. It was built as a commercial product and did not find
+operators willing to migrate off their existing tools. A public demo runs at https://aeroops-web.vercel.app.
 
 ## Layout and stack
 

@@ -132,8 +132,7 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
   and never runs here.
 - **Compliance posture:** grounding, eligibility, and "night" are operator data /
   astronomy — the app computes **no** FAA determination (no currency, medical,
-  Part-61/141, or airworthiness ruling). AeroOps has **no money features**
-  (billing, payments, and QuickBooks were removed on 2026-10-10).
+  Part-61/141, or airworthiness ruling).
 - Not in this demo: the native mobile app UI (the mobile **API** is built + tested).
   See `CLAUDE.md`.
 

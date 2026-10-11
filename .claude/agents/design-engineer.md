@@ -26,7 +26,7 @@ Think **instrument panel**, not generic SaaS. The system lives in
   contrast. Never reach for `rounded-xl`/`rounded-2xl` on a panel.
 - **Hairline depth.** Prefer 1px borders + the `shadow-xs/sm` ring shadows over
   big blurry drop shadows. Soft giant shadows read as "template".
-- **Cockpit numerics.** Tail #s, Hobbs/tach, times, balances, durations use the
+- **Cockpit numerics.** Tail #s, Hobbs/tach, times, durations use the
   `.nums` utility (monospaced, tabular). Numbers should align in columns.
 - **Brand, not stock.** Use the `brand` / `brand-ink` tokens (a deep aviation
   blue + navy), never hardcoded `sky-*`. The command rail is `bg-brand-ink`.

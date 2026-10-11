@@ -21,7 +21,7 @@ Responsibilities and rules:
 - Nothing destructive or irreversible (drops, data deletes, prod resets) without
   explicit human confirmation in the session.
 - Observability: structured logs, error tracking, and uptime/health checks;
-  redact PII and never log card data or secrets.
+  redact PII and never log secrets.
 - Backups: automated, restic-style or provider-native, with a tested restore path;
   state the RPO/RTO assumptions.
 

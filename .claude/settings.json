@@ -33,7 +33,6 @@
       "Bash(drizzle-kit migrate*)",
       "Bash(drizzle-kit push*)",
       "Bash(psql *)",
-      "Bash(stripe *)",
       "Bash(eas *)",
       "Bash(vercel *)"
     ],

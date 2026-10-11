@@ -19,11 +19,10 @@ Invariants:
 - AUTHZ: check the caller's role on every mutation (owner, manager, dispatcher,
   CFI, mechanic, renter, student, accountant).
 - Validate all input at the boundary (zod or equivalent) and return typed errors.
-- Money via Stripe only; never store raw card/bank data; round in cents.
 - Audited records are written through an audit path, never silently updated.
 - Put reusable domain rules in packages/core so web and mobile share them.
 
 Write the code, then run type-check and any unit tests locally. Leave the calendar
-engine and Stripe/QuickBooks/weather wiring to their owners — call their interfaces.
+engine and weather/notification wiring to their owners — call their interfaces.
 If a regulatory rule is unclear, flag [VERIFY]. Hand back to the main session for
 test-writer and reviewer.

@@ -16,9 +16,8 @@ Hard rules you never break:
   RLS is the backstop even if application code forgets. Platform/control-plane
   tables (Plan, Subscription, Domain, PlatformUser) are NOT org-scoped — keep them
   separate and say so.
-- Audited records (invoices, payments, Hobbs/tach, endorsements, stage checks,
-  maintenance sign-offs) are append-only or change-logged — no silent mutation.
-- Money is integer minor units (cents), never floats.
+- Audited records (Hobbs/tach, endorsements, stage checks, maintenance
+  sign-offs) are append-only or change-logged — no silent mutation.
 - Add the indexes the query patterns in the spec need; name constraints explicitly.
 
 Write the Drizzle schema and a forward migration. Migrations are reviewed by a

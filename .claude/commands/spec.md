@@ -15,7 +15,7 @@ Steps:
    contracts, UI states, edge cases, and the test list (note where property-based
    tests are needed).
 2. If the ticket is cross-cutting (auth, multi-tenant isolation, new package
-   boundary, performance, money rails), also invoke the **cto** for the
+   boundary, performance), also invoke the **cto** for the
    architectural decision/ADR, and the **product-designer** if the slice needs
    screen specs.
 3. Collect any [VERIFY] flags; if regulation is involved, route them to the

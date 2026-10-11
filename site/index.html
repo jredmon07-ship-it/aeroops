@@ -231,7 +231,6 @@ img,svg{max-width:100%;height:auto}
   color:var(--white);margin-bottom:.42em;
   text-shadow:0 1px 30px rgba(12,19,34,.45);
 }
-.hero-content h1 em{font-style:italic;font-weight:440}
 .hero-lede{color:#DCE3F1;font-size:clamp(1.02rem,1.5vw,1.18rem);max-width:52ch;margin:0 0 26px;text-shadow:0 1px 16px rgba(12,19,34,.5)}
 .hero-ctas{display:flex;flex-wrap:wrap;align-items:center;gap:18px 24px;margin-bottom:22px}
 .hero-note{font-family:var(--mono);font-size:.74rem;letter-spacing:.07em;color:var(--text-inv-soft)}
@@ -251,19 +250,7 @@ img,svg{max-width:100%;height:auto}
 .showcase-head p{color:#C6CFE1;font-size:1.08rem;margin:0 auto;max-width:56ch}
 .showcase-stage{position:relative;max-width:1000px;margin:0 auto}
 .showcase-stage .device{transform:perspective(1800px) rotateX(4deg)}
-.float-chip{
-  position:absolute;z-index:2;display:flex;align-items:center;gap:11px;
-  padding:13px 16px;border-radius:12px;
-  background:rgba(18,28,50,.82);border:1px solid rgba(255,255,255,.14);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  box-shadow:0 18px 40px -18px rgba(0,0,0,.6);
-}
-.float-chip .fc-ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none}
-.float-chip .fc-txt{display:flex;flex-direction:column;gap:1px}
-.float-chip .fc-k{display:block;font-family:var(--sans);font-weight:700;font-size:.98rem;color:#fff;line-height:1.15}
-.float-chip .fc-l{display:block;font-size:.72rem;color:#9DA9C4;letter-spacing:.02em;line-height:1.2}
-.float-chip--tl{left:-26px;top:150px}
-@media (max-width:760px){.float-chip{display:none}.showcase-stage .device{transform:none}}
+@media (max-width:760px){.showcase-stage .device{transform:none}}
 
 /* Device / browser-chrome frame for product mockups */
 .device{
@@ -276,34 +263,9 @@ img,svg{max-width:100%;height:auto}
 .device svg,.device img{display:block;width:100%;height:auto}
 .device-shot{background:#0b1220}
 
-/* ============ Stat strip ============ */
-.stat-strip{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--paper)}
-.stat-grid{display:grid;grid-template-columns:repeat(2,1fr)}
-.stat{padding:40px 28px;border-left:1px solid var(--rule)}
-.stat:first-child{border-left:none}
-.stat .num{font-family:var(--serif);font-weight:560;font-size:clamp(1.9rem,3.4vw,2.7rem);color:var(--navy);line-height:1;letter-spacing:-.02em}
-.stat .num em{font-style:normal;color:var(--accent-ink)}
-.stat .lbl{margin-top:10px;font-size:.9rem;color:var(--text-soft);line-height:1.45}
-@media (max-width:760px){.stat-grid{grid-template-columns:1fr}.stat{border-left:none;padding:28px 24px}.stat+.stat{border-top:1px solid var(--rule)}}
-
-/* Statement band */
-.statement{padding:84px 0}
-.statement p{
-  font-family:var(--serif);font-weight:420;
-  font-size:clamp(1.35rem, 2.5vw, 1.95rem);line-height:1.42;
-  color:var(--text);max-width:46ch;margin:0;
-}
-.statement p strong{font-weight:560;color:var(--navy)}
-
 /* Full-width photo bands */
 .photo-band{margin:0;position:relative;isolation:isolate}
 .photo-band img{display:block;width:100%;height:clamp(300px,50vh,540px);object-fit:cover}
-.photo-band figcaption{
-  position:absolute;left:0;right:0;bottom:0;z-index:1;
-  padding:26px 28px 24px;
-  font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
-  color:#fff;background:linear-gradient(0deg, rgba(12,19,34,.72), transparent);
-}
 
 /* ============ Sections ============ */
 section{padding:96px 0}
@@ -471,7 +433,7 @@ section{padding:96px 0}
     <div class="hero-scrim" aria-hidden="true"></div>
     <div class="wrap hero-content">
       <div class="hero-inner">
-        <h1 id="hero-title">The whole operation. <em>One</em> system.</h1>
+        <h1 id="hero-title">Flight operations software.</h1>
         <p class="hero-lede">
           Scheduling, dispatch, maintenance, training records, and reporting for
           flying clubs, flight schools, and FBOs.
@@ -490,21 +452,13 @@ section{padding:96px 0}
   <section class="showcase" aria-labelledby="showcase-title">
     <div class="wrap">
       <div class="showcase-head reveal">
-        <p class="eyebrow eyebrow--accent" style="justify-content:center">The platform</p>
-        <h2 id="showcase-title">Everything the aircraft touches, on one screen.</h2>
-        <p>From the booking to the Hobbs reading to the squawk, one system follows the aircraft through the day, so nothing is retyped and nothing slips.</p>
+        <p class="eyebrow eyebrow--accent" style="justify-content:center">Overview</p>
+        <h2 id="showcase-title">The dashboard.</h2>
+        <p>Grounded aircraft, open squawks, and recent flights and reservations.</p>
       </div>
 
       <div class="showcase-stage reveal" data-d="1">
-        <!-- floating stat chips -->
-        <div class="float-chip float-chip--tl" aria-hidden="true">
-          <span class="fc-ico" style="background:rgba(86,190,151,.18)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#56BE97" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          </span>
-          <span class="fc-txt"><span class="fc-k">No double-books</span><span class="fc-l">One conflict gate, always on</span></span>
-        </div>
-
-        <!-- App window: nav rail + schedule board -->
+        <!-- App window: dashboard screenshot -->
         <div class="device">
           <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">aeroops-web.vercel.app/o/alpha</span></div>
           <img class="device-shot" src="shot-dashboard.png" alt="The AeroOps dashboard: live grounded, open-squawk, active-aircraft and member counts, 30-day flight-hour and reservation KPIs, and an activity chart." width="1600" height="1000" loading="eager" decoding="async">
@@ -513,52 +467,28 @@ section{padding:96px 0}
     </div>
   </section>
 
-  <!-- ============ STAT STRIP ============ -->
-  <section class="stat-strip" style="padding:0" aria-label="At a glance">
-    <div class="wrap" style="padding:0">
-      <div class="stat-grid">
-        <div class="stat reveal"><div class="num"><em>4</em>-in-1</div><div class="lbl">Scheduling, maintenance, training, and reporting under one login</div></div>
-        <div class="stat reveal" data-d="1"><div class="num"><em>2</em></div><div class="lbl">Sample operations in the live demo: a flying club and a flight school</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ STATEMENT ============ -->
-  <section class="statement" aria-label="What AeroOps is">
-    <div class="wrap">
-      <p class="reveal">
-        <strong>Most scheduling tools stop at the calendar.</strong> AeroOps follows the aircraft
-        through the whole day: booking, dispatch, maintenance, and training. One system,
-        one source of truth, no spreadsheets in between.
-      </p>
-    </div>
-  </section>
-
-  <!-- ============ FOR FLYING CLUBS ============ -->
+  <!-- ============ CLUB MODE ============ -->
   <section class="band-top" id="clubs" aria-labelledby="clubs-title">
     <div class="wrap">
       <div class="section-head">
-        <p class="eyebrow eyebrow--accent">For flying clubs</p>
-        <h2 id="clubs-title">Built for flying clubs.</h2>
-        <p>
-          AeroOps starts with the club: a shared fleet, volunteer officers, and members who
-          fly on their own time.
-        </p>
+        <p class="eyebrow eyebrow--accent">Flying clubs</p>
+        <h2 id="clubs-title">Club mode.</h2>
+        <p>Club mode hides the screens a small club does not use.</p>
       </div>
       <div class="club-grid reveal">
         <div class="club-card">
           <span class="club-ico" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
           </span>
-          <h3>One shared calendar</h3>
-          <p>One schedule for every tail that can&rsquo;t double-book, with per-airplane checkout rules.</p>
+          <h3>Shared calendar</h3>
+          <p>One schedule for every aircraft, with per-aircraft checkout rules.</p>
         </div>
         <div class="club-card">
           <span class="club-ico" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </span>
-          <h3>Officer roles and handoff</h3>
-          <p>Member roles and a portal, so next year&rsquo;s board inherits a login. Club mode hides what a small club doesn&rsquo;t need.</p>
+          <h3>Member roles</h3>
+          <p>Roles for officers and members, and a portal for each member.</p>
         </div>
       </div>
     </div>
@@ -569,8 +499,7 @@ section{padding:96px 0}
     <div class="wrap">
       <div class="section-head section-head--center">
         <p class="eyebrow eyebrow--accent" style="justify-content:center">The platform</p>
-        <h2 id="platform-title">Four hubs, one system.</h2>
-        <p>Everything a flying club, flight school, or FBO runs on: scheduling, training, maintenance, and reporting in one place.</p>
+        <h2 id="platform-title">Features.</h2>
       </div>
     </div>
 
@@ -580,7 +509,7 @@ section{padding:96px 0}
       <div class="hub reveal">
         <div class="hub-copy">
           <span class="hub-kicker"><span class="hub-no">I</span>Scheduling</span>
-          <h3>A schedule that refuses to double-book.</h3>
+          <h3>Scheduling and dispatch.</h3>
           <p>Every reservation, recurring series, and reschedule passes through one conflict check.</p>
           <ul class="feat">
             <li>Drag-and-drop dispatch board</li>
@@ -613,7 +542,7 @@ section{padding:96px 0}
         <div class="hub-media">
           <div class="device">
             <div class="device-bar" aria-hidden="true"><i></i><i></i><i></i><span class="addr">/o/alpha/training/private-pilot</span></div>
-            <img class="device-shot" src="shot-training.png" alt="An AeroOps training course — Private Pilot, Part 61 — with ordered lessons and pre-solo, solo-prep and cross-country stage tags." width="1600" height="1000" loading="lazy" decoding="async">
+            <img class="device-shot" src="shot-training.png" alt="An AeroOps training course (Private Pilot, Part 61) with ordered lessons and pre-solo, solo-prep and cross-country stage tags." width="1600" height="1000" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
@@ -622,7 +551,7 @@ section{padding:96px 0}
       <div class="hub reveal">
         <div class="hub-copy">
           <span class="hub-kicker"><span class="hub-no">III</span>Maintenance</span>
-          <h3>Maintenance that actually grounds aircraft.</h3>
+          <h3>Squawks, grounding, and work orders.</h3>
           <p>A grounded aircraft cannot be dispatched until the grounding is resolved.</p>
           <ul class="feat">
             <li>Aircraft usage from the meters dispatch already records</li>
@@ -646,8 +575,8 @@ section{padding:96px 0}
         <div class="hub reveal" style="padding:84px 0">
           <div class="hub-copy">
             <span class="hub-kicker"><span class="hub-no">IV</span>Reporting hub</span>
-            <h3>See the whole operation at a glance.</h3>
-            <p>Right now and the last thirty days, on one screen.</p>
+            <h3>Dashboard and operational reports.</h3>
+            <p>Current fleet status and activity over a chosen period.</p>
             <ul class="feat">
               <li>Flights, hours, and utilization per tail</li>
               <li>Reservations vs. flights and cancellations</li>
@@ -669,7 +598,6 @@ section{padding:96px 0}
   <!-- ============ PHOTO: flight-school ramp ============ -->
   <figure class="photo-band">
     <img src="img-ramp.jpg" alt="A row of single-engine training aircraft parked on a flight-school ramp at golden hour" loading="lazy" width="1376" height="768">
-    <figcaption>Built for flying clubs, flight schools, and FBOs</figcaption>
   </figure>
 
   <!-- ============ OPEN SOURCE ============ -->
@@ -677,7 +605,7 @@ section{padding:96px 0}
     <div class="wrap">
       <div class="section-head reveal" style="margin-bottom:32px">
         <p class="eyebrow eyebrow--accent">Open source</p>
-        <h2 id="open-source-title">Open source.</h2>
+        <h2 id="open-source-title">Source code.</h2>
         <p>AeroOps is free and open source under the MIT license. You can read the code and run it yourself.</p>
       </div>
       <ul class="feat reveal" style="margin:0 0 32px">
@@ -694,7 +622,6 @@ section{padding:96px 0}
   <!-- ============ PHOTO: cockpit ============ -->
   <figure class="photo-band">
     <img src="img-cockpit.jpg" alt="Cockpit of a single-engine aircraft at golden hour, a pilot's hands resting on the yoke" loading="lazy" width="1376" height="768">
-    <figcaption>From the flight line to the hangar, one system</figcaption>
   </figure>
 
   <!-- ============ DEMO ============ -->
@@ -709,7 +636,7 @@ section{padding:96px 0}
       </div>
 
       <div class="demo-choice reveal" data-d="1">
-        <!-- Flying club (primary — our core audience) -->
+        <!-- Flying club -->
         <div class="demo-card demo-card--primary">
           <span class="demo-tag">Flying club</span>
           <h3>Bravo Flying Club</h3>
@@ -803,7 +730,7 @@ section{padding:96px 0}
       AeroOps records and enforces the rules your operation defines, with a full audit trail
       on every record. It does not make, compute, or certify FAA determinations such as
       airworthiness, currency, or training completion. Those calls stay with your operation
-      and your certificated personnel, where they belong.
+      and your certificated personnel.
     </p>
   </div>
 </footer>
@@ -871,7 +798,7 @@ section{padding:96px 0}
     <span class="demo-loader-brand"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 13l9-2V4a1 1 0 0 1 2 0v7l9 2v2l-9-1.5V19l2 1.5V22l-4-1-4 1v-1.5L11 19v-2.5L2 15z" fill="#79B0F5"/></svg>AeroOps</span>
     <div class="demo-loader-spinner" aria-hidden="true"></div>
     <p class="demo-loader-title">Opening the <span id="demo-loader-name">live</span> demo…</p>
-    <p class="demo-loader-sub">First load can take a few seconds while the demo spins up. Hang tight — the login screen is on its way.</p>
+    <p class="demo-loader-sub">First load can take a few seconds while the demo starts.</p>
   </div>
 </div>
 

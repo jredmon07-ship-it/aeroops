@@ -3,7 +3,6 @@
 Multi-tenant flight-operations software for flight schools, flying clubs, and FBOs —
 scheduling, dispatch, maintenance, training records, reporting, a student/renter
 portal, and a public booking flow, with tenant isolation enforced in the database.
-It is an operations tool only: there are no billing, payment, or accounting features.
 
 Built over about seven weeks (June–July 2026) by orchestrating 17 role-scoped Claude
 Code agents against specs and merge gates defined up front. It was built to sell;
@@ -113,7 +112,7 @@ and [`THE-BIBLE.md`](./THE-BIBLE.md).
 
 ## Status
 
-Released as open source. The live site at
+The live site at
 [aeroops-web.vercel.app](https://aeroops-web.vercel.app) is a public demo with seeded
 sample data, not a hosted service. It has no production users and no support is implied.
 

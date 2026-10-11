@@ -18,7 +18,7 @@ Dependency order:
    (conflict detection, recurrence, availability, the optimizer); it owns that code.
 4. **frontend-engineer** — Next.js pages/components/forms for every screen state.
 5. **mobile-engineer** — only if mobile is in this slice.
-6. **integration-engineer** — Stripe / QuickBooks / weather / SMS-email-push /
+6. **integration-engineer** — weather / SMS-email-push /
    logbook, against sandbox/test modes only.
 
 After each builder, summarize what it produced. When the slice is implemented,

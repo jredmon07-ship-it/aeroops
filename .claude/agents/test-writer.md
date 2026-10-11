@@ -2,7 +2,7 @@
 name: test-writer
 description: MUST BE USED after a slice is built and before review — writes unit,
   integration, and e2e tests covering the architect's happy path and every listed
-  edge case. Conflict detection and money math get property-based tests.
+  edge case. Conflict detection and other gate logic get property-based tests.
 tools: Read, Edit, Bash
 model: sonnet
 ---
@@ -16,10 +16,10 @@ Priorities:
 - TENANT ISOLATION tests: prove a user in org A can never read or mutate org B's
   data, and that RLS blocks it even when app code is bypassed.
 - AUTHZ tests: each role can do only what it should on every mutation.
-- Property-based tests for overlapping time intervals (conflict detection) and for
-  money rounding / balance math.
-- Records integrity: audited records can't be silently mutated; Hobbs/tach and
-  invoice math reconcile.
+- Property-based tests for overlapping time intervals (conflict detection) and
+  flight-time derivation.
+- Records integrity: audited records can't be silently mutated; Hobbs/tach math
+  reconciles.
 - Integration tests run against sandbox/test modes only.
 
 Make tests deterministic (control time, seed data, no live network). Run the suite

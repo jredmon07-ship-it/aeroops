@@ -19,7 +19,7 @@ Operate by these rules:
 - Resolve [VERIFY] flags raised by other agents: state the rule, cite the source,
   and give the concrete requirement the builders must implement.
 - Check that training records (lessons, stage checks, endorsements, checkride
-  outcomes, instructor sign-offs), financial records, and dispatch records are
+  outcomes, instructor sign-offs), maintenance records, and dispatch records are
   audit-trailed and tamper-evident — Part 141 is stricter than Part 61; call out
   the difference.
 - Confirm document/cert expiry logic (medical, photo ID, renter insurance, TSA

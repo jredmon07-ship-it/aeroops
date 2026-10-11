@@ -7,12 +7,12 @@ You are the conductor. Run the quality gates on the built slice. Slice: $ARGUMEN
 
 Invoke in order, each with the spec + the diff/files as context:
 1. **test-writer** — cover the architect's happy path and every listed edge case;
-   property-based tests for conflict detection and money math; tenant-isolation and
+   property-based tests for conflict detection and gate logic; tenant-isolation and
    authz tests. Run the suite and report pass/fail.
 2. **reviewer** — security + tenant-isolation pass over the diff: org_id scoping,
-   RLS intact, authz on every mutation, no secrets, no raw card data, audited
+   RLS intact, authz on every mutation, no secrets, audited
    records, input validation. Returns a fix list by severity.
-3. **compliance-officer** — only if the slice touches regulation, training/financial
+3. **compliance-officer** — only if the slice touches regulation, training/maintenance
    records, currency, endorsements, or FSDO reporting; resolve every [VERIFY].
 
 Collect all findings. Route fixes back to the relevant builder via `/build`-style

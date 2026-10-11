@@ -17,7 +17,7 @@ Rules:
 - Use Tailwind + shadcn/ui and the per-tenant design tokens for white-label.
 - Call backend server actions / API; never query the database directly from the UI,
   and never trust the client for authz — the server enforces it.
-- Forms validate inline and show typed server errors; destructive or money/dispatch
+- Forms validate inline and show typed server errors; destructive or dispatch
   actions require an explicit confirm step.
 - Reuse domain types and rules from packages/core; keep components accessible
   (labels, focus order, contrast).

@@ -1,11 +1,10 @@
 # AeroOps — Overview
 
 Open-source (MIT) flight-operations software for flying clubs, flight schools, and
-FBOs: scheduling, dispatch, maintenance, training records, and reporting. It is an
-operations tool only, with no billing, payment, or accounting features. It was built to sell; operators would not migrate off the tools they
-already used, so it is released as open source. A public demo with seeded sample
-data runs at [aeroops-web.vercel.app](https://aeroops-web.vercel.app). There are no
-production users.
+FBOs: scheduling, dispatch, maintenance, training records, and reporting. It was
+built to sell; operators would not migrate off the tools they already used. A public
+demo with seeded sample data runs at
+[aeroops-web.vercel.app](https://aeroops-web.vercel.app). There are no production users.
 
 > One operator = one tenant. Every tenant table carries `org_id` and is isolated at
 > the database level with Postgres row-level security, not only in application code.
@@ -38,9 +37,6 @@ For a real Postgres setup, see [`README.md`](./README.md) and [`DEPLOY.md`](./DE
 | **Fleet, people, reporting** | Per-aircraft detail, members/roles/tags, an ops dashboard and operational reports |
 | **Portal & public booking** | Student/renter self-service; a public booking-request page with a staff triage inbox |
 | **Mobile** | Expo app (sign-in, schedule, fleet, squawks, alerts; read-only) on a token-authenticated API |
-
-Money features (billing, payments, dues, QuickBooks) were removed on 2026-10-10. Their
-tables stay in the migration history, unused by application code.
 
 ---
 
