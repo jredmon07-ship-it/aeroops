@@ -1,7 +1,7 @@
 # Slice A1 — Activity feed (read-only audit timeline) — build spec
 
 **READ-ONLY (zero writes to audit_log; reading the trail is NOT audited). Additive, NO migration/money/FAA-determination.
-Sub-slice A1.1 backend+core → A1.2 web.** LOCKED decisions (founder-away; architect recommendations adopted): reuse
+Sub-slice A1.1 backend+core → A1.2 web.** LOCKED decisions (maintainer-away; architect recommendations adopted): reuse
 `reporting:access` (owner/manager/dispatcher/cfi/accountant) — NO new cap; keyset cursor on `(created_at,id)` + "Load more"
 (limit default 50, cap 100); DEFER the dashboard "Recent activity" card + the optional `(org_id,created_at)` index (perf
 pass later). audit_log RLS is CONFIRMED present (migration 0000: ENABLE+FORCE, select+insert policies only — append-only at

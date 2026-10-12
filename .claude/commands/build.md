@@ -6,7 +6,7 @@ argument-hint: "[optional: ticket title or id]"
 You are the conductor. Build the approved slice. Slice/ticket: $ARGUMENTS
 
 Only proceed if the architect's spec for this slice has been approved by the
-founder. Invoke builders ONE AT A TIME, each with a full context packet (the
+maintainer. Invoke builders ONE AT A TIME, each with a full context packet (the
 ticket + the approved spec + relevant file paths + acceptance criteria) — subagents
 start fresh and remember nothing from the previous one.
 

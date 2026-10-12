@@ -1,7 +1,7 @@
 # Slice S1 — Global search / command palette (⌘K) — build spec
 
 **READ-ONLY, additive, NO schema/migration/money/FAA-determination. Sub-slice S1.1 backend → S1.2 palette UI.**
-LOCKED decisions (founder-away; architect recommendations adopted): (1) front door = `requireCapability(session,
+LOCKED decisions (maintainer-away; architect recommendations adopted): (1) front door = `requireCapability(session,
 'app:access')` then PER-TYPE `hasCapability` scoping — NO new capability; (2) reservations INCLUDED (notes-only
 match); (3) squawk results link to the list route (no detail route exists); (4) build on the existing Radix
 `dialog.tsx` — do NOT add `cmdk`; (5) `searchOrg` returns a slug-less `path` (e.g. `/fleet/{id}`), the palette

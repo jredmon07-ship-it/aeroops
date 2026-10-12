@@ -1,7 +1,7 @@
 # Slice N1 — In-app notifications / alerts (derived, READ-ONLY) — build spec
 
 **READ-ONLY, derived-on-read, per-user. NO schema/migration, NO write-path hooks, NO frozen-engine mutation, NO money,
-NO FAA determination. Sub-slice N1.1 backend derive → N1.2 bell UI.** LOCKED decisions (founder-away; architect adopted):
+NO FAA determination. Sub-slice N1.1 backend derive → N1.2 bell UI.** LOCKED decisions (maintainer-away; architect adopted):
 gate = `app:access` then self-scoped to session.userId (NOT portal:access — cfi/dispatcher/etc. get their own alerts);
 PERSONAL-ONLY (staff/ops-alerts variant deferred); localStorage per-device "seen" set (no server write); bespoke dropdown
 on the EXISTING Radix dialog (NO new dep); two alert kinds; cap MAX_ALERTS=20; stable deterministic ids.
@@ -52,5 +52,5 @@ Read-only derived, additive (no schema/write-path/frozen-engine touch). Grounded
 airworthiness/Part-91/43 ruling — copy says "is grounded — contact dispatch", never "not airworthy". NO money, NO computed FAA
 determination (currency/medical/§61.57/Part-61/141). Self-scoping + tenant isolation adversarially tested. [VERIFY-N1-A]
 provisional (surfacing operator grounding data to an affected pilot needs no extra retention/notice handling) → compliance confirm.
-DEFERRED (founder input): persisted notifications + server mark-read + a notification table/migration; event-emission hooks;
+DEFERRED (maintainer input): persisted notifications + server mark-read + a notification table/migration; event-emission hooks;
 email/SMS/push providers; staff/ops-alerts variant; more derived alert kinds.

@@ -8,7 +8,7 @@ No migration. Read-only backend aggregate + web UI.
 ## Goal
 
 Make an AeroOps operation easy to set up, scaling from a 2-plane flying club to a
-large academy. Founder direction: "make the software customizable to large-scale
+large academy. Maintainer direction: "make the software customizable to large-scale
 operations and also small flying clubs, easy to setup."
 
 A guided checklist tells an admin what their org has configured and links each

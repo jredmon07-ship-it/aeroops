@@ -13,8 +13,7 @@ reporting, a student/renter portal, and a public booking-request page. Do not ad
 billing or payment features. One tenant is one operator
 (an "org"). Eight roles (owner, manager, dispatcher, cfi, mechanic, renter,
 student, accountant) map onto 21 capabilities; accountant is a read-only
-reporting viewer. It was built as a commercial product and did not find
-operators willing to migrate off their existing tools. A public demo runs at https://aeroops-web.vercel.app.
+reporting viewer. A public demo runs at https://aeroops-web.vercel.app.
 
 ## Layout and stack
 

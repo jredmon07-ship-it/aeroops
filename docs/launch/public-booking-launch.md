@@ -1,4 +1,4 @@
-# Public Booking Launch Readiness — Founder Pre-Exposure Checklist
+# Public Booking Launch Readiness — Maintainer Pre-Exposure Checklist
 
 These are the **deploy-only steps** that activate the public booking surface safely.
 All the in-app code (CAPTCHA seam, schema, rate guard, honeypot, RLS backstop) is
@@ -8,7 +8,7 @@ already built and code-complete. Everything below is **configuration, not code**
 
 ## Who this is for
 
-The founder / operator before flipping the `/book/[slug]` page live or sharing it
+The maintainer / operator before flipping the `/book/[slug]` page live or sharing it
 publicly. None of these steps require a code change or redeploy of application code —
 they are Vercel env vars + Vercel WAF + a one-time manual purge trigger.
 

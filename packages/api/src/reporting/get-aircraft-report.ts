@@ -2,7 +2,7 @@
  * reporting/get-aircraft-report.ts — FC-parity per-tail "Aircraft report".
  *
  * One row per ACTIVE aircraft over the rolling range, with the columns from the
- * founder's Flight Schedule Pro screenshot:
+ * maintainer's Flight Schedule Pro screenshot:
  *   - flights      = closed dispatch tickets in the range
  *   - flightHours  = SUM of Hobbs-derived flight time over those tickets
  *   - oilAddedQuarts   = SUM of the EFFECTIVE (latest) service log's oil per ticket

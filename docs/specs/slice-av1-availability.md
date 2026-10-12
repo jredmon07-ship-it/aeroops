@@ -2,7 +2,7 @@
 
 **Additive frozen-gate dimension (mirrors grounding ADR-0008 + twilight 4a). Migration 0014 human-gated. Operator
 scheduling data — NOT an FAA duty/rest/Part-117 determination ([VERIFY-AV1-*]). Sub-slice AV1.1 schema+core gate →
-AV1.2 api integration → AV1.3 web.** LOCKED decisions (founder-away; architect's 10 adopted):
+AV1.2 api integration → AV1.3 web.** LOCKED decisions (maintainer-away; architect's 10 adopted):
 1 time=integer minutes-since-midnight; 2 forbid wrap — overnight = TWO rows (end>start), UI auto-splits; 3 reuse
 `dispatch_config` for the flags; 4 precedence `conflict_and_policy > policy > conflict > twilight > availability > INSERT`
 (availability evaluated LAST, AFTER twilight); 5 API pre-resolves weekly windows → UTC `[open,close)`, core does pure UTC

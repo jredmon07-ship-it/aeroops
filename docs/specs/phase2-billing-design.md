@@ -1,8 +1,8 @@
 > Removed 2026-10-10: money features were removed from AeroOps; kept as a design record.
 
-# Phase-2 Billing — Architecture & Design + ADR-0015 (Stripe) — FOUNDER DECISION PACKET
+# Phase-2 Billing — Architecture & Design + ADR-0015 (Stripe) — MAINTAINER DECISION PACKET
 
-**DESIGN. The money boundary (CLAUDE.md/THE-BIBLE §11) stays until the founder says go AND provides Stripe test keys.**
+**DESIGN. The money boundary (CLAUDE.md/THE-BIBLE §11) stays until the maintainer says go AND provides Stripe test keys.**
 This is a swap-in onto existing seams (3c balance stub + flag, ADR-0007 records-immutable, ADR-0001 RLS), NOT a re-architecture.
 
 ## The safe split (the key finding)
@@ -16,11 +16,11 @@ OFF flag, migrations staged-not-applied, exactly like 3c shipped the balance fla
   `computeBalance(entries)` (property-tested) + the **real `stripeBalanceSeam` LOGIC** (reads OUR ledger, not Stripe — so
   fully buildable/testable now) — but NOT injected into openDispatch; the stub stays injected + `balance_check_enabled` OFF
   → the FROZEN dispatch gate stays BYTE-IDENTICAL.
-- **NEEDS founder go + Stripe TEST keys (B3):** the Stripe SDK, `stripe_customer`/SetupIntent (card-on-file)/PaymentIntent
+- **NEEDS maintainer go + Stripe TEST keys (B3):** the Stripe SDK, `stripe_customer`/SetupIntent (card-on-file)/PaymentIntent
   (charge), the idempotent webhook handler (`stripe_event` dedup), refunds (B5); + the ONE-LINE seam swap
   (stub→stripeBalanceSeam at open-dispatch.ts:338) + flipping `balance_check_enabled`/`minimum_balance_cents` = the boundary lift.
 
-## ADR-0015 — Stripe integration shape (PROPOSED; needs founder go + keys)
+## ADR-0015 — Stripe integration shape (PROPOSED; needs maintainer go + keys)
 - **PaymentIntents + per-org Customer + SetupIntent on a SINGLE PLATFORM account; NOT Connect** (correct for one-operator-
   per-tenant; operator is merchant of record). **[VERIFY-B-CONNECT] = the ONE expensive-to-reverse decision** — revisit only
   if the model becomes a true marketplace (AeroOps billing renters on the operator's behalf + payouts).
@@ -46,7 +46,7 @@ Billing CONSUMES the dispatch meters → per ADR-0007 §1 + [[dispatch-correctio
 records gap). **Recommendation: build the correction table first.** Alternative: accept "fix via credit memo + re-invoice."
 
 ## Boundary-lift checklist (nothing happens until each is met, top-down)
-1☐ founder explicit go · 2☐ Stripe TEST keys in env · 3☐ webhook endpoint + signature + stripe_event dedup · 4☐ PCI SAQ-A
+1☐ maintainer explicit go · 2☐ Stripe TEST keys in env · 3☐ webhook endpoint + signature + stripe_event dedup · 4☐ PCI SAQ-A
 confirmed (no PAN path) · 5☐ B1+B2 merged+green (behind OFF flag) · 6☐ swap stub→stripeBalanceSeam (open-dispatch.ts:338) ·
 7☐ per-operator opt-in (balance_check_enabled OFF until the operator opts in — lifting the boundary does NOT auto-enable
 blocking) · 8☐ test-mode end-to-end proven · 9☐ live keys (separate later gate).
@@ -64,8 +64,8 @@ close-dispatch.ts (flight_time_hours basis — B1 consumes, never recomputes), d
 schemas (the RLS/append-only/immutable patterns billing copies).
 
 ## BOTTOM LINE
-Founder can authorize **B1+B2 now (records + ledger + all pure money math, property-tested, OFF flag, migrations staged-not-
+Maintainer can authorize **B1+B2 now (records + ledger + all pure money math, property-tested, OFF flag, migrations staged-not-
 applied) with NO keys, NO Stripe, NO real money** — de-risking the boundary lift to a small isolated B3 (Stripe wiring +
-one-line swap + config flip). Only platform-vs-Connect is expensive to reverse (recommend platform). Founder authorized
+one-line swap + config flip). Only platform-vs-Connect is expensive to reverse (recommend platform). Maintainer authorized
 "build all you can on your own" → building B1 (+ the correction-table predecessor) + B2-records as the safe foundation; B3
 held for explicit go + test keys.

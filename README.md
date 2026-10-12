@@ -5,9 +5,8 @@ scheduling, dispatch, maintenance, training records, reporting, a student/renter
 portal, and a public booking flow, with tenant isolation enforced in the database.
 
 Built over about seven weeks (June–July 2026) by orchestrating 17 role-scoped Claude
-Code agents against specs and merge gates defined up front. It was built to sell;
-operators would not migrate off the tools they already used, so it is released under
-the MIT license instead. A public demo runs at
+Code agents against specs and merge gates defined up front. Free and open source
+under the MIT license. A public demo runs at
 [aeroops-web.vercel.app](https://aeroops-web.vercel.app).
 
 ---

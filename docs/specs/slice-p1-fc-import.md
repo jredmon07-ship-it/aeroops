@@ -2,7 +2,7 @@
 
 Status: BUILD-COMPLETE (awaiting human review/merge). Branch `slice/code-health-rows-helper`.
 Migration `0027_data_import.sql` STAGED, human-gated, NOT applied. No reviewer/compliance
-sub-agent pass per the standing P1 session rule (`docs/ROADMAP.md`) — founder
+sub-agent pass per the standing P1 session rule (`docs/ROADMAP.md`) — maintainer
 reviews the diff personally.
 
 ## Why this slice exists

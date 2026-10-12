@@ -18,4 +18,4 @@ Invoke in order, each with the spec + the diff/files as context:
 Collect all findings. Route fixes back to the relevant builder via `/build`-style
 delegation, then re-run the failing gate. Do not proceed to `/ship` until tests
 pass and the reviewer (and compliance, if invoked) are clear. Summarize the gate
-results for the founder.
+results for the maintainer.

@@ -1,11 +1,10 @@
 /**
  * lib/help-articles.ts — Static content + pure helpers for the Help /
- * knowledge-base surface (Slice P1.8, docs/ROADMAP.md).
+ * knowledge-base surface (Slice P1.8).
  *
  * WHY THIS EXISTS
- *   AeroOps is free software; the founder supports every operator solo. A
- *   self-serve help center is the thing that lets that scale — see the
- *   ROADMAP.md P1.8 line item.
+ *   AeroOps is free software with no support team. A
+ *   self-serve help center is the thing that lets that scale.
  *
  * CONTENT RULE (load-bearing): every article describes a feature that is
  *   ACTUALLY SHIPPED, described accurately from its build spec

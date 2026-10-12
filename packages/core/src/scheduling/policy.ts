@@ -18,7 +18,7 @@
  * `intervalsOverlap` for blackout membership; we never reimplement overlap
  * (ADR-0005 invariants 3, 4; overlap.ts is FROZEN).
  *
- * SCOPE AMENDMENT (2026-06-16, founder): Slice 2a evaluates FOUR rules only —
+ * SCOPE AMENDMENT (2026-06-16, maintainer): Slice 2a evaluates FOUR rules only —
  * max duration, max advance, min lead time, blackouts. Required-tags / booking
  * eligibility (and the `actorTags` parameter) is DEFERRED to a follow-up slice.
  */

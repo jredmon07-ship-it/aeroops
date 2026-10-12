@@ -22,7 +22,7 @@ up front and draws down as they fly. This slice lets an operator:
 
 - **No Stripe.** No card/bank data is ever collected, stored, or transmitted. A
   block sale RECORDS that a member paid (operator-attested) — it does not process
-  a payment. Selling a block through the Stripe rail is a distinct, founder-gated,
+  a payment. Selling a block through the Stripe rail is a distinct, maintainer-gated,
   future money-boundary-lift step (mirrors ADR-0015's B2-vs-B3 split).
 - **No tax/GAAP/FAA determination.** This is an operator billing record, full stop.
 - **Integer cents only.** `price_cents` / `amount_cents` are `integer`, `CHECK > 0`.
@@ -117,7 +117,7 @@ constraint additively (`DROP` + `RECREATE` with the wider domain) — safe becau
    command in this slice).
 3. **Family / shared blocks.** One block purchase belongs to exactly one member
    (`block_purchase.user_id`) — no multi-member pooling.
-4. **Selling a block through the Stripe rail.** Money-boundary-lift, founder-gated
+4. **Selling a block through the Stripe rail.** Money-boundary-lift, maintainer-gated
    — mirrors every other Phase-2 money-crossing decision in this codebase.
 
 ## Compliance framing

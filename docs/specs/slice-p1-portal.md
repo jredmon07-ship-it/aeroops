@@ -1,10 +1,10 @@
 # Slice P1 — Student/Renter self-service portal (thin, READ-ONLY) — build spec
 
 **READ-ONLY, additive, NO migration/money/FAA-determination. Resolves [VERIFY-T1-H]. Sub-slice P1.1 backend+cap → P1.2 portal UI+routing.**
-LOCKED decisions (founder-away; architect recommendations adopted): (a) `portal:access` granted to student/renter/owner/manager
+LOCKED decisions (maintainer-away; architect recommendations adopted): (a) `portal:access` granted to student/renter/owner/manager
 ONLY (not cfi/dispatcher); (b) raise the Dashboard nav item to `reporting:access` so portal-only roles see only "Portal";
 (c) P1.2 shows progress-SUMMARY only (no per-lesson checklist); (d) renters + students get the IDENTICAL portal (empty
-states handle the difference). DEFERRED for founder (NOT built): self-booking, self-cancel, payments/balance, document
+states handle the difference). DEFERRED for maintainer (NOT built): self-booking, self-cancel, payments/balance, document
 upload, profile self-edit, eligibility surfacing, mobile portal.
 
 ## THE LOAD-BEARING REQUIREMENT — self-scoping

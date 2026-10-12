@@ -2,7 +2,7 @@
 
 Status: BUILD-COMPLETE (awaiting human review/merge). Branch `slice/code-health-rows-helper`.
 Migration `0029_maintenance_due.sql` STAGED, human-gated, NOT applied. No reviewer/compliance
-sub-agent pass per the standing P1 session rule (`docs/ROADMAP.md`) — founder
+sub-agent pass per the standing P1 session rule (`docs/ROADMAP.md`) — maintainer
 reviews the diff personally.
 
 ## HARD COMPLIANCE LINE (verbatim, matches Slice 3b grounding / Slice M1 work orders)
@@ -112,7 +112,7 @@ buried at the bottom. `getMaintenanceDueSummary()` reuses the exact same load+ev
 surface) and reduces it to point-in-time counts for the dashboard tile.
 
 `notifyMaintenanceDue({resourceId?})` — a **manual, staff-triggered** action (no cron; scheduling
-infra is a founder/deploy concern per `docs/ROADMAP.md`). Loads the current
+infra is a maintainer/deploy concern per `docs/ROADMAP.md`). Loads the current
 overdue+due_soon items via the same shared helper; if none are due it short-circuits with all-zero
 counts and **no** recipient query, **no** sends. Otherwise it resolves active
 `membership.role IN ('owner','manager')` members in the org and calls the existing

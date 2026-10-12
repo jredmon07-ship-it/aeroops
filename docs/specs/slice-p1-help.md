@@ -3,7 +3,7 @@
 # Slice P1.8 — Help / knowledge base
 
 **Status:** BUILD-COMPLETE. Branch `slice/code-health-rows-helper`. Frontend-only —
-no schema, no migration, no new backend/API surface. Founder direction: "keep
+no schema, no migration, no new backend/API surface. Maintainer direction: "keep
 building"; this is the self-serve support layer referenced in
 `docs/ROADMAP.md` P1.8 ("Help docs / knowledge base ... self-serve
 support is what lets support scale solo").

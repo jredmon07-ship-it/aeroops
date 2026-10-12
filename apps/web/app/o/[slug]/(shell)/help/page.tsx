@@ -4,8 +4,8 @@
  * Route: /o/[slug]/help
  * Capability: app:access — the broadest capability; every one of the 8 roles
  *   has it (see packages/core/src/capabilities.ts). This is a self-serve
- *   support surface: the founder supports every operator solo, and this page
- *   is what lets that scale (docs/ROADMAP.md, P1.8).
+ *   support surface: there is no support team, and this page
+ *   is what lets that scale.
  *
  * CONTENT: 100% static, generated from what AeroOps actually ships — see
  *   lib/help-articles.ts's header comment for the content rule. No DB call,

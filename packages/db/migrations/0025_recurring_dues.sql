@@ -45,7 +45,7 @@
 --   (5) day_of_month is bounded 1–28 (CHECK) — avoids short-month drift
 --       (no Feb 30). Informational only: this migration/table does NOT
 --       itself schedule anything — invocation is a manual staff action
---       (runDuesForPeriodAction) or later founder-infra cron; day_of_month
+--       (runDuesForPeriodAction) or later maintainer-infra cron; day_of_month
 --       is display/planning metadata for the operator.
 --   (6) cadence is constrained to 'monthly' only (CHECK) — a forward seam
 --       for other cadences (weekly/quarterly) without a schema change beyond

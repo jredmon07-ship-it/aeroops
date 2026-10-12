@@ -38,7 +38,7 @@ interface DemoLoginEntry {
 
 /**
  * Demo orgs whose sign-in card shows shared credentials right on the page, so
- * a prospect landing here from the marketing site can get in without
+ * a visitor landing here from the project site can get in without
  * hunting. Keyed by slug — real operators' login pages never render this
  * block (their slug simply isn't in this registry).
  */

@@ -1,7 +1,7 @@
 # Slice R1 — Operational Reports deep-dive — build spec
 
 **Reporting hub depth. NO schema/migration (read-only aggregates). NO money. NO computed FAA determination.
-Sub-slice R1.1 backend → R1.2 web.** LOCKED decisions (founder-away; architect recommendations adopted):
+Sub-slice R1.1 backend → R1.2 web.** LOCKED decisions (maintainer-away; architect recommendations adopted):
 (1) sub-slice R1.1→R1.2; (2) NEW `getHoursByTail` widened-range fn — do NOT mutate the FROZEN `getAircraftUtilization`;
 (3) reservations created-trend INCLUDES cancelled (creation-activity metric, labeled); (4) NO new chart dependency —
 CSS/SVG bars; (5) UTC bucketing ([VERIFY-R1-TZ], matches dashboard); (6) NO migration.

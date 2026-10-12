@@ -10,7 +10,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'AeroOps',
-  description: 'Multi-tenant SaaS for flight schools, clubs, and FBOs.',
+  description: 'Open-source flight-operations software for flight schools, clubs, and FBOs.',
 };
 
 export default function RootLayout({

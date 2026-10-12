@@ -28,7 +28,7 @@
 -- existing derived ledger balance — the "prepaid credit" mental model already
 -- documented in billing/ledger-math.ts — NOT a per-flight hour meter), block
 -- expiry/refund, family/shared blocks, selling a block through the Stripe
--- rail (money-boundary, founder-gated).
+-- rail (money-boundary, maintainer-gated).
 --
 --   block_package  — operator-defined prepaid-hour offering (e.g. "10-hour
 --     Archer block"). The effective discounted rate (price_cents / hours) is

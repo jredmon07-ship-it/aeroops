@@ -2,7 +2,7 @@
 
 ## Conductor decisions (2026-06-18) — RESOLVED, builders may proceed
 
-The architect flagged several decisions for the conductor/founder. Resolved:
+The architect flagged several decisions for the conductor/maintainer. Resolved:
 
 - **[DECISION-FREEZE] → Option A (approved).** Additively extend the FROZEN
   `gatedCreateOccurrence` (`packages/api/src/scheduling/internal.ts`) with a
@@ -11,7 +11,7 @@ The architect flagged several decisions for the conductor/founder. Resolved:
   (conflict / policy / conflict_and_policy) MUST stay byte-identical — enforced by
   the no-regression suite (§6). Document in **ADR-0008**. This is permitted under
   the ADRs' explicit "additively-extended-only" clause.
-- **[VERIFY-3b-G] / [DECISION-FOUNDER] → WARN at create (approved).** The grounding
+- **[VERIFY-3b-G] / [DECISION-MAINTAINER] → WARN at create (approved).** The grounding
   gate at reservation-create is **non-blocking (warn)**, hard-coded, with the
   `mode: 'block' | 'warn'` seam in `evaluateGroundingGate` for a future org-settings
   slice. **Do NOT build org-settings infrastructure in 3b.** At `openDispatch`,

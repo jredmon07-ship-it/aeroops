@@ -1,12 +1,10 @@
 > Note 2026-10-10: money features (billing, POS, payments, QuickBooks) were removed from AeroOps; the billing parts of this original spec are kept as a design record.
 
-# The FBO SaaS Bible
+# The AeroOps Bible
 
-A complete build manual for **AeroOps** (working name): a multi-tenant SaaS that
-matches everything Flight Schedule Pro does — scheduling, dispatch, billing/POS,
-training records, maintenance, reporting, and a native mobile app — and adds an
-integrated public booking website, an FBO fuel/line-ops module, and a runtime AI
-layer. Built by an org chart of Claude Code agents driven from a single conductor
+The original build manual for **AeroOps**: multi-tenant flight-operations software
+covering scheduling, dispatch, training records, maintenance, reporting, a native
+mobile app, and a public booking website. Built by an org chart of Claude Code agents driven from a single conductor
 session.
 
 ---
@@ -16,7 +14,7 @@ session.
 This document is the single source of truth. Two things use it:
 
 - **Claude Code agents** that build the product (the "company" below).
-- **You, the founder**, who approves every gate.
+- **You, the maintainer**, who approves every gate.
 
 ### The honest mechanics (read once, internalize)
 
@@ -43,10 +41,8 @@ CEO subagent produces a prioritized plan; the conductor and you act on it.
 
 ## 1. Product vision and scope
 
-**Vision.** The modern operating system for flight schools, flying clubs, and
-FBOs. Feature parity with Flight Schedule Pro on web and mobile, a public booking
-site bolted to the same data, and the operations FSP doesn't touch (fuel/line
-service, CRM, charter, AI assistance).
+**Vision.** One place for a flight school, flying club, or FBO to run day-to-day
+operations on web and mobile, with a public booking site on the same data.
 
 **Who the tenant is.** One tenant = one operator (a flight school, club, or FBO).
 Multi-base operators are one tenant with many locations. The platform itself is

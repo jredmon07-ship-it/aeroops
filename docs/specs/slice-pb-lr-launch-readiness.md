@@ -1,7 +1,7 @@
 # Slice PB-LR — Public-booking launch-readiness — build spec
 
 **The two PB1 launch predecessors, built to the extent feasible without external infra. Two sub-slices.** Adopted
-defaults (founder-away): hard-DELETE purge, 365-day default window, fail-OPEN CAPTCHA. [VERIFY]s routed to compliance.
+defaults (maintainer-away): hard-DELETE purge, 365-day default window, fail-OPEN CAPTCHA. [VERIFY]s routed to compliance.
 
 ## PB-LR.A — Lead-data retention/purge ([VERIFY-PB1-COMP-1]) — FULLY buildable + verifiable now
 **Config: reuse `dispatch_config`** (already the per-org settings row + RLS + absent-row-defaults). Migration **0017**
@@ -30,7 +30,7 @@ default / included-when-flagged (reservation survives, link NULLs via 0016) + id
 predicate, never another org's row). audit_log is append-only (no DELETE) — purge touches ONLY booking_request; status-change
 audit rows (status+id, no PII) are retained — [VERIFY for compliance].
 
-## PB-LR.B — CAPTCHA verification seam ([VERIFY-PB1-SEC-1]) — seam buildable now; limiter+keys = founder deploy step
+## PB-LR.B — CAPTCHA verification seam ([VERIFY-PB1-SEC-1]) — seam buildable now; limiter+keys = maintainer deploy step
 **Honest split:** the in-app CAPTCHA-verify SEAM + honeypot + per-org soft guard are code (shipped/here); the edge rate-
 limiter/WAF + the provider keys are deploy config (NOT code). `CaptchaVerifier { verify(token?, ip?): Promise<boolean> }` in
 @aeroops/core or `packages/api/src/booking/captcha.ts`; `NoopCaptchaVerifier` (always true — the DEFAULT when unconfigured →

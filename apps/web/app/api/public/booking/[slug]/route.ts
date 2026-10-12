@@ -39,7 +39,7 @@
  * has an explicit allowance comment for this path (ADR-0013).
  *
  * [VERIFY-PB1-SEC-1]: edge rate-limiter + WAF + CAPTCHA before public exposure.
- * PB-LR.B seam is code-complete; the WAF + provider keys are the founder deploy step.
+ * PB-LR.B seam is code-complete; the WAF + provider keys are the maintainer deploy step.
  */
 
 export const runtime = 'nodejs';

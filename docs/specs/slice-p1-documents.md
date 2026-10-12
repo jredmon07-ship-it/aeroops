@@ -45,7 +45,7 @@ filing-cabinet tab), not a regulatory classification. A stored "Medical" documen
 verified medical currency — a human still makes that call. Mirrors the `member_tag` / squawk / work-order /
 lesson-record precedent. `[VERIFY-P1.6-A]`
 
-## Founder steps to enable
+## Maintainer steps to enable
 
 Set `STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY` (S3 or any
 S3-compatible provider — Cloudflare R2, Backblaze B2, MinIO). Apply migration 0030. Configure the bucket CORS to

@@ -74,7 +74,7 @@ few-times-a-day batch export). Migration `0021` staged + human-gated, NOT applie
 - **Customer/member ↔ QBO Customer dedup beyond one org** — the customer-reuse check is per-org via
   `qbo_export_log`; no cross-org QBO Customer matching.
 
-## Founder deploy steps
+## Maintainer deploy steps
 1. Create an Intuit developer app at <https://developer.intuit.com> (Accounting API scope).
 2. Grab the sandbox `Client ID` / `Client Secret`; set `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET` in the deployment env.
 3. Set `QBO_REDIRECT_URI` to `https://<domain>/api/integrations/qbo/callback` and register that EXACT URI in

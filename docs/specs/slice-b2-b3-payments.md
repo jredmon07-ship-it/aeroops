@@ -3,7 +3,7 @@
 # Slice B2 + B3-foundation — Billing ledger, balance, and the Stripe seam-to-the-key-boundary
 
 **STATUS: BUILD-COMPLETE, human-gated.** Migrations `0022_billing_ledger.sql` + `0023_stripe_foundation.sql`
-staged, **NOT applied** anywhere. `main`/live-deploy untouched. Founder gave explicit go for the
+staged, **NOT applied** anywhere. `main`/live-deploy untouched. Maintainer gave explicit go for the
 money-processor work; Stripe TEST keys are **not yet provided**, so B3 stops at the key boundary exactly
 like the QBO (`integrations/qbo/client.ts`) and CAPTCHA (`booking/captcha.ts`) seams: a stub that throws a
 typed `*NotConfiguredError` on every call when the relevant env var is unset. **NO real Stripe HTTP call
@@ -164,18 +164,18 @@ byte-identical in behavior (the only change is *which columns get selected*, not
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Founder explicit go | ✅ Given (this build) |
-| 2 | Stripe TEST keys in env | ❌ **Founder step.** `.env.example` already scaffolds `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` (placeholders, pre-existing) — fill in `sk_test_...`/`pk_test_...` and set `STRIPE_WEBHOOK_SECRET` after step 3. |
-| 3 | Webhook endpoint + signature + `stripe_event` dedup | ✅ **Code-complete.** Route built (`apps/web/app/api/integrations/stripe/webhook/route.ts`), signature verification unit/property-tested, dedup structurally enforced (PK collision). Founder still needs to **register the endpoint URL in the Stripe dashboard** to mint the actual `STRIPE_WEBHOOK_SECRET` (chicken-and-egg with item 2 — register first, then set the secret it gives you). |
+| 1 | Maintainer explicit go | ✅ Given (this build) |
+| 2 | Stripe TEST keys in env | ❌ **Maintainer step.** `.env.example` already scaffolds `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` (placeholders, pre-existing) — fill in `sk_test_...`/`pk_test_...` and set `STRIPE_WEBHOOK_SECRET` after step 3. |
+| 3 | Webhook endpoint + signature + `stripe_event` dedup | ✅ **Code-complete.** Route built (`apps/web/app/api/integrations/stripe/webhook/route.ts`), signature verification unit/property-tested, dedup structurally enforced (PK collision). Maintainer still needs to **register the endpoint URL in the Stripe dashboard** to mint the actual `STRIPE_WEBHOOK_SECRET` (chicken-and-egg with item 2 — register first, then set the secret it gives you). |
 | 4 | PCI SAQ-A confirmed (no PAN path) | ✅ No PAN/CVV/account-number column or code path anywhere in this slice — [VERIFY-B-PCI] compliance sign-off still recommended before go-live, per the original design doc. |
 | 5 | B1+B2 merged+green (behind OFF flag) | ✅ B1 pre-existing; B2 built+tested this slice, 1524/1524 `@aeroops/api` tests green, `balance_check_enabled` stays operator-set default `false`. |
 | 6 | Swap stub→`realBalanceSeam` at `open-dispatch.ts:338` | ❌ **NOT done, by design.** This is the ONE code change explicitly deferred to a separate, later, human-reviewed diff (a one-line seam swap). `realBalanceSeam`/`makeRealBalanceSeam` is fully built and tested; only the injection point is untouched. |
 | 7 | Per-operator opt-in (`balance_check_enabled` OFF until opt-in) | ✅ Unaffected by this slice — default stays `false`; flipping it currently still has zero effect (item 6 not done). |
-| 8 | Test-mode end-to-end proven | ❌ **Founder step** — needs real Stripe TEST keys + the Stripe CLI or dashboard test-mode webhook trigger; cannot be done in this sandboxed environment (no real Stripe call is ever made in this build). |
+| 8 | Test-mode end-to-end proven | ❌ **Maintainer step** — needs real Stripe TEST keys + the Stripe CLI or dashboard test-mode webhook trigger; cannot be done in this sandboxed environment (no real Stripe call is ever made in this build). |
 | 9 | Live keys (separate later gate) | ❌ Not started — correctly out of scope until 1–8 are all done in test mode first. |
 
 **Bottom line:** items 1, 3 (code), 4, 5, 7 are met. Item 2 (keys) and item 8 (prove it end-to-end) are the
-founder's next concrete steps, in that order — register the webhook endpoint in the Stripe dashboard
+maintainer's next concrete steps, in that order — register the webhook endpoint in the Stripe dashboard
 (mints the webhook secret), set all three env vars, run a test-mode payment end-to-end using Stripe's
 test card/bank numbers, THEN (item 6) request the one-line seam swap as its own reviewed diff, THEN (item 7)
 decide per-operator whether `balance_check_enabled` should default off (recommended) or require explicit

@@ -12,7 +12,7 @@
 --               must already be applied.
 --
 -- Implements the B3 SEAM-TO-THE-KEY-BOUNDARY: schema only, to be populated
--- once the founder provides Stripe TEST keys (STRIPE_SECRET_KEY /
+-- once the maintainer provides Stripe TEST keys (STRIPE_SECRET_KEY /
 -- STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET). Until those keys are set,
 -- packages/api/src/integrations/stripe/client.ts resolves to a stub that
 -- throws a typed StripeNotConfiguredError on every call — NO real Stripe

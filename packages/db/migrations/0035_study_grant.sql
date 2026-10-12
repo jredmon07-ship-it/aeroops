@@ -32,7 +32,7 @@
 --
 -- COMPLIANCE posture: study readiness is STUDENT-ENTERED STUDY-APP DATA, not
 -- an FAA knowledge-test result, endorsement, or Part 61/141 determination.
--- NO money moves here (school-tier packaging is a later, founder-gated
+-- NO money moves here (school-tier packaging is a later, maintainer-gated
 -- phase); no Stripe, no card/bank data.
 --
 -- Key guarantees:

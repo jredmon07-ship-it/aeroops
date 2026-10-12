@@ -13,7 +13,7 @@
  *   min_advance_minutes:   reservation start must be at least this many minutes
  *                          in the future (CHECK >= 0; 0 = instant booking).
  *
- * SCOPE AMENDMENT (2026-06-16, founder): required_tags is DEFERRED out of
+ * SCOPE AMENDMENT (2026-06-16, maintainer): required_tags is DEFERRED out of
  * Slice 2a. NO required_tags column here — it moves to the follow-up slice
  * that also builds the member-tag admin surface.
  *

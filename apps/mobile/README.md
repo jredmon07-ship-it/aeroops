@@ -30,7 +30,7 @@ AeroOps backend.
 
 **[VERIFY-4M-DEPLOY-1]**: an end-to-end device demo against a live backend is BLOCKED
 until the AeroOps backend is deployed to a reachable origin (Neon Postgres + Vercel /
-equivalent). This is the founder's step. See `DEPLOY.md` at the repo root.
+equivalent). This is the maintainer's step. See `DEPLOY.md` at the repo root.
 
 Do NOT commit `.env.local`. The `EXPO_PUBLIC_` prefix makes this safe to bundle
 (it is a URL, not a secret). The token (signed JWT) lives only in expo-secure-store.
@@ -82,8 +82,8 @@ root install is needed.
 - Any write operation (dispatch check-out/in, booking, etc.) — deferred
 - Android-specific icon / splash assets
 
-## Device verification (founder step)
+## Device verification (maintainer step)
 
 The typecheck (`tsc --noEmit`) passes in CI. Running on a device or simulator
-requires the deployed backend ([VERIFY-4M-DEPLOY-1]) and is the founder's gate
+requires the deployed backend ([VERIFY-4M-DEPLOY-1]) and is the maintainer's gate
 before treating this slice as fully done.

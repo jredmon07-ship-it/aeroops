@@ -1,6 +1,6 @@
 # Slice T1 — Training Hub Foundation (Phase 3 entry, THIN) — build spec
 
-**Status:** SPEC APPROVED-PENDING — parked 2026-06-19 mid-deploy. Build when the founder
+**Status:** SPEC APPROVED-PENDING — parked 2026-06-19 mid-deploy. Build when the maintainer
 returns to feature work. No builder runs until the §2 capability grants + the §7 [VERIFY]
 posture are confirmed by the compliance-officer.
 **Migration:** `0012_training.sql` (human-gated, NEVER auto-run).

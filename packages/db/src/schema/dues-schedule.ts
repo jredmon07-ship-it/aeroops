@@ -8,7 +8,7 @@
  * day_of_month is bounded 1–28 (avoids short-month drift) and is
  * informational/planning metadata only — this table does not itself schedule anything (no cron;
  * generation is triggered by generateDuesInvoices, called manually via
- * runDuesForPeriodAction or later founder-infra cron).
+ * runDuesForPeriodAction or later maintainer-infra cron).
  *
  * Tenant-scoped: carries org_id, gets RLS ENABLE + FORCE (migration 0025).
  *

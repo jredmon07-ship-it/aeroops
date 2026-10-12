@@ -16,7 +16,7 @@
 -- + 4 fail-closed policies + composite FK + aeroops_app grant), mirroring
 -- the pattern in 0002_scheduling.sql exactly.
 --
--- SCOPE AMENDMENT (2026-06-16, founder):
+-- SCOPE AMENDMENT (2026-06-16, maintainer):
 --   required_tags is DEFERRED out of Slice 2a.
 --   NO required_tags column on booking_policy.
 --   NO booking_tags column on membership.

@@ -8,7 +8,7 @@ You are the conductor. Invoke the **ceo** subagent to (re)prioritize the roadmap
 Context for the CEO:
 - Read THE-BIBLE.md (full spec) and CLAUDE.md (current phase/slice) first.
 - Respect the phased, sliced roadmap in THE-BIBLE.md §10. Do not jump phases.
-- Founder input for this run (may be empty): $ARGUMENTS
+- Maintainer input for this run (may be empty): $ARGUMENTS
 
 Ask the CEO to:
 1. Confirm or propose the **next slice** to work on, with the user value and which
@@ -19,5 +19,5 @@ Ask the CEO to:
    Dependencies · Definition of Done.
 4. End with a crisp prioritized list for the human to approve.
 
-After the CEO responds, present its prioritized list to the founder and STOP for
+After the CEO responds, present its prioritized list to the maintainer and STOP for
 approval. Once approved, update the "Current phase / slice" section of CLAUDE.md.

@@ -2,7 +2,7 @@
 
 **Migration 0013 (human-gated, NEVER auto-run). ADR-0012 at build. Sub-slices: M1.1 schema → M1.2 backend (incl. orchestration) → M1.3 web.**
 
-LOCKED DECISIONS (founder-away; architect's recommended defaults adopted 2026-06-19):
+LOCKED DECISIONS (maintainer-away; architect's recommended defaults adopted 2026-06-19):
 1. `maintenance:work_order` grants → owner/manager/mechanic/dispatcher YES; cfi/accountant/renter/student NO.
 2. Parts/labor = FREE-TEXT in `work_performed`/`sign_off_notes` ONLY — NO parts table, NO labor lines, NO money.
 3. `updateWorkOrderStatus` accepts `in_progress` ONLY (complete → `completeWorkOrder`; cancel → `cancelWorkOrder`).

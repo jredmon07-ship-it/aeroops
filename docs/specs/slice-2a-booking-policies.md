@@ -5,7 +5,7 @@
 
 **One-line scope:** add an optional per-resource booking policy + per-resource blackout windows, evaluated by a new pure `@aeroops/core` predicate that runs *beside* (never replacing) the conflict probe on the single create path, surfaced in an additively-extended advisory result and a policy admin UI. Absent policy ⇒ Slice-1 behavior preserved byte-for-byte.
 
-> ## ⚠️ SCOPE AMENDMENT — approved 2026-06-16 (founder)
+> ## ⚠️ SCOPE AMENDMENT — approved 2026-06-16 (maintainer)
 > **Required-tags / booking eligibility is DEFERRED out of Slice 2a** to a focused follow-up slice (which also builds the member-tag admin surface). Slice 2a ships **four rules only: max duration, max advance, min lead time, blackout windows.**
 >
 > Therefore, in this spec, builders **OMIT** all of the following (they move to the follow-up):
@@ -103,4 +103,4 @@ Human-review gate after step 1 and step 2 before backend wiring.
 
 ## 7. Flags
 **[VERIFY] → compliance-officer:** [V1] tags free-text only, no FAA computation, no regulatory framing on the "you lack tag X" message; [V2] exact case-sensitive tag match acceptable; [V3] `createBlackout` does not auto-cancel existing in-window reservations (blocks only new); [V4] `max_advance_days` = fixed 24h (not DST calendar days).
-**[DEFER] → CTO/ADR-0005 (✅ ratified) / founder:** [A] required_tags as text[] (✅); [B] no GiST/EXCLUDE on blackout (✅); [C] tag source = creator (✅, also V); [D] blackouts evaluated even with no policy row (✅ yes); [E] additive four-arm union (✅); [F] **member-tag assignment screen OUT of 2a — FOUNDER SCOPE CALL** (required_tags only matches members who have tags; if dormant-until-later is unacceptable, add minimal `setMembershipBookingTags({userId,tags})` authz `org:manage_settings` audited); [G] enrich violations with display name at API (✅ yes); [H] no standalone "no past bookings" rule (✅ out); [I] advisory read-then-write race acceptable (✅).
+**[DEFER] → CTO/ADR-0005 (✅ ratified) / maintainer:** [A] required_tags as text[] (✅); [B] no GiST/EXCLUDE on blackout (✅); [C] tag source = creator (✅, also V); [D] blackouts evaluated even with no policy row (✅ yes); [E] additive four-arm union (✅); [F] **member-tag assignment screen OUT of 2a — MAINTAINER SCOPE CALL** (required_tags only matches members who have tags; if dormant-until-later is unacceptable, add minimal `setMembershipBookingTags({userId,tags})` authz `org:manage_settings` audited); [G] enrich violations with display name at API (✅ yes); [H] no standalone "no past bookings" rule (✅ out); [I] advisory read-then-write race acceptable (✅).

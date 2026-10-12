@@ -2,7 +2,7 @@
  * notify-maintenance-due.ts — notifyMaintenanceDue command (Slice P1.5).
  *
  * A manual, staff-triggered "notify" action (NO cron — scheduling is
- * founder infra, per docs/specs/slice-p1-maintenance-due.md deferred list):
+ * maintainer infra, per docs/specs/slice-p1-maintenance-due.md deferred list):
  * given the CURRENT overdue/due_soon maintenance items, sends ONE best-effort
  * heads-up email per active owner/manager member via the existing
  * sendNotification dispatcher (send-notification.ts) — never throws, never

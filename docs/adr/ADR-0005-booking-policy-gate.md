@@ -67,11 +67,11 @@ Every new tenant table (`booking_policy`, `resource_blackout`): `org_id NOT NULL
 - **Two-tier org-default + per-resource override in 2a:** rejected as not-thinnest; reversibly addable via the resolver (invariant 7).
 - **Throwing policy violations:** rejected — inconsistent with the returned-value posture.
 
-## Open questions (founder / compliance)
+## Open questions (maintainer / compliance)
 1. **`max_duration` DB CHECK** — defer (recommended, additive/reversible) vs. include a denormalized/trigger CHECK in `0003` now. CTO: **defer**.
 2. **[VERIFY] tag taxonomy** — confirm with compliance that operator free-text booking tags carry no regulatory meaning in the UI (no label implying computed FAA recency).
 3. **Advance-limit direction** — 2a supports a max lead time (`max_advance_days`) and a min lead time (`min_advance_minutes`); confirm both are wanted in 2a.
-4. **Required-tags usability** — **RESOLVED 2026-06-16 (founder): required-tags / eligibility is DEFERRED out of Slice 2a** to a focused follow-up slice that also builds the member-tag admin surface. Slice 2a ships four rules only (max duration, max advance, min lead, blackouts). Invariant 8 and the "required ratings = free-text tags only" boundary remain the governing rule for that follow-up — recorded here so the free-text-only / no-FAA-currency constraint is not lost when eligibility is built.
+4. **Required-tags usability** — **RESOLVED 2026-06-16 (maintainer): required-tags / eligibility is DEFERRED out of Slice 2a** to a focused follow-up slice that also builds the member-tag admin surface. Slice 2a ships four rules only (max duration, max advance, min lead, blackouts). Invariant 8 and the "required ratings = free-text tags only" boundary remain the governing rule for that follow-up — recorded here so the free-text-only / no-FAA-currency constraint is not lost when eligibility is built.
 
 ## Links
 ADR-0001 (tenant isolation), ADR-0003 (capability gate), ADR-0004 (conflict engine — FROZEN; this extends), THE-BIBLE §2.1 / §10. Related memory: [[ios-mobile-app-required]].

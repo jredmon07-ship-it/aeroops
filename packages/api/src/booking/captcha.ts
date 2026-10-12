@@ -19,7 +19,7 @@
  *   in tests take effect immediately.
  *
  * ── DEPLOY STEP ───────────────────────────────────────────────────────────────
- *   This file is the IN-APP seam. The actual CAPTCHA activation is a founder
+ *   This file is the IN-APP seam. The actual CAPTCHA activation is a maintainer
  *   deploy step — see docs/launch/public-booking-launch.md:
  *     Set CAPTCHA_PROVIDER=turnstile + CAPTCHA_SECRET_KEY=<secret> (server-side)
  *     Set NEXT_PUBLIC_CAPTCHA_SITE_KEY=<site-key> (public, in Vercel env vars).

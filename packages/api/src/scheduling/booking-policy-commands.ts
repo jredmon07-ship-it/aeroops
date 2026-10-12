@@ -10,7 +10,7 @@
  *     mutation). Audit actions: 'booking_policy.upserted', 'booking_policy.cleared'.
  *   - not_found when the resource/policy is not visible in-org (RLS hides it).
  *   - ValidationError thrown for negative/zero int values (mirrors DB CHECKs).
- *   - NO required_tags fields — DEFERRED (Scope Amendment 2026-06-16, founder).
+ *   - NO required_tags fields — DEFERRED (Scope Amendment 2026-06-16, maintainer).
  *   - NO listOrgBookingTags — DEFERRED.
  *
  * TWO CALLING FORMS (mirrors resource-commands.ts):

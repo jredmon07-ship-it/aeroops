@@ -45,7 +45,7 @@ NO Stripe/balance/invoicing/pricing in Phase 1 (derived time is ops data). NO co
 ## Alternatives considered
 In-place UPDATE to correct a closed ticket (rejected — silent mutation; corrections are append-only/deferred). EXCLUDE/GiST for one-open (rejected — single-row uniqueness, a plain partial-UNIQUE btree is the honest backstop). App-only one-open check (rejected — a faithful declarative constraint exists, so it gets the unforgeable backstop). Cascade reservation-cancel→auto-void dispatch (rejected — conflates booking plane with records plane). Composite `(reservation_id, resource_id)` partial-unique (rejected — redundant + wrongly blocks legitimate historical re-dispatch).
 
-## Open questions / [VERIFY] (compliance/founder at QA gate; non-blocking to build)
+## Open questions / [VERIFY] (compliance/maintainer at QA gate; non-blocking to build)
 - **[VERIFY-A]** Meter basis (Hobbs default) + reject-`in<out` (no rollover modeling) + precision `numeric(10,1)` + billing granularity 0.1 hr.
 - **[VERIFY-B]** Does a recorded Hobbs/tach reading constitute a maintenance/logbook record needing stronger retention than the write-once row + audit? (belief: suffices for 3a.)
 - **[VERIFY-C]** Part-141 dispatch-record retention beyond per-ticket audit rows (belief: suffices).

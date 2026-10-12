@@ -81,7 +81,7 @@ export function isReservationStatus(value: unknown): value is ReservationStatus 
  * violation is an advisory, computed-at-evaluation result of
  * `evaluateBookingPolicy`, not a persisted column (ADR-0005 invariant 2).
  *
- * SCOPE AMENDMENT (2026-06-16, founder): Slice 2a ships FOUR rules only.
+ * SCOPE AMENDMENT (2026-06-16, maintainer): Slice 2a ships FOUR rules only.
  * Required-tags / booking eligibility (and its `'missing_required_tag'` kind)
  * is DEFERRED to a follow-up slice — do NOT add it here until then.
  */

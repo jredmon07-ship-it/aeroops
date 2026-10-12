@@ -1,8 +1,7 @@
 # AeroOps — Overview
 
 Open-source (MIT) flight-operations software for flying clubs, flight schools, and
-FBOs: scheduling, dispatch, maintenance, training records, and reporting. It was
-built to sell; operators would not migrate off the tools they already used. A public
+FBOs: scheduling, dispatch, maintenance, training records, and reporting. A public
 demo with seeded sample data runs at
 [aeroops-web.vercel.app](https://aeroops-web.vercel.app). There are no production users.
 

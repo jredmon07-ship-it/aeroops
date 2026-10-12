@@ -1,11 +1,11 @@
 # Slice 4M-REVOKE — Mobile token revocation ([VERIFY-4M-SEC-1] predecessor) — build spec
 
-**SECURITY-SENSITIVE — human-reviewed by the founder.** Replaces the Slice 4M.1 8h non-revocable mobile bearer
+**SECURITY-SENSITIVE — human-reviewed by the maintainer.** Replaces the Slice 4M.1 8h non-revocable mobile bearer
 token with SHORT-LIVED signed access tokens (~15 min) + a revocable, rotating refresh-token session
 (`mobile_session`, migration 0033, staged/human-gated, NOT applied). **Adds NO new write/dispatch/money surface** —
 login/refresh/logout only. This is the HARD PREDECESSOR the 4M.1 spec called out ("[VERIFY-4M-SEC-1] instant-
 revocation/refresh is a HARD predecessor before any mobile write/dispatch/payment slice") — it exists purely to make
-the mobile session instantly revocable so that a FUTURE, SEPARATE, founder-gated slice can safely add a mobile write
+the mobile session instantly revocable so that a FUTURE, SEPARATE, maintainer-gated slice can safely add a mobile write
 surface.
 
 ## What changed vs. Slice 4M.1
@@ -103,14 +103,14 @@ seam).
 - `apps/mobile/src/contexts/AuthContext.tsx` — `signIn` stores both tokens; `signOut` best-effort calls
   `POST /auth/logout` then clears both tokens (never blocks on a network failure).
 
-## What this unblocks (NOT built here — separate, founder-gated)
+## What this unblocks (NOT built here — separate, maintainer-gated)
 
 A mobile **write** slice (dispatch check-out/in, squawk reporting, etc.) may now be proposed, because the
 instant-revocation predecessor is in place: an operator can kill a lost/stolen device's session and it stops working
 within ~15 minutes at the outside (immediately, if the device is offline and never gets to refresh). That write
-slice is **explicitly out of scope here** and requires its own spec + founder go-ahead.
+slice is **explicitly out of scope here** and requires its own spec + maintainer go-ahead.
 
-## Founder device-test step (before treating this as production-ready)
+## Maintainer device-test step (before treating this as production-ready)
 
 This slice is fully CI-testable (pglite) but the end-to-end mobile flow needs a human device pass once a backend is
 deployed ([VERIFY-4M-DEPLOY-1], pre-existing):

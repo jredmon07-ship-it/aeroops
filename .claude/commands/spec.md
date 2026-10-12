@@ -21,5 +21,5 @@ Steps:
 3. Collect any [VERIFY] flags; if regulation is involved, route them to the
    **compliance-officer** before finalizing.
 
-Present the consolidated spec to the founder and STOP for design approval before
+Present the consolidated spec to the maintainer and STOP for design approval before
 any builder runs.
