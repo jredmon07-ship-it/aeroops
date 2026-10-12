@@ -10,7 +10,11 @@
  *     session / mobile access token cannot even be decrypted here, and a
  *     login-link token cannot be decrypted as either of those. A `purpose`
  *     claim ('login-link') is checked on top as a second, explicit fence.
- *   - CLAIMS: { purpose, userId, orgId, fp } + iat/exp/jti (set by encode).
+ *   - CLAIMS: { purpose, userId, orgId, fp, by, role } + iat/exp/jti (set by
+ *     encode). `by` = the member who created the link and `role` = the
+ *     target's role when it was made; acceptLoginLink re-checks the privilege
+ *     rule against both so a link can't outlive a promotion of its target or
+ *     a demotion/deactivation of its creator.
  *     exp = 7 days.
  *   - SINGLE USE via the credential FINGERPRINT (`fp`): a sha256 of the
  *     member's CURRENT auth_credential.password_hash (or a fixed marker when
@@ -50,6 +54,10 @@ export interface LoginLinkClaims {
   orgId: string;
   /** credentialFingerprint() of the member's credential when the link was made. */
   fp: string;
+  /** userId of the member who created the link. */
+  by: string;
+  /** The target's membership role when the link was created. */
+  role: string;
 }
 
 // ─── Fingerprint ──────────────────────────────────────────────────────────────
@@ -86,6 +94,8 @@ export async function signLoginLinkToken(claims: LoginLinkClaims): Promise<strin
       userId: claims.userId,
       orgId: claims.orgId,
       fp: claims.fp,
+      by: claims.by,
+      role: claims.role,
     },
     secret,
     salt: LOGIN_LINK_TOKEN_SALT,
@@ -105,16 +115,18 @@ export async function verifyLoginLinkToken(token: string): Promise<LoginLinkClai
     const payload = await decode({ token, secret, salt: LOGIN_LINK_TOKEN_SALT });
     if (!payload) return null;
 
-    const { purpose, userId, orgId, fp } = payload as Record<string, unknown>;
+    const { purpose, userId, orgId, fp, by, role } = payload as Record<string, unknown>;
     if (purpose !== LOGIN_LINK_PURPOSE) return null;
     if (
       typeof userId !== 'string' || !userId ||
       typeof orgId !== 'string' || !orgId ||
-      typeof fp !== 'string' || !fp
+      typeof fp !== 'string' || !fp ||
+      typeof by !== 'string' || !by ||
+      typeof role !== 'string' || !role
     ) {
       return null;
     }
-    return { userId, orgId, fp };
+    return { userId, orgId, fp, by, role };
   } catch {
     // Bad signature, foreign secret/salt, expired, malformed.
     return null;

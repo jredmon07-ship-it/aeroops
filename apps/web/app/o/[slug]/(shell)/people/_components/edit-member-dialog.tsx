@@ -5,7 +5,7 @@
  * NOT editable: email, any meter/dispatch/audit records.
  *
  * people:manage only. Server-side gate in updateMemberAction.
- * Handles last_owner refusal with an inline message.
+ * Handles last_owner / rank-rule refusals with an inline message.
  */
 'use client';
 
@@ -98,6 +98,14 @@ export function EditMemberDialog({ member, onSuccess }: EditMemberDialogProps) {
           setDialogError(
             'Cannot change this role — they are the only active owner. Add another owner first.',
           );
+          return;
+        }
+        if (result.reason === 'self_not_allowed') {
+          setDialogError('You cannot change your own role. Ask an owner.');
+          return;
+        }
+        if (result.reason === 'target_outranks') {
+          setDialogError('Only an owner can give or take away the owner or manager role.');
           return;
         }
         if (result.reason === 'not_found') {

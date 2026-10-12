@@ -8,6 +8,13 @@
  *   - requireCapability('people:manage') FIRST (owner/manager only).
  *   - org_id from session only; cross-org userId → not_found.
  *   - role validated via isMembershipRole.
+ *   - Rank rule (roleChangePermission, pure): only an OWNER may change a role
+ *     when the target's current role or the new role holds people:manage
+ *     (owner/manager), and only an owner may change their OWN role. Without
+ *     this a manager could demote an owner, create a login link for them
+ *     (login-link.ts refuses owner/manager targets only by CURRENT role),
+ *     then restore the role — an account takeover. Same rank rule as
+ *     loginLinkPermission.
  *   - Last-owner guard: demoting the sole active owner → last_owner.
  *     "active owners" = membership rows with role='owner' joined to
  *     app_user.status='active'. TOCTOU race is documented as acceptable
@@ -25,7 +32,7 @@ import { sql } from 'drizzle-orm';
 import { membership, appUser, auditLog } from '@aeroops/db';
 import { eq } from 'drizzle-orm';
 import type { AnyDb } from '@aeroops/db';
-import { isMembershipRole } from '@aeroops/core';
+import { can, isMembershipRole } from '@aeroops/core';
 import type { MembershipRole } from '@aeroops/core';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
@@ -50,6 +57,28 @@ export interface UpdateMemberInput {
   fullName?: string;
   phone?: string | null;
   role?: string;
+}
+
+// ─── Rank rule (pure) ─────────────────────────────────────────────────────────
+
+export type RoleChangeRefusal = 'self_not_allowed' | 'target_outranks';
+
+/**
+ * roleChangePermission — may `actor` move `target` from `fromRole` to `toRole`?
+ * Pure. A no-op (fromRole === toRole) is always allowed, so the edit dialog
+ * can resend the unchanged role with a name/phone edit. See the file header.
+ */
+export function roleChangePermission(
+  actor: { userId: string; role: MembershipRole },
+  target: { userId: string; fromRole: MembershipRole; toRole: MembershipRole },
+): { ok: true } | { ok: false; reason: RoleChangeRefusal } {
+  if (target.fromRole === target.toRole) return { ok: true };
+  if (actor.role === 'owner') return { ok: true };
+  if (actor.userId === target.userId) return { ok: false, reason: 'self_not_allowed' };
+  if (can(target.fromRole, 'people:manage') || can(target.toRole, 'people:manage')) {
+    return { ok: false, reason: 'target_outranks' };
+  }
+  return { ok: true };
 }
 
 // ─── Count active owners ──────────────────────────────────────────────────────
@@ -106,6 +135,16 @@ async function _updateMemberImpl(
 
     const current = existing[0];
     if (!current) return { ok: false, reason: 'not_found' };
+
+    // 4b. Rank rule — no manager-driven promotion/demotion of owner/manager
+    //     rows, and no self role change by a non-owner.
+    if (input.role !== undefined && isMembershipRole(current.role)) {
+      const allowed = roleChangePermission(
+        { userId: sess.userId, role: sess.role },
+        { userId: input.userId, fromRole: current.role, toRole: input.role as MembershipRole },
+      );
+      if (!allowed.ok) return { ok: false, reason: allowed.reason };
+    }
 
     // 5. Last-owner guard: if demoting the target from 'owner' to something else,
     //    count active owners. If count ≤ 1 after demotion, refuse.

@@ -60,6 +60,8 @@ function errorMessage(result: Exclude<CreateLoginLinkActionResult, { ok: true }>
       return 'You cannot create a login link for yourself. Ask an owner.';
     case 'target_outranks':
       return 'Only an owner can create a login link for an owner or manager.';
+    case 'email_conflict':
+      return 'Another member already uses this email in lowercase. Fix the duplicate, then try again.';
     case 'demo_org':
       return 'Login links are turned off on the shared demo.';
   }

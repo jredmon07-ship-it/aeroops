@@ -89,7 +89,7 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
     setIsSubmitting(true);
     try {
       const result = await addMemberAction({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         fullName: fullName.trim() || undefined,
         phone: phone.trim() || undefined,
         role,

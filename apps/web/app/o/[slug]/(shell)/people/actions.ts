@@ -275,6 +275,7 @@ export type UpdateMemberActionResult =
   | { ok: true; member: SerializedMemberDetail }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'last_owner' }
+  | { ok: false; reason: 'self_not_allowed' | 'target_outranks' }
   | AuthErrorResult
   | ValidationErrorResult
   | ServerErrorResult;

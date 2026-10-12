@@ -9,6 +9,7 @@
  *
  * GUARANTEES:
  *   - requireCapability('people:manage') FIRST (owner/manager only).
+ *   - Email trimmed + lowercased (same as signup / CSV import).
  *   - NO auth_credential insert — zero credential rows created.
  *   - Org-email collision → returned {ok:false, reason:'email_taken'}.
  *   - ONE audit row 'member.created'.
@@ -34,7 +35,9 @@ import type { AddMemberResult } from './types.js';
 import { assembleMemberDetail } from './internal.js';
 
 const inputSchema = z.object({
-  email:    z.string().email({ message: 'email must be a valid email address' }),
+  // Lowercased at the boundary: sign-in (verifyCredential) lowercases the
+  // typed email and matches exactly, so a mixed-case row could never sign in.
+  email:    z.string().trim().toLowerCase().email({ message: 'email must be a valid email address' }),
   fullName: z.string().min(1).optional(),
   phone:    z.string().nullable().optional(),
   role:     z.string(),

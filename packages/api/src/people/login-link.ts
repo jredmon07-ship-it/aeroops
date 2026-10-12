@@ -30,12 +30,29 @@
  *     not for themselves either. Otherwise a manager could reset an owner's
  *     (or a peer's) password and take over that account.
  *   - Deactivated members (app_user.status = 'inactive') cannot get links.
+ *   - The rule is checked AGAIN when the link is used (check + accept): the
+ *     token carries its creator (`by`) and the target's role at mint time
+ *     (`role`). If the target's role has changed since, or the creator is no
+ *     longer an active member, or the rule now refuses (creator demoted,
+ *     target promoted), the link is dead. A manager can't hold a link for a
+ *     dispatcher and use it after that dispatcher is promoted.
+ *   - Role edits follow the same rank rule (update-member.ts
+ *     roleChangePermission), so a manager can't demote an owner, make a link,
+ *     then restore the role.
  *   - The public demo orgs (isDemoResetCandidate) refuse: their credentials
  *     are shared by every visitor.
  *
+ * EMAIL CASE: sign-in lowercases the typed email and matches it exactly, so a
+ * member stored with a mixed-case email could set a password and still never
+ * sign in. addMember now lowercases at the boundary; for rows stored before
+ * that, createLoginLink lowercases the stored email (audited in the
+ * link-created row) or refuses 'email_conflict' when another member already
+ * holds the lowercase address.
+ *
  * ACCEPT — fail-closed, ONE generic answer: unknown/tampered/expired/used
  * token, URL slug that is not the token's org, suspended org, member removed
- * or deactivated, fingerprint mismatch → { ok:false, reason:'invalid_link' }.
+ * or deactivated, fingerprint mismatch, target role changed, creator gone or
+ * no longer allowed → { ok:false, reason:'invalid_link' }.
  * The token already names the member, so nothing beyond it is revealed. The
  * new password goes through the SAME newPasswordSchema + hashPassword (argon2id)
  * as signup. org_id comes ONLY from the signed token, cross-checked against
@@ -53,7 +70,7 @@
  * fnWithDb(db, ...) for tests.
  */
 import { z } from 'zod';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, ne } from 'drizzle-orm';
 import {
   withOrgContext,
   appUser,
@@ -102,7 +119,7 @@ export type CreateLoginLinkResult =
       expiresAt: string;
       mode: LoginLinkMode;
     }
-  | { ok: false; reason: 'not_found' | 'inactive' | 'demo_org' | LoginLinkRefusal };
+  | { ok: false; reason: 'not_found' | 'inactive' | 'demo_org' | 'email_conflict' | LoginLinkRefusal };
 
 export type CheckLoginLinkResult =
   | { ok: true; email: string; displayName: string; orgName: string; mode: LoginLinkMode }
@@ -205,6 +222,22 @@ async function loadTarget(
   };
 }
 
+/**
+ * loadActiveRole — the role of an ACTIVE member of this org, or null (removed,
+ * deactivated, unknown role). Used to re-check a link's creator at use time.
+ */
+async function loadActiveRole(tx: AnyDb, orgId: string, userId: string): Promise<MembershipRole | null> {
+  const rows: Array<{ role: string; status: string }> = await tx
+    .select({ role: membership.role, status: appUser.status })
+    .from(membership)
+    .innerJoin(appUser, eq(membership.userId, appUser.id))
+    .where(and(eq(membership.userId, userId), eq(membership.orgId, orgId), eq(appUser.orgId, orgId)))
+    .limit(1);
+  const row = rows[0];
+  if (!row || row.status !== 'active' || !isMembershipRole(row.role)) return null;
+  return row.role;
+}
+
 // ─── createLoginLink ──────────────────────────────────────────────────────────
 
 const createInputSchema = z.object({
@@ -250,6 +283,25 @@ async function _createLoginLinkImpl(
     );
     if (!allowed.ok) return { ok: false, reason: allowed.reason } as const;
 
+    // 5b. Email case — sign-in matches the LOWERCASED email exactly, so a
+    //     mixed-case row could never sign in. Lowercase it now (audited below),
+    //     unless another member already holds the lowercase address.
+    let emailNormalized: { from: string; to: string } | null = null;
+    const lowerEmail = target.email.toLowerCase();
+    if (target.email !== lowerEmail) {
+      const clash = await tx
+        .select({ id: appUser.id })
+        .from(appUser)
+        .where(and(eq(appUser.orgId, sess.orgId), eq(appUser.email, lowerEmail), ne(appUser.id, target.userId)))
+        .limit(1);
+      if (clash.length > 0) return { ok: false, reason: 'email_conflict' } as const;
+      await tx
+        .update(appUser)
+        .set({ email: lowerEmail, updatedAt: new Date() })
+        .where(and(eq(appUser.id, target.userId), eq(appUser.orgId, sess.orgId)));
+      emailNormalized = { from: target.email, to: lowerEmail };
+    }
+
     // 6. Mint. The fingerprint binds the link to the CURRENT credential.
     const mode: LoginLinkMode = target.passwordHash ? 'reset' : 'invite';
     const expiresAt = new Date(Date.now() + LOGIN_LINK_MAX_AGE_SECONDS * 1000);
@@ -257,6 +309,8 @@ async function _createLoginLinkImpl(
       userId: target.userId,
       orgId: sess.orgId,
       fp: credentialFingerprint(target.passwordHash),
+      by: sess.userId,
+      role: target.role,
     });
 
     // 7. ONE audit row. The token itself is NEVER logged.
@@ -266,7 +320,11 @@ async function _createLoginLinkImpl(
       action: 'member.login_link_created',
       entityType: 'app_user',
       entityId: target.userId,
-      metadata: { mode, expiresAt: expiresAt.toISOString() },
+      metadata: {
+        mode,
+        expiresAt: expiresAt.toISOString(),
+        ...(emailNormalized ? { emailNormalized } : {}),
+      },
     });
 
     return {
@@ -324,13 +382,28 @@ async function resolveLinkOrg(
   return { claims, orgId: resolved.id, orgName: resolved.name };
 }
 
-/** True iff the target can still use this link (active member, same credential). */
-function linkStillValid(target: LinkTarget | null, claims: LoginLinkClaims): target is LinkTarget {
-  return (
-    target !== null &&
-    target.status === 'active' &&
-    fingerprintsMatch(credentialFingerprint(target.passwordHash), claims.fp)
-  );
+/**
+ * linkStillValid — true iff the link can still be used: the target is an
+ * active member with the same credential AND the same role as at mint time,
+ * and the creator is still an active member whom loginLinkPermission allows
+ * to make this link today. Runs inside the caller's withOrgContext tx.
+ */
+async function linkStillValid(
+  tx: AnyDb,
+  orgId: string,
+  target: LinkTarget | null,
+  claims: LoginLinkClaims,
+): Promise<boolean> {
+  if (target === null || target.status !== 'active') return false;
+  if (!fingerprintsMatch(credentialFingerprint(target.passwordHash), claims.fp)) return false;
+  if (target.role !== claims.role) return false;
+
+  const creatorRole = await loadActiveRole(tx, orgId, claims.by);
+  if (!creatorRole || !can(creatorRole, 'people:manage')) return false;
+  return loginLinkPermission(
+    { userId: claims.by, role: creatorRole },
+    { userId: target.userId, role: target.role },
+  ).ok;
 }
 
 // ─── checkLoginLink ───────────────────────────────────────────────────────────
@@ -341,7 +414,7 @@ async function _checkLoginLinkImpl(db: AnyDb, rawRef: unknown): Promise<CheckLog
 
   return withOrgContext(db, link.orgId, async (tx) => {
     const target = await loadTarget(tx, link.orgId, link.claims.userId);
-    if (!linkStillValid(target, link.claims)) return INVALID;
+    if (!target || !(await linkStillValid(tx, link.orgId, target, link.claims))) return INVALID;
     return {
       ok: true,
       email: target.email,
@@ -380,7 +453,7 @@ async function _acceptLoginLinkImpl(db: AnyDb, rawInput: unknown): Promise<Accep
 
   return withOrgContext(db, link.orgId, async (tx) => {
     const target = await loadTarget(tx, link.orgId, link.claims.userId, true);
-    if (!linkStillValid(target, link.claims)) return INVALID;
+    if (!target || !(await linkStillValid(tx, link.orgId, target, link.claims))) return INVALID;
 
     const mode: LoginLinkMode = target.passwordHash ? 'reset' : 'invite';
     const now = new Date();

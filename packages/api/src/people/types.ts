@@ -212,7 +212,8 @@ export type GetMemberDetailResult =
 export type UpdateMemberResult =
   | { ok: true; member: MemberDetail }
   | { ok: false; reason: 'not_found' }
-  | { ok: false; reason: 'last_owner' };
+  | { ok: false; reason: 'last_owner' }
+  | { ok: false; reason: 'self_not_allowed' | 'target_outranks' };
 
 /** setMemberStatus result */
 export type SetMemberStatusResult =

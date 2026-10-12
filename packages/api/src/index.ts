@@ -643,7 +643,8 @@ export type { ListMembersOptions } from './people/list-members.js';
 export { getMemberDetail, getMemberDetailWithDb } from './people/get-member-detail.js';
 export type { GetMemberDetailInput } from './people/get-member-detail.js';
 
-export { updateMember, updateMemberWithDb } from './people/update-member.js';
+export { updateMember, updateMemberWithDb, roleChangePermission } from './people/update-member.js';
+export type { RoleChangeRefusal } from './people/update-member.js';
 export type { UpdateMemberInput } from './people/update-member.js';
 
 export { setMemberStatus, setMemberStatusWithDb } from './people/set-member-status.js';

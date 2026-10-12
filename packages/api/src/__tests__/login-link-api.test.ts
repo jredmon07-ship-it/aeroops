@@ -20,6 +20,14 @@
  *   L9 — password policy (signup's) enforced; a weak password doesn't burn
  *        the link. Garbage/tampered tokens → generic invalid_link.
  *   L10 — public demo orgs refuse link creation.
+ *   L11 — role-edit takeover closed: a manager can't demote an owner/manager,
+ *         promote anyone to owner/manager, or change their own role — so
+ *         demote → link → restore is refused at the first step.
+ *   L12 — use-time re-check: a link dies when its target's role changes or
+ *         its creator is demoted / deactivated.
+ *   L13 — email case: a mixed-case email added by hand still signs in after
+ *         the link; legacy mixed-case rows are lowercased at link creation
+ *         (audited) or refused 'email_conflict' on a clash.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { PGlite } from '@electric-sql/pglite';
@@ -46,6 +54,7 @@ import {
 } from '../people/login-link.js';
 import { addMemberWithDb } from '../people/add-member.js';
 import { setMemberStatusWithDb } from '../people/set-member-status.js';
+import { updateMemberWithDb, roleChangePermission } from '../people/update-member.js';
 import { verifyLoginAndIssueClaimsWithDb } from '../auth/verify-login.js';
 import { issueMobileSessionWithDb } from '../auth/mobile-session.js';
 import { hashPassword } from '../auth/hash.js';
@@ -417,5 +426,192 @@ describe('L10 — public demo orgs', () => {
       if (prev === undefined) delete process.env['AEROOPS_DEMO_RESET_ENABLED'];
       else process.env['AEROOPS_DEMO_RESET_ENABLED'] = prev;
     }
+  });
+});
+
+describe('L11 — role-edit takeover closed', () => {
+  it('manager: demote owner → link → restore is refused at the demote', async () => {
+    const ownerB2 = await seedMember(orgAId, 'owner'); // a second owner, so last_owner doesn't mask the rule
+    const mgr = await seedMember(orgAId, 'manager');
+    const mgrSess = session(orgAId, mgr.id, 'manager');
+
+    expect(await updateMemberWithDb(db, mgrSess, { userId: ownerB2.id, role: 'student' })).toEqual({
+      ok: false,
+      reason: 'target_outranks',
+    });
+    // The owner is still an owner, so the link is still refused.
+    expect(await createLoginLinkWithDb(db, mgrSess, { userId: ownerB2.id })).toEqual({
+      ok: false,
+      reason: 'target_outranks',
+    });
+    const role = await withOrgContext(db, orgAId, (tx) =>
+      tx.select({ role: membership.role }).from(membership).where(eq(membership.userId, ownerB2.id)),
+    );
+    expect(role[0]!.role).toBe('owner');
+  });
+
+  it('manager cannot demote a peer manager, promote anyone to owner/manager, or change their own role', async () => {
+    const mgr = await seedMember(orgAId, 'manager');
+    const peer = await seedMember(orgAId, 'manager');
+    const disp = await seedMember(orgAId, 'dispatcher');
+    const mgrSess = session(orgAId, mgr.id, 'manager');
+    expect(await updateMemberWithDb(db, mgrSess, { userId: peer.id, role: 'renter' })).toEqual({ ok: false, reason: 'target_outranks' });
+    expect(await updateMemberWithDb(db, mgrSess, { userId: disp.id, role: 'manager' })).toEqual({ ok: false, reason: 'target_outranks' });
+    expect(await updateMemberWithDb(db, mgrSess, { userId: disp.id, role: 'owner' })).toEqual({ ok: false, reason: 'target_outranks' });
+    expect(await updateMemberWithDb(db, mgrSess, { userId: mgr.id, role: 'owner' })).toEqual({ ok: false, reason: 'self_not_allowed' });
+  });
+
+  it('manager can still move non-managing roles and edit a peer without changing the role; owner can do anything', async () => {
+    const mgr = await seedMember(orgAId, 'manager');
+    const peer = await seedMember(orgAId, 'manager');
+    const disp = await seedMember(orgAId, 'dispatcher');
+    const mgrSess = session(orgAId, mgr.id, 'manager');
+    expect((await updateMemberWithDb(db, mgrSess, { userId: disp.id, role: 'cfi' })).ok).toBe(true);
+    expect((await updateMemberWithDb(db, mgrSess, { userId: peer.id, fullName: 'Renamed', role: 'manager' })).ok).toBe(true);
+    expect((await updateMemberWithDb(db, mgrSess, { userId: mgr.id, fullName: 'Me', role: 'manager' })).ok).toBe(true);
+    expect((await updateMemberWithDb(db, ownerA(), { userId: peer.id, role: 'dispatcher' })).ok).toBe(true);
+    expect((await updateMemberWithDb(db, ownerA(), { userId: disp.id, role: 'manager' })).ok).toBe(true);
+  });
+
+  it('roleChangePermission: exhaustive over role triples', () => {
+    for (const actorRole of MEMBERSHIP_ROLES) {
+      if (!can(actorRole, 'people:manage')) continue;
+      for (const from of MEMBERSHIP_ROLES) {
+        for (const to of MEMBERSHIP_ROLES) {
+          const other = roleChangePermission({ userId: 'a', role: actorRole }, { userId: 'b', fromRole: from, toRole: to });
+          const expected =
+            from === to || actorRole === 'owner' || (!can(from, 'people:manage') && !can(to, 'people:manage'));
+          expect(other.ok, `${actorRole}: ${from} → ${to}`).toBe(expected);
+          const self = roleChangePermission({ userId: 'a', role: actorRole }, { userId: 'a', fromRole: from, toRole: to });
+          expect(self.ok, `${actorRole} self: ${from} → ${to}`).toBe(from === to || actorRole === 'owner');
+        }
+      }
+    }
+  });
+});
+
+describe('L12 — use-time re-check', () => {
+  it("a manager's link for a dispatcher dies when an owner promotes that dispatcher", async () => {
+    const mgr = await seedMember(orgAId, 'manager');
+    const d = await seedMember(orgAId, 'dispatcher');
+    await seedAuthCredential(db, orgAId, d.id, await hashPassword('dispatcher-pass-1'));
+    const token = tokenOf((await createLink(session(orgAId, mgr.id, 'manager'), d.id)).path);
+    expect((await checkLoginLinkWithDb(db, { slug: 'alpha', token })).ok).toBe(true);
+
+    expect((await updateMemberWithDb(db, ownerA(), { userId: d.id, role: 'owner' })).ok).toBe(true);
+
+    expect(await checkLoginLinkWithDb(db, { slug: 'alpha', token })).toEqual({ ok: false, reason: 'invalid_link' });
+    expect(await acceptLoginLinkWithDb(db, { slug: 'alpha', token, password: 'takeover-pass-1' })).toEqual({
+      ok: false,
+      reason: 'invalid_link',
+    });
+    expect(await verifyLoginAndIssueClaimsWithDb(db, { slug: 'alpha', email: d.email, password: 'dispatcher-pass-1' })).not.toBeNull();
+    expect(await verifyLoginAndIssueClaimsWithDb(db, { slug: 'alpha', email: d.email, password: 'takeover-pass-1' })).toBeNull();
+  });
+
+  it('any change of the target role kills the link, even a sideways one', async () => {
+    const r = await seedMember(orgAId, 'renter');
+    const token = tokenOf((await createLink(ownerA(), r.id)).path);
+    expect((await updateMemberWithDb(db, ownerA(), { userId: r.id, role: 'student' })).ok).toBe(true);
+    expect(await acceptLoginLinkWithDb(db, { slug: 'alpha', token, password: 'sideways-pass-1' })).toEqual({
+      ok: false,
+      reason: 'invalid_link',
+    });
+    expect(await credentialCount(orgAId, r.id)).toBe(0);
+  });
+
+  it("a link dies when its creator is demoted out of people:manage", async () => {
+    const mgr = await seedMember(orgAId, 'manager');
+    const r = await seedMember(orgAId, 'renter');
+    const token = tokenOf((await createLink(session(orgAId, mgr.id, 'manager'), r.id)).path);
+    expect((await updateMemberWithDb(db, ownerA(), { userId: mgr.id, role: 'dispatcher' })).ok).toBe(true);
+    expect(await acceptLoginLinkWithDb(db, { slug: 'alpha', token, password: 'demoted-pass-1' })).toEqual({
+      ok: false,
+      reason: 'invalid_link',
+    });
+  });
+
+  it('a link dies when its creator is deactivated', async () => {
+    const mgr = await seedMember(orgAId, 'manager');
+    const r = await seedMember(orgAId, 'renter');
+    const token = tokenOf((await createLink(session(orgAId, mgr.id, 'manager'), r.id)).path);
+    expect((await setMemberStatusWithDb(db, ownerA(), { userId: mgr.id, status: 'inactive' })).ok).toBe(true);
+    expect(await checkLoginLinkWithDb(db, { slug: 'alpha', token })).toEqual({ ok: false, reason: 'invalid_link' });
+    expect(await acceptLoginLinkWithDb(db, { slug: 'alpha', token, password: 'deactivated-pass-1' })).toEqual({
+      ok: false,
+      reason: 'invalid_link',
+    });
+  });
+
+  it("an owner's link survives unrelated changes (control)", async () => {
+    const r = await seedMember(orgAId, 'renter');
+    const token = tokenOf((await createLink(ownerA(), r.id)).path);
+    expect((await updateMemberWithDb(db, ownerA(), { userId: r.id, fullName: 'Still A Renter' })).ok).toBe(true);
+    expect((await acceptLoginLinkWithDb(db, { slug: 'alpha', token, password: 'control-pass-1' })).ok).toBe(true);
+  });
+});
+
+describe('L13 — email case', () => {
+  it('a member added with a mixed-case email can sign in after using the link', async () => {
+    const added = await addMemberWithDb(db, ownerA(), {
+      email: '  Mixed.Case@Login-Link.example ',
+      fullName: 'Mixed Case',
+      role: 'renter',
+    });
+    if (!added.ok) throw new Error('addMember failed');
+    expect(added.member.email).toBe('mixed.case@login-link.example');
+
+    const token = tokenOf((await createLink(ownerA(), added.member.userId)).path);
+    const accepted = await acceptLoginLinkWithDb(db, { slug: 'alpha', token, password: 'mixed-case-pass-1' });
+    expect(accepted).toEqual({ ok: true, email: 'mixed.case@login-link.example' });
+
+    for (const typed of ['Mixed.Case@Login-Link.example', 'mixed.case@login-link.example']) {
+      expect(
+        await verifyLoginAndIssueClaimsWithDb(db, { slug: 'alpha', email: typed, password: 'mixed-case-pass-1' }),
+      ).toMatchObject({ userId: added.member.userId, role: 'renter' });
+    }
+  });
+
+  it('a legacy mixed-case row is lowercased (audited) when a link is created, and can then sign in', async () => {
+    const id = await withOrgContext(db, orgAId, async (tx) => {
+      const [u] = await tx.insert(appUser).values({ orgId: orgAId, email: 'Legacy.Row@Login-Link.example' }).returning();
+      await tx.insert(membership).values({ orgId: orgAId, userId: u!.id, role: 'student' });
+      return u!.id;
+    });
+    const link = await createLink(ownerA(), id);
+    const token = tokenOf(link.path);
+    expect(await checkLoginLinkWithDb(db, { slug: 'alpha', token })).toMatchObject({
+      ok: true,
+      email: 'legacy.row@login-link.example',
+    });
+    expect((await acceptLoginLinkWithDb(db, { slug: 'alpha', token, password: 'legacy-pass-1' })).ok).toBe(true);
+    expect(
+      await verifyLoginAndIssueClaimsWithDb(db, { slug: 'alpha', email: 'Legacy.Row@Login-Link.example', password: 'legacy-pass-1' }),
+    ).toMatchObject({ userId: id });
+
+    const audit = await withOrgContext(db, orgAId, (tx) =>
+      tx
+        .select()
+        .from(auditLog)
+        .where(and(eq(auditLog.entityId, id), eq(auditLog.action, 'member.login_link_created'))),
+    );
+    expect(audit[0]!.metadata).toMatchObject({
+      emailNormalized: { from: 'Legacy.Row@Login-Link.example', to: 'legacy.row@login-link.example' },
+    });
+  });
+
+  it("refuses 'email_conflict' when another member already holds the lowercase address", async () => {
+    const { mixedId } = await withOrgContext(db, orgAId, async (tx) => {
+      const [lower] = await tx.insert(appUser).values({ orgId: orgAId, email: 'dupe@login-link.example' }).returning();
+      await tx.insert(membership).values({ orgId: orgAId, userId: lower!.id, role: 'renter' });
+      const [mixed] = await tx.insert(appUser).values({ orgId: orgAId, email: 'Dupe@Login-Link.example' }).returning();
+      await tx.insert(membership).values({ orgId: orgAId, userId: mixed!.id, role: 'renter' });
+      return { mixedId: mixed!.id };
+    });
+    expect(await createLoginLinkWithDb(db, ownerA(), { userId: mixedId })).toEqual({ ok: false, reason: 'email_conflict' });
+    const row = await withOrgContext(db, orgAId, (tx) =>
+      tx.select({ email: appUser.email }).from(appUser).where(eq(appUser.id, mixedId)),
+    );
+    expect(row[0]!.email).toBe('Dupe@Login-Link.example');
   });
 });

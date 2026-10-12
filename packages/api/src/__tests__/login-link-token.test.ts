@@ -25,6 +25,8 @@ const CLAIMS = {
   userId: '11111111-1111-4111-8111-111111111111',
   orgId: '22222222-2222-4222-8222-222222222222',
   fp: credentialFingerprint(null),
+  by: '33333333-3333-4333-8333-333333333333',
+  role: 'renter',
 };
 
 let originalSecret: string | undefined;
@@ -120,6 +122,16 @@ describe('signLoginLinkToken / verifyLoginLinkToken', () => {
       maxAge: 60,
     });
     expect(await verifyLoginLinkToken(missingFp)).toBeNull();
+
+    // A token minted without the creator / target-role claims (the shape
+    // before the accept-time privilege re-check) is refused outright.
+    const missingByRole = await encode({
+      token: { purpose: LOGIN_LINK_PURPOSE, userId: CLAIMS.userId, orgId: CLAIMS.orgId, fp: CLAIMS.fp },
+      secret: TEST_SECRET,
+      salt: 'aeroops.login-link',
+      maxAge: 60,
+    });
+    expect(await verifyLoginLinkToken(missingByRole)).toBeNull();
   });
 
   it('a mobile access token (same secret) is never accepted as a login link', async () => {
