@@ -4,6 +4,30 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-10-12 — Login links
+
+Members added on the People page can now get a login.
+
+**Added**
+
+- **Create login link / Create reset link** on a member's profile (owners and managers). It
+  makes a link to `/o/<slug>/login-link/<token>` that is valid for 7 days and works once. The
+  operator copies it and sends it themselves; AeroOps sends no email. The member opens it,
+  chooses a password (same rules as signup: 10–200 characters), and signs in with their email.
+- Only an owner can create a link for an owner or manager, so a manager cannot take over a
+  more privileged account. Owners can make one for themselves to change their own password.
+  Deactivated members cannot get or use a link. Links are off on the shared demo orgs.
+- Using a link replaces the member's password, makes every other link for them stop working,
+  and signs their phones out (mobile refresh sessions are revoked). Both creating and using a
+  link are written to the activity log; the link itself is never stored.
+
+**Notes**
+
+- No migration. The token is signed with `AUTH_SECRET` and carries a fingerprint of the
+  member's current password hash, which is what makes it single-use.
+- Web sessions are stateless JWTs, so a browser that is already signed in stays signed in
+  until its session expires (up to 8 hours) after a reset. See `docs/specs/login-links.md`.
+
 ## 2026-10-10 — Money features removed
 
 AeroOps is now an operations tool only: scheduling, dispatch, fleet, maintenance, training,

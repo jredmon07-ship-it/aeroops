@@ -3,8 +3,9 @@
  *
  * addMember — creates an app_user + membership for a new org member.
  * NO auth_credential is created. The member is a roster entry (taggable,
- * role-assignable, deactivatable) that CANNOT log in until a future
- * invite/set-password slice. [AUTH-DECISION / Conductor 2026-06-19]
+ * role-assignable, deactivatable) with no password; they get a login when an
+ * owner/manager creates a login link for them (people/login-link.ts) and they
+ * set a password with it. [AUTH-DECISION / Conductor 2026-06-19]
  *
  * GUARANTEES:
  *   - requireCapability('people:manage') FIRST (owner/manager only).
@@ -110,7 +111,7 @@ async function _addMemberImpl(
         email:    input.email,
         fullName: input.fullName ?? null,
         role:     input.role,
-        note:     'Roster entry only — no login until invite/set-password slice.',
+        note:     'Roster entry — no password until a login link is used.',
       },
     });
 

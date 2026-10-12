@@ -76,21 +76,22 @@ const BUILD_PHASE_PLACEHOLDER = 'build-time-placeholder-not-a-real-secret-replac
  *
  * Throws synchronously (fast, clear error) rather than minting a bad token.
  * Called at the top of signMobileToken and verifyMobileToken so failures are
- * always explicit.
+ * always explicit. Also used by login-link-token.ts (same secret, its own
+ * salt) — `label` only names the caller in the error message.
  *
  * @throws Error if AUTH_SECRET is unset or is the placeholder.
  */
-function getSecret(): string {
+export function getSecret(label = 'signMobileToken'): string {
   const secret = process.env['AUTH_SECRET'];
   if (!secret) {
     throw new Error(
-      '[signMobileToken] AUTH_SECRET is not set. ' +
+      `[${label}] AUTH_SECRET is not set. ` +
         'Set it in .env (see .env.example) — never hardcode the secret.',
     );
   }
   if (secret === BUILD_PHASE_PLACEHOLDER) {
     throw new Error(
-      '[signMobileToken] AUTH_SECRET is the build-time placeholder. ' +
+      `[${label}] AUTH_SECRET is the build-time placeholder. ` +
         'This value must not be used at runtime — it is a known string and ' +
         'allows JWT forgery. Set a real secret in .env.',
     );

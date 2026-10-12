@@ -159,7 +159,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
       { kind: 'p', text: 'You map CSV columns to AeroOps fields and see a full preview — nothing is created until you confirm the import.' },
       { kind: 'ul', items: [
         'Members import as roster entries via the same path as adding a member by hand. They start with the least-privileged renter role — promote anyone who needs more access afterward from People.',
-        'Imported members do not get a login automatically; that’s a separate step your operator handles later.',
+        'Imported members do not get a login automatically. Give someone a login from their profile with Create login link.',
         'This importer brings over roster and fleet only.',
       ] },
     ],
@@ -323,9 +323,10 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     slug: 'managing-people',
     title: 'Managing your roster and member tags',
     category: 'people-fleet',
-    summary: 'Add members, set roles and status, and use free-text tags.',
+    summary: 'Add members, give them logins, set roles and status, and use free-text tags.',
     body: [
       { kind: 'p', text: 'The People page lists everyone at your organization with their role, status, and any tags. Adding someone here creates a roster entry — it does not create a login on its own.' },
+      { kind: 'p', text: 'To give a member a login, an owner or manager opens their profile and uses Create login link (Create reset link if they already have a password). Copy the link and send it to them yourself — AeroOps does not send email. The link works once and expires after 7 days; opening it lets them choose a password, then they sign in with their email. Managers can create links for everyone except owners and other managers; only an owner can create one for an owner or manager.' },
       { kind: 'p', text: 'A member’s detail page shows the reservations they’ve booked, flights they’ve been dispatched as pilot, and their training progress in one place.' },
       { kind: 'p', text: 'Tags are free text your operator defines (e.g. "night-qualified", "checked out: complex") and can be used by a booking eligibility rule on an aircraft. There’s a built-in guard against removing the last owner and against deactivating your own account.' },
       { kind: 'note', text: 'Tags are operator free text, not a computed FAA currency, medical, or Part 61/141 determination.' },

@@ -4,8 +4,9 @@
  * people:manage only (owner/manager). Server-side gate in addMemberAction.
  *
  * Writes app_user + membership ONLY — NO auth_credential.
- * The added member is a ROSTER ENTRY that cannot log in until a future
- * invite/set-password slice. The UI clearly says "no login yet."
+ * The added member has no password yet. To give them a login, open their
+ * detail page and use "Create login link" (login-link-button.tsx); the UI
+ * says so here.
  *
  * [AUTH-DECISION]: no password, no credential, no auth-boundary crossing.
  * [VERIFY-6-A]: tag field is NOT in this dialog (tags have their own editor).
@@ -146,12 +147,12 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
             <DialogTitle>Add roster member</DialogTitle>
           </DialogHeader>
 
-          {/* [AUTH-DECISION] no-login notice */}
+          {/* [AUTH-DECISION] how-they-get-a-login notice */}
           <div className="flex items-start gap-2 rounded-md border border-brand/20 bg-brand/5 px-3 py-2.5 text-sm text-brand-ink">
             <Info className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
             <span>
-              <strong>Roster entry — no login yet.</strong> This member will be added to the roster
-              but cannot log in until a future invite slice is built.
+              <strong>No login yet.</strong> To let them sign in, open their profile after adding
+              them and use <strong>Create login link</strong>, then send them the link.
             </span>
           </div>
 

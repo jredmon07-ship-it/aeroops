@@ -45,6 +45,7 @@ import {
 } from '@aeroops/core';
 import { getDb } from '../db.js';
 import { hashPassword } from './hash.js';
+import { newPasswordSchema } from './password-policy.js';
 import { isUniqueViolation } from '../dispatch/internal.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { extractRows } from '../db-rows.js';
@@ -56,10 +57,7 @@ const createOrgInputSchema = z.object({
   orgName: z.string().trim().min(2, { message: 'Enter your operation name' }).max(120),
   ownerFullName: z.string().trim().min(1, { message: 'Enter your name' }).max(120),
   email: z.string().trim().toLowerCase().email({ message: 'Enter a valid email address' }).max(254),
-  password: z
-    .string()
-    .min(10, { message: 'Use at least 10 characters' })
-    .max(200, { message: 'Password is too long' }),
+  password: newPasswordSchema,
   acceptedTerms: z.literal(true, { message: 'You must accept the Terms and Privacy Policy' }),
   /** Honeypot — bots fill it, humans leave it empty. */
   website: z.string().max(0).optional(),

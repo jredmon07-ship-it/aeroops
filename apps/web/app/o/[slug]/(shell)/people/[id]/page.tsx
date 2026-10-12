@@ -8,7 +8,8 @@
  *   Permission-denied — redirect to no-access via requireCapability.
  *   Not-found         — 404-style empty state (not a 500).
  *   Loading           — Suspense skeleton.
- *   Populated         — header (status chip + "no login" hint);
+ *   Populated         — header (status chip + "no login yet" hint +
+ *                       Create login/reset link if people:manage);
  *                       Contact card; Tags card (add/remove if people:manage);
  *                       Upcoming reservations booked by them (created_by) [VERIFY-6-C];
  *                       Recent dispatch as pilot;
@@ -33,7 +34,9 @@ import {
   Mail,
 } from 'lucide-react';
 import { auth } from '@/auth';
-import { requireCapability, hasCapability } from '@aeroops/api';
+import { requireCapability, hasCapability, loginLinkPermission } from '@aeroops/api';
+import type { AppSession } from '@aeroops/api';
+import { isMembershipRole } from '@aeroops/core';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -254,9 +257,11 @@ interface DetailContentProps {
   userId: string;
   slug: string;
   canManage: boolean;
+  /** The viewer — for the UI-only login-link permission check. */
+  viewer: Pick<AppSession, 'userId' | 'role'>;
 }
 
-async function DetailContent({ userId, slug, canManage }: DetailContentProps) {
+async function DetailContent({ userId, slug, canManage, viewer }: DetailContentProps) {
   const result = await getMemberDetailAction({ userId });
 
   if ('error' in result) {
@@ -297,6 +302,15 @@ async function DetailContent({ userId, slug, canManage }: DetailContentProps) {
 
   const member = result.member;
 
+  // UI only — createLoginLink re-checks people:manage + this rule server-side.
+  const canCreateLoginLink =
+    canManage &&
+    isMembershipRole(member.role) &&
+    loginLinkPermission(
+      { userId: viewer.userId, role: viewer.role },
+      { userId: member.userId, role: member.role },
+    ).ok;
+
   // Avatar is best-effort: any failure (or migration 0048 unapplied) just
   // renders initials — never blocks or errors the detail page.
   let avatarDataUrl: string | null = null;
@@ -325,6 +339,7 @@ async function DetailContent({ userId, slug, canManage }: DetailContentProps) {
         member={member}
         slug={slug}
         canManage={canManage}
+        canCreateLoginLink={canCreateLoginLink}
         avatarDataUrl={avatarDataUrl}
         avatarAvailable={avatarAvailable}
       />
@@ -388,8 +403,9 @@ export default async function MemberDetailPage({ params }: MemberDetailPageProps
   const session = await auth();
 
   // ── RBAC gate ──────────────────────────────────────────────────────────────
+  let viewer: AppSession;
   try {
-    requireCapability(session, 'people:access');
+    viewer = requireCapability(session, 'people:access');
   } catch (err) {
     const action = mapAuthErrorToResponse(err);
     if (action === 'forbidden') redirect(`/o/${slug}/no-access?reason=insufficient_role`);
@@ -401,7 +417,12 @@ export default async function MemberDetailPage({ params }: MemberDetailPageProps
 
   return (
     <Suspense fallback={<DetailSkeleton />}>
-      <DetailContent userId={id} slug={slug} canManage={canManage} />
+      <DetailContent
+        userId={id}
+        slug={slug}
+        canManage={canManage}
+        viewer={{ userId: viewer.userId, role: viewer.role }}
+      />
     </Suspense>
   );
 }

@@ -3,7 +3,8 @@
  *
  * Owns the mutable member state (after Edit / Status toggle / Tag changes)
  * and renders:
- *   - Identity header (status chip + role badge + "no login" hint)
+ *   - Identity header (status chip + role badge + "no login yet" hint)
+ *   - Create login link / Create reset link (people:manage + allowed target)
  *   - Edit dialog (people:manage)
  *   - Status toggle (people:manage)
  *   - Tags card (with TagEditor)
@@ -25,6 +26,7 @@ import { updateMemberAvatarAction } from '../actions';
 import { EditMemberDialog } from './edit-member-dialog';
 import { StatusToggle } from './status-toggle';
 import { TagEditor } from './tag-editor';
+import { LoginLinkButton } from './login-link-button';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { actionErrorMessage } from '@/lib/action-feedback';
@@ -63,6 +65,11 @@ interface MemberDetailClientProps {
   member: SerializedMemberDetail;
   slug: string;
   canManage: boolean;
+  /**
+   * UI only: may this viewer create a login link for this member
+   * (loginLinkPermission). The real gate is inside createLoginLink.
+   */
+  canCreateLoginLink: boolean;
   /** null when no photo is set (or migration 0048 is unapplied). */
   avatarDataUrl: string | null;
   /** false while migration 0048 is unapplied — hides the upload control. */
@@ -75,6 +82,7 @@ export function MemberDetailClient({
   member: initialMember,
   slug,
   canManage,
+  canCreateLoginLink,
   avatarDataUrl: initialAvatarDataUrl,
   avatarAvailable,
 }: MemberDetailClientProps) {
@@ -132,10 +140,15 @@ export function MemberDetailClient({
               <StatusChip status={member.status} />
               <RoleBadge role={member.role} />
             </div>
-            {/* [AUTH-DECISION]: no-login hint — only for members without a credential. */}
+            {/* No-login hint — only for members without a credential. */}
             {!member.hasLogin && (
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                Roster entry — no login yet. Login access requires a future invite slice.
+                No login yet.
+                {canManage && member.status === 'active'
+                  ? canCreateLoginLink
+                    ? ' Use Create login link and send it to them so they can set a password.'
+                    : ' Ask an owner to create a login link for them.'
+                  : ''}
               </p>
             )}
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -166,7 +179,14 @@ export function MemberDetailClient({
         </div>
 
         {canManage && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {canCreateLoginLink && member.status === 'active' && (
+              <LoginLinkButton
+                userId={member.userId}
+                displayName={member.displayName}
+                hasLogin={member.hasLogin}
+              />
+            )}
             <EditMemberDialog member={member} onSuccess={handleMemberUpdate} />
             <StatusToggle member={member} onSuccess={handleMemberUpdate} />
           </div>

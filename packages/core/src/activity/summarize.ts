@@ -229,6 +229,14 @@ export function summarizeAuditEntry({ action, entityType, metadata }: SummarizeA
       if (after) return `Member status changed to ${after}`;
       return 'Member status changed';
     }
+    case 'member.login_link_created':
+      return safeString(metadata, 'mode') === 'reset'
+        ? 'Password reset link created for member'
+        : 'Login link created for member';
+    case 'member.login_link_accepted':
+      return safeString(metadata, 'mode') === 'reset'
+        ? 'Member reset their password with a login link'
+        : 'Member set their password with a login link';
     case 'member.tag_added': {
       const tag = safeString(metadata, 'tag');
       if (tag) return `Tag added to member: "${tag}"`;

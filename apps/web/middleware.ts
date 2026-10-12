@@ -7,7 +7,8 @@
  *   2. If a session exists but session.slug !== URL slug, the user is
  *      redirected to /o/{session.slug}/login. This prevents one tenant's
  *      session from being used to access another tenant's routes.
- *   3. /o/[slug]/login and /o/[slug]/no-access are public (no session required).
+ *   3. /o/[slug]/login, /o/[slug]/login-link/<token> and /o/[slug]/no-access
+ *      are public (no session required).
  *   4. The DB is NEVER queried here — all checks rely on the signed JWT only.
  *
  * EDGE RUNTIME NOTE:
@@ -71,10 +72,12 @@ export default auth(function middleware(
   const urlSlug = orgRouteMatch[1]!;
   const subPath = orgRouteMatch[2] ?? '';
 
-  // Public tenant sub-routes: login, no-access
+  // Public tenant sub-routes: login, login-link (set a password from a signed
+  // link — the token IS the auth, verified server-side), no-access
   const isPublicSubRoute =
     subPath === '/login' ||
     subPath.startsWith('/login/') ||
+    subPath.startsWith('/login-link/') ||
     subPath === '/no-access' ||
     subPath.startsWith('/no-access/');
 

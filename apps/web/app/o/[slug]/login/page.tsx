@@ -4,6 +4,8 @@
  * Server component: resolves the org by slug server-side before rendering.
  *
  * States rendered:
+ *   0. ?notice=password-set — a success banner above the form (after a login
+ *      link's set-password form)
  *   1. unknown-org   — org not found for slug (terminal error, no form)
  *   2. org-suspended — org exists but is not active (terminal error, no form)
  *   3. idle/ready    — org is active; render the credentials form
@@ -29,6 +31,7 @@ import { LoginForm } from './login-form';
 
 interface LoginPageProps {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ notice?: string | string[] }>;
 }
 
 interface DemoLoginEntry {
@@ -51,8 +54,11 @@ const DEMO_ORG_LOGINS: Record<string, DemoLoginEntry[]> = {
   ],
 };
 
-export default async function LoginPage({ params }: LoginPageProps) {
+export default async function LoginPage({ params, searchParams }: LoginPageProps) {
   const { slug } = await params;
+  // ?notice=password-set — arriving from a login link's set-password form.
+  const notice = (await searchParams)?.notice;
+  const passwordJustSet = notice === 'password-set';
   const org = await resolveOrgForPage(slug);
 
   // ── Unknown org (terminal state — no form) ──────────────────────────────
@@ -122,6 +128,13 @@ export default async function LoginPage({ params }: LoginPageProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {passwordJustSet && (
+              <Alert role="status" className="mb-4">
+                <AlertDescription>
+                  Your password is saved. Sign in with your email and new password.
+                </AlertDescription>
+              </Alert>
+            )}
             {demoLogins && (
               <div className="mb-4 rounded-md border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-950/40 px-3 py-2.5 text-sm">
                 <p className="font-medium text-sky-900 dark:text-sky-200">Live demo — sign in with:</p>

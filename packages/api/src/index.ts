@@ -623,7 +623,8 @@ export type {
 
 // ─── Slice 6.2 — People / Members (PEOPLE-6.2) ────────────────────────────────
 // Roster management: list, detail, update identity/role, toggle status, tags,
-// add new member (roster-only — NO auth_credential). people:access = read;
+// add new member (roster entry — NO auth_credential; a login comes from a
+// login link, below). people:access = read;
 // people:manage = owner/manager mutations.
 // *WithDb forms are for test code only (inject a pglite client).
 //
@@ -656,6 +657,40 @@ export type { RemoveMemberTagInput } from './people/remove-member-tag.js';
 
 export { addMember, addMemberWithDb } from './people/add-member.js';
 export type { AddMemberInput } from './people/add-member.js';
+
+// ─── Login links — how a member gets (or resets) a login ─────────────────────
+// Stateless signed single-use link (AUTH_SECRET, own salt + purpose, 7 days,
+// credential fingerprint). createLoginLink: people:manage + owner-only for
+// owner/manager targets; audited. checkLoginLink / acceptLoginLink:
+// UNAUTHENTICATED (the token is the auth); accept sets/replaces the
+// auth_credential with the signup password policy; audited. NO migration.
+export {
+  createLoginLink,
+  createLoginLinkWithDb,
+  checkLoginLink,
+  checkLoginLinkWithDb,
+  acceptLoginLink,
+  acceptLoginLinkWithDb,
+  loginLinkPermission,
+} from './people/login-link.js';
+export type {
+  LoginLinkMode,
+  LoginLinkRefusal,
+  CreateLoginLinkInput,
+  CreateLoginLinkResult,
+  CheckLoginLinkResult,
+  AcceptLoginLinkInput,
+  AcceptLoginLinkResult,
+  LoginLinkRef,
+} from './people/login-link.js';
+export {
+  signLoginLinkToken,
+  verifyLoginLinkToken,
+  credentialFingerprint,
+  LOGIN_LINK_MAX_AGE_SECONDS,
+} from './auth/login-link-token.js';
+export type { LoginLinkClaims } from './auth/login-link-token.js';
+export { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from './auth/password-policy.js';
 
 // People result/IO types.
 export type {

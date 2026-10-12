@@ -115,8 +115,9 @@ export interface MemberDetail {
   /**
    * Whether this member has login access (an auth_credential row EXISTS).
    * Existence only — the password hash is NEVER read or exposed. Drives the
-   * "Roster entry — no login yet" hint ([AUTH-DECISION]); a member added via
-   * addMember has no credential until a future invite/set-password slice.
+   * "No login yet" hint and the Create login link / Create reset link label;
+   * a member added via addMember has no credential until they use a login
+   * link (people/login-link.ts).
    */
   hasLogin: boolean;
   /** Free-text operator labels only. [VERIFY-6-A] */

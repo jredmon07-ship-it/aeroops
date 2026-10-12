@@ -16,7 +16,8 @@
  *
  * [VERIFY-6-A]: tags are free-text only — no FAA/currency/medical meaning.
  * [VERIFY-6-C]: upcomingReservations = created_by, not flight assignment.
- * [VERIFY-6-D]: status is a roster flag, NOT a login gate in this slice.
+ * [VERIFY-6-D]: status is a roster flag, NOT a login gate in this slice
+ *   (deactivated members can't get a NEW login link, though).
  */
 'use server';
 
@@ -35,6 +36,7 @@ import {
   addMemberTag,
   removeMemberTag,
   addMember,
+  createLoginLink,
   getPilotLog,
   exportPilotLogCsv,
   addMemberExpiration,
@@ -60,6 +62,7 @@ import type {
   AddMemberTagInput,
   RemoveMemberTagInput,
   AddMemberInput,
+  CreateLoginLinkResult,
   MemberCursor,
   MemberExpirationView,
   MemberExpirationStatus,
@@ -387,6 +390,31 @@ export async function addMemberAction(
     const result: AddMemberResult = await addMember(session, input);
     if (!result.ok) return { ok: false, reason: result.reason };
     return { ok: true, member: serializeMemberDetail(result.member) };
+  } catch (err) {
+    const authErr = mapAuthError(err);
+    if (authErr) return authErr;
+    if (isValidationError(err)) return { error: 'validation', message: err.message };
+    return { error: 'server' };
+  }
+}
+
+// ─── createLoginLinkAction ─────────────────────────────────────────────────────
+// people:manage + the owner-only rule for owner/manager targets are enforced
+// inside createLoginLink. Returns a PATH; the client prefixes its own origin.
+// The token is a credential — never logged here.
+
+export type CreateLoginLinkActionResult =
+  | CreateLoginLinkResult
+  | AuthErrorResult
+  | ValidationErrorResult
+  | ServerErrorResult;
+
+export async function createLoginLinkAction(input: {
+  userId: string;
+}): Promise<CreateLoginLinkActionResult> {
+  const session = await auth();
+  try {
+    return await createLoginLink(session, input);
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;

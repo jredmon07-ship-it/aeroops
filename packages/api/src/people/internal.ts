@@ -76,7 +76,8 @@ export async function assembleMemberDetail(
   if (!identity) return null;
 
   // ── 1b. Login presence (EXISTS only — the password hash is NEVER read) ────
-  // Drives the "no login yet" hint. RLS-scoped; we check existence of an
+  // Drives the "no login yet" hint + login-link button label. RLS-scoped;
+  // we check existence of an
   // auth_credential row, never its contents (auth boundary stays clean).
   const credResult = await tx.execute(sql`
     SELECT EXISTS (

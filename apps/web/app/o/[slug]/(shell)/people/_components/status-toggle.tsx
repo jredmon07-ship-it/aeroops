@@ -133,7 +133,8 @@ export function StatusToggle({ member, onSuccess }: StatusToggleProps) {
 
             {/* [VERIFY-6-D]: status flag disclaimer */}
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Note: roster status is a flag only and does not affect login access in this release.
+              Note: roster status is a flag. It does not block an existing password in this
+              release, but a deactivated member can&apos;t use or be sent a login link.
             </p>
           </div>
 

@@ -52,6 +52,8 @@ const KNOWN_ACTIONS = [
   'member.created',
   'member.updated',
   'member.status_changed',
+  'member.login_link_created',
+  'member.login_link_accepted',
   'member.tag_added',
   'member.tag_removed',
   'training.course_created',
@@ -463,6 +465,17 @@ describe('summarizeAuditEntry — member actions', () => {
   it('member.status_changed with after.status', () => {
     const r = summarizeAuditEntry({ action: 'member.status_changed', entityType: 'app_user', metadata: { before: { status: 'active' }, after: { status: 'inactive' } } });
     expect(r).toBe('Member status changed to inactive');
+  });
+
+  it('member.login_link_created invite / reset', () => {
+    expect(summarizeAuditEntry({ action: 'member.login_link_created', entityType: 'app_user', metadata: { mode: 'invite', expiresAt: '2026-10-19T00:00:00.000Z' } })).toBe('Login link created for member');
+    expect(summarizeAuditEntry({ action: 'member.login_link_created', entityType: 'app_user', metadata: { mode: 'reset' } })).toBe('Password reset link created for member');
+    expect(summarizeAuditEntry({ action: 'member.login_link_created', entityType: 'app_user', metadata: null })).toBe('Login link created for member');
+  });
+
+  it('member.login_link_accepted invite / reset', () => {
+    expect(summarizeAuditEntry({ action: 'member.login_link_accepted', entityType: 'app_user', metadata: { mode: 'invite', mobileSessionsRevoked: 0 } })).toBe('Member set their password with a login link');
+    expect(summarizeAuditEntry({ action: 'member.login_link_accepted', entityType: 'app_user', metadata: { mode: 'reset', mobileSessionsRevoked: 2 } })).toBe('Member reset their password with a login link');
   });
 
   it('member.tag_added with tag', () => {
