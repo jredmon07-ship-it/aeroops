@@ -3,44 +3,12 @@
 Step-by-step instructions for standing up a real Postgres-backed deployment
 and optionally hosting a public demo.
 
-> **Audience:** non-expert operators who want a running instance.
-> Follow each step in order. The migration step is explicitly human-gated —
-> you must review the SQL and confirm before anything touches the database.
-
----
-
-## Quick redeploy (already deployed once)
-
-You already have a Vercel deployment + a Neon demo DB, and want to ship the
-current branch (`slice/aerostudy-integration` — club mode, avatars, signup,
-charts, and the month-of-activity demo). Run this in your terminal
-(the branch is already pushed). `psql` must be installed, or clear the demo
-orgs in the Neon SQL console instead.
-
-```bash
-cd /path/to/AeroOps
-
-# 1. Load YOUR Neon OWNER connection string (never commit it; not in git).
-export DATABASE_URL='postgres://neondb_owner:PASSWORD@HOST.neon.tech/neondb?sslmode=require'
-
-# 2. Apply the new migrations (0046–0050). Dry-run first — it applies nothing.
-pnpm db:migrate
-CONFIRM_APPLY=1 pnpm db:migrate:apply
-
-# 3. Wipe the old demo orgs so the seed's "empty demo DB" guard passes
-#    (fictional data only; org_id FKs are ON DELETE CASCADE).
-psql "$DATABASE_URL" -c "DELETE FROM org WHERE slug IN ('alpha','bravo');"
-
-# 4. Reseed both orgs fresh (with the month of flights).
-ALLOW_DEMO_SEED=1 pnpm db:seed:demo
-
-# 5. Deploy the code — Vercel auto-builds when main updates.
-git push origin slice/aerostudy-integration:main
-```
-
-Then `https://<your-app>.vercel.app/o/bravo/login` (owner@bravo.aero / demo1234)
-and `/o/alpha/login` (owner@alpha.aero / demo1234) go live. If any step errors, capture the error text (never the connection
-string) and fix before continuing. The full first-time guide is below.
+> **Audience:** operators who want a running instance. For a shorter,
+> tested walk-through (local run, creating your operation, staff logins,
+> Vercel + Neon), start with [`SELF-HOSTING.md`](./SELF-HOSTING.md). This file
+> is the reference: roles, migrations, environment variables, demo mode,
+> rollback. The migration step is explicitly human-gated — you review the SQL
+> and confirm before anything touches the database.
 
 ---
 
@@ -76,7 +44,8 @@ migrations. Watch the Actions tab; it must be green before you merge anything.
 2. Copy the **Owner connection string** (looks like
    `postgres://neondb_owner:PASS@HOSTNAME/neondb?sslmode=require`).
    This is the **DDL role** — used only for migrations and seeding.
-3. Keep this string secret; it goes in your local `.env.local`, not in the repo.
+3. Keep this string secret. You pass it on the command line when running
+   migrations; it never goes in the app's environment or the repo.
 
 ### Option B: Supabase
 
@@ -112,8 +81,9 @@ After running migrations (step 4), you set `aeroops_app`'s password and use
 that connection string for the application:
 
 ```bash
-# Run once, with the owner/DDL connection string, after migrations are applied:
-psql "$OWNER_DATABASE_URL" -c "ALTER ROLE aeroops_app PASSWORD 'choose-a-strong-password';"
+# Run once, with the owner/DDL connection string, after migrations are applied.
+# Migration 0000 creates the role NOLOGIN, so LOGIN is required here too:
+psql "$OWNER_DATABASE_URL" -c "ALTER ROLE aeroops_app WITH LOGIN PASSWORD 'choose-a-strong-password';"
 ```
 
 Then the **app** `DATABASE_URL` is:
@@ -127,17 +97,16 @@ postgres://aeroops_app:choose-a-strong-password@HOSTNAME:5432/DBNAME?sslmode=req
 
 ### 4a. Set your environment
 
-Create or edit `.env.local` in the repo root (git-ignored; never commit it):
-
-```
-# Owner/DDL role — used ONLY for migrations and seeding
-DATABASE_URL=postgres://neondb_owner:PASS@HOSTNAME/neondb?sslmode=require
-```
+The migration runner reads `DATABASE_URL` from the shell only (it does not load
+any `.env` file). Pass the **owner/DDL** string on the command line, as in 4b
+and 4c. Prefer the inline `DATABASE_URL='...' pnpm ...` form over `export`: an
+exported owner string also overrides `apps/web/.env.local` if you start the app
+from the same terminal.
 
 ### 4b. Preview the pending migrations (dry run — safe default)
 
 ```bash
-pnpm db:migrate
+DATABASE_URL='postgres://neondb_owner:PASS@HOSTNAME/neondb?sslmode=require' pnpm db:migrate
 ```
 
 This prints the list of pending migration files and exits **without applying
@@ -169,20 +138,24 @@ they are **never run automatically**.
 Only after reviewing the SQL:
 
 ```bash
-CONFIRM_APPLY=1 pnpm db:migrate:apply
+DATABASE_URL='postgres://neondb_owner:PASS@HOSTNAME/neondb?sslmode=require' CONFIRM_APPLY=1 pnpm db:migrate:apply
 ```
 
 Both the `--apply` flag (in the script) and `CONFIRM_APPLY=1` are required.
 Each migration runs in its own transaction with an atomic `schema_migrations`
 record — a failed migration rolls back and is not marked as applied.
 
-### 4d. Set the aeroops_app password
+### 4d. Let aeroops_app log in and set its password
 
-Migration `0000` creates the `aeroops_app` role with no password. Set one now:
+Migration `0000` creates the `aeroops_app` role with no password and **without
+LOGIN**. Grant both now (letters and digits only keep the URL simple —
+`openssl rand -hex 24`):
 
 ```bash
-psql "$DATABASE_URL" -c "ALTER ROLE aeroops_app PASSWORD 'choose-a-strong-password';"
+psql 'OWNER_CONNECTION_STRING' -c "ALTER ROLE aeroops_app WITH LOGIN PASSWORD 'choose-a-strong-password';"
 ```
+
+Without `LOGIN` the app fails with `role "aeroops_app" is not permitted to log in`.
 
 Now build your **app** `DATABASE_URL` (aeroops_app role, not owner):
 ```
@@ -227,12 +200,22 @@ click-through walkthrough:
 
 The seed is **not idempotent** — do not run it twice on the same database.
 
+On a fresh clone `pnpm db:seed:demo` fails with `tsx: command not found`
+(`tsx` is not a declared dependency of `@aeroops/api`). Run it through
+`pnpm dlx` instead:
+
+```bash
+DATABASE_URL='OWNER_CONNECTION_STRING' ALLOW_DEMO_SEED=1 \
+  pnpm --filter @aeroops/api exec pnpm dlx tsx@4.19.2 scripts/seed-demo.ts
+```
+
 ---
 
 ## Step 6 — Set environment variables
 
 For a Vercel deployment, go to Project → Settings → Environment Variables.
-For a local production run, set these in `.env.local` (never commit them).
+For a local run, set these in `apps/web/.env.local` (never commit it). The app
+does not read a `.env.local` in the repo root.
 
 ### Required
 
@@ -240,7 +223,13 @@ For a local production run, set these in `.env.local` (never commit them).
 |---|---|---|
 | `DATABASE_URL` | `postgres://aeroops_app:PASSWORD@HOST/DB?sslmode=require` | The **aeroops_app** (non-superuser) role. NEVER the owner/DDL role. |
 | `AUTH_SECRET` | `openssl rand -base64 32` output | A real secret. Never use the build-time placeholder. |
-| `AUTH_TRUST_HOST` | `true` | Required for Auth.js on self-hosted / Vercel. |
+
+### Optional
+
+| Variable | Value | Notes |
+|---|---|---|
+| `ALLOW_SIGNUP` | `true` | Turns on self-serve `/signup` (creates a new operation and its owner). Only the exact string `true` enables it; unset = off. Enforced in the server action, not just the page. Turn it on to create your operation, then remove it and redeploy. Never set it on the public demo. |
+| `AUTH_TRUST_HOST` | `true` | Not needed: the Auth.js config already sets `trustHost: true`. Harmless if set. |
 
 ### Optional (mobile)
 
@@ -375,13 +364,45 @@ DATABASE_URL="postgres://owner:pw@host/db?sslmode=require" pnpm db:migrate
 # 3. Apply migrations (human-gated — review SQL first)
 DATABASE_URL="postgres://owner:pw@host/db?sslmode=require" CONFIRM_APPLY=1 pnpm db:migrate:apply
 
-# 4. Set aeroops_app password
+# 4. Let aeroops_app log in and set its password
 psql "postgres://owner:pw@host/db?sslmode=require" \
-  -c "ALTER ROLE aeroops_app PASSWORD 'strong-password';"
+  -c "ALTER ROLE aeroops_app WITH LOGIN PASSWORD 'strong-password';"
 
-# 5. (Demo only) Seed demo data
-DATABASE_URL="postgres://owner:pw@host/db?sslmode=require" ALLOW_DEMO_SEED=1 pnpm db:seed:demo
+# 5. (Demo only) Seed demo data (see Step 5 for the tsx workaround)
+DATABASE_URL="postgres://owner:pw@host/db?sslmode=require" ALLOW_DEMO_SEED=1 \
+  pnpm --filter @aeroops/api exec pnpm dlx tsx@4.19.2 scripts/seed-demo.ts
 
 # 6. Deploy to Vercel (set DATABASE_URL=aeroops_app URL in Vercel env vars)
 #    Visit your-domain.vercel.app/o/alpha/login (demo)
 ```
+
+---
+
+## Maintainer notes: redeploying the public demo
+
+These steps are for whoever runs the public demo (the `alpha` and `bravo`
+sample orgs). Do not use them on a deployment with real data: step 3 deletes
+those two orgs and everything in them.
+
+```bash
+# 1. Apply any new migrations with the demo database's OWNER string.
+#    Dry-run first — it applies nothing.
+DATABASE_URL='OWNER_CONNECTION_STRING' pnpm db:migrate
+DATABASE_URL='OWNER_CONNECTION_STRING' CONFIRM_APPLY=1 pnpm db:migrate:apply
+
+# 2. Remove the old sample orgs (fictional data only; org_id FKs cascade).
+#    Or run the DELETE in the Neon SQL console.
+psql 'OWNER_CONNECTION_STRING' -c "DELETE FROM org WHERE slug IN ('alpha','bravo');"
+
+# 3. Reseed both sample orgs.
+DATABASE_URL='OWNER_CONNECTION_STRING' ALLOW_DEMO_SEED=1 \
+  pnpm --filter @aeroops/api exec pnpm dlx tsx@4.19.2 scripts/seed-demo.ts
+
+# 4. Deploy the code: Vercel builds when the branch it tracks updates.
+git push origin main
+```
+
+Then `/o/bravo/login` (owner@bravo.aero / demo1234) and `/o/alpha/login`
+(owner@alpha.aero / demo1234) show the fresh data. If a step errors, capture
+the error text (never the connection string) and fix it before continuing.
+

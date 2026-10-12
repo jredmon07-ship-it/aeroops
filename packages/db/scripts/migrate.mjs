@@ -253,8 +253,8 @@ async function main() {
     log('  All pending migrations applied successfully.');
     log('');
     log('  NEXT STEPS (if this was a fresh database):');
-    log('  1. Set aeroops_app password:');
-    log('     psql $DATABASE_URL -c "ALTER ROLE aeroops_app PASSWORD \'your-password\';"');
+    log('  1. Let aeroops_app log in and set its password:');
+    log('     psql $DATABASE_URL -c "ALTER ROLE aeroops_app WITH LOGIN PASSWORD \'your-password\';"');
     log('  2. Build the app DATABASE_URL for the runtime (aeroops_app, not owner):');
     log('     DATABASE_URL="postgres://aeroops_app:your-password@host:5432/aeroops"');
     log('  3. For a hosted demo: ALLOW_DEMO_SEED=1 pnpm db:seed:demo');

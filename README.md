@@ -51,26 +51,37 @@ read-only reporting viewer (Dashboard, Reports, Activity).
 
 ## Running it locally
 
-Requires **Node 20+**, **pnpm 9**, and a **Postgres** database (a free
-[Neon](https://neon.tech) project works; any local Postgres does too).
+Requires **Node 20+**, **pnpm 9** (`corepack enable`), and a **Postgres 14+**
+database (a free [Neon](https://neon.tech) project or a local Postgres).
+**[`SELF-HOSTING.md`](./SELF-HOSTING.md) is the full, tested guide**, including
+Vercel deployment and giving staff their logins. The short version:
 
 ```bash
-corepack enable
-pnpm install
-cp .env.example .env.local      # set DATABASE_URL, DIRECT_URL, AUTH_SECRET
-pnpm db:migrate:apply           # applies migrations (human-gated by design)
-pnpm db:seed:demo               # demo orgs, fleet, members, flight history
-pnpm dev                        # http://localhost:3000
+pnpm install --frozen-lockfile
+
+# Migrations run as the database OWNER (dry run first, then apply).
+DATABASE_URL='OWNER_STRING' pnpm db:migrate
+DATABASE_URL='OWNER_STRING' CONFIRM_APPLY=1 pnpm db:migrate:apply
+
+# Migration 0000 creates the aeroops_app role without login. The app must run as it.
+psql 'OWNER_STRING' -c "ALTER ROLE aeroops_app WITH LOGIN PASSWORD 'APP_PASSWORD';"
 ```
 
-Generate `AUTH_SECRET` with `openssl rand -base64 32`. `DATABASE_URL` is the pooled
-runtime connection; `DIRECT_URL` is the direct connection used by migrations (on a
-single-endpoint local Postgres, set both the same).
+Then create `apps/web/.env.local` (the app does not read a `.env.local` in the repo root):
+
+```
+DATABASE_URL=postgres://aeroops_app:APP_PASSWORD@HOST:5432/DBNAME
+AUTH_SECRET=<output of: openssl rand -base64 32>
+ALLOW_SIGNUP=true
+```
+
+and run `pnpm dev` (http://localhost:3000). The app refuses to work as a superuser,
+so `DATABASE_URL` must be the `aeroops_app` string, never the owner.
 
 Self-serve signup (`/signup`, which creates a new operation and its owner) is off
-by default so the public demo can't be used to create real operations. On your own
-deployment, set `ALLOW_SIGNUP=true` to create your first operation, or skip it and
-sign in to the orgs created by `pnpm db:seed:demo`.
+unless `ALLOW_SIGNUP=true`. Turn it on to create your operation, then turn it off
+and restart. Add staff under **People**, then **Create login link** on their
+profile and send them the link yourself.
 
 Checks: `pnpm typecheck` · `pnpm test` · `pnpm build`
 
@@ -119,7 +130,7 @@ The repo has 51 forward migrations (`packages/db/migrations/0000`–`0050`, each
 `.down.sql`) and about 125 test files (`*.test.ts`/`*.test.tsx` across `packages/` and
 `apps/web`). Money features (billing, payments, dues, QuickBooks) were removed on
 2026-10-10; their tables remain in the migration history but no application code uses
-them. See [`DEPLOY.md`](./DEPLOY.md) for deployment and [`CHANGELOG.md`](./CHANGELOG.md)
+them. See [`SELF-HOSTING.md`](./SELF-HOSTING.md) to run your own copy, [`DEPLOY.md`](./DEPLOY.md) for deployment reference, and [`CHANGELOG.md`](./CHANGELOG.md)
 for what landed when.
 
 ## License
