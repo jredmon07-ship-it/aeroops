@@ -75,7 +75,8 @@ AUTH_SECRET=<output of: openssl rand -base64 32>
 ALLOW_SIGNUP=true
 ```
 
-and run `pnpm dev` (http://localhost:3000). The app refuses to work as a superuser,
+and run `pnpm dev` (http://localhost:3000), or `pnpm build && pnpm start` for
+production. The app refuses to work as a superuser,
 so `DATABASE_URL` must be the `aeroops_app` string, never the owner.
 
 Self-serve signup (`/signup`, which creates a new operation and its owner) is off

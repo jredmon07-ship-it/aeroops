@@ -178,11 +178,11 @@ Production mode:
 
 ```bash
 pnpm build
-pnpm --filter @aeroops/web exec next start -p 3000
+pnpm start
 ```
 
-There is no `pnpm start` shortcut; use the second line as written.
-If you run `pnpm dev` after `pnpm build`, run `pnpm build` again before `next start`.
+Add `--port 3001` (`pnpm start --port 3001`) if 3000 is taken.
+If you run `pnpm dev` after `pnpm build`, run `pnpm build` again before `pnpm start`.
 
 ---
 
@@ -303,22 +303,19 @@ Vercel environment variables) and restart or redeploy.
 
 **`Could not find a production build in the '.next' directory`.**
 `pnpm dev` and `pnpm build` share the `.next` folder. Run `pnpm build` again
-before `next start`.
-
-**`Missing script start` from `pnpm start`.**
-There is no start script. Use `pnpm --filter @aeroops/web exec next start -p 3000`.
+before `pnpm start`.
 
 **A login link says it is no longer valid.**
 It was already used, it expired, a newer link was created, the member was
 deactivated, or `AUTH_SECRET` changed. Create a new link.
 
-**`pnpm db:seed:demo` fails with `tsx: command not found`.**
-The demo seed is optional; you do not need it for a real operation. If you want
-the two sample operations (`alpha`, `bravo`) on a test database, run it through
-`pnpm dlx` instead (owner string, test database only):
+**I want sample data to try things on.**
+The demo seed is optional; you do not need it for a real operation. To load the
+two sample operations (`alpha`, `bravo`) on a test database (owner string, test
+database only):
 
 ```bash
-DATABASE_URL='OWNER_STRING' ALLOW_DEMO_SEED=1 pnpm --filter @aeroops/api exec pnpm dlx tsx@4.19.2 scripts/seed-demo.ts
+DATABASE_URL='OWNER_STRING' ALLOW_DEMO_SEED=1 pnpm db:seed:demo
 ```
 
 Sample logins are in `DEMO.md`. Login links are disabled for these two sample operations.

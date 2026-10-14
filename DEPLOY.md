@@ -200,15 +200,6 @@ click-through walkthrough:
 
 The seed is **not idempotent** — do not run it twice on the same database.
 
-On a fresh clone `pnpm db:seed:demo` fails with `tsx: command not found`
-(`tsx` is not a declared dependency of `@aeroops/api`). Run it through
-`pnpm dlx` instead:
-
-```bash
-DATABASE_URL='OWNER_CONNECTION_STRING' ALLOW_DEMO_SEED=1 \
-  pnpm --filter @aeroops/api exec pnpm dlx tsx@4.19.2 scripts/seed-demo.ts
-```
-
 ---
 
 ## Step 6 — Set environment variables
@@ -368,9 +359,9 @@ DATABASE_URL="postgres://owner:pw@host/db?sslmode=require" CONFIRM_APPLY=1 pnpm 
 psql "postgres://owner:pw@host/db?sslmode=require" \
   -c "ALTER ROLE aeroops_app WITH LOGIN PASSWORD 'strong-password';"
 
-# 5. (Demo only) Seed demo data (see Step 5 for the tsx workaround)
+# 5. (Demo only) Seed demo data
 DATABASE_URL="postgres://owner:pw@host/db?sslmode=require" ALLOW_DEMO_SEED=1 \
-  pnpm --filter @aeroops/api exec pnpm dlx tsx@4.19.2 scripts/seed-demo.ts
+  pnpm db:seed:demo
 
 # 6. Deploy to Vercel (set DATABASE_URL=aeroops_app URL in Vercel env vars)
 #    Visit your-domain.vercel.app/o/alpha/login (demo)
@@ -395,8 +386,7 @@ DATABASE_URL='OWNER_CONNECTION_STRING' CONFIRM_APPLY=1 pnpm db:migrate:apply
 psql 'OWNER_CONNECTION_STRING' -c "DELETE FROM org WHERE slug IN ('alpha','bravo');"
 
 # 3. Reseed both sample orgs.
-DATABASE_URL='OWNER_CONNECTION_STRING' ALLOW_DEMO_SEED=1 \
-  pnpm --filter @aeroops/api exec pnpm dlx tsx@4.19.2 scripts/seed-demo.ts
+DATABASE_URL='OWNER_CONNECTION_STRING' ALLOW_DEMO_SEED=1 pnpm db:seed:demo
 
 # 4. Deploy the code: Vercel builds when the branch it tracks updates.
 git push origin main
