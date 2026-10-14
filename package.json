@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @aeroops/web dev",
+    "start": "pnpm --filter @aeroops/web start",
     "demo": "node scripts/demo.mjs",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
