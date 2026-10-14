@@ -51,6 +51,7 @@ import {
   checkLoginLinkWithDb,
   acceptLoginLinkWithDb,
   loginLinkPermission,
+  isSharedDemoOrg,
 } from '../people/login-link.js';
 import { addMemberWithDb } from '../people/add-member.js';
 import { setMemberStatusWithDb } from '../people/set-member-status.js';
@@ -425,6 +426,25 @@ describe('L10 — public demo orgs', () => {
     } finally {
       if (prev === undefined) delete process.env['AEROOPS_DEMO_RESET_ENABLED'];
       else process.env['AEROOPS_DEMO_RESET_ENABLED'] = prev;
+    }
+  });
+
+  it('refuses in production even when the demo reset flag is off (hosted demo)', async () => {
+    const env = process.env as Record<string, string | undefined>;
+    const prevNode = env['NODE_ENV'];
+    const prevReset = env['AEROOPS_DEMO_RESET_ENABLED'];
+    delete env['AEROOPS_DEMO_RESET_ENABLED'];
+    env['NODE_ENV'] = 'production';
+    try {
+      const m = await seedMember(orgAId, 'renter');
+      expect(await createLoginLinkWithDb(db, ownerA(), { userId: m.id })).toEqual({ ok: false, reason: 'demo_org' });
+      expect(isSharedDemoOrg('alpha')).toBe(true);
+      expect(isSharedDemoOrg('bravo')).toBe(true);
+      expect(isSharedDemoOrg('prairie-flying-club')).toBe(false);
+    } finally {
+      env['NODE_ENV'] = prevNode;
+      if (prevReset === undefined) delete env['AEROOPS_DEMO_RESET_ENABLED'];
+      else env['AEROOPS_DEMO_RESET_ENABLED'] = prevReset;
     }
   });
 });

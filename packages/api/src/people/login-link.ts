@@ -39,8 +39,10 @@
  *   - Role edits follow the same rank rule (update-member.ts
  *     roleChangePermission), so a manager can't demote an owner, make a link,
  *     then restore the role.
- *   - The public demo orgs (isDemoResetCandidate) refuse: their credentials
- *     are shared by every visitor.
+ *   - The public demo orgs (alpha/bravo) refuse in production, or whenever the
+ *     demo reset is on: their credentials are published and shared by every
+ *     visitor, so one visitor's reset link would lock everyone else out. Keyed
+ *     on NODE_ENV too because the hosted demo does not set the reset flag.
  *
  * EMAIL CASE: sign-in lowercases the typed email and matches it exactly, so a
  * member stored with a mixed-case email could set a password and still never
@@ -96,7 +98,7 @@ import {
   LOGIN_LINK_MAX_AGE_SECONDS,
 } from '../auth/login-link-token.js';
 import type { LoginLinkClaims } from '../auth/login-link-token.js';
-import { isDemoResetCandidate } from '../demo/reset.js';
+import { DEMO_RESET_ALLOWLIST, isDemoResetCandidate } from '../demo/reset.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
@@ -120,6 +122,15 @@ export type CreateLoginLinkResult =
       mode: LoginLinkMode;
     }
   | { ok: false; reason: 'not_found' | 'inactive' | 'demo_org' | 'email_conflict' | LoginLinkRefusal };
+
+/** Demo orgs whose published, shared credentials must never be reset by a visitor. */
+export function isSharedDemoOrg(slug: string): boolean {
+  if (isDemoResetCandidate(slug)) return true;
+  return (
+    process.env['NODE_ENV'] === 'production' &&
+    (DEMO_RESET_ALLOWLIST as readonly string[]).includes(slug)
+  );
+}
 
 export type CheckLoginLinkResult =
   | { ok: true; email: string; displayName: string; orgName: string; mode: LoginLinkMode }
@@ -269,7 +280,7 @@ async function _createLoginLinkImpl(
       .limit(1);
     const slug = orgRows[0]?.slug;
     if (!slug) return { ok: false, reason: 'not_found' } as const;
-    if (isDemoResetCandidate(slug)) return { ok: false, reason: 'demo_org' } as const;
+    if (isSharedDemoOrg(slug)) return { ok: false, reason: 'demo_org' } as const;
 
     // 4. Target must be a member of THIS org (RLS + explicit org_id).
     const target = await loadTarget(tx, sess.orgId, userId);
