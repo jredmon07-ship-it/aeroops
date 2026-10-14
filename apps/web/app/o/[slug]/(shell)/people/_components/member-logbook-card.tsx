@@ -82,7 +82,10 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Logbook</h2>
           <span className="nums text-xs text-slate-400 dark:text-slate-500">({entries.length})</span>
         </div>
-        <DownloadCsvButton action={() => exportPilotLogCsvAction(userId)} />
+        {/* A bound server action (not an inline closure) — a plain function can't
+            cross the Server→Client boundary. exportPilotLogCsv re-checks
+            people:access + org scoping server-side; userId is not trusted beyond that. */}
+        <DownloadCsvButton action={exportPilotLogCsvAction.bind(null, userId)} />
       </div>
 
       {entries.length === 0 ? (
