@@ -198,9 +198,7 @@ If you run `pnpm dev` after `pnpm build`, run `pnpm build` again before `next st
    Bookmark it.
 6. Turn signup off: delete the `ALLOW_SIGNUP` line (or set it to `false`) and
    restart the app. `/signup` then says signup is off, and the signup form is
-   refused on the server too. That page is shared with the public demo, so it
-   reads "Signup is turned off on this demo" and links to the demo login.
-   Ignore that link; your sign-in page is the one from item 5.
+   refused on the server too. Your sign-in page is the one from item 5.
    Keep the same `AUTH_SECRET` when you restart, or you will be signed out.
 
 ---
