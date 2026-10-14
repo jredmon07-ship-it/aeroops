@@ -101,11 +101,12 @@ openssl rand -base64 32
 | `AUTH_SECRET` | Yes | Output of `openssl rand -base64 32`. Signs logins and login links. If you change it, everyone is signed out and every unused login link stops working. |
 | `ALLOW_SIGNUP` | No | `true` turns on the `/signup` page that creates a new operation. Anything else, or unset, means off. Turn it on only while you create your operation (step 6). |
 | `AUTH_TRUST_HOST` | No | Not needed. The app already trusts the host header. Setting it to `true` is harmless. |
+| `AEROOPS_SESSION_REVALIDATE_TTL_MS` | No | How long, in milliseconds, the app reuses its check that a signed-in person is still allowed in (same password, still a member, current role). Default `15000` (15 seconds): a password reset or role change reaches people who are already signed in within that time. `0` checks on every request. Values above `300000` (5 minutes) count as 5 minutes. |
 
 Never commit `.env.local`. It is already in `.gitignore`.
 
 If you run the app under a process manager (systemd, Docker, pm2), you can set
-the same three variables in its environment instead of a file. Real environment
+the same variables in its environment instead of a file. Real environment
 variables override `.env.local`.
 
 ---
@@ -225,8 +226,14 @@ Rules worth knowing:
 - If the member already has a password, the button says **Create reset link**.
   Use it when someone forgets their password.
 - Creating a new link, or the member setting a password, makes older links stop working.
+- Setting a password through a link signs that member out everywhere they were
+  already signed in: browsers within 15 seconds, the phone app within 15 minutes.
+- Changing someone's role on their People page applies to them within 15 seconds
+  in the browser (within 15 minutes in the phone app), even if they are signed in.
+  They do not need to sign in again.
 - Only an owner can create links for owners and managers.
-- Deactivated members cannot get links.
+- Deactivated members cannot get links. Deactivating someone does not sign them
+  out or stop them signing in with a password they already have.
 - Every link created and used shows up in the Activity log.
 
 ---
@@ -272,6 +279,9 @@ DATABASE_URL='OWNER_STRING' CONFIRM_APPLY=1 pnpm db:migrate:apply
 3. Apply, then restart the app (local) or push to GitHub (Vercel redeploys).
 4. Each migration has a `.down.sql` file for manual rollback. Nothing runs it
    automatically. See "Rollback plan" in `DEPLOY.md`.
+5. Read the new entries in `CHANGELOG.md`. Updating from a copy older than
+   2026-10-14 signs everyone out once: sessions from before then are refused,
+   and people sign in again as usual.
 
 ---
 
@@ -304,6 +314,15 @@ Vercel environment variables) and restart or redeploy.
 **`Could not find a production build in the '.next' directory`.**
 `pnpm dev` and `pnpm build` share the `.next` folder. Run `pnpm build` again
 before `pnpm start`.
+
+**Everyone was signed out right after an update.**
+Expected once when updating from a copy older than 2026-10-14 (see step 9).
+Sign in again.
+
+**A signed-in member is suddenly sent to the sign-in page.**
+Their password was set through a login link, or the database could not be
+reached for a moment (the server log then shows `[auth] session check failed`).
+After a password change, they sign in with the new password.
 
 **A login link says it is no longer valid.**
 It was already used, it expired, a newer link was created, the member was

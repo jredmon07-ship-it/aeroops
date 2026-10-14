@@ -16,6 +16,11 @@
  * Security: org resolution uses withPlatformAdminContext (platform-admin read,
  * slug-keyed, read-only). org_id for all subsequent data reads comes only from
  * the signed JWT — never from the URL.
+ *
+ * This page never redirects, whatever cookie the visitor has. Protected pages
+ * send a session the server has ended (e.g. after a password reset) here, and
+ * the middleware still sees that cookie as signed in, so redirecting
+ * "signed-in" visitors away from this page would loop.
  */
 import { resolveOrgForPage } from '@/lib/org';
 import { isSignupEnabled } from '@/lib/signup-enabled';

@@ -21,8 +21,12 @@
  *   - Does NOT call NextAuth() — that is apps/web's responsibility.
  *   - Validates AUTH_SECRET at config-build time (fail-fast if missing).
  *   - Obtains the DB client lazily via getDb() inside the async authorize
- *     callback — never at module load time and never requiring the caller
- *     to pass a db argument.
+ *     and jwt callbacks — never at module load time and never requiring the
+ *     caller to pass a db argument.
+ *   - Revalidates every session read against the database (the jwt callback
+ *     from session-revalidation.ts): a password change, a removed membership
+ *     or a suspended org signs the session out, and the role always comes
+ *     from the membership row. Bounded by AEROOPS_SESSION_REVALIDATE_TTL_MS.
  *
  * BOUNDARY INVARIANT:
  *   apps/web must NOT import from @aeroops/db. buildAuthConfig() requires no
@@ -31,10 +35,11 @@
  *   @aeroops/db in the app layer.
  *
  * TESTABILITY:
- *   buildAuthConfig's authorize callback calls getDb() which cannot be used in
- *   unit tests (no real DATABASE_URL). Tests exercise the logic functions
- *   directly: resolveOrgBySlug(db, …) and verifyCredential(db, …) both accept
- *   an explicit db parameter (pglite test client). See auth.smoke.test.ts.
+ *   With no argument the callbacks use getDb(), which needs a real
+ *   DATABASE_URL. Tests either exercise the logic functions directly
+ *   (resolveOrgBySlug(db, …), verifyCredential(db, …) — see
+ *   auth.smoke.test.ts) or pass `{ resolveDb }` to build the real config
+ *   against a pglite client (session-revalidation.test.ts).
  *
  * AUTH.JS v5 (5.0.0-beta.31) API NOTES AND DEVIATIONS:
  *   - The Credentials provider `authorize` function signature is
@@ -63,8 +68,10 @@
  */
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
+import type { AnyDb } from '@aeroops/db';
 import { getDb } from '../db.js';
 import { verifyLoginAndIssueClaims } from './verify-login.js';
+import { createSessionJwtCallback } from './session-revalidation.js';
 import { maybeResetDemoTenant, isDemoResetCandidate } from '../demo/reset.js';
 
 // ─── Re-export edge-safe callbacks and edge config ───────────────────────────
@@ -73,14 +80,15 @@ import { maybeResetDemoTenant, isDemoResetCandidate } from '../demo/reset.js';
 // (a separate file with ZERO db/argon2 imports). auth-config.ts re-exports them
 // so callers can import from either the auth barrel or auth-config.ts directly.
 //
-// The full buildAuthConfig() REUSES jwtCallback and sessionCallback imported from
-// edge-callbacks.ts — same function references, cannot drift.
+// The full buildAuthConfig() REUSES sessionCallback (same function reference)
+// and wraps jwtCallback: its jwt callback runs jwtCallback first, then checks
+// the token against the database. Field projection cannot drift.
 export {
   jwtCallback,
   sessionCallback,
   buildEdgeAuthConfig,
 } from './edge-callbacks.js';
-import { jwtCallback, sessionCallback } from './edge-callbacks.js';
+import { sessionCallback } from './edge-callbacks.js';
 
 // ─── Input validation schema ──────────────────────────────────────────────────
 
@@ -105,22 +113,30 @@ export const loginSchema = z.object({
 
 // ─── Full auth config factory ─────────────────────────────────────────────────
 
+export interface BuildAuthConfigOptions {
+  /**
+   * Where authorize() and the session check get the database. Defaults to
+   * getDb(); tests pass their pglite client. apps/web passes nothing.
+   */
+  resolveDb?: () => Promise<AnyDb>;
+}
+
 /**
  * buildAuthConfig — constructs the NextAuth configuration object.
  *
  * Call this once at app startup (e.g. in apps/web/auth.ts) and pass the
  * result directly to NextAuth(). No db argument is required — the production
- * DB client is obtained lazily inside the authorize callback via getDb().
+ * DB client is obtained lazily inside the callbacks via getDb().
  *
  * Throws at call time (not at request time) if AUTH_SECRET is unset —
  * mirrors createProdClient's fail-fast pattern for env vars.
  *
- * The jwt and session callbacks are REUSED from the edge-safe exports above
- * (jwtCallback / sessionCallback) so the full and edge configs can never drift
- * in their session field projection.
+ * The session callback is REUSED from the edge-safe exports above, and the
+ * jwt callback runs the edge-safe jwtCallback before revalidating, so the
+ * full and edge configs can never drift in their session field projection.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildAuthConfig(): any {
+export function buildAuthConfig(opts: BuildAuthConfigOptions = {}): any {
   // Fail-fast if AUTH_SECRET is missing — do NOT let the app start without it.
   const secret = process.env['AUTH_SECRET'];
   if (!secret) {
@@ -130,6 +146,8 @@ export function buildAuthConfig(): any {
         'Generate a value with: openssl rand -base64 32',
     );
   }
+
+  const resolveDb: () => Promise<AnyDb> = opts.resolveDb ?? getDb;
 
   return {
     secret,
@@ -158,7 +176,7 @@ export function buildAuthConfig(): any {
 
           // Step 2: Obtain the DB client lazily (memoized — resolves instantly
           //   after the first successful connection).
-          const db = await getDb();
+          const db = await resolveDb();
 
           // Step 3–6: Shared login pipeline (resolveOrgBySlug → status==='active'
           //   → verifyCredential). Returns claims on success, null on any failure.
@@ -180,8 +198,9 @@ export function buildAuthConfig(): any {
           // only when THIS login's reset ran: a CONCURRENT login's reset may have
           // swapped the org between our verify and now ({ reset: false } here
           // also covers "another reset held the advisory lock"), and issuing the
-          // earlier claims would hand out an 8-hour JWT pointing at a deleted
-          // org_id (every RLS-scoped query would fail-close to empty).
+          // earlier claims would hand out a JWT pointing at a deleted org_id —
+          // the session check would refuse it on the very next read (no
+          // membership), bouncing the visitor straight back to sign-in.
           await maybeResetDemoTenant(parsed.data.slug);
           const finalClaims = isDemoResetCandidate(parsed.data.slug)
             ? await verifyLoginAndIssueClaims(db, parsed.data)
@@ -192,12 +211,15 @@ export function buildAuthConfig(): any {
 
           // Return the user object for Auth.js to embed in the JWT.
           // `id` is Auth.js's canonical user identifier field (maps to userId).
+          // `cfp` is the session credential fingerprint the jwt callback checks
+          // on every later read; this object never reaches the client.
           return {
             id: finalClaims.userId,
             orgId: finalClaims.orgId,
             slug: finalClaims.slug,
             role: finalClaims.role,
             email: finalClaims.email,
+            cfp: finalClaims.cfp,
           };
         },
       }),
@@ -209,22 +231,23 @@ export function buildAuthConfig(): any {
       maxAge: 60 * 60 * 8, // 8 hours in seconds
     },
 
-    // ─── Callbacks (reuse edge-safe implementations) ──────────────────────────
+    // ─── Callbacks (edge-safe projection + Node-only revalidation) ────────────
     callbacks: {
       /**
-       * jwt — called when the JWT is created (sign-in) or read (request).
+       * jwt — called when the JWT is created (sign-in) or read (every
+       * server-side auth(), RSC and server action alike).
        *
        * On sign-in (trigger === 'signIn'), `user` is the object returned
-       * by authorize(). Copy our custom fields into the token so they
-       * persist across requests.
+       * by authorize(). The shared jwtCallback copies our custom fields
+       * (cfp included) into the token so they persist across requests.
        *
-       * On subsequent requests, `user` is undefined — the token already
-       * contains our fields, so we just pass it through.
-       *
-       * Uses the shared jwtCallback (exported above) so this cannot drift
-       * from the edge config's JWT callback.
+       * On subsequent requests, `user` is undefined. The token is checked
+       * against the database (session-revalidation.ts): null — so auth()
+       * returns null — when the password changed since sign-in, the
+       * membership is gone, the org is suspended, or the token predates cfp;
+       * otherwise the token, carrying the membership's CURRENT role.
        */
-      jwt: jwtCallback,
+      jwt: createSessionJwtCallback(resolveDb),
 
       /**
        * session — called when the session is read (every authenticated request).

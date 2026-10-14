@@ -28,6 +28,7 @@
  *       orgId: string;
  *       role: MembershipRole;
  *       email: string;
+ *       cfp: string;   // session credential fingerprint — never on Session
  *     }
  *   }
  *
@@ -37,6 +38,7 @@
  *       orgId: string;
  *       role: MembershipRole;
  *       email: string;
+ *       cfp?: string;  // see session-revalidation.ts
  *     }
  *   }
  *   ```

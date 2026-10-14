@@ -25,8 +25,12 @@
  *
  * SINGLE SOURCE OF TRUTH:
  *   auth-config.ts (the full config) re-exports jwtCallback and sessionCallback
- *   from HERE and uses them in buildAuthConfig(). This guarantees the full config
- *   and edge config share identical callback implementations.
+ *   from HERE. buildAuthConfig() uses sessionCallback as is, and its jwt
+ *   callback (session-revalidation.ts) runs jwtCallback first, then checks the
+ *   token against the database. So both configs project identical fields; only
+ *   the Node one revalidates. The edge config stays signature-only and is never
+ *   the authorization source: every page and server action calls the Node
+ *   auth().
  */
 
 import { isMembershipRole } from '@aeroops/core';
@@ -35,10 +39,14 @@ import { isMembershipRole } from '@aeroops/core';
 
 /**
  * jwtCallback — copies AeroOps custom fields from the authorize() result into
- * the JWT token on sign-in. On subsequent requests (user absent) it is a no-op.
+ * the JWT token on sign-in. On subsequent requests (user absent) it is a no-op,
+ * so the edge config passes every claim through untouched, `cfp` included.
  *
- * Fields projected into token: userId, orgId, slug, role, email.
+ * Fields projected into token: userId, orgId, slug, role, email, cfp.
  * `user.id` (Auth.js canonical) is renamed to `token.userId`.
+ * `cfp` is the session credential fingerprint the Node config checks on every
+ * read (session-revalidation.ts). It is opaque here, and sessionCallback never
+ * projects it onto the session.
  *
  * ROLE VALIDATION: role is validated with isMembershipRole() before being
  * written to the token. An invalid role (injected, SSO-supplied, or malformed)
@@ -65,6 +73,10 @@ export async function jwtCallback({ token, user }: { token: any; user: any }): P
     }
     // (If role is invalid, token['role'] is left absent — no field written.)
     token['email'] = user.email as string;
+    // Without a cfp the Node config refuses the token on its next read.
+    if (typeof user.cfp === 'string' && user.cfp) {
+      token['cfp'] = user.cfp;
+    }
   }
   return token;
 }
@@ -77,6 +89,10 @@ export async function jwtCallback({ token, user }: { token: any; user: any }): P
  * role, user.email).
  *
  * password_hash is NEVER on the token and therefore never on the session.
+ * `cfp` IS on the token and is deliberately never projected. session.user is
+ * always set below — next-auth's server-side auth() returns
+ * `{ user: token, ...session }`, so without our own `user` the whole token
+ * (cfp included) would become session.user.
  *
  * ROLE VALIDATION: token['role'] is validated with isMembershipRole() before
  * being written to session.role. A token carrying an invalid role value (e.g.
@@ -117,6 +133,11 @@ export async function sessionCallback({ session, token }: { session: any; token:
  * Used exclusively by apps/web/auth-edge.ts. No providers, no db, no argon2.
  * The only job: decode + verify the JWT and populate req.auth with the custom
  * session fields (userId, orgId, slug, role) for use in middleware.ts.
+ *
+ * SIGNATURE-ONLY: it cannot see a password reset, a removed membership or a
+ * role change, so a revoked session still passes the middleware. That is
+ * safe because the page's own auth() (the Node config) returns null and the
+ * page redirects to /o/<slug>/login, which the middleware never bounces.
  *
  * AUTH_SECRET must be identical to the one used by the full auth config so the
  * JWT signed by auth.ts can be verified by this edge config.

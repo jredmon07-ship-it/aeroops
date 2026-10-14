@@ -61,10 +61,11 @@
  * resolveOrgBySlug(slug); every tenant read/write runs inside withOrgContext.
  *
  * SESSIONS: accepting a link revokes the member's MOBILE refresh sessions
- * (mobile_session, same tx) so a reset signs other phones out. Web sessions
- * are stateless 8h JWTs and CANNOT be revoked — a browser already signed in
- * stays signed in until its token expires. Known limitation; see
- * docs/specs/login-links.md.
+ * (mobile_session, same tx) so a reset signs other phones out. WEB sessions
+ * end too, with no write here: the new hash changes the session credential
+ * fingerprint, so a browser signed in before the reset gets null from its
+ * next server-side auth() — within AEROOPS_SESSION_REVALIDATE_TTL_MS (15 s by
+ * default). See auth/session-revalidation.ts and docs/specs/login-links.md.
  *
  * NO email sending, NO money, NO migration.
  *
@@ -483,7 +484,8 @@ async function _acceptLoginLinkImpl(db: AnyDb, rawInput: unknown): Promise<Accep
       });
     }
 
-    // Sign other phones out (web JWTs can't be revoked — see header).
+    // Sign other phones out. (Browsers sign out through the credential
+    // fingerprint — see header.)
     const revoked = await tx
       .update(mobileSession)
       .set({ revokedAt: now })

@@ -76,6 +76,8 @@ export type {
   SessionOrgData,
   // Slice 4M.1 — Mobile claims type
   MobileClaims,
+  // Web login claims (MobileClaims + the session credential fingerprint)
+  LoginClaims,
   // Slice 4M-REVOKE — Mobile refresh-token session types
   ResolvedMobileSession,
   IssuedMobileSession,

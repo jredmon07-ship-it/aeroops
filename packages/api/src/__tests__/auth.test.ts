@@ -764,13 +764,16 @@ describe('10. Middleware slug-match logic (pure function)', () => {
 //       config with the expected shape (no providers, jwt strategy).
 //   (b) buildEdgeAuthConfig() throws when AUTH_SECRET is missing.
 //   (c) The jwt callback (jwtCallback) correctly projects authorize() user
-//       fields into the JWT token on sign-in (user present).
-//   (d) The jwt callback is a no-op when user is absent (subsequent requests).
+//       fields into the JWT token on sign-in (user present), cfp included.
+//   (d) The jwt callback is a no-op when user is absent (subsequent requests),
+//       so the edge config passes cfp through when it re-issues the cookie.
 //   (e) The session callback (sessionCallback) correctly projects JWT token
 //       fields onto the session (userId, orgId, slug, role, user.email).
 //   (f) The session callback creates session.user if it does not already exist.
-//   (g) buildEdgeAuthConfig reuses the same callbacks as buildAuthConfig
-//       (strict reference equality — they cannot drift).
+//   (g) buildEdgeAuthConfig uses the shared jwtCallback/sessionCallback
+//       (strict reference equality — they cannot drift). buildAuthConfig's jwt
+//       callback wraps jwtCallback with the DB revalidation; see
+//       session-revalidation.test.ts.
 //
 // These tests are intentionally pure (no DB, no argon2) — they exercise only
 // the field-copy logic that must be correct for both the full auth config and
@@ -822,6 +825,7 @@ describe('11. buildEdgeAuthConfig — session callback projection', () => {
       slug: 'alpha',
       role: 'owner',
       email: 'alice@alpha.example',
+      cfp: 'session-credential-fingerprint',
     };
 
     const result = await jwtCallback({ token, user });
@@ -831,9 +835,23 @@ describe('11. buildEdgeAuthConfig — session callback projection', () => {
     expect(result['slug']).toBe('alpha');
     expect(result['role']).toBe('owner');
     expect(result['email']).toBe('alice@alpha.example');
+    // The session credential fingerprint the Node config checks on every read
+    expect(result['cfp']).toBe('session-credential-fingerprint');
     // Pre-existing token fields must be preserved
     expect(result['sub']).toBe('some-sub');
     expect(result['iat']).toBe(1234);
+  });
+
+  it('11c-2. jwtCallback writes no cfp when authorize() supplied none (the Node config then refuses the token)', async () => {
+    const user = {
+      id: 'user-uuid-abc',
+      orgId: 'org-uuid-xyz',
+      slug: 'alpha',
+      role: 'owner',
+      email: 'alice@alpha.example',
+    };
+    const result = await jwtCallback({ token: { sub: 'some-sub' }, user });
+    expect(result).not.toHaveProperty('cfp');
   });
 
   it('11d. jwtCallback is a no-op when user is absent (subsequent requests)', async () => {
@@ -844,6 +862,7 @@ describe('11. buildEdgeAuthConfig — session callback projection', () => {
       slug: 'alpha',
       role: 'owner',
       email: 'alice@alpha.example',
+      cfp: 'session-credential-fingerprint',
     };
 
     // user is undefined — simulates a non-sign-in request
@@ -855,6 +874,8 @@ describe('11. buildEdgeAuthConfig — session callback projection', () => {
     expect(result['slug']).toBe('alpha');
     expect(result['role']).toBe('owner');
     expect(result['email']).toBe('alice@alpha.example');
+    // The edge config re-issues the cookie from this token: cfp must survive
+    expect(result['cfp']).toBe('session-credential-fingerprint');
   });
 
   it('11e. sessionCallback projects userId/orgId/slug/role/email from token onto session', async () => {
@@ -864,6 +885,7 @@ describe('11. buildEdgeAuthConfig — session callback projection', () => {
       slug: 'alpha',
       role: 'owner',
       email: 'alice@alpha.example',
+      cfp: 'session-credential-fingerprint',
     };
     const session = {
       user: { email: 'stale@example.com' }, // will be overwritten
@@ -879,6 +901,8 @@ describe('11. buildEdgeAuthConfig — session callback projection', () => {
     expect(result.user?.email).toBe('alice@alpha.example');
     // expires must be preserved
     expect(result.expires).toBe('2099-01-01T00:00:00.000Z');
+    // cfp stays on the token — never projected onto the session
+    expect(JSON.stringify(result)).not.toContain('session-credential-fingerprint');
   });
 
   it('11f. sessionCallback creates session.user when absent', async () => {
@@ -888,6 +912,7 @@ describe('11. buildEdgeAuthConfig — session callback projection', () => {
       slug: 'beta',
       role: 'admin',
       email: 'bob@beta.example',
+      cfp: 'session-credential-fingerprint',
     };
     // session.user intentionally missing
     const session: Record<string, unknown> = { expires: '2099-01-01T00:00:00.000Z' };
@@ -896,6 +921,9 @@ describe('11. buildEdgeAuthConfig — session callback projection', () => {
 
     expect(result.user).toBeDefined();
     expect(result.user.email).toBe('bob@beta.example');
+    // Only the email — never the token (next-auth's server-side auth() would
+    // otherwise fall back to `user: token`, cfp included)
+    expect(result.user).toEqual({ email: 'bob@beta.example' });
   });
 
   it('11g. buildEdgeAuthConfig callbacks are the same functions as jwtCallback/sessionCallback', () => {

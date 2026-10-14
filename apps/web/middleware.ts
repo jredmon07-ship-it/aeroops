@@ -10,6 +10,11 @@
  *   3. /o/[slug]/login, /o/[slug]/login-link/<token> and /o/[slug]/no-access
  *      are public (no session required).
  *   4. The DB is NEVER queried here — all checks rely on the signed JWT only.
+ *      So a session the server has since ended (password reset, membership
+ *      removed, org suspended — see packages/api/src/auth/session-revalidation.ts)
+ *      still passes here; the page's own auth() returns null and redirects to
+ *      /o/[slug]/login. Keep the login route public and never send a
+ *      "signed-in" visitor away from it, or such a session would loop.
  *
  * EDGE RUNTIME NOTE:
  *   This middleware uses auth-edge.ts (NOT auth.ts) to stay within Edge

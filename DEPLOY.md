@@ -221,6 +221,7 @@ does not read a `.env.local` in the repo root.
 |---|---|---|
 | `ALLOW_SIGNUP` | `true` | Turns on self-serve `/signup` (creates a new operation and its owner). Only the exact string `true` enables it; unset = off. Enforced in the server action, not just the page. Turn it on to create your operation, then remove it and redeploy. Never set it on the public demo. |
 | `AUTH_TRUST_HOST` | `true` | Not needed: the Auth.js config already sets `trustHost: true`. Harmless if set. |
+| `AEROOPS_SESSION_REVALIDATE_TTL_MS` | `15000` (default) | How long each server instance reuses its check that a signed-in session is still valid (password unchanged, still a member, org active, current role). A password reset or role change reaches a signed-in browser within this many ms. `0` = check on every request; capped at `300000`. See `packages/api/src/auth/session-revalidation.ts`. |
 
 ### Optional (mobile)
 
@@ -250,7 +251,9 @@ bookkeeping table) to the demo database before enabling this — run it with the
 "Step 4 — Run migrations (human-gated)".
 
 **Caveat (concurrent visitors):** because a reset can fire on login, two visitors
-active at the same time can reset each other's data mid-session. This is acceptable
+active at the same time can reset each other's data mid-session. The other visitor's
+session points at the deleted org, so their next page sends them back to the sign-in
+page (sessions are re-checked against the database). This is acceptable
 for a single-visitor sales/QA demo; it is **not** a multi-tenant isolation mechanism.
 
 ### Must NOT be set in production

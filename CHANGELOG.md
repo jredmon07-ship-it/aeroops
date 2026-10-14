@@ -4,6 +4,43 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-10-14 — Signed-in sessions follow password resets and role changes
+
+A password reset now signs the member out of every browser, and a role change reaches someone
+who is already signed in. No migration.
+
+**Changed**
+
+- Setting a password through a login link signs that member out of every browser they were
+  signed in on, within 15 seconds. Phones were already signed out (mobile refresh sessions are
+  revoked). The same check signs a browser out when the membership row is gone or the org is
+  suspended (both changed outside the app today). Deactivating a member on the People page
+  still does not sign them out: it stays a roster flag that sign-in does not check either.
+- A role change on the People page applies to a signed-in member's browser within 15 seconds:
+  their session's role is always the membership's current role, so a demoted manager loses
+  `people:manage` without signing out. (The phone app already picked up role changes at its next
+  token refresh, within 15 minutes.)
+- How: every web session carries `cfp`, a domain-separated fingerprint of the password hash it
+  signed in with (never the hash, never on the session object, not in the mobile token). On
+  every server-side `auth()` the Node auth config re-reads the member's credential, membership
+  role and org status in one query under `withOrgContext` and returns no session when the
+  fingerprint no longer matches, the membership is gone or the org is not active
+  (`packages/api/src/auth/session-revalidation.ts`). Checks are cached per server process for
+  `AEROOPS_SESSION_REVALIDATE_TTL_MS` (default 15000; `0` turns the cache off; capped at 5
+  minutes).
+- A database error during the check fails closed for that request (the visitor gets the sign-in
+  page), is logged without ids or emails, and is not cached. The edge middleware still checks
+  only the cookie's signature; protected pages send a revoked session to `/o/<slug>/login`,
+  which never redirects, so there is no redirect loop.
+
+**Upgrade note**
+
+- Sessions signed in before this release carry no fingerprint and are refused: everyone signs
+  in once after it is deployed.
+
+This replaces the "web sessions stay signed in for up to 8 hours after a reset" note in the
+login-links entry below, and closes the "instant role revocation" item deferred in Slice 0.3.
+
 ## 2026-10-12 — Login links
 
 Members added on the People page can now get a login.

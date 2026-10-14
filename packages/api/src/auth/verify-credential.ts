@@ -9,7 +9,10 @@
  *   - Returns null on ALL auth failures; only throws on infrastructure errors.
  *   - Never reveals which step failed (no "user not found" vs "wrong password").
  *   - password_hash is NEVER returned to callers; only the boolean verify
- *     result is used internally.
+ *     result is used internally, plus `cfp` — a one-way, domain-separated
+ *     fingerprint of the hash (session-revalidation.ts) computed in the same
+ *     transaction, so the web session is bound to exactly the credential
+ *     that just verified.
  *
  * ANTI-ENUMERATION NOTE:
  *   The constant-time path is best-effort at the application level. For
@@ -22,6 +25,7 @@ import { appUser, authCredential, membership } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import type { MembershipRole } from '@aeroops/core';
 import { verifyPassword, getDummyHash } from './hash.js';
+import { sessionCredentialFingerprint } from './session-revalidation.js';
 
 /**
  * The successful credential verification result.
@@ -31,6 +35,11 @@ export interface VerifiedCredential {
   userId: string;
   email: string;
   role: MembershipRole;
+  /**
+   * sessionCredentialFingerprint() of the hash that just verified. The web
+   * session carries it; a later password change makes it stop matching.
+   */
+  cfp: string;
 }
 
 /**
@@ -137,11 +146,12 @@ export async function verifyCredential(
     }
 
     // Success — return only the minimal session-safe fields.
-    // password_hash is intentionally never returned.
+    // password_hash is intentionally never returned; cfp is a digest of it.
     return {
       userId: user.id,
       email: user.email,
       role: member.role as MembershipRole,
+      cfp: sessionCredentialFingerprint(cred.passwordHash),
     };
   });
 }

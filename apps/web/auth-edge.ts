@@ -20,8 +20,16 @@
  *   are missing, making the session.userId check in middleware.ts always falsy
  *   and redirecting every authenticated user to login.
  *
- *   buildEdgeAuthConfig supplies the SAME jwt+session callbacks (same function
- *   references as buildAuthConfig) so middleware can read all custom fields.
+ *   buildEdgeAuthConfig supplies the same field projection as buildAuthConfig
+ *   (the shared jwtCallback + sessionCallback) so middleware can read all
+ *   custom fields.
+ *
+ * SIGNATURE-ONLY: unlike auth.ts, this instance never checks the session
+ *   against the database, so it still accepts a session that a password reset,
+ *   a removed membership or a suspended org has ended. middleware.ts uses it
+ *   only to route; every page and server action authorizes with auth.ts's
+ *   auth(), which returns null for such a session (and the page then redirects
+ *   to /o/[slug]/login, which middleware.ts never bounces).
  *
  * AUTH_SECRET must be identical in both auth.ts and auth-edge.ts so the JWT
  * signed by the full auth config can be verified by the edge config.

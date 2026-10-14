@@ -31,6 +31,8 @@ declare module 'next-auth' {
     slug: string;
     role: MembershipRole;
     email: string;
+    /** Session credential fingerprint — server-only, never on Session. */
+    cfp: string;
   }
 }
 
@@ -41,5 +43,11 @@ declare module 'next-auth/jwt' {
     slug: string;
     role: MembershipRole;
     email: string;
+    /**
+     * Session credential fingerprint (packages/api/src/auth/session-revalidation.ts).
+     * Absent on tokens issued before revalidation shipped; those are refused.
+     * Never projected onto Session.
+     */
+    cfp?: string;
   }
 }

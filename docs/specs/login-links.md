@@ -53,21 +53,49 @@ Stateless; no table and no migration.
   inside `withOrgContext` locks the member row, re-checks they are still an active member and
   the fingerprint still matches, and inserts or updates the one credential row. It uses the
   same password policy (`newPasswordSchema`, 10–200 characters) and argon2id hashing as signup.
-  It audits `member.login_link_accepted` with `{ mode, mobileSessionsRevoked }`.
+  It audits `member.login_link_accepted` with `{ mode, mobileSessionsRevoked }`. The new
+  password also signs the member's browsers out (see Sessions).
 - Every failure (bad, tampered, expired, used, wrong org, suspended org, member removed or
   deactivated) returns the same `invalid_link` result. A too-short or too-long password is
   the one specific error, and it does not use up the link.
 - The link page is `noindex` and sends no `Referer`.
 
-## Sessions: known limitation
+## Sessions
 
-Accepting a link revokes the member's **mobile** refresh sessions (`mobile_session`) in the
-same transaction, so a reset signs their phones out within the 15-minute access-token window.
+Accepting a link signs the member out everywhere they were signed in with the old password.
 
-**Web** sessions are stateless JWTs with an 8-hour lifetime and no server-side session list,
-so they cannot be revoked. A browser that was already signed in as that member stays signed in
-until its session expires. Closing this needs a session-version or revocation check in the JWT
-callback, which would need a schema change.
+- **Phones:** the member's mobile refresh sessions (`mobile_session`) are revoked in the same
+  transaction, so phones are signed out within the 15-minute access-token window.
+- **Browsers:** nothing is written. Every web session carries `cfp`, a fingerprint of the
+  password hash it signed in with (`sha256('aeroops.session-cfp:' + hash)`, base64url — a
+  different digest from the link's `fp`, and never the hash). It is set when the password is
+  verified, inside the same transaction, and lives only in the encrypted session cookie; it is
+  never on the session object the app or the browser sees. On every server-side `auth()` the
+  Node auth config re-reads the member's credential, membership role and org status for the
+  session's user and org, in one query under `withOrgContext`
+  (`packages/api/src/auth/session-revalidation.ts`). A new password is a new hash, so a browser
+  that signed in before the reset gets `null` from its next `auth()` and lands on
+  `/o/<slug>/login`.
+- **Also covered by the same check:** a missing membership row or a suspended org signs the
+  session out, and the session's role is always the membership's current role, so a demotion or
+  promotion applies without signing in again. Deactivation (`app_user.status`) does not sign a
+  session out, matching sign-in (see Not included).
+- **How fast:** each server process caches the check for `AEROOPS_SESSION_REVALIDATE_TTL_MS`
+  (default 15 seconds; `0` turns the cache off; values above 5 minutes count as 5 minutes). A
+  reset or role change reaches a signed-in browser within that window. The cache is keyed by the
+  fingerprint too, so signing in with the new password is never held up by it.
+- **Edge middleware** checks only the cookie's signature, so a revoked cookie still gets past it
+  to the page. The page's own `auth()` returns `null` and redirects to `/o/<slug>/login`. The
+  middleware treats that route as public and the login page never redirects, so a revoked
+  session lands there once; there is no redirect loop. Server components and server actions
+  cannot write cookies, so the stale cookie stays in the browser until the next sign-in
+  replaces it, and is refused on every read.
+- **Database errors** during the check fail closed: that request is treated as signed out, the
+  error is logged with its class and code only (no ids or emails), and nothing is cached. The
+  cookie is left alone, so the next page load after the database recovers works without signing
+  in again.
+- **Upgrading:** sessions signed in before this check existed carry no `cfp` and are refused, so
+  everyone signs in once after deploying it.
 
 ## Not included
 

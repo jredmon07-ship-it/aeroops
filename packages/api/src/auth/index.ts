@@ -5,6 +5,7 @@
  * The top-level packages/api/src/index.ts re-exports from here.
  */
 export { buildAuthConfig, buildEdgeAuthConfig, jwtCallback, sessionCallback, loginSchema } from './auth-config.js';
+export type { BuildAuthConfigOptions } from './auth-config.js';
 export { resolveOrgBySlug } from './resolve-org.js';
 export type { ResolvedOrg } from './resolve-org.js';
 export { verifyCredential } from './verify-credential.js';
@@ -18,7 +19,7 @@ export { ForbiddenError, requireCapability, hasCapability } from './require-capa
 
 // ─── Slice 4M.1 — Mobile auth pipeline ───────────────────────────────────────
 export { verifyLoginAndIssueClaims, verifyLoginAndIssueClaimsWithDb } from './verify-login.js';
-export type { MobileClaims } from './verify-login.js';
+export type { MobileClaims, LoginClaims } from './verify-login.js';
 export {
   signMobileToken,
   verifyMobileToken,
