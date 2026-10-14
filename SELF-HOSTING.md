@@ -15,6 +15,10 @@ paths in step 8 were not re-run for this guide.
 - **Node 20 or newer.** Check with `node -v`.
 - **pnpm 9.** It comes with Node through corepack. Run `corepack enable` once.
   The repo pins the exact version (`pnpm@9.12.0`), so corepack picks it up.
+  If `pnpm -v` already prints `9.x`, skip this. If `corepack enable` fails with
+  `EACCES: permission denied, symlink ... /usr/local/bin/pnpm`, Node was
+  installed system-wide: run `sudo corepack enable`, or install pnpm with
+  `npm install -g pnpm@9.12.0` (or `brew install pnpm` on macOS).
 - **A Postgres database, version 14 or newer.** Either:
   - a free [Neon](https://neon.tech) project (works with Vercel hosting), or
   - Postgres on your own machine or server.
@@ -64,7 +68,8 @@ createdb aeroops
 
 Add `-h`, `-p`, and `-U` if your install needs them. Your owner string is then something like
 `postgres://postgres@127.0.0.1:5432/aeroops` (adjust user, password, and port
-to your install).
+to your install). On a Homebrew install the admin user is your macOS user
+name, not `postgres`: use `postgres://YOUR_MAC_USERNAME@127.0.0.1:5432/aeroops`.
 
 The `aeroops_app` login does not exist yet. Migration `0000` creates it in step 4.
 You give it a password in step 4c.
@@ -99,6 +104,10 @@ openssl rand -base64 32
 
 Never commit `.env.local`. It is already in `.gitignore`.
 
+If you run the app under a process manager (systemd, Docker, pm2), you can set
+the same three variables in its environment instead of a file. Real environment
+variables override `.env.local`.
+
 ---
 
 ## 4. Run migrations
@@ -122,8 +131,11 @@ The SQL files are in `packages/db/migrations/` if you want to read them.
 DATABASE_URL='OWNER_STRING' CONFIRM_APPLY=1 pnpm db:migrate:apply
 ```
 
-On an empty database this applies all migrations and ends with
-`All pending migrations applied successfully.`
+On an empty database this applies all migrations and prints
+`All pending migrations applied successfully.`, followed by a short "next
+steps" list. Its first two items are step 4c below. Skip the last item
+(`pnpm db:seed:demo`): that loads sample data for the public demo, not your
+operation.
 
 ### 4c. Let `aeroops_app` log in and give it a password
 
@@ -186,7 +198,10 @@ If you run `pnpm dev` after `pnpm build`, run `pnpm build` again before `next st
    Bookmark it.
 6. Turn signup off: delete the `ALLOW_SIGNUP` line (or set it to `false`) and
    restart the app. `/signup` then says signup is off, and the signup form is
-   refused on the server too.
+   refused on the server too. That page is shared with the public demo, so it
+   reads "Signup is turned off on this demo" and links to the demo login.
+   Ignore that link; your sign-in page is the one from item 5.
+   Keep the same `AUTH_SECRET` when you restart, or you will be signed out.
 
 ---
 
@@ -199,6 +214,10 @@ AeroOps does not send email. You create a link and send it yourself.
    (Owner, Manager, Dispatcher, CFI, Mechanic, Renter, Student, Accountant).
 3. Open that member's page and click **Create login link**.
 4. Click the copy button. Send the link by text or email.
+   The link starts with the address in **your** browser's address bar. If you
+   are on `http://localhost:3000`, the link only works on your computer. Open
+   the app at the address your members use (your server's name or your Vercel
+   address) before you create links.
 5. The member opens the link, chooses a password (at least 10 characters),
    and signs in at `/o/YOUR-SLUG/login` with their email and that password.
 
