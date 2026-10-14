@@ -16,7 +16,7 @@
  */
 'use server';
 
-import { auth } from '@/auth';
+import { actionAuth as auth } from '@/lib/action-auth';
 import { previewAutoSchedule, runAutoSchedule } from '@aeroops/api';
 import type {
   PreviewAutoScheduleResult,

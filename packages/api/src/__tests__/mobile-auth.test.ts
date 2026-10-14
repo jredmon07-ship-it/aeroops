@@ -8,7 +8,8 @@
  *   2. Failure matrix (wrong password / unknown email / unknown slug /
  *      suspended org / user-with-no-membership) — ALL return null
  *   3. Token round-trip (signMobileToken → verifyMobileToken returns same claims;
- *      tampered token → null; expired token → null; foreign-secret → null)
+ *      tampered token → null; expired token → null; foreign-secret → null;
+ *      a web-session-salted token or one without the mobile purpose → null)
  *   4. PARITY test: verifyLoginAndIssueClaims produces SAME claims the web
  *      authorize path would for the same input (guards drift after extraction)
  *   5. sessionFromMobileClaims fail-closed on garbage role
@@ -36,7 +37,15 @@ import {
 import type { PgliteTestClient } from '@aeroops/db';
 import { hashPassword } from '../auth/hash.js';
 import { verifyLoginAndIssueClaimsWithDb, type MobileClaims } from '../auth/verify-login.js';
-import { signMobileToken, verifyMobileToken, sessionFromMobileClaims } from '../auth/mobile-token.js';
+import {
+  signMobileToken,
+  verifyMobileToken,
+  sessionFromMobileClaims,
+  MOBILE_TOKEN_PURPOSE,
+} from '../auth/mobile-token.js';
+
+/** The mobile access token's own JWE salt (mobile-token.ts MOBILE_TOKEN_SALT). */
+const MOBILE_SALT = 'aeroops.mobile-access-token';
 
 // ─── Migration SQL ─────────────────────────────────────────────────────────────
 // Load all migrations so the schema is complete.
@@ -242,12 +251,13 @@ describe('3. Token round-trip (sign → verify)', () => {
 
   it('3c. expired token (past exp) → null', async () => {
     // Encode a token with maxAge well in the past (24h ago) — clearly outside
-    // the 15-second clockTolerance window in @auth/core's decode.
+    // the 15-second clockTolerance window in @auth/core's decode. Same salt
+    // and purpose as a real token, so expiry is the only thing wrong with it.
     const { encode } = await import('next-auth/jwt');
     const expiredToken = await encode({
-      token: { ...sampleClaims },
+      token: { purpose: MOBILE_TOKEN_PURPOSE, ...sampleClaims },
       secret: TEST_SECRET,
-      salt: 'authjs.session-token',
+      salt: MOBILE_SALT,
       maxAge: -(24 * 60 * 60), // 24 hours in the past — clearly expired
     });
     const decoded = await verifyMobileToken(expiredToken);
@@ -258,13 +268,63 @@ describe('3. Token round-trip (sign → verify)', () => {
     // Mint a token with a DIFFERENT secret; verify with TEST_SECRET → null.
     const { encode } = await import('next-auth/jwt');
     const foreignToken = await encode({
-      token: { ...sampleClaims },
+      token: { purpose: MOBILE_TOKEN_PURPOSE, ...sampleClaims },
       secret: 'completely-different-secret-xyz!',
-      salt: 'authjs.session-token',
+      salt: MOBILE_SALT,
       maxAge: 3600,
     });
     const decoded = await verifyMobileToken(foreignToken);
     expect(decoded).toBeNull();
+  });
+
+  it('3d-2. control: the same hand-minted token under TEST_SECRET verifies', async () => {
+    // Proves 3c/3d fail for expiry / the secret alone, not for the salt or purpose.
+    const { encode } = await import('next-auth/jwt');
+    const token = await encode({
+      token: { purpose: MOBILE_TOKEN_PURPOSE, ...sampleClaims },
+      secret: TEST_SECRET,
+      salt: MOBILE_SALT,
+      maxAge: 3600,
+    });
+    expect(await verifyMobileToken(token)).toEqual(sampleClaims);
+  });
+
+  it('3d-3. a token under the web session cookie salt is refused, even with the mobile purpose', async () => {
+    // On an http:// origin Auth.js salts the session cookie with its name,
+    // 'authjs.session-token' — the salt mobile tokens used to share, which
+    // let a browser session cookie work as a bearer token.
+    const { encode } = await import('next-auth/jwt');
+    for (const token of [{ ...sampleClaims }, { purpose: MOBILE_TOKEN_PURPOSE, ...sampleClaims }]) {
+      for (const salt of ['authjs.session-token', '__Secure-authjs.session-token']) {
+        const webSalted = await encode({ token, secret: TEST_SECRET, salt, maxAge: 3600 });
+        expect(await verifyMobileToken(webSalted), salt).toBeNull();
+      }
+    }
+  });
+
+  it('3d-4. a token under the mobile salt without the mobile purpose is refused', async () => {
+    const { encode } = await import('next-auth/jwt');
+    for (const purpose of [undefined, 'login-link', 'session']) {
+      const token = await encode({
+        token: { ...(purpose ? { purpose } : {}), ...sampleClaims },
+        secret: TEST_SECRET,
+        salt: MOBILE_SALT,
+        maxAge: 3600,
+      });
+      expect(await verifyMobileToken(token), String(purpose)).toBeNull();
+    }
+  });
+
+  it('3d-5. a signed mobile token is not a web session cookie: it does not decrypt under the cookie salt', async () => {
+    const { decode } = await import('next-auth/jwt');
+    const token = await signMobileToken(sampleClaims);
+    for (const salt of ['authjs.session-token', '__Secure-authjs.session-token']) {
+      await expect(decode({ token, secret: TEST_SECRET, salt }), salt).rejects.toThrow();
+    }
+    // … and carries exactly the identity claims plus its purpose.
+    const payload = await decode({ token, secret: TEST_SECRET, salt: MOBILE_SALT });
+    expect(payload).toMatchObject({ purpose: MOBILE_TOKEN_PURPOSE, ...sampleClaims });
+    expect(payload).not.toHaveProperty('cfp');
   });
 
   it('3e. completely garbage string → null', async () => {

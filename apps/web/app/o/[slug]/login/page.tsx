@@ -5,7 +5,8 @@
  *
  * States rendered:
  *   0. ?notice=password-set — a success banner above the form (after a login
- *      link's set-password form)
+ *      link's set-password form); ?notice=session-ended — a "sign in again"
+ *      banner (a server action found the session ended, lib/action-auth.ts)
  *   1. unknown-org   — org not found for slug (terminal error, no form)
  *   2. org-suspended — org exists but is not active (terminal error, no form)
  *   3. idle/ready    — org is active; render the credentials form
@@ -24,6 +25,7 @@
  */
 import { resolveOrgForPage } from '@/lib/org';
 import { isSignupEnabled } from '@/lib/signup-enabled';
+import { SESSION_ENDED_NOTICE } from '@/lib/session-ended';
 import {
   Card,
   CardContent,
@@ -62,8 +64,10 @@ const DEMO_ORG_LOGINS: Record<string, DemoLoginEntry[]> = {
 export default async function LoginPage({ params, searchParams }: LoginPageProps) {
   const { slug } = await params;
   // ?notice=password-set — arriving from a login link's set-password form.
+  // ?notice=session-ended — a server action found the session ended.
   const notice = (await searchParams)?.notice;
   const passwordJustSet = notice === 'password-set';
+  const sessionEnded = notice === SESSION_ENDED_NOTICE;
   const org = await resolveOrgForPage(slug);
 
   // ── Unknown org (terminal state — no form) ──────────────────────────────
@@ -137,6 +141,13 @@ export default async function LoginPage({ params, searchParams }: LoginPageProps
               <Alert role="status" className="mb-4">
                 <AlertDescription>
                   Your password is saved. Sign in with your email and new password.
+                </AlertDescription>
+              </Alert>
+            )}
+            {sessionEnded && (
+              <Alert role="status" className="mb-4">
+                <AlertDescription>
+                  Your session has ended. Sign in again to continue.
                 </AlertDescription>
               </Alert>
             )}

@@ -17,7 +17,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/auth';
+import { actionAuth as auth } from '@/lib/action-auth';
 import { getOrgFeatures, setOrgFeatures } from '@aeroops/api';
 import type { OperatingMode, OrgFeatureFlags } from '@aeroops/core';
 

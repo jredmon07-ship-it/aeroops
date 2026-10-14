@@ -27,8 +27,13 @@
  *      refused as not_found (not a leak of "exists but isn't yours").
  *   7. regenerateCalendarFeed: atomic revoke-old + create-new; old token
  *      stops resolving, new token resolves to the same scope/resource.
+ *   8. resolveFeedByToken re-checks the feed's owner on every fetch: an
+ *      aircraft feed dies with its owner's fleet:access (and returns with
+ *      it); a removed member's feeds and a suspended org's feeds stop
+ *      resolving — the same null as an unknown token.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
+import { and, eq } from 'drizzle-orm';
 import {
   createTestClient,
   applyMigrationSql,
@@ -37,10 +42,13 @@ import {
   seedTwoOrgs,
   appUser,
   dispatchTicket,
+  membership,
+  org,
   loadMigrationSql,
 } from '@aeroops/db';
 import type { PgliteTestClient } from '@aeroops/db';
 import type { PGlite } from '@electric-sql/pglite';
+import type { MembershipRole } from '@aeroops/core';
 
 import { createResourceWithDb } from '../scheduling/resource-commands.js';
 import { createReservationWithDb } from '../scheduling/create-reservation.js';
@@ -52,6 +60,7 @@ import {
 } from '../calendar/revoke-calendar-feed.js';
 import { resolveFeedByToken } from '../calendar/resolve-feed.js';
 import { buildIcsForFeed } from '../calendar/build-ics-for-feed.js';
+import { updateMemberWithDb } from '../people/update-member.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
@@ -492,5 +501,84 @@ describe('7. regenerateCalendarFeed', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reason).toBe('not_found');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// 8. resolveFeedByToken — the feed's owner is re-checked on every fetch
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe("8. resolveFeedByToken re-checks the feed's owner", () => {
+  /** A member of `orgId` WITH a membership row (memberA2 above has none). */
+  async function seedMember(orgId: string, role: MembershipRole, email: string): Promise<string> {
+    return withOrgContext(env.db, orgId, async (tx) => {
+      const [u] = await tx.insert(appUser).values({ orgId, email, fullName: email }).returning();
+      await tx.insert(membership).values({ orgId, userId: u!.id, role });
+      return u!.id;
+    });
+  }
+
+  async function feedToken(
+    session: AppSession,
+    input: { scope: 'my_reservations' } | { scope: 'aircraft'; resourceId: string },
+  ): Promise<string> {
+    const created = await createCalendarFeedWithDb(env.db, session, input);
+    if (!created.ok) throw new Error(`feed create refused: ${created.reason}`);
+    return created.feed.feedToken;
+  }
+
+  it('8a. an aircraft feed stops resolving when its owner loses fleet:access and comes back with it; their own feed keeps resolving', async () => {
+    const mechanicId = await seedMember(env.orgAId, 'mechanic', 'mechanic8a@alpha.example');
+    const mechanic = makeSession(env.orgAId, mechanicId, 'mechanic');
+    const aircraftToken = await feedToken(mechanic, { scope: 'aircraft', resourceId: env.resourceAId });
+    const myToken = await feedToken(mechanic, { scope: 'my_reservations' });
+    expect(await resolveFeedByToken(env.db, aircraftToken)).toMatchObject({ userId: mechanicId, scope: 'aircraft' });
+
+    // The owner demotes the mechanic to renter (People page): no fleet:access.
+    const owner = makeSession(env.orgAId, env.userAId, 'owner');
+    expect((await updateMemberWithDb(env.db, owner, { userId: mechanicId, role: 'renter' })).ok).toBe(true);
+    expect(await resolveFeedByToken(env.db, aircraftToken)).toBeNull();
+    // 'my_reservations' needs only app:access, which every role has.
+    expect(await resolveFeedByToken(env.db, myToken)).toMatchObject({ userId: mechanicId });
+
+    // Promoted back: the same URL works again (the feed row was never touched).
+    expect((await updateMemberWithDb(env.db, owner, { userId: mechanicId, role: 'mechanic' })).ok).toBe(true);
+    expect(await resolveFeedByToken(env.db, aircraftToken)).toMatchObject({ userId: mechanicId });
+  });
+
+  it("8b. a removed member's feeds stop resolving", async () => {
+    const cfiId = await seedMember(env.orgAId, 'cfi', 'cfi8b@alpha.example');
+    const cfi = makeSession(env.orgAId, cfiId, 'cfi');
+    const tokens = [
+      await feedToken(cfi, { scope: 'aircraft', resourceId: env.resourceAId }),
+      await feedToken(cfi, { scope: 'my_reservations' }),
+    ];
+    for (const t of tokens) expect(await resolveFeedByToken(env.db, t)).not.toBeNull();
+
+    await withOrgContext(env.db, env.orgAId, (tx) =>
+      tx.delete(membership).where(and(eq(membership.orgId, env.orgAId), eq(membership.userId, cfiId))),
+    );
+    for (const t of tokens) expect(await resolveFeedByToken(env.db, t)).toBeNull();
+  });
+
+  it("8c. a suspended org's feeds stop resolving; reactivated, they resolve again", async () => {
+    const ownerB = makeSession(env.orgBId, env.userBId, 'owner');
+    const tokens = [
+      await feedToken(ownerB, { scope: 'aircraft', resourceId: env.resourceBId }),
+      await feedToken(ownerB, { scope: 'my_reservations' }),
+    ];
+    for (const t of tokens) expect(await resolveFeedByToken(env.db, t)).not.toBeNull();
+
+    await withOrgContext(env.db, env.orgBId, (tx) =>
+      tx.update(org).set({ status: 'suspended' }).where(eq(org.id, env.orgBId)),
+    );
+    try {
+      for (const t of tokens) expect(await resolveFeedByToken(env.db, t)).toBeNull();
+    } finally {
+      await withOrgContext(env.db, env.orgBId, (tx) =>
+        tx.update(org).set({ status: 'active' }).where(eq(org.id, env.orgBId)),
+      );
+    }
+    for (const t of tokens) expect(await resolveFeedByToken(env.db, t)).not.toBeNull();
   });
 });

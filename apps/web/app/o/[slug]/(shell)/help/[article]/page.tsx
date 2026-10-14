@@ -19,6 +19,7 @@
  */
 
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability } from '@aeroops/api';
@@ -98,8 +99,14 @@ interface HelpArticlePageProps {
 export default async function HelpArticlePage({ params }: HelpArticlePageProps) {
   const { slug, article: articleSlug } = await params;
   const session = await auth();
+  // A null session here is one the server has ended (the middleware only
+  // checks the cookie's signature, and the (shell) layout does not re-run on
+  // a sidebar click): send it to sign in, not to the role-denied panel.
+  if (!session) {
+    redirect(`/o/${slug}/login`);
+  }
 
-  const canView = session ? hasCapability(session, 'app:access') : false;
+  const canView = hasCapability(session, 'app:access');
 
   if (!canView) {
     return (

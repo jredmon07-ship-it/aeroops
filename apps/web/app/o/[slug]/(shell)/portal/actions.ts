@@ -23,7 +23,7 @@
 
 import { serializePilotLog, type SerializedPilotLog } from '@/lib/serialize-pilot-log';
 
-import { auth } from '@/auth';
+import { actionAuth as auth } from '@/lib/action-auth';
 import { revalidatePath } from 'next/cache';
 import {
   getMyPortalSummary,

@@ -23,7 +23,7 @@
 
 import { serializeDate } from '@/lib/serialize-date';
 
-import { auth } from '@/auth';
+import { actionAuth as auth } from '@/lib/action-auth';
 import {
   listWorkOrders,
   getWorkOrderDetail,

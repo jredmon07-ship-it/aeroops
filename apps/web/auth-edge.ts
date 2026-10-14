@@ -28,8 +28,9 @@
  *   against the database, so it still accepts a session that a password reset,
  *   a removed membership or a suspended org has ended. middleware.ts uses it
  *   only to route; every page and server action authorizes with auth.ts's
- *   auth(), which returns null for such a session (and the page then redirects
- *   to /o/[slug]/login, which middleware.ts never bounces).
+ *   auth(), which returns null for such a session (and the page — or the
+ *   server action, via lib/action-auth.ts — then redirects to
+ *   /o/[slug]/login, which middleware.ts never bounces).
  *
  * AUTH_SECRET must be identical in both auth.ts and auth-edge.ts so the JWT
  * signed by the full auth config can be verified by the edge config.

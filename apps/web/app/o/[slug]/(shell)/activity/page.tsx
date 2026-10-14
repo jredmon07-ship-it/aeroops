@@ -33,6 +33,7 @@
 import * as React from 'react';
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Activity, AlertCircle } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability, getOrgFeatures } from '@aeroops/api';
@@ -291,13 +292,19 @@ export default async function ActivityPage({
   const rawBefore = sp.before;
 
   const session = await auth();
+  // A null session here is one the server has ended (the middleware only
+  // checks the cookie's signature, and the (shell) layout does not re-run on
+  // a sidebar click): send it to sign in, not to the role-denied panel.
+  if (!session) {
+    redirect(`/o/${slug}/login`);
+  }
 
   // Parse + validate the ?before= cursor param.
   const cursor = rawBefore ? decodeCursor(rawBefore) : null;
 
   // UI-only capability check — gate is enforced server-side in the action.
   // NO redirect: shell is app:access; the activity section is reporting:access.
-  const canView = session ? hasCapability(session, 'reporting:access') : false;
+  const canView = hasCapability(session, 'reporting:access');
 
   // ── Module gate (Slice CLUB-MODE) — panel pattern, no redirect. Only checked
   // once role access is confirmed; fail-soft to enabled on read failure.

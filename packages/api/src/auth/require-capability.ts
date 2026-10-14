@@ -20,16 +20,17 @@
  *   - Fail-closed: any missing session field → UnauthenticatedError (not ForbiddenError).
  *   - `can()` is the sole dispatch mechanism — no raw `role === 'x'` guards.
  *
- * ROLE STALENESS NOTE (Slice 0.3):
- *   session.role is authoritative for the lifetime of the JWT (default 8 h).
- *   A role change (e.g. demotion from manager to renter) takes effect on the
- *   user's NEXT token refresh / re-login — not immediately. RLS (org_id scoping
- *   via withOrgContext) means a stale role can at worst over-grant WITHIN the
- *   user's own org; it can NEVER cause a cross-org data leak because the RLS
- *   policy gates on org_id, which is also immutable per-session. Instant role
- *   revocation (session-revocation list / short-lived tokens) is a deferred
- *   Slice 0.4+ item and must be implemented before any high-privilege demotion
- *   feature is shipped.
+ * ROLE STALENESS NOTE (Slice 0.3, updated 2026-10-14):
+ *   session.role is the role the session was last checked with. A web
+ *   session's role is re-read from the membership row on every server-side
+ *   auth() (auth/session-revalidation.ts), so a demotion reaches a signed-in
+ *   browser within AEROOPS_SESSION_REVALIDATE_TTL_MS (15 s by default). A
+ *   mobile access token carries its role for at most its 15-minute life; the
+ *   refresh that re-mints it re-reads the role (auth/mobile-session.ts). RLS
+ *   (org_id scoping via withOrgContext) means a stale role can at worst
+ *   over-grant WITHIN the user's own org for that window; it can NEVER cause a
+ *   cross-org data leak because the RLS policy gates on org_id, which is also
+ *   immutable per-session.
  */
 
 import { can } from '@aeroops/core';

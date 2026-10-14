@@ -25,7 +25,7 @@ import { serializePilotLog, type SerializedPilotLog } from '@/lib/serialize-pilo
 
 import { serializeDate } from '@/lib/serialize-date';
 
-import { auth } from '@/auth';
+import { actionAuth as auth } from '@/lib/action-auth';
 import { revalidatePath } from 'next/cache';
 import {
   listMembers,

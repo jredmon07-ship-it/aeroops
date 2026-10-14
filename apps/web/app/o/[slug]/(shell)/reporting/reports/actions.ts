@@ -20,7 +20,7 @@
  */
 'use server';
 
-import { auth } from '@/auth';
+import { actionAuth as auth } from '@/lib/action-auth';
 import {
   getUtilizationTrend,
   getHoursByTail,

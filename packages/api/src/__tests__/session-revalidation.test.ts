@@ -27,7 +27,8 @@
  *   S8 — cache: one query for repeated and concurrent checks within the TTL;
  *        a reset or role change applies once the TTL lapses; signing in again
  *        after a reset is not held up; TTL 0 queries every time; bounded size;
- *        the env var's parsing.
+ *        a refusal is never kept, so a member let back in (org reactivated,
+ *        membership restored) is accepted at once; the env var's parsing.
  *   S9 — database errors fail closed, are logged without ids or emails and
  *        are not cached; a db resolver that throws also fails closed.
  *   S10 — wiring: buildAuthConfig's jwt callback revalidates, the edge
@@ -39,6 +40,9 @@
  *        config re-issues the cookie with cfp intact; after a reset the Node
  *        config answers null and clears the cookie — so auth() returns null —
  *        while the edge config still accepts it (the redirect-loop premise).
+ *        On this http:// origin the session cookie is refused as a mobile
+ *        bearer token, and a mobile access token sent as the cookie is
+ *        cleared, never re-issued.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { createRequire } from 'node:module';
@@ -74,7 +78,7 @@ import {
 import { buildAuthConfig, buildEdgeAuthConfig, jwtCallback, sessionCallback } from '../auth/auth-config.js';
 import { verifyLoginAndIssueClaimsWithDb } from '../auth/verify-login.js';
 import { credentialFingerprint } from '../auth/login-link-token.js';
-import { signMobileToken } from '../auth/mobile-token.js';
+import { signMobileToken, verifyMobileToken, MOBILE_TOKEN_PURPOSE } from '../auth/mobile-token.js';
 import { hashPassword } from '../auth/hash.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import { createLoginLinkWithDb, acceptLoginLinkWithDb } from '../people/login-link.js';
@@ -85,6 +89,8 @@ const MIGRATION_SQL = loadMigrationSql('0050');
 const TEST_SECRET = 'session-revalidation-test-secret-32b!';
 /** Auth.js's session cookie name (and JWE salt) on an http:// origin. */
 const SESSION_COOKIE = 'authjs.session-token';
+/** The mobile access token's own JWE salt (mobile-token.ts MOBILE_TOKEN_SALT). */
+const MOBILE_SALT = 'aeroops.mobile-access-token';
 
 let db: PgliteTestClient;
 let pglite: PGlite;
@@ -442,26 +448,77 @@ describe('S8 — cache', () => {
 
   it('the cache is bounded: past the limit the oldest verdict is dropped', async () => {
     process.env[SESSION_REVALIDATE_TTL_ENV] = '60000';
-    // A db whose every transaction finds nothing (signed out), and counts.
+    // A db whose every check finds an active member with this password hash
+    // (withOrgContext returns what db.transaction does), and counts.
     let queries = 0;
-    const emptyDb = { transaction: async () => { queries += 1; return undefined; } } as unknown as AnyDb;
+    const memberDb = {
+      transaction: async () => {
+        queries += 1;
+        return { role: 'renter', orgStatus: 'active', passwordHash: '$argon2id$fake-hash' };
+      },
+    } as unknown as AnyDb;
     const tokens = Array.from({ length: SESSION_REVALIDATE_CACHE_MAX_ENTRIES + 1 }, () => ({
       userId: randomUUID(),
       orgId: orgAId,
       slug: 'alpha',
       role: 'renter',
-      cfp: 'cfp-of-a-member-that-does-not-exist',
+      cfp: sessionCredentialFingerprint('$argon2id$fake-hash'),
     }));
 
-    for (const t of tokens) expect(await request(t, emptyDb)).toBeNull();
+    for (const t of tokens) expect(await request(t, memberDb)).not.toBeNull();
     expect(queries).toBe(SESSION_REVALIDATE_CACHE_MAX_ENTRIES + 1);
 
     // The newest verdict is still cached …
-    expect(await request(tokens[SESSION_REVALIDATE_CACHE_MAX_ENTRIES]!, emptyDb)).toBeNull();
+    expect(await request(tokens[SESSION_REVALIDATE_CACHE_MAX_ENTRIES]!, memberDb)).not.toBeNull();
     expect(queries).toBe(SESSION_REVALIDATE_CACHE_MAX_ENTRIES + 1);
     // … the oldest was dropped to make room.
-    expect(await request(tokens[0]!, emptyDb)).toBeNull();
+    expect(await request(tokens[0]!, memberDb)).not.toBeNull();
     expect(queries).toBe(SESSION_REVALIDATE_CACHE_MAX_ENTRIES + 2);
+  });
+
+  it('a signed-out verdict is not kept: concurrent checks share its query, the next check asks again', async () => {
+    process.env[SESSION_REVALIDATE_TTL_ENV] = '60000';
+    // A db whose every check finds no member (signed out), and counts.
+    let queries = 0;
+    const emptyDb = { transaction: async () => { queries += 1; return undefined; } } as unknown as AnyDb;
+    const token = { userId: randomUUID(), orgId: orgAId, slug: 'alpha', role: 'renter', cfp: 'cfp-of-nobody' };
+
+    const results = await Promise.all(Array.from({ length: 4 }, () => request(token, emptyDb)));
+    expect(results.every((r) => r === null)).toBe(true);
+    expect(queries).toBe(1);
+
+    expect(await request(token, emptyDb)).toBeNull();
+    expect(queries).toBe(2);
+  });
+
+  it('a member let back in within the TTL (org reactivated, membership restored) is accepted at once', async () => {
+    process.env[SESSION_REVALIDATE_TTL_ENV] = '300000';
+    const m = await seedMemberWithPassword(orgBId, 'dispatcher', 's8-password-4');
+    const token = await signIn(m.email, 's8-password-4', 'beta');
+    expect(await request(token)).not.toBeNull();
+
+    // Org suspended → refused (the cached good verdict is for the same key, so
+    // start from an empty cache, as a fresh instance would) …
+    await withOrgContext(db, orgBId, (tx) => tx.update(org).set({ status: 'suspended' }).where(eq(org.id, orgBId)));
+    clearSessionRevalidationCache();
+    try {
+      expect(await request(token)).toBeNull();
+    } finally {
+      await withOrgContext(db, orgBId, (tx) => tx.update(org).set({ status: 'active' }).where(eq(org.id, orgBId)));
+    }
+    // … reactivated: the refusal was not cached, so the old cookie and a fresh
+    // sign-in (same password → same cfp → same key) both work right away.
+    expect(await request(token)).toMatchObject({ userId: m.id });
+    expect(await request(await signIn(m.email, 's8-password-4', 'beta'))).toMatchObject({ userId: m.id });
+
+    // Membership removed → refused; restored → accepted at once.
+    await withOrgContext(db, orgBId, (tx) =>
+      tx.delete(membership).where(and(eq(membership.orgId, orgBId), eq(membership.userId, m.id))),
+    );
+    clearSessionRevalidationCache();
+    expect(await request(token)).toBeNull();
+    await withOrgContext(db, orgBId, (tx) => tx.insert(membership).values({ orgId: orgBId, userId: m.id, role: 'dispatcher' }));
+    expect(await request(token)).toMatchObject({ userId: m.id, role: 'dispatcher' });
   });
 
   it('reads AEROOPS_SESSION_REVALIDATE_TTL_MS: default, 0, whole ms, cap, junk', () => {
@@ -566,8 +623,8 @@ describe('S10 — wiring', () => {
     const m = await seedMemberWithPassword(orgAId, 'renter', 's10-password-2');
     const claims = await verifyLoginAndIssueClaimsWithDb(db, { slug: 'alpha', email: m.email, password: 's10-password-2' });
     expect(claims!.cfp).toBeTruthy();
-    const payload = await decode({ token: await signMobileToken(claims!), secret: TEST_SECRET, salt: SESSION_COOKIE });
-    expect(payload).toMatchObject({ userId: m.id, orgId: orgAId });
+    const payload = await decode({ token: await signMobileToken(claims!), secret: TEST_SECRET, salt: MOBILE_SALT });
+    expect(payload).toMatchObject({ purpose: MOBILE_TOKEN_PURPOSE, userId: m.id, orgId: orgAId });
     expect(payload).not.toHaveProperty('cfp');
   });
 });
@@ -606,44 +663,52 @@ function setCookies(res: Response): Map<string, string> {
 }
 
 describe('S11 — through the installed Auth.js', () => {
-  it('a reset makes the Node config answer null and clear the cookie; the edge config still accepts it', async () => {
-    const { Auth, setEnvDefaults } = await loadAuthCore();
+  let Auth: AuthCore['Auth'];
+  let node: any;
+  let edge: any;
+
+  beforeAll(async () => {
+    const core = await loadAuthCore();
+    Auth = core.Auth;
     // What next-auth does to a config before Auth() sees it (next-auth lib/env.js setEnvDefaults).
     const asNextAuth = (config: any): any => {
       const c = { ...config, basePath: '/api/auth' };
-      setEnvDefaults(process.env, c, true);
+      core.setEnvDefaults(process.env, c, true);
       return c;
     };
-    const node = asNextAuth(nodeConfig());
-    const edge = asNextAuth(buildEdgeAuthConfig());
-    const getSession = (config: any, cookie: string) =>
-      Auth(new Request(`${ORIGIN}/api/auth/session`, { headers: { cookie: `${SESSION_COOKIE}=${cookie}` } }), config);
-    // next-auth 5.0.0-beta.31 lib/index.js getSession(): every RSC / server-action auth() is this
-    // request with the session callback wrapped, then `.then((r) => r.json())`.
-    const serverAuth = async (cookie: string) => {
-      const res = await Auth(
-        new Request(`${ORIGIN}/api/auth/session`, { headers: { cookie: `${SESSION_COOKIE}=${cookie}` } }),
-        {
-          ...node,
-          callbacks: {
-            ...node.callbacks,
-            async session(...args: any[]) {
-              const session = (await node.callbacks?.session?.(...args)) ?? {
-                ...args[0].session,
-                expires: args[0].session.expires?.toISOString?.() ?? args[0].session.expires,
-              };
-              const user = args[0].user ?? args[0].token;
-              return { user, ...session };
-            },
+    node = asNextAuth(nodeConfig());
+    edge = asNextAuth(buildEdgeAuthConfig());
+  });
+
+  /** GET /api/auth/session with `cookie` as the http:// session cookie. */
+  const getSession = (config: any, cookie: string) =>
+    Auth(new Request(`${ORIGIN}/api/auth/session`, { headers: { cookie: `${SESSION_COOKIE}=${cookie}` } }), config);
+
+  // next-auth 5.0.0-beta.31 lib/index.js getSession(): every RSC / server-action auth() is this
+  // request with the session callback wrapped, then `.then((r) => r.json())`.
+  const serverAuth = async (cookie: string) => {
+    const res = await Auth(
+      new Request(`${ORIGIN}/api/auth/session`, { headers: { cookie: `${SESSION_COOKIE}=${cookie}` } }),
+      {
+        ...node,
+        callbacks: {
+          ...node.callbacks,
+          async session(...args: any[]) {
+            const session = (await node.callbacks?.session?.(...args)) ?? {
+              ...args[0].session,
+              expires: args[0].session.expires?.toISOString?.() ?? args[0].session.expires,
+            };
+            const user = args[0].user ?? args[0].token;
+            return { user, ...session };
           },
         },
-      );
-      return res.json();
-    };
+      },
+    );
+    return res.json();
+  };
 
-    const m = await seedMemberWithPassword(orgAId, 'dispatcher', 's11-old-password');
-
-    // 1. A real credentials sign-in: CSRF token, then POST the callback.
+  /** A real credentials sign-in (CSRF token, then POST the callback); returns the session cookie. */
+  const signInThroughAuthjs = async (email: string, password: string): Promise<string> => {
     const csrfRes = await Auth(new Request(`${ORIGIN}/api/auth/csrf`), node);
     const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
     const csrfCookie = setCookies(csrfRes).get('authjs.csrf-token');
@@ -652,13 +717,21 @@ describe('S11 — through the installed Auth.js', () => {
       new Request(`${ORIGIN}/api/auth/callback/credentials`, {
         method: 'POST',
         headers: { cookie: `authjs.csrf-token=${csrfCookie}` },
-        body: new URLSearchParams({ csrfToken, slug: 'alpha', email: m.email, password: 's11-old-password' }),
+        body: new URLSearchParams({ csrfToken, slug: 'alpha', email, password }),
       }),
       node,
     );
     expect(signInRes.status).toBe(302);
     const cookie = setCookies(signInRes).get(SESSION_COOKIE)!;
     expect(cookie).toBeTruthy();
+    return cookie;
+  };
+
+  it('a reset makes the Node config answer null and clear the cookie; the edge config still accepts it', async () => {
+    const m = await seedMemberWithPassword(orgAId, 'dispatcher', 's11-old-password');
+
+    // 1. A real credentials sign-in.
+    const cookie = await signInThroughAuthjs(m.email, 's11-old-password');
     const claims = await decode({ token: cookie, secret: TEST_SECRET, salt: SESSION_COOKIE });
     expect(claims).toMatchObject({ userId: m.id, orgId: orgAId, slug: 'alpha', role: 'dispatcher' });
     const cfp = claims!['cfp'] as string;
@@ -699,5 +772,45 @@ describe('S11 — through the installed Auth.js', () => {
     //    route through and the login page never redirects, so the revoked
     //    cookie lands there once.
     expect(((await (await getSession(edge, cookie)).json()) as Token | null)?.['userId']).toBe(m.id);
+  });
+
+  it('on an http origin the session cookie is never a mobile bearer token, and a mobile token is never a session cookie', async () => {
+    const m = await seedMemberWithPassword(orgAId, 'manager', 's11-mobile-password');
+
+    // The http:// cookie (salted 'authjs.session-token', the salt mobile
+    // tokens used to share) and the middleware's re-issue of it are refused
+    // by the mobile routes' verifier — before and after a reset, so a reset
+    // or a demotion can't be bypassed through /api/mobile/v1/*.
+    const cookie = await signInThroughAuthjs(m.email, 's11-mobile-password');
+    const reissued = setCookies(await getSession(edge, cookie)).get(SESSION_COOKIE)!;
+    expect(reissued).toBeTruthy();
+    expect(await verifyMobileToken(cookie)).toBeNull();
+    expect(await verifyMobileToken(reissued)).toBeNull();
+    await resetPasswordViaLink(m.id, 's11-mobile-new-password');
+    expect(await serverAuth(cookie)).toBeNull();
+    expect(await verifyMobileToken(cookie)).toBeNull();
+    expect(await verifyMobileToken(reissued)).toBeNull();
+
+    // A 15-minute mobile access token sent as the session cookie: neither
+    // config decrypts it, so the middleware clears it instead of re-issuing it
+    // for 8 hours (which used to launder it past mobile_session revocation).
+    const claims = await verifyLoginAndIssueClaimsWithDb(db, {
+      slug: 'alpha',
+      email: m.email,
+      password: 's11-mobile-new-password',
+    });
+    const mobileToken = await signMobileToken(claims!);
+    expect(await verifyMobileToken(mobileToken)).toMatchObject({ userId: m.id, role: 'manager' });
+    // Auth.js logs the refused cookie as a JWTSessionError; keep the output clean.
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    for (const config of [edge, node]) {
+      const res = await getSession(config, mobileToken);
+      expect(await res.json()).toBeNull();
+      const sessionCookie = res.headers.getSetCookie().find((line) => line.startsWith(`${SESSION_COOKIE}=`));
+      expect(sessionCookie).toMatch(new RegExp(`^${SESSION_COOKIE}=;`));
+      expect(sessionCookie).toMatch(/Max-Age=0/i);
+    }
+    expect(await serverAuth(mobileToken)).toBeNull();
+    expect(errorSpy).toHaveBeenCalled();
   });
 });

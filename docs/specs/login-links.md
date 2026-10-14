@@ -83,13 +83,31 @@ Accepting a link signs the member out everywhere they were signed in with the ol
 - **How fast:** each server process caches the check for `AEROOPS_SESSION_REVALIDATE_TTL_MS`
   (default 15 seconds; `0` turns the cache off; values above 5 minutes count as 5 minutes). A
   reset or role change reaches a signed-in browser within that window. The cache is keyed by the
-  fingerprint too, so signing in with the new password is never held up by it.
+  fingerprint too, so signing in with the new password is never held up by it. Only a passing
+  check is kept: a refusal is dropped once answered, so a member let back in with the same
+  password (org reactivated, membership restored) is not bounced for the rest of the window.
 - **Edge middleware** checks only the cookie's signature, so a revoked cookie still gets past it
-  to the page. The page's own `auth()` returns `null` and redirects to `/o/<slug>/login`. The
-  middleware treats that route as public and the login page never redirects, so a revoked
-  session lands there once; there is no redirect loop. Server components and server actions
-  cannot write cookies, so the stale cookie stays in the browser until the next sign-in
+  to the page or server action. The page's own `auth()` returns `null` and redirects to
+  `/o/<slug>/login`. A server action does the same through `apps/web/lib/action-auth.ts`
+  (`/o/<slug>/login?notice=session-ended`, which shows "Your session has ended"), instead of
+  answering `unauthenticated`, which most screens showed as a permission error. The middleware
+  treats the login route as public and the login page never redirects, so a revoked session
+  lands there once; there is no redirect loop. `auth()` in server components and server actions
+  does not write cookies, so the stale cookie stays in the browser until the next sign-in
   replaces it, and is refused on every read.
+- **The session cookie is not a mobile token.** The phone's access token has its own encryption
+  salt (`aeroops.mobile-access-token`) and a `purpose: 'mobile-access'` claim
+  (`packages/api/src/auth/mobile-token.ts`). Auth.js salts the session cookie with the cookie's
+  name, and on an `http://` origin that name is `authjs.session-token` — the salt mobile tokens
+  first shared. While they shared it, a browser cookie worked as a bearer token on
+  `/api/mobile/v1/*`, which never runs this check (so a reset or demotion did not reach it), and
+  the middleware re-issued a 15-minute mobile token sent as the cookie for 8 hours. Now neither
+  decrypts as the other.
+- **Calendar feeds are not sessions:** accepting a link leaves the member's feed URLs working. The
+  member revokes or regenerates them on the Portal page (their reservations) or the aircraft's
+  Fleet page. Every fetch re-checks the feed's owner (`resolveFeedByToken`): a removed member, a
+  suspended org, or (for an aircraft feed) a role without `fleet:access` gets the same 404 as an
+  unknown link, and restoring any of them brings the feed back.
 - **Database errors** during the check fail closed: that request is treated as signed out, the
   error is logged with its class and code only (no ids or emails), and nothing is cached. The
   cookie is left alone, so the next page load after the database recovers works without signing

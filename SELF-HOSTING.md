@@ -228,6 +228,12 @@ Rules worth knowing:
 - Creating a new link, or the member setting a password, makes older links stop working.
 - Setting a password through a link signs that member out everywhere they were
   already signed in: browsers within 15 seconds, the phone app within 15 minutes.
+  If they were in the middle of saving something, they land on the sign-in page.
+- Calendar feed links are not sign-ins: a password reset leaves them working.
+  The member revokes or regenerates them on the Portal page (their reservations)
+  or the aircraft's Fleet page. A feed stops working by itself when its owner is
+  removed or the operation is suspended, and an aircraft feed stops when its
+  owner's role no longer has Fleet access.
 - Changing someone's role on their People page applies to them within 15 seconds
   in the browser (within 15 minutes in the phone app), even if they are signed in.
   They do not need to sign in again.
@@ -281,7 +287,8 @@ DATABASE_URL='OWNER_STRING' CONFIRM_APPLY=1 pnpm db:migrate:apply
    automatically. See "Rollback plan" in `DEPLOY.md`.
 5. Read the new entries in `CHANGELOG.md`. Updating from a copy older than
    2026-10-14 signs everyone out once: sessions from before then are refused,
-   and people sign in again as usual.
+   and people sign in again as usual. The phone app quietly renews its access
+   token on its next request; nobody signs in again there.
 
 ---
 

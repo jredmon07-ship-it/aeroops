@@ -29,11 +29,29 @@
  * generic 404, so a prober cannot distinguish "never existed" from
  * "revoked" by response shape/timing signal.
  *
+ * OWNER RE-CHECK: the capability is checked when a feed is CREATED
+ * (create-calendar-feed.ts), but a feed URL is a long-lived credential, so
+ * every fetch also re-checks the feed's owner — the same facts a signed-in
+ * session is re-checked against (auth/session-revalidation.ts) — under
+ * withOrgContext(the resolved org), NOT platform-admin:
+ *   no membership in the feed's org (removed)        → null
+ *   org not active (suspended)                       → null
+ *   the role can no longer create this scope of feed → null
+ *     ('aircraft' needs fleet:access: the feed serves every booking on the
+ *      tail, notes included, so a mechanic demoted to renter loses it;
+ *      'my_reservations' needs app:access)
+ * The same null as an unknown token, so the route's 404 stays generic. The
+ * feed row is untouched: restoring the member, the org or the role brings it
+ * back. A password reset does NOT revoke feeds (a feed URL is not a sign-in;
+ * the member revokes or regenerates it from the Portal or the aircraft's
+ * Fleet page) — see docs/specs/login-links.md.
+ *
  * This function is framework-agnostic; it does not import next/*.
  */
-import { eq } from 'drizzle-orm';
-import { withPlatformAdminContext, calendarFeed } from '@aeroops/db';
+import { and, eq } from 'drizzle-orm';
+import { withOrgContext, withPlatformAdminContext, calendarFeed, membership, org } from '@aeroops/db';
 import type { AnyDb, CalendarFeedScope } from '@aeroops/db';
+import { can } from '@aeroops/core';
 
 export interface ResolvedCalendarFeed {
   id: string;
@@ -44,12 +62,31 @@ export interface ResolvedCalendarFeed {
 }
 
 /**
+ * ownerCanStillRead — the OWNER RE-CHECK (see header): one RLS-scoped read of
+ * the owner's membership role and the org's status, under the feed's own org.
+ */
+async function ownerCanStillRead(db: AnyDb, feed: ResolvedCalendarFeed): Promise<boolean> {
+  const rows = await withOrgContext(db, feed.orgId, (tx) =>
+    tx
+      .select({ role: membership.role, orgStatus: org.status })
+      .from(membership)
+      .innerJoin(org, eq(org.id, membership.orgId))
+      .where(and(eq(membership.orgId, feed.orgId), eq(membership.userId, feed.userId)))
+      .limit(1),
+  );
+  const row = rows[0];
+  if (!row || row.orgStatus !== 'active') return false;
+  return can(row.role, feed.scope === 'aircraft' ? 'fleet:access' : 'app:access');
+}
+
+/**
  * resolveFeedByToken — looks up a calendar feed by its opaque URL token.
  *
  * Returns null if:
  *   - no row has this feed_token (unknown token), OR
- *   - the row exists but active=false (revoked).
- * Both cases are INDISTINGUISHABLE to the caller — anti-enumeration.
+ *   - the row exists but active=false (revoked), OR
+ *   - its owner can no longer read it (OWNER RE-CHECK in the header).
+ * All are INDISTINGUISHABLE to the caller — anti-enumeration.
  *
  * @param db    - The Drizzle database client (prod or test).
  * @param token - The opaque feed_token from the URL path segment.
@@ -76,11 +113,12 @@ export async function resolveFeedByToken(
   const row = rows[0];
   if (!row || !row.active) return null;
 
-  return {
+  const feed: ResolvedCalendarFeed = {
     id: row.id,
     orgId: row.orgId,
     userId: row.userId,
     scope: row.scope as CalendarFeedScope,
     resourceId: row.resourceId,
   };
+  return (await ownerCanStillRead(db, feed)) ? feed : null;
 }

@@ -22,11 +22,13 @@
  *     no request body, no query string input, no session on this route at all.
  *     THE TOKEN IS THE ONLY AUTH — same capability-URL posture as the mobile
  *     bearer token (ADR-0010): possession = read access to exactly this feed.
- *   - ANTI-ENUMERATION: an unknown token and a revoked (inactive) token are
- *     BYTE-IDENTICAL 404 responses — resolveFeedByToken already collapses
- *     both cases to `null`; this route never distinguishes them further (no
- *     different status code, no different body, no timing-sensitive extra
- *     work on either path).
+ *   - ANTI-ENUMERATION: an unknown token, a revoked (inactive) token and a
+ *     feed whose owner can no longer read it (removed, org suspended, or —
+ *     for an aircraft feed — no longer fleet:access; resolveFeedByToken
+ *     re-checks on every fetch) are BYTE-IDENTICAL 404 responses —
+ *     resolveFeedByToken already collapses every case to `null`; this route
+ *     never distinguishes them further (no different status code, no
+ *     different body, no timing-sensitive extra work on either path).
  *   - NO org id, user id, or any tenant identifier ever appears in the
  *     response — the .ics body carries only event start/end/summary/
  *     description text (see buildIcsForFeed / packages/core's buildIcs).
@@ -71,8 +73,8 @@ export async function GET(
   }
 
   if (!feed) {
-    // Unknown OR revoked — indistinguishable (resolveFeedByToken already
-    // collapses both to null).
+    // Unknown, revoked, or its owner lost access — indistinguishable
+    // (resolveFeedByToken already collapses all of them to null).
     return notFound();
   }
 

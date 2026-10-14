@@ -28,7 +28,7 @@
 import { serializeDate } from '@/lib/serialize-date';
 
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/auth';
+import { actionAuth as auth } from '@/lib/action-auth';
 import {
   listBookingRequests,
   updateBookingRequestStatus,

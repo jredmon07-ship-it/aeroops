@@ -33,6 +33,7 @@
 import * as React from 'react';
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AlertCircle, GraduationCap, Wrench, ClipboardList, CalendarX2 } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability, getOrgFeatures } from '@aeroops/api';
@@ -1357,13 +1358,19 @@ export default async function ReportsPage({
   const rawRange = sp.range;
 
   const session = await auth();
+  // A null session here is one the server has ended (the middleware only
+  // checks the cookie's signature, and the (shell) layout does not re-run on
+  // a sidebar click): send it to sign in, not to the role-denied panel.
+  if (!session) {
+    redirect(`/o/${slug}/login`);
+  }
 
   // Validate + normalize the ?range= param. Accepts the 5 R1 keys → fallback 30d.
   const range = resolveReportRangeKey(rawRange);
 
   // UI-only capability check — gate is enforced server-side in the action.
   // NO redirect: shell is app:access; the reports section is reporting:access.
-  const canViewReporting = session ? hasCapability(session, 'reporting:access') : false;
+  const canViewReporting = hasCapability(session, 'reporting:access');
 
   // ── Module gate (Slice CLUB-MODE) — panel pattern, no redirect. Only checked
   // once role access is confirmed; fail-soft to enabled on read failure.

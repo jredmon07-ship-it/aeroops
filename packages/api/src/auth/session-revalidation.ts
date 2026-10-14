@@ -34,18 +34,30 @@
  *     cookie stays put and is refused on every read.
  *   - EDGE: the middleware keeps the pure jwtCallback (edge-callbacks.ts). It
  *     only checks the signature + slug, so a revoked cookie still gets past it
- *     to the page, whose auth() returns null and redirects to /o/<slug>/login.
+ *     to the page or server action, whose auth() returns null: pages redirect
+ *     to /o/<slug>/login, and so do server actions (apps/web/lib/action-auth.ts).
  *     The middleware treats /login as public and the login page never
  *     redirects, so a revoked session lands there once — no loop.
+ *   - OTHER CREDENTIALS are checked elsewhere: a mobile access token lives 15
+ *     minutes and is re-minted only through a refresh checked against the
+ *     database (mobile-session.ts) — and the session cookie never verifies as
+ *     one (mobile-token.ts has its own salt). A calendar feed URL is re-checked
+ *     against its owner's membership, org status and role on every fetch
+ *     (calendar/resolve-feed.ts); a password reset does not revoke it.
  *
  * CACHE: in-process, keyed by (orgId, userId, cfp), holding the verdict (ok +
  * role), never the hash. One page render calls auth() many times; within the
  * TTL they share one query, and concurrent calls share the in-flight one.
  * TTL = AEROOPS_SESSION_REVALIDATE_TTL_MS (default 15 s, 0 = no cache, capped
  * at 5 min), so a reset or role change applies within the TTL on an instance
- * that already checked that session. Keying on cfp means a member who signs
- * in again after a reset is never held up by a cached verdict for the old
- * password. Bounded at SESSION_REVALIDATE_CACHE_MAX_ENTRIES (oldest dropped).
+ * that already checked that session. Only a GOOD verdict outlives its query:
+ * a signed-out one is dropped once it settles (concurrent calls still share
+ * it). The key can't tell a fresh sign-in from the session it replaces when
+ * the password is unchanged — an org reactivated or a membership restored
+ * signs back in with the same cfp — so a cached refusal would bounce that
+ * sign-in until the TTL ran out. A refused cookie costs one query per
+ * request instead, and its page redirects to the login page on the first.
+ * Bounded at SESSION_REVALIDATE_CACHE_MAX_ENTRIES (oldest dropped).
  *
  * DATABASE ERRORS: fail closed. The request is treated as signed out (null),
  * the failure is logged with the error class and driver code only (a query
@@ -189,10 +201,15 @@ function cachedVerdict(key: string, load: () => Promise<Verdict>): Promise<Verdi
   const entry: CacheEntry = { expiresAt: now + ttlMs, verdict: load() };
   makeRoom(now);
   verdictCache.set(key, entry);
-  // A failed check is never cached: the next call asks the database again.
-  entry.verdict.catch(() => {
+  // Only a good verdict is kept once settled. A signed-out verdict (see CACHE
+  // in the header) or a failed check is dropped: the next call asks the
+  // database again.
+  const forget = (): void => {
     if (verdictCache.get(key) === entry) verdictCache.delete(key);
-  });
+  };
+  entry.verdict.then((verdict) => {
+    if (!verdict.ok) forget();
+  }, forget);
   return entry.verdict;
 }
 

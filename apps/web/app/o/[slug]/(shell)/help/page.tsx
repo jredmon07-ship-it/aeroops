@@ -32,6 +32,7 @@
  *   never '@aeroops/db'.
  */
 
+import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { hasCapability } from '@aeroops/api';
 import { HELP_CATEGORIES, HELP_ARTICLES } from '@/lib/help-articles';
@@ -60,10 +61,16 @@ interface HelpPageProps {
 export default async function HelpPage({ params }: HelpPageProps) {
   const { slug } = await params;
   const session = await auth();
+  // A null session here is one the server has ended (the middleware only
+  // checks the cookie's signature, and the (shell) layout does not re-run on
+  // a sidebar click): send it to sign in, not to the role-denied panel.
+  if (!session) {
+    redirect(`/o/${slug}/login`);
+  }
 
   // UI-only capability check — app:access is universal, so this is
   // defense-in-depth rather than a role split (see doc comment above).
-  const canView = session ? hasCapability(session, 'app:access') : false;
+  const canView = hasCapability(session, 'app:access');
 
   return (
     <div className="space-y-6">

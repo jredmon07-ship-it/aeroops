@@ -32,11 +32,34 @@ who is already signed in. No migration.
   page), is logged without ids or emails, and is not cached. The edge middleware still checks
   only the cookie's signature; protected pages send a revoked session to `/o/<slug>/login`,
   which never redirects, so there is no redirect loop.
+- A server action (saving a form, dragging a reservation, the alerts bell) from a browser whose
+  session has ended goes to the sign-in page with a "Your session has ended" notice, instead of
+  answering with "You do not have permission…" (`apps/web/lib/action-auth.ts`). Activity,
+  Reports and Help, opened from the sidebar, now go to sign-in too instead of showing their
+  "not available for your role" panel.
+- Only a passing check is cached. A refused one is answered again on the next request, so a
+  member let back in (org reactivated, membership restored) is not bounced for up to the TTL.
+
+**Security**
+
+- The phone app's access tokens now have their own encryption salt and a `purpose` claim. On an
+  `http://` origin (`pnpm start`, a self-hosted server without HTTPS, a proxy that does not send
+  `X-Forwarded-Proto: https`) the browser session cookie used the same salt, so it worked as a
+  bearer token on `/api/mobile/v1/*` — where the session check above never runs, so a reset,
+  removal or demotion did not reach it — and the middleware re-issued a 15-minute mobile token
+  sent as the cookie for 8 hours, past the mobile session's revocation. Neither now decrypts as
+  the other. HTTPS deployments (Vercel) were not affected.
+- Calendar feed links are re-checked against their owner on every fetch: a removed member's
+  feeds and a suspended org's feeds stop working, and an aircraft feed stops when its owner's
+  role loses Fleet access (it comes back with the role). A password reset does not revoke feed
+  links; the member revokes or regenerates them on the Portal page or the aircraft's Fleet page.
 
 **Upgrade note**
 
 - Sessions signed in before this release carry no fingerprint and are refused: everyone signs
   in once after it is deployed.
+- Phone app access tokens minted before this release stop verifying. The app renews them
+  through its normal refresh on the next request; nobody has to sign in again.
 
 This replaces the "web sessions stay signed in for up to 8 hours after a reset" note in the
 login-links entry below, and closes the "instant role revocation" item deferred in Slice 0.3.

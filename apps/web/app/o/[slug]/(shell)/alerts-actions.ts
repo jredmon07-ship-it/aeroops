@@ -18,7 +18,7 @@
  */
 'use server';
 
-import { auth } from '@/auth';
+import { actionAuth as auth } from '@/lib/action-auth';
 import { getMyAlerts, UnauthenticatedError } from '@aeroops/api';
 import type { AlertKind } from '@aeroops/api';
 

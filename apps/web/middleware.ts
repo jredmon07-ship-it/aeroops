@@ -13,8 +13,9 @@
  *      So a session the server has since ended (password reset, membership
  *      removed, org suspended — see packages/api/src/auth/session-revalidation.ts)
  *      still passes here; the page's own auth() returns null and redirects to
- *      /o/[slug]/login. Keep the login route public and never send a
- *      "signed-in" visitor away from it, or such a session would loop.
+ *      /o/[slug]/login, and a server action does the same (lib/action-auth.ts).
+ *      Keep the login route public and never send a "signed-in" visitor away
+ *      from it, or such a session would loop.
  *
  * EDGE RUNTIME NOTE:
  *   This middleware uses auth-edge.ts (NOT auth.ts) to stay within Edge
