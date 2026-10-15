@@ -137,7 +137,7 @@ function nodeConfig(d: AnyDb = db): any {
 }
 
 /**
- * signIn — what Auth.js's credentials callback does (@auth/core 0.41.2
+ * signIn — what Auth.js's credentials callback does (@auth/core 0.41.3
  * lib/actions/callback/index.js): authorize(), then jwt({ token, user }).
  * Credentials() keeps our authorize under `options` (providers/credentials.js).
  */
@@ -612,7 +612,7 @@ describe('S10 — wiring', () => {
     expect(session).toMatchObject({ userId: m.id, orgId: orgAId, slug: 'alpha', role: 'dispatcher' });
     expect(JSON.stringify(session)).not.toContain(cfp);
 
-    // next-auth 5.0.0-beta.31 lib/index.js: server-side auth() returns
+    // next-auth 5.0.0-beta.32 lib/index.js: server-side auth() returns
     // { user: token, ...session } — our session.user must win.
     const serverSide = Object.assign({ user: token }, session);
     expect(serverSide.user).toBe(session.user);
@@ -684,8 +684,8 @@ describe('S11 — through the installed Auth.js', () => {
   const getSession = (config: any, cookie: string) =>
     Auth(new Request(`${ORIGIN}/api/auth/session`, { headers: { cookie: `${SESSION_COOKIE}=${cookie}` } }), config);
 
-  // next-auth 5.0.0-beta.31 lib/index.js getSession(): every RSC / server-action auth() is this
-  // request with the session callback wrapped, then `.then((r) => r.json())`.
+  // next-auth 5.0.0-beta.32 lib/index.js getSession(): every RSC / server-action auth() is this
+  // request with the session callback wrapped, then parseSessionResponse (null unless res.ok).
   const serverAuth = async (cookie: string) => {
     const res = await Auth(
       new Request(`${ORIGIN}/api/auth/session`, { headers: { cookie: `${SESSION_COOKIE}=${cookie}` } }),
@@ -704,7 +704,7 @@ describe('S11 — through the installed Auth.js', () => {
         },
       },
     );
-    return res.json();
+    return res.ok ? res.json() : null;
   };
 
   /** A real credentials sign-in (CSRF token, then POST the callback); returns the session cookie. */

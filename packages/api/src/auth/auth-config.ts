@@ -41,7 +41,7 @@
  *   auth.smoke.test.ts) or pass `{ resolveDb }` to build the real config
  *   against a pglite client (session-revalidation.test.ts).
  *
- * AUTH.JS v5 (5.0.0-beta.31) API NOTES AND DEVIATIONS:
+ * AUTH.JS v5 (5.0.0-beta.32) API NOTES AND DEVIATIONS:
  *   - The Credentials provider `authorize` function signature is
  *     `authorize(credentials: Partial<Record<string,unknown>>): Promise<User | null>`.
  *     We validate the shape with zod before using the values.

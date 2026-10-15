@@ -25,9 +25,9 @@
  *       no credential, or its fingerprint ≠ token.cfp    → signed out
  *       role differs                                     → token with the DB role
  *     "Signed out" = the callback returns null. In the installed Auth.js
- *     (@auth/core 0.41.2 lib/actions/session.js) a null token leaves the
+ *     (@auth/core 0.41.3 lib/actions/session.js) a null token leaves the
  *     session body null and clears the session cookie, and next-auth
- *     5.0.0-beta.31 (lib/index.js) has RSC/server-action auth() return that
+ *     5.0.0-beta.32 (lib/index.js) has RSC/server-action auth() return that
  *     body — so auth() returns null. (A thrown error lands in the same branch
  *     but is logged with its full message, so this module never throws.)
  *     RSC and server-action auth() cannot write cookies, so there the stale

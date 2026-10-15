@@ -4,6 +4,26 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-10-14 — Security updates: Next.js, Auth.js, sharp
+
+Patch releases of the web framework and the sign-in library. No migration.
+
+**Security**
+
+- Next.js 15.5.19 → 15.5.28. Fixes remote code execution in the image optimizer through SVG and
+  AVIF files (GHSA-2464-fhr4-w9xw, GHSA-2xp9-vwfh-vxw4), denial of service through Server Actions
+  (GHSA-p3m5-59mp-jv5r, GHSA-m99w-x7hq-7vfj), and the other advisories against 15.5.19. The image
+  optimizer runs only on a self-hosted server (`pnpm start`); Vercel serves images itself. Its
+  image library, sharp, goes 0.34.5 → 0.35.5 (libvips, libheif and librsvg fixes).
+- Auth.js: next-auth 5.0.0-beta.31 → beta.32 and @auth/core 0.41.2 → 0.41.3. When Auth.js
+  answers with an error, such as a configuration error, server-side `auth()` now returns no
+  session instead of the error object, which a check like `if (!session)` let through
+  (GHSA-8fpg-xm3f-6cx3). The other fixes (email sign-in, `getToken()`, OAuth checks) are in code
+  AeroOps does not use.
+- `packages/api` no longer installs a second Next.js (16.2.9) and React (19.2.7) to satisfy
+  next-auth's peer dependency. It resolves the web app's Next.js 15.5.28 and React 19.1.0 instead.
+  The extra copy was never loaded.
+
 ## 2026-10-14 — Signed-in sessions follow password resets and role changes
 
 A password reset now signs the member out of every browser, and a role change reaches someone
