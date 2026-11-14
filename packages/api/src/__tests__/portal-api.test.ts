@@ -80,8 +80,16 @@ function makeSession(
   return { userId, orgId, slug: 'test', role, user: { email: 'test@example.com' } };
 }
 
-// Future dates so booking-policy min-advance checks pass.
-const FUT = (d: string, h: number) => new Date(`${d}T${String(h).padStart(2, '0')}:00:00Z`);
+// Future dates so booking-policy min-advance checks pass and the portal's
+// upcoming-reservation reads include them. Relative to the day the suite runs:
+// fixed calendar dates here went stale (the 2026-11-10..12 ones aged into the
+// past and these tests failed from 2026-11-13).
+const FUT = (daysAhead: number, h: number) => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + daysAhead);
+  d.setUTCHours(h, 0, 0, 0);
+  return d;
+};
 
 interface PortalEnv {
   db: PgliteTestClient;
@@ -198,7 +206,7 @@ beforeAll(async () => {
   // ── Distinct data for A and B (same org) ──────────────────────────────────
   // A: 1 enrollment (1 recorded), 1 reservation A booked, tag "A-Only".
   await seedEnrollment(db, env.orgAId, env.ownerAId, env.studentAId, 'Course-A', 1);
-  await seedReservation(db, env.orgAId, env.studentAId, 'AAA111', FUT('2026-11-10', 8), FUT('2026-11-10', 10));
+  await seedReservation(db, env.orgAId, env.studentAId, 'AAA111', FUT(30, 8), FUT(30, 10));
   await addMemberTagWithDb(db, makeSession(env.orgAId, env.ownerAId, 'owner'), {
     userId: env.studentAId, tag: 'A-Only',
   });
@@ -206,14 +214,14 @@ beforeAll(async () => {
   // B: 2 enrollments, 1 reservation B booked, tag "B-Only".
   await seedEnrollment(db, env.orgAId, env.ownerAId, env.studentBId, 'Course-B1', 0);
   await seedEnrollment(db, env.orgAId, env.ownerAId, env.studentBId, 'Course-B2', 2);
-  await seedReservation(db, env.orgAId, env.studentBId, 'BBB222', FUT('2026-11-11', 8), FUT('2026-11-11', 10));
+  await seedReservation(db, env.orgAId, env.studentBId, 'BBB222', FUT(31, 8), FUT(31, 10));
   await addMemberTagWithDb(db, makeSession(env.orgAId, env.ownerAId, 'owner'), {
     userId: env.studentBId, tag: 'B-Only',
   });
 
   // org-B student: 1 enrollment + 1 reservation + tag (cross-org isolation).
   await seedEnrollment(db, env.orgBId, env.ownerBId, env.studentBOrgBId, 'Course-OrgB', 1);
-  await seedReservation(db, env.orgBId, env.studentBOrgBId, 'ZZZ999', FUT('2026-11-12', 8), FUT('2026-11-12', 10));
+  await seedReservation(db, env.orgBId, env.studentBOrgBId, 'ZZZ999', FUT(32, 8), FUT(32, 10));
   await addMemberTagWithDb(db, makeSession(env.orgBId, env.ownerBId, 'owner'), {
     userId: env.studentBOrgBId, tag: 'OrgB-Only',
   });
@@ -380,7 +388,7 @@ describe('P5 — reservation role derivation', () => {
     const { db, orgAId, ownerAId, studentAId } = env;
     // Owner books a reservation; A is the dispatched pilot.
     const { aircraftId, reservationId } = await seedReservation(
-      db, orgAId, ownerAId, 'PILOT55', FUT('2026-12-01', 8), FUT('2026-12-01', 10),
+      db, orgAId, ownerAId, 'PILOT55', FUT(51, 8), FUT(51, 10),
     );
     await openDispatchWithDb(db, makeSession(orgAId, ownerAId, 'owner'), {
       reservationId, resourceId: aircraftId, pilotUserId: studentAId,
@@ -395,7 +403,7 @@ describe('P5 — reservation role derivation', () => {
   it("created_by = A AND dispatch pilot = A → role 'booker_and_pilot'", async () => {
     const { db, orgAId, ownerAId, studentAId } = env;
     const { aircraftId, reservationId } = await seedReservation(
-      db, orgAId, studentAId, 'BOTH77', FUT('2026-12-02', 8), FUT('2026-12-02', 10),
+      db, orgAId, studentAId, 'BOTH77', FUT(52, 8), FUT(52, 10),
     );
     await openDispatchWithDb(db, makeSession(orgAId, ownerAId, 'owner'), {
       reservationId, resourceId: aircraftId, pilotUserId: studentAId,
@@ -411,7 +419,7 @@ describe('P5 — reservation role derivation', () => {
     // Owner books; dispatch pilot = studentB but VOIDED → B should not see it as pilot,
     // and since created_by is owner, it should not appear for B at all.
     const { aircraftId, reservationId } = await seedReservation(
-      db, orgAId, ownerAId, 'VOID88', FUT('2026-12-03', 8), FUT('2026-12-03', 10),
+      db, orgAId, ownerAId, 'VOID88', FUT(53, 8), FUT(53, 10),
     );
     const open = await openDispatchWithDb(db, makeSession(orgAId, ownerAId, 'owner'), {
       reservationId, resourceId: aircraftId, pilotUserId: studentBId,
@@ -455,7 +463,7 @@ describe('P7 — past / cancelled excluded', () => {
     const { db, orgAId } = env;
     const sId = await seedMember(db, orgAId, `cancel-p7-${Date.now()}@alpha.example`, 'student');
     const { reservationId } = await seedReservation(
-      db, orgAId, sId, 'CANC11', FUT('2026-12-20', 8), FUT('2026-12-20', 10),
+      db, orgAId, sId, 'CANC11', FUT(70, 8), FUT(70, 10),
     );
     // Cancel via the booker's own session (schedule:create_reservation gates cancel;
     // student lacks it, so cancel as owner-role session for the same booker user).
