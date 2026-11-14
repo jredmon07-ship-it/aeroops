@@ -4,6 +4,38 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-11-13 — The hosted demo stays current
+
+The demo seed is anchored to the day it runs, so the hosted demo had aged: the
+dashboard's 30-day view read zero flights and the schedule was empty past the
+original week. It now refreshes itself every night. Demo only; no migration.
+
+**Added**
+
+- A six-week forward schedule for both demo orgs: a weekly pattern of lessons,
+  solos, rentals and Cirrus checkouts (Alpha) and weekend and evening club flying
+  (Bravo), booked through the real gated create path. Any refusal fails the seed.
+- Messages for both demo orgs: four announcements on Alpha (one to students) and
+  three on Bravo, dated over the last two weeks. Inserted directly, so a re-seed
+  never e-mails the demo addresses.
+- A daily refresh: Vercel Cron calls `GET /api/cron/demo-reset` at 09:00 UTC,
+  which re-seeds both demo orgs through the existing allowlisted reset. It answers
+  404 unless `AEROOPS_DEMO_DAILY_RESET` is set and 401 without the `CRON_SECRET`
+  bearer, so other deployments of this repo are unaffected. See DEPLOY.md.
+- `AEROOPS_DEMO_TZ` pins the seed to an operator's wall clock when it runs on a
+  UTC server. Unset, the seed keeps using process-local time as before.
+
+**Changed**
+
+- The seed's recurring series and the 172's operating hours follow the demo's
+  clock instead of a fixed America/Chicago. Pinned to another zone, the evening
+  series landed at midday in the Pacific and collided with the forward schedule.
+  The hosted demo runs on America/Chicago, so it is unchanged there.
+- The reset-on-open test books its marker at 05:00, before the seeded day, so it
+  cannot collide with the forward schedule on any weekday.
+- The portal tests use dates relative to the run. Their fixed "future" dates
+  (2026-11-10 to 12) had passed, and three tests failed from 2026-11-13.
+
 ## 2026-10-14 — Security updates: Next.js, Auth.js, sharp
 
 Patch releases of the web framework and the sign-in library. No migration.

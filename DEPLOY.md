@@ -256,10 +256,40 @@ session points at the deleted org, so their next page sends them back to the sig
 page (sessions are re-checked against the database). This is acceptable
 for a single-visitor sales/QA demo; it is **not** a multi-tenant isolation mechanism.
 
+### Public-demo daily refresh (DEMO DEPLOYMENT ONLY)
+
+The demo seed is anchored to the moment it runs: today's flights, the last
+month of activity, the coming six weeks of reservations and a few recent
+announcements. A demo seeded once ages out of all of it within weeks (the
+dashboard's 30-day view reads zero flights). The daily refresh re-seeds both
+demo orgs once a night so the hosted demo stays current with no upkeep.
+
+Vercel Cron calls `GET /api/cron/demo-reset` at 09:00 UTC (03:00/04:00
+Chicago) — the schedule is in `apps/web/vercel.json`. The route runs the same
+allowlisted wipe + re-seed as reset-on-open (`demo/reset.ts`), but off the
+login path, so logins stay fast and visitors never reset each other. Anyone
+signed in at that moment is signed out. Set these **only** on the public demo:
+
+| Variable | Value | Notes |
+|---|---|---|
+| `AEROOPS_DEMO_DAILY_RESET` | `1` | Turns the refresh on. Unset: the route answers 404 and never touches the database, so a self-hosted deployment of this repo (which inherits the cron entry) is unaffected. |
+| `CRON_SECRET` | `openssl rand -hex 32` | Vercel Cron sends it as `Authorization: Bearer <secret>`; anything else gets 401. |
+| `AEROOPS_DEMO_OWNER_URL` | owner/DDL connection string | Same variable and same rules as reset-on-open above. |
+| `AEROOPS_DEMO_TZ` | `America/Chicago` | The wall clock the seed is staged in. Vercel functions run in UTC; without this, "07:00" seeds at 07:00 UTC. Unset = process-local time (unchanged for `pnpm demo` and `pnpm db:seed:demo`). |
+
+Leave `AEROOPS_DEMO_RESET_ENABLED` off when the daily refresh is on. Migration
+`0020_demo_reset_state.sql` is the same prerequisite. To run it by hand:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://aeroops-web.vercel.app/api/cron/demo-reset
+# {"reset":true}  ({"reset":false} = skipped: another reset ran in the last 60 s)
+```
+
 ### Must NOT be set in production
 
 | Variable | Reason |
 |---|---|
+| `AEROOPS_DEMO_DAILY_RESET`, `AEROOPS_DEMO_RESET_ENABLED` | Both authorize wiping the `alpha` and `bravo` orgs. Demo deployment only. |
 | `AEROOPS_DEMO` | This activates the in-memory PGlite demo mode, which is incompatible with serverless/Vercel (each function instance gets a separate ephemeral in-memory DB — no shared state). Remove or leave unset. |
 
 ### Security MUST-DOs

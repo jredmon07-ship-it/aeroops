@@ -99,6 +99,13 @@ export {
 } from './demo/reset.js';
 export type { ResetResult } from './demo/reset.js';
 
+// ─── Public-demo daily refresh (packages/api/src/demo/scheduled-reset.ts) ────
+// runScheduledDemoReset(authorization) — the Vercel Cron entry: 404 unless
+// AEROOPS_DEMO_DAILY_RESET is on, 401 without the CRON_SECRET bearer, then the
+// same allowlisted wipe + re-seed as above. See DEPLOY.md.
+export { runScheduledDemoReset } from './demo/scheduled-reset.js';
+export type { ScheduledResetResponse } from './demo/scheduled-reset.js';
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export { getDashboardSummary, getDashboardSummaryWithDb } from './dashboard/get-dashboard-summary.js';
 export type { DashboardSummary } from './dashboard/get-dashboard-summary.js';

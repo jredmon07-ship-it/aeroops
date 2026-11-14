@@ -68,6 +68,15 @@ export default auth(function middleware(
     return NextResponse.next();
   }
 
+  // /api/cron/* — Vercel Cron endpoints (the daily demo refresh). No session:
+  // the route checks the CRON_SECRET bearer itself and answers 404 unless its
+  // feature flag is on (runScheduledDemoReset, @aeroops/api). Not under
+  // /o/[slug]/*, so it already falls through below; made explicit like the
+  // other public API prefixes so a future refactor cannot close it off.
+  if (pathname.startsWith('/api/cron/')) {
+    return NextResponse.next();
+  }
+
   // Match /o/[slug]/... routes
   const orgRouteMatch = pathname.match(/^\/o\/([^/]+)(\/.*)?$/);
   if (!orgRouteMatch) {

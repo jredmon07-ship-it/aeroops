@@ -165,12 +165,14 @@ describe('demo reset-on-open — wipe + re-seed restores baseline', () => {
       role: 'owner',
     };
 
-    // ── MUTATE: create a marker reservation 30 days out (daytime, no conflict) ─
+    // ── MUTATE: create a marker reservation 30 days out, at 05:00 — before the
+    // seeded day starts, so it can never collide with the six-week forward
+    // schedule (demo/seed-upcoming.ts) whatever weekday day +30 falls on.
     const start = new Date();
     start.setDate(start.getDate() + 30);
-    start.setHours(14, 0, 0, 0);
+    start.setHours(5, 0, 0, 0);
     const end = new Date(start);
-    end.setHours(15, 0, 0, 0);
+    end.setHours(6, 0, 0, 0);
 
     const created = await createReservationWithDb(db, ownerSession, {
       startAt: start,

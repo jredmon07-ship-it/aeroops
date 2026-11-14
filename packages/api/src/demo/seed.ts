@@ -14,12 +14,15 @@
  *      - a weekly recurring lesson series.
  *      - one CLOSED dispatch ticket (flown earlier today, Hobbs/tach recorded)
  *        and one OPEN dispatch ticket (aircraft currently checked out).
+ *      - a six-week forward schedule and four Messages announcements
+ *        (demo/seed-upcoming.ts).
  *
  *   2. "Bravo Flying Club" (slug `bravo`) — a SMALL CLUB counter-example:
  *      - three logins (owner / admin / member), two aircraft, one location.
  *      - a modest slice of life: a couple of upcoming member reservations, one
  *        flown+closed dispatch ticket, one open low-severity squawk, a booking
  *        policy. NO training course (club operating mode turns training off).
+ *      - its own six-week forward schedule and three announcements.
  *      - CLUB OPERATING MODE (migration 0047, GRACEFUL ABSENCE if unapplied):
  *        the org_feature_config row is written with the 'club' preset
  *        (training/booking/auto-schedule off).
@@ -38,6 +41,9 @@
  * The two GRACEFUL-ABSENCE features (club mode / avatars) have no Drizzle
  * table/column object by design (see org-features-internal.ts / avatar.ts) —
  * those two spots use guarded raw SQL, same as their production consumers.
+ *
+ * Every date is relative to the moment the seed runs (demo/demo-clock.ts), so
+ * a seeded demo ages; the hosted demo re-seeds daily (demo/scheduled-reset.ts).
  *
  * This module is DEMO-ONLY. It is never imported by the production code path
  * (getDb only reaches it when AEROOPS_DEMO=1).
@@ -78,6 +84,8 @@ import { addCourseLessonWithDb } from '../training/add-course-lesson.js';
 import { enrollMemberWithDb } from '../training/enroll-member.js';
 import { recordLessonWithDb } from '../training/record-lesson.js';
 import { orgFeatureConfigTableExists } from '../org-features/org-features-internal.js';
+import { atLocal, demoWallClockZone } from './demo-clock.js';
+import { seedUpcomingReservations, seedAnnouncements, UPCOMING_DAYS } from './seed-upcoming.js';
 
 /** The org address used in the URL: /o/alpha/login */
 export const DEMO_SLUG = 'alpha';
@@ -121,14 +129,6 @@ let _demoPasswordHashCache: Promise<string> | null = null;
 function demoPasswordHash(): Promise<string> {
   _demoPasswordHashCache ??= hashPassword(DEMO_PASSWORD);
   return _demoPasswordHashCache;
-}
-
-/** A Date at `hour:minute` local time, `dayOffset` days from today. */
-function atLocal(dayOffset: number, hour: number, minute = 0): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + dayOffset);
-  d.setHours(hour, minute, 0, 0);
-  return d;
 }
 
 /**
@@ -397,10 +397,87 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     end: { kind: 'count', count: 8 },
     localStartTime: '17:00',
     durationMinutes: 90,
-    tz: 'America/Chicago',
+    tz: demoWallClockZone(),
     resourceIds: [tail('N28K')],
     notes: 'Private pilot ground + flight block',
   });
+
+  // ── 5a. The coming six weeks (demo/seed-upcoming.ts) ───────────────────
+  // A weekly pattern so every day a visitor browses to has flying on it. It
+  // starts the day after tomorrow (today and tomorrow are hand-placed above)
+  // and keeps clear of the Tue/Thu evening series and of itself: one block per
+  // aircraft per time band, the instructor on Mon/Wed/Fri mornings and the
+  // Cirrus checkouts. Any collision throws. The Cirrus slots start a week out,
+  // after its maintenance (see the grounding below and the announcement).
+  // Notes deliberately differ from the hand-placed reservations' notes, which
+  // tests look up by exact text.
+  await seedUpcomingReservations(
+    db,
+    ownerSession,
+    [
+      {
+        weekdays: [1, 3, 5],
+        hour: 8,
+        durationMinutes: 120,
+        resourceIds: [tail('N172SP'), ids.instructorId],
+        notes: [
+          'Dual — steep turns & slow flight',
+          'Dual — pattern work',
+          'Dual — emergency procedures',
+          'Dual — XC planning flight',
+          'Stage check — oral & flight prep',
+        ],
+      },
+      {
+        weekdays: [2, 4],
+        hour: 9,
+        durationMinutes: 90,
+        resourceIds: [tail('N152AB')],
+        notes: ['Solo — practice area', 'Solo — pattern work'],
+      },
+      {
+        weekdays: [1, 2, 3, 4, 5],
+        hour: 11,
+        durationMinutes: 120,
+        resourceIds: [tail('N28K')],
+        notes: ['Rental — KOSU ▸ KLCK and back', 'Proficiency flight', 'Rental — local', 'Club checkout flight'],
+      },
+      {
+        weekdays: [6],
+        hour: 9,
+        durationMinutes: 180,
+        resourceIds: [tail('N28K')],
+        notes: ['Rental — weekend XC', 'Rental — scenic flight'],
+      },
+      {
+        weekdays: [6],
+        hour: 13,
+        durationMinutes: 150,
+        resourceIds: [tail('N172SP')],
+        notes: ['Rental — weekend flying', 'Rental — currency flight'],
+      },
+      {
+        weekdays: [0],
+        hour: 13,
+        durationMinutes: 120,
+        resourceIds: [tail('N152AB')],
+        notes: ['Solo — weekend practice'],
+      },
+      {
+        weekdays: [3, 6],
+        hour: 14,
+        durationMinutes: 120,
+        resourceIds: [tail('N66RG'), ids.instructorId],
+        fromDay: 7,
+        notes: [
+          'SR20 transition — avionics & flows',
+          'SR20 transition — landings',
+          'SR20 transition — CAPS briefing & checkout',
+        ],
+      },
+    ],
+    { firstDay: 2, lastDay: UPCOMING_DAYS },
+  );
 
   // ── 6. Dispatch tickets ─────────────────────────────────────────────────
   // Closed ticket on reservation A (flown earlier): open then close.
@@ -472,7 +549,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
       dayOfWeek: dow,
       startMinute: 7 * 60, // 07:00
       endMinute: 21 * 60, // 21:00
-      tz: 'America/Chicago',
+      tz: demoWallClockZone(),
     });
     if (!win.ok) {
       throw new Error(`[demo] availability window (dow ${dow}) failed — seed cannot continue.`);
@@ -678,7 +755,53 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     console.warn('[demo] historical activity backfill skipped:', err);
   }
 
-  // ── 8b. Second org — "Bravo Flying Club" (small club, slug `bravo`) ──
+  // ── 8b. Messages — operator announcements (demo/seed-upcoming.ts) ───────
+  const managerUserId = ids.userIdByEmail.get('manager@alpha.aero')!;
+  await seedAnnouncements(db, orgId, [
+    {
+      daysAgo: 12,
+      hour: 9,
+      sentBy: ids.ownerId,
+      audience: 'all_active',
+      subject: 'Welcome to the new scheduling system',
+      body:
+        'Everything now lives in one place: book aircraft and instructors from Schedule, check out ' +
+        'and in on the Board, and report squawks from any aircraft page. Questions go to the front desk.',
+    },
+    {
+      daysAgo: 6,
+      hour: 16,
+      sentBy: ids.ownerId,
+      audience: 'all_active',
+      subject: 'Cirrus N66RG is down for maintenance',
+      body:
+        'The SR20 is grounded for an oil seep at the quick-drain. A work order is open, and we will ' +
+        'post here when it is back on the line. Until then, please move Cirrus flights to the 172 or the Archer.',
+    },
+    {
+      daysAgo: 3,
+      hour: 11,
+      sentBy: managerUserId,
+      audience: 'role',
+      role: 'student',
+      subject: 'Stage check slots this month',
+      body:
+        'Casey has stage check slots open on Tuesday and Thursday afternoons. Book one from the ' +
+        'schedule, and bring your logbook and training records.',
+    },
+    {
+      daysAgo: 1,
+      hour: 18,
+      sentBy: managerUserId,
+      audience: 'all_active',
+      subject: 'Ramp reminder',
+      body:
+        'Please leave aircraft tied down with the cowl plugs in, and enter your Hobbs and tach ' +
+        'readings on the Board before you head out.',
+    },
+  ]);
+
+  // ── 8c. Second org — "Bravo Flying Club" (small club, slug `bravo`) ──
   await seedBravoClub(db);
 }
 
@@ -841,6 +964,60 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
     'booking policy (Warrior)',
   );
 
+  // ── The coming six weeks (demo/seed-upcoming.ts) ─────────────────────────
+  // Weekend-heavy club flying plus two weekday evenings, from day 3 (days 0–2
+  // are hand-placed above). Within the Warrior's policy (≤ 4 h, ≤ 45 days out).
+  await seedUpcomingReservations(
+    db,
+    ownerSession,
+    [
+      {
+        weekdays: [6],
+        hour: 9,
+        durationMinutes: 180,
+        resourceIds: [tail('N735BW')],
+        notes: ['Riley — weekend XC', 'Riley — breakfast flight to KMNN'],
+      },
+      {
+        weekdays: [6],
+        hour: 13,
+        durationMinutes: 180,
+        resourceIds: [tail('N2189K')],
+        notes: ['Casey — local flight', 'Casey — currency flight'],
+      },
+      {
+        weekdays: [0],
+        hour: 9,
+        durationMinutes: 120,
+        resourceIds: [tail('N2189K')],
+        notes: ['Jordan — Sunday flight', 'Jordan — proficiency flight'],
+      },
+      {
+        weekdays: [0],
+        hour: 14,
+        durationMinutes: 120,
+        resourceIds: [tail('N735BW')],
+        notes: ['Riley — touch and goes'],
+      },
+      {
+        weekdays: [3],
+        hour: 17,
+        minute: 30,
+        durationMinutes: 90,
+        resourceIds: [tail('N735BW')],
+        notes: ['Riley — evening pattern work'],
+      },
+      {
+        weekdays: [5],
+        hour: 16,
+        durationMinutes: 120,
+        resourceIds: [tail('N2189K')],
+        notes: ['Casey — sunset flight'],
+      },
+    ],
+    { firstDay: 3, lastDay: UPCOMING_DAYS },
+  );
+
   // ── Dispatch ticket — flown + closed, Hobbs/tach recorded ────────────────
   const opened = await openDispatchWithDb(db, ownerSession, {
     reservationId: flownRes.id,
@@ -939,6 +1116,38 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
     // eslint-disable-next-line no-console
     console.warn('[demo] bravo backfill skipped:', err);
   }
+
+  // ── Messages — club announcements (demo/seed-upcoming.ts) ────────────────
+  await seedAnnouncements(db, orgId, [
+    {
+      daysAgo: 9,
+      hour: 10,
+      sentBy: ids.ownerId,
+      audience: 'all_active',
+      subject: 'Club scheduling has moved',
+      body:
+        'Book the Skyhawk and the Warrior from Reservations, and squawk anything you find from the ' +
+        'aircraft page. Questions go to Casey.',
+    },
+    {
+      daysAgo: 4,
+      hour: 19,
+      sentBy: ids.ownerId,
+      audience: 'all_active',
+      subject: 'Club meeting Thursday at 7 pm',
+      body: 'In the hangar. On the agenda: a fleet update and fly-in planning. Bring ideas for the next club trip.',
+    },
+    {
+      daysAgo: 1,
+      hour: 8,
+      sentBy: ids.adminId,
+      audience: 'all_active',
+      subject: 'Warrior tire wear',
+      body:
+        'There is an open squawk on N2189K for wear on the right main tire. It is still flying, but ' +
+        'please give it a good look on your preflight and add a note to the squawk if it gets worse.',
+    },
+  ]);
 }
 
 /** Assert a createReservation result succeeded, returning the new reservation. */

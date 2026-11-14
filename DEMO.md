@@ -72,6 +72,11 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
 - **A training course:** "Private Pilot — Part 61" (5 lessons); the student is
   **enrolled at 2/5 progress** (two lessons recorded by the CFI).
 - **Profile photos** on several accounts (avatars in the roster + header).
+- **The coming six weeks (both orgs):** a weekly pattern of lessons, solos and
+  rentals from the day after tomorrow out to six weeks, booked through the same
+  gates as everything else, so every day you browse to on the schedule has flying.
+- **Messages:** four announcements on Alpha (one to students only) and three on
+  Bravo, sent over the last two weeks. Seeded without the e-mail fan-out.
 - **A month of activity (both orgs):** ~56 flights over the last ~28 days on
   Alpha (~26 on Bravo), each a closed dispatch. So the **dashboard** shows a
   populated reservations-vs-flights **activity chart** + KPI **sparklines**, and
@@ -80,8 +85,9 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
 
 > Bravo Flying Club seeds the same shape at small-club scale (2 aircraft, 3
 > members, club mode) and is the **primary** demo on the marketing site (the
-> live-demo picker leads with the flying club). Both orgs reset to baseline on
-> the hosted demo.
+> live-demo picker leads with the flying club). The hosted demo re-seeds both
+> orgs every night (DEPLOY.md, "Public-demo daily refresh"), so its dates are
+> always current.
 
 ## 8-minute click-through (as owner)
 
