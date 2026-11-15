@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import animate from 'tailwindcss-animate';
 
 const config: Config = {
   darkMode: 'class',
@@ -83,7 +84,10 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  // tailwindcss-animate: the animate-in / fade-in-0 / zoom-in-95 /
+  // slide-in-from-* classes the dialog and sheet components use (shadcn).
+  // Without it those classes were never emitted and dialogs popped in.
+  plugins: [animate],
 };
 
 export default config;

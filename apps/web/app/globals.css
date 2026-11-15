@@ -139,3 +139,14 @@
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* Reduced motion: dialogs, sheets and menus (Radix, data-state open/closed)
+   appear and disappear without their enter/exit animation. Radix still gets
+   its animationend, so closing still unmounts. */
+@media (prefers-reduced-motion: reduce) {
+  [data-state='open'],
+  [data-state='closed'] {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
