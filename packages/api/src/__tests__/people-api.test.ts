@@ -477,6 +477,47 @@ describe('T13b — getMemberDetail recent dispatch order', () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
+// T13c — getMemberDetail: a dual booking is one upcoming reservation
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('T13c — getMemberDetail upcoming reservations, one row per booking', () => {
+  it('an aircraft + instructor booking is listed once, not once per resource', async () => {
+    const { db, orgAId } = sharedEnv;
+    const stamp = Date.now();
+    // A fresh booker, so no other test's bookings crowd the 10-row list.
+    const bookerId = await seedOrgAMember(db, orgAId, `dual-t13c-${stamp}@test.com`, 'manager');
+    const sess = makeSession(orgAId, bookerId, 'manager');
+    const aircraft = await createResourceWithDb(db, sess, {
+      kind: 'aircraft',
+      displayName: `N-DUAL-${stamp}`,
+      tailNumber:  `ND${stamp % 100000}`,
+    });
+    const instructor = await createResourceWithDb(db, sess, {
+      kind: 'instructor',
+      displayName: `CFI-DUAL-${stamp}`,
+      instructorUserId: bookerId,
+    });
+    // Relative to the run: the list only holds bookings that start after NOW().
+    const startAt = new Date(Math.ceil((stamp + 30 * 86_400_000) / 3_600_000) * 3_600_000);
+    const endAt = new Date(startAt.getTime() + 2 * 3_600_000);
+    const booked = await createReservationWithDb(db, sess, {
+      startAt,
+      endAt,
+      resourceIds: [aircraft.id, instructor.id],
+    });
+    if (!booked.ok) throw new Error(`seed reservation failed: ${booked.reason}`);
+
+    const result = await getMemberDetailWithDb(db, sess, { userId: bookerId });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const rows = result.member.upcomingReservations.filter((u) => u.id === booked.reservation.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.startAt.getTime()).toBe(startAt.getTime());
+    expect(rows[0]!.endAt.getTime()).toBe(endAt.getTime());
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
 // T14 — getMemberDetail: deactivated → full detail
 // ════════════════════════════════════════════════════════════════════════════════
 

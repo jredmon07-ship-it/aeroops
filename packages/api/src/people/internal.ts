@@ -119,18 +119,21 @@ export async function assembleMemberDetail(
 
   // ── 3. Upcoming reservations BOOKED BY this member ─────────────────────────
   // [VERIFY-6-C]: reservation.created_by — booking owner, NOT flight assignment.
+  // One row per reservation: a dual booking holds the aircraft AND the
+  // instructor (two reservation_resource rows) and was listed twice.
   const reservationsResult = await tx.execute(sql`
     SELECT
       r.id,
-      lower(rr.during) AS "startAt",
-      upper(rr.during) AS "endAt",
-      r.series_id       AS "seriesId"
+      min(lower(rr.during)) AS "startAt",
+      max(upper(rr.during)) AS "endAt",
+      r.series_id           AS "seriesId"
     FROM reservation r
     JOIN reservation_resource rr ON rr.reservation_id = r.id
     WHERE r.created_by = ${userId}::uuid
       AND r.status = 'booked'
       AND lower(rr.during) > NOW()
-    ORDER BY lower(rr.during) ASC
+    GROUP BY r.id, r.series_id
+    ORDER BY min(lower(rr.during)) ASC, r.id
     LIMIT 10
   `);
 
