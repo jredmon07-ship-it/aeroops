@@ -4,6 +4,62 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-11-15 — Fixes from a walk through the demo
+
+Bugs found walking through the hosted demo in both orgs, light and dark, on
+desktop and phone. No migration.
+
+**Fixed**
+
+- Dark mode: the role badge on People and on a member's page was dark blue on
+  dark (1.13:1). It and about 50 other badges, chips and links that stayed
+  dark-on-dark now have dark-mode colors.
+- Dark mode reaches every page: sign-in, login links, signup, the "This area is
+  turned off" page, the public booking page and the 404 follow your light/dark
+  choice, or your device when you haven't made one.
+- On phones the signed-in header fits from 320px up. Below tablet width, your
+  email, role, Notifications and Sign out sit at the bottom of the menu drawer
+  instead of being cut off or pushed off-screen. Wide tables and the dispatch
+  board scroll inside their own frames instead of widening the page.
+- The browser tab shows the navy AeroOps mark; `/favicon.ico` used to 404.
+- The sidebar's "Operations" and "Demo build" labels and the selected List /
+  Month / Board tab meet WCAG AA contrast.
+- Schedule: Previous, Next and Today on the day list and the Dispatch Board move
+  exactly one day, and the heading matches the `?date=` in the URL. West of UTC
+  the heading read a day early and Next got stuck. A day's reservations are
+  fetched midnight to midnight in your own time zone, DST days included, and
+  after Previous or Next the list and the board show the new day.
+- Auto-schedule's board links and date-window default use your local date
+  instead of the UTC date.
+- Activity links work: reservation, dispatch and gate-settings entries opened
+  `/o/<org>/board`, which does not exist, and now open the dispatch board.
+  Recurring-series entries open the series and dispatch-requirement entries the
+  aircraft. A test checks every Activity link against the app's pages.
+- Activity reads like people wrote it: "Reservation created starting Jul 11,
+  2026 09:00 CDT" instead of `2026-07-11T14:00:00.000Z` (always naming the zone,
+  for now the server's), the right article ("an aircraft grounding") and a plain
+  caption ("dispatch ticket") instead of a table name.
+- Fleet → Recent Dispatch shows the pilot's name instead of a user id, and it
+  and People → Recent dispatch as pilot list the newest check-out first.
+  Back-dated history used to push today's flight off the aircraft page.
+- Dashboard: the Flight hours and Reservations cards read "no flight hours in
+  period" and "no reservations in period" when empty instead of "no … in
+  period", and Reservations reads "excl. cancelled" instead of "incl.
+  upcoming", which it never counted.
+- Squawk severity chips: medium and high show amber and orange on the dashboard
+  instead of grey, and Grounding shows red on the dashboard, the Squawks list
+  and work orders, where it had no color. One map keyed by the real severities
+  drives all three.
+- Club mode: with Training off, the Portal's "My training", a member's Training
+  card and Reports' "Training throughput" no longer show empty, and the Portal
+  subtitle drops training; with Auto-schedule off, the Schedule page no longer
+  shows an Auto-schedule button that led to "This area is turned off". Orgs with
+  those modules on are unchanged.
+- Violet, rose and teal member tags show their colors on People and in the tag
+  editor, and brand-tinted chips (open squawks and work orders, a checked-out
+  aircraft, count badges) show their light tint: Tailwind now scans `lib/` and
+  has the 8% opacity step.
+
 ## 2026-11-15 — The flying-club demo looks lived-in
 
 Bravo Flying Club, the primary demo, had three members, a Warrior that had never
