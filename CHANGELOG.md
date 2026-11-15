@@ -60,6 +60,10 @@ failed contrast. No migration.
 - Dispatch board on phones: blocks are no longer marked draggable when the page
   first loads. The mobile menu and dialogs no longer log Radix's
   missing-Description warning.
+- Phones: Squawks, Maintenance due and the import page no longer scroll
+  sideways. A visually hidden table header escaped its scroll frame and
+  stretched Squawks to 746px on a 390px screen. The board's header and the
+  schedule's date bar wrap instead of running off a 360–390px screen.
 
 ## 2026-11-15 — Fixes from a walk through the demo
 

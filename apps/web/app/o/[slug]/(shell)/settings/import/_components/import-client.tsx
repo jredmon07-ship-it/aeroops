@@ -453,7 +453,7 @@ function PreviewTable({ rows }: { kind: ImportKind; rows: SerializedImportRow[] 
   }
   const columns = Object.keys(rows[0]!.raw).slice(0, 5);
   return (
-    <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
+    <div className="relative rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
       <table className="w-full text-sm" aria-label="Import preview">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
@@ -591,7 +591,7 @@ function HistorySection({ kind, refreshKey }: { kind: ImportKind; refreshKey: nu
       )}
 
       {state.phase === 'loaded' && state.batches.length > 0 && (
-        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
+        <div className="relative rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Import history">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">

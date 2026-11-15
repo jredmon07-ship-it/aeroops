@@ -431,7 +431,7 @@ export function MaintenanceDueList({
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
+        <div className="relative rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Maintenance due items">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">

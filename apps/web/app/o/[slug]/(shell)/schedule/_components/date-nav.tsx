@@ -52,7 +52,7 @@ export function DateNav({ day, basePath }: DateNavProps) {
     <div
       role="toolbar"
       aria-label="Date navigation"
-      className="flex items-center gap-2"
+      className="flex flex-wrap items-center gap-2"
       onKeyDown={handleKeyDown}
     >
       <Button

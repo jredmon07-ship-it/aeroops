@@ -297,9 +297,9 @@ export default async function BoardPage({
   return (
     <div className="space-y-4">
       {/* ── Header row ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Dispatch Board</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Gate settings — dispatch:manage_requirements only (absent otherwise) */}
           <GateSettingsDialog canManageRequirements={canManageRequirements} />
           {canCreate && (
