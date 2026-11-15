@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { SerializedCommitResult, SerializedCommitProposal } from '../actions';
 import type { ResourceRow } from '@aeroops/api';
+import { toDateInputValue } from '../../_utils/format-time';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,8 +58,10 @@ function formatTimeRange(startIso: string, endIso: string): string {
 }
 
 function boardDateFromIso(iso: string): string {
-  // Extract YYYY-MM-DD from ISO string for the board ?date= param
-  return iso.slice(0, 10);
+  // The board's ?date= is a calendar day in the viewer's zone (the browser's,
+  // here). The ISO string's own date part is the UTC day: the day before for
+  // an Auckland morning start, the day after for a US evening one.
+  return toDateInputValue(new Date(iso));
 }
 
 function resourceNames(ids: string[], resources: ResourceRow[]): string {

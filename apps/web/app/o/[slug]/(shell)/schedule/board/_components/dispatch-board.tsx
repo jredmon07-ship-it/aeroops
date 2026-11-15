@@ -35,7 +35,8 @@ import {
   groupResourcesByKind,
 } from '../_utils/board-layout';
 import { rescheduleAction } from '../../actions';
-import { formatDate, formatTimeRange } from '../../_utils/format-time';
+import { formatTimeRange } from '../../_utils/format-time';
+import { dayLabel } from '@/lib/schedule-day';
 import { reservationHue } from './board-block';
 import type { ReservationRow, ResourceRow, ConflictHit, PolicyViolationView, DispatchTicketView, GroundingStatusView } from '@aeroops/api';
 import type { BoardBlock } from '../_utils/board-layout';
@@ -66,7 +67,14 @@ type FeedbackState =
 interface DispatchBoardProps {
   initialReservations: ReservationRow[];
   resources: ResourceRow[];
-  date: Date;
+  /** The board's day, "YYYY-MM-DD" (the ?date= value). */
+  day: string;
+  /**
+   * Epoch ms of the day's first instant in the viewer's zone (the track's
+   * 00:00), computed by the page — never re-derived here from a Date, so the
+   * server render and the browser place blocks identically.
+   */
+  dayStartMs: number;
   canDrag: boolean;
   /** Whether the current user has dispatch:create. Controls action button visibility. */
   canDispatch: boolean;
@@ -99,7 +107,8 @@ interface DispatchBoardProps {
 export function DispatchBoard({
   initialReservations,
   resources,
-  date,
+  day,
+  dayStartMs,
   canDrag,
   canDispatch,
   initialDispatchTickets,
@@ -181,12 +190,6 @@ export function DispatchBoard({
   const [voidTicket, setVoidTicket] = React.useState<DispatchTicketView | null>(null);
 
   // ── Computed ───────────────────────────────────────────────────────────────
-  const dayStartMs = React.useMemo(() => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-  }, [date]);
-
   const activeResourceIds = React.useMemo(
     () => new Set(resources.map((r) => r.id)),
     [resources],
@@ -739,7 +742,7 @@ export function DispatchBoard({
   return (
     <div
       role="region"
-      aria-label={`Dispatch board for ${formatDate(date)}`}
+      aria-label={`Dispatch board for ${dayLabel(day)}`}
       aria-busy={isBoardBusy}
       className="flex flex-col"
     >

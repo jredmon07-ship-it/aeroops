@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateNav } from '../_components/date-nav';
+import { ViewerTimeZoneSync } from '../_components/viewer-time-zone-sync';
 import { DispatchBoard } from './_components/dispatch-board';
 import { GateSettingsDialog } from './_components/gate-settings-dialog';
 import {
@@ -42,12 +43,8 @@ import {
   getOpenSquawkCountsAction,
 } from '../../maintenance/actions';
 import type { DispatchTicketView, GroundingStatusView } from '@aeroops/api';
-import {
-  parseDateParam,
-  startOfDay,
-  endOfDay,
-  toDateInputValue,
-} from '../_utils/format-time';
+import { parseDayParam, dayInZone, dayWindow } from '@/lib/schedule-day';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -72,8 +69,10 @@ function BoardSkeleton() {
 
 interface BoardContentProps {
   slug: string;
-  date: Date;
+  /** The ?date= day, "YYYY-MM-DD". */
   dateStr: string;
+  /** The viewer's IANA zone: the day runs midnight to midnight there. */
+  timeZone: string;
   canDrag: boolean;
   canCreate: boolean;
   canManageResources: boolean;
@@ -84,8 +83,8 @@ interface BoardContentProps {
 
 async function BoardContent({
   slug,
-  date,
   dateStr,
+  timeZone,
   canDrag,
   canCreate,
   canManageResources,
@@ -93,10 +92,14 @@ async function BoardContent({
   canMaintenanceAccess,
   canGround,
 }: BoardContentProps) {
+  // The day's window in the viewer's zone. Its start is also the board
+  // track's 00:00, so the server and the browser place blocks identically.
+  const dayWin = dayWindow(dateStr, timeZone);
+
   // Parallel fetch — same pattern as schedule/page.tsx.
   // Step 1: fetch reservations + resources in parallel.
   const [reservationsResult, resourcesResult] = await Promise.all([
-    listReservationsAction({ from: startOfDay(date), to: endOfDay(date) }),
+    listReservationsAction(dayWin),
     listResourcesAction({}),
   ]);
 
@@ -216,11 +219,17 @@ async function BoardContent({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const DispatchBoardAny = DispatchBoard as React.ComponentType<any>;
+  // Keyed by the day and the zone its window was built in: the board seeds
+  // its state from the initial* props, and Next.js keeps a client component's
+  // state across a ?date= navigation — without the key, Next / Previous kept
+  // the day you came from, laid out against the new day's 00:00.
   return (
     <DispatchBoardAny
+      key={`${dateStr}@${timeZone}`}
       initialReservations={reservations}
       resources={resources}
-      date={date}
+      day={dateStr}
+      dayStartMs={dayWin.from.getTime()}
       canDrag={canDrag}
       canDispatch={canDispatch}
       initialDispatchTickets={[...dispatchTickets.entries()]}
@@ -278,11 +287,14 @@ export default async function BoardPage({
   const canManageRequirements = hasCapability(session, 'dispatch:manage_requirements');
 
   // ── Resolve date ──────────────────────────────────────────────────────────
-  const date = parseDateParam(dateParam) ?? new Date();
-  const dateStr = toDateInputValue(date);
+  // ?date= is a calendar day ("YYYY-MM-DD"), kept as a string end to end;
+  // today and the day's window are in the viewer's zone (lib/schedule-day.ts).
+  const timeZone = await getViewerTimeZone();
+  const dateStr = parseDayParam(dateParam) ?? dayInZone(new Date(), timeZone);
 
   return (
     <div className="space-y-4">
+      <ViewerTimeZoneSync serverTimeZone={timeZone} />
       {/* ── Header row ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Dispatch Board</h1>
@@ -302,7 +314,7 @@ export default async function BoardPage({
       {/* ── Toolbar: DateNav + List/Board toggle ─────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <DateNav
-          date={date}
+          day={dateStr}
           basePath={`/o/${slug}/schedule/board`}
         />
 
@@ -338,8 +350,8 @@ export default async function BoardPage({
       <Suspense fallback={<BoardSkeleton />}>
         <BoardContent
           slug={slug}
-          date={date}
           dateStr={dateStr}
+          timeZone={timeZone}
           canDrag={canDrag}
           canCreate={canCreate}
           canManageResources={canManageResources}

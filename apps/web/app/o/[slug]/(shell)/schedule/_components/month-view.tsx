@@ -38,7 +38,8 @@ import {
   shortName,
   type MonthDayCell,
 } from '@/lib/month-grid';
-import { formatTime, formatDate, parseDateParam } from '../_utils/format-time';
+import { formatTime } from '../_utils/format-time';
+import { dayLabel } from '@/lib/schedule-day';
 import { buildResourceMap, sortResourceIds } from '../_utils/resource-map';
 import type { ReservationRow, ResourceRow } from '@aeroops/api';
 
@@ -175,12 +176,13 @@ export function MonthView({
   const label = monthLabel(year, month);
   const flatCells = React.useMemo(() => grid.weeks.flat(), [grid]);
 
-  // `todayIso` is computed server-side (UTC on Vercel), but the chips and their
-  // times render in the VIEWER's local tz (groupByStartDay + formatTime). A
-  // server-UTC "today" therefore rings the wrong cell for users west of UTC in
-  // the evening. Recompute today in the viewer's local tz AFTER mount so the
-  // ring matches the local basis everything else uses. Server + first client
-  // render still use the passed value → no hydration mismatch.
+  // `todayIso` is computed server-side in the viewer's zone once the browser
+  // has reported it (lib/viewer-time-zone.ts); before that (a first visit) it
+  // is the server's zone (UTC on Vercel), while the chips and their times
+  // render in the VIEWER's local tz (groupByStartDay + formatTime). Recompute
+  // today in the viewer's local tz AFTER mount so the ring always matches the
+  // local basis everything else uses. Server + first client render still use
+  // the passed value → no hydration mismatch.
   const [localTodayIso, setLocalTodayIso] = React.useState<string | null>(null);
   React.useEffect(() => {
     const d = new Date();
@@ -267,10 +269,9 @@ export function MonthView({
   const next = addMonthsClamped(year, month, 1);
   const todayMonthParam = todayIso.slice(0, 7); // "YYYY-MM"
 
-  const dayLabelFor = React.useCallback((iso: string) => {
-    const d = parseDateParam(iso);
-    return d ? formatDate(d) : iso;
-  }, []);
+  // Calendar-day label (lib/schedule-day.ts): the same text on the server and
+  // in every browser zone.
+  const dayLabelFor = React.useCallback((iso: string) => dayLabel(iso), []);
 
   const isEmpty = !error && reservations.length === 0;
 

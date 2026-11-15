@@ -4,6 +4,11 @@
  * Renders Prev / Today / Next buttons + an aria-live date label.
  * Arrow-key shortcuts are implemented via onKeyDown on the toolbar.
  * Uses router.push to update the ?date= query param.
+ *
+ * `day` is the ?date= calendar day itself ("YYYY-MM-DD"), never a Date: Prev /
+ * Next step it by one calendar day and the label formats it as-is
+ * (lib/schedule-day.ts), so the label matches the URL in every time zone.
+ * Today is the browser's own calendar date at the moment of the click.
  */
 'use client';
 
@@ -11,19 +16,21 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatDate, toDateInputValue, addDays } from '../_utils/format-time';
+import { addDays, dayLabel } from '@/lib/schedule-day';
+import { toDateInputValue } from '../_utils/format-time';
 
 interface DateNavProps {
-  date: Date;
+  /** The day shown, "YYYY-MM-DD" (the ?date= value). */
+  day: string;
   basePath: string;
 }
 
-export function DateNav({ date, basePath }: DateNavProps) {
+export function DateNav({ day, basePath }: DateNavProps) {
   const router = useRouter();
 
   const navigate = React.useCallback(
-    (d: Date) => {
-      router.push(`${basePath}?date=${toDateInputValue(d)}`);
+    (d: string) => {
+      router.push(`${basePath}?date=${d}`);
     },
     [router, basePath],
   );
@@ -32,13 +39,13 @@ export function DateNav({ date, basePath }: DateNavProps) {
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        navigate(addDays(date, -1));
+        navigate(addDays(day, -1));
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        navigate(addDays(date, 1));
+        navigate(addDays(day, 1));
       }
     },
-    [date, navigate],
+    [day, navigate],
   );
 
   return (
@@ -51,7 +58,7 @@ export function DateNav({ date, basePath }: DateNavProps) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => navigate(addDays(date, -1))}
+        onClick={() => navigate(addDays(day, -1))}
         aria-label="Previous day"
       >
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -60,7 +67,7 @@ export function DateNav({ date, basePath }: DateNavProps) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => navigate(new Date())}
+        onClick={() => navigate(toDateInputValue(new Date()))}
         aria-label="Go to today"
       >
         Today
@@ -69,7 +76,7 @@ export function DateNav({ date, basePath }: DateNavProps) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => navigate(addDays(date, 1))}
+        onClick={() => navigate(addDays(day, 1))}
         aria-label="Next day"
       >
         <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -79,7 +86,7 @@ export function DateNav({ date, basePath }: DateNavProps) {
         aria-live="polite"
         className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300 min-w-[12rem]"
       >
-        {formatDate(date)}
+        {dayLabel(day)}
       </output>
     </div>
   );

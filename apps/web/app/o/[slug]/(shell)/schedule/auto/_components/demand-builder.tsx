@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { ResourceRow } from '@aeroops/api';
+import { toDateInputValue } from '../../_utils/format-time';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -306,8 +307,10 @@ function DemandBuilderRow({
             if (showPerDemandWindow) {
               onUpdate(row.id, { earliestDate: '', latestDate: '' });
             } else {
-              // Seed with today
-              const today = new Date().toISOString().slice(0, 10);
+              // Seed with today — the browser's calendar day, the same local
+              // basis localDateTimeToUtcMs reads the field in (the UTC date
+              // is tomorrow on a US evening, yesterday on an Auckland morning).
+              const today = toDateInputValue(new Date());
               onUpdate(row.id, { earliestDate: today });
             }
           }}

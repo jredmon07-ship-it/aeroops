@@ -8,12 +8,17 @@
  * Coverage:
  *   1. skipReasonLabel — maps all known reason strings to human-readable labels
  *   2. resourceNames — resolves resource ids to display names with tail # prefix
- *   3. boardDateFromIso — extracts YYYY-MM-DD from an ISO timestamp string
+ *   3. boardDateFromIso — the board ?date= day of a start instant, on the
+ *      viewer's (browser's) calendar, not the ISO string's UTC date
  *   4. Serialized proposal shape — wouldResult values are 'create' | 'skip'
  *   5. SerializedCommitProposal — result values are 'created' | 'skipped'
+ *   6. Unschedulable reasons — known values and their copy
+ *   7. Demand window seed — "today" on the viewer's (browser's) calendar,
+ *      the same basis the builder reads the date fields in
  */
 
 import { describe, it, expect } from 'vitest';
+import { toDateInputValue } from '../../../_utils/format-time';
 
 // ─── pure helpers (mirrors what the client components implement) ──────────────
 
@@ -44,7 +49,32 @@ function resourceNames(ids: string[], resources: ResourceLike[]): string {
 }
 
 function boardDateFromIso(iso: string): string {
-  return iso.slice(0, 10);
+  return toDateInputValue(new Date(iso));
+}
+
+/** DemandBuilder's "Add date-window constraint" seed: today, browser-local. */
+function seedEarliestDate(now: Date): string {
+  return toDateInputValue(now);
+}
+
+/** DemandBuilder's localDateTimeToUtcMs: the date + time fields read as browser-local. */
+function localDateTimeToUtcMs(date: string, time: string): number | undefined {
+  if (!date || !time) return undefined;
+  const d = new Date(`${date}T${time}:00`);
+  if (isNaN(d.getTime())) return undefined;
+  return d.getTime();
+}
+
+/** Run `fn` with the process (= the browser's local) zone switched to `tz`. */
+function inZone<T>(tz: string, fn: () => T): T {
+  const prev = process.env.TZ;
+  process.env.TZ = tz;
+  try {
+    return fn();
+  } finally {
+    if (prev === undefined) delete process.env.TZ;
+    else process.env.TZ = prev;
+  }
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -107,21 +137,27 @@ describe('2. resourceNames — display name resolution', () => {
   });
 });
 
-describe('3. boardDateFromIso — extracts YYYY-MM-DD from ISO timestamp', () => {
-  it('extracts date from full ISO timestamp', () => {
-    expect(boardDateFromIso('2026-06-19T14:30:00.000Z')).toBe('2026-06-19');
+describe('3. boardDateFromIso — the board day on the viewer’s calendar', () => {
+  it('a start that is the same calendar day everywhere links to that day', () => {
+    // 06:00Z = 01:00 in Chicago (CDT), 18:00 in Auckland (NZST).
+    for (const tz of ['America/Chicago', 'Pacific/Auckland', 'UTC']) {
+      expect(inZone(tz, () => boardDateFromIso('2026-06-19T06:00:00.000Z'))).toBe('2026-06-19');
+    }
   });
 
-  it('handles midnight UTC', () => {
-    expect(boardDateFromIso('2026-01-01T00:00:00.000Z')).toBe('2026-01-01');
+  it('a US evening start links to that evening’s day, not the next UTC day', () => {
+    // 2026-06-20 01:30Z = Jun 19 20:30 CDT.
+    expect(inZone('America/Chicago', () => boardDateFromIso('2026-06-20T01:30:00.000Z'))).toBe('2026-06-19');
   });
 
-  it('handles end of day', () => {
-    expect(boardDateFromIso('2026-12-31T23:59:59.999Z')).toBe('2026-12-31');
+  it('an Auckland morning start links to that morning’s day, not the previous UTC day', () => {
+    // 2026-06-19 21:00Z = Jun 20 09:00 NZST.
+    expect(inZone('Pacific/Auckland', () => boardDateFromIso('2026-06-19T21:00:00.000Z'))).toBe('2026-06-20');
   });
 
-  it('date-only string passes through unchanged', () => {
-    expect(boardDateFromIso('2026-06-19')).toBe('2026-06-19');
+  it('in UTC the board day is the ISO date part, including both ends of the day', () => {
+    expect(inZone('UTC', () => boardDateFromIso('2026-01-01T00:00:00.000Z'))).toBe('2026-01-01');
+    expect(inZone('UTC', () => boardDateFromIso('2026-12-31T23:59:59.999Z'))).toBe('2026-12-31');
   });
 });
 
@@ -201,5 +237,38 @@ describe('6. Unschedulable reasons — known values', () => {
         ? 'No feasible window in the scheduling range'
         : 'Over-constrained (window too narrow or resources fully booked)';
     expect(copy).toBe('Over-constrained (window too narrow or resources fully booked)');
+  });
+});
+
+describe('7. Demand window seed — today on the viewer’s calendar', () => {
+  // The seed used to be new Date().toISOString().slice(0, 10): the UTC day.
+  it('a US evening seeds that evening’s day, not the next UTC day', () => {
+    // 2026-06-20 01:30Z = Jun 19 20:30 CDT.
+    expect(inZone('America/Chicago', () => seedEarliestDate(new Date('2026-06-20T01:30:00.000Z')))).toBe(
+      '2026-06-19',
+    );
+  });
+
+  it('an Auckland morning seeds that morning’s day, not the previous UTC day', () => {
+    // 2026-06-19 21:00Z = Jun 20 09:00 NZST.
+    expect(inZone('Pacific/Auckland', () => seedEarliestDate(new Date('2026-06-19T21:00:00.000Z')))).toBe(
+      '2026-06-20',
+    );
+  });
+
+  it('the builder reads the seeded day back as the day that contains now', () => {
+    const cases = [
+      ['America/Chicago', '2026-06-20T01:30:00.000Z'],
+      ['Pacific/Auckland', '2026-06-19T21:00:00.000Z'],
+      ['UTC', '2026-06-19T23:59:00.000Z'],
+    ] as const;
+    for (const [tz, nowIso] of cases) {
+      inZone(tz, () => {
+        const now = new Date(nowIso).getTime();
+        const seeded = seedEarliestDate(new Date(now));
+        expect(now).toBeGreaterThanOrEqual(localDateTimeToUtcMs(seeded, '00:00')!);
+        expect(now).toBeLessThanOrEqual(localDateTimeToUtcMs(seeded, '23:59')!);
+      });
+    }
   });
 });

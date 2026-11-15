@@ -37,17 +37,14 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DateNav } from './_components/date-nav';
 import { ReservationList } from './_components/reservation-list';
 import { MonthView } from './_components/month-view';
+import { ViewerTimeZoneSync } from './_components/viewer-time-zone-sync';
 import {
   listReservationsAction,
   listResourcesAction,
   listOrgMembersAction,
 } from './actions';
-import {
-  parseDateParam,
-  startOfDay,
-  endOfDay,
-  toDateInputValue,
-} from './_utils/format-time';
+import { parseDayParam, splitDay, dayInZone, dayWindow } from '@/lib/schedule-day';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 import { buildMonthGrid, parseMonthParam, formatMonthParam } from '@/lib/month-grid';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -80,22 +77,24 @@ function ScheduleSkeleton() {
 
 interface ScheduleContentProps {
   slug: string;
-  date: Date;
+  /** The ?date= day, "YYYY-MM-DD". */
   dateStr: string;
+  /** The viewer's IANA zone: the day runs midnight to midnight there. */
+  timeZone: string;
   canCreate: boolean;
   canManageResources: boolean;
 }
 
 async function ScheduleContent({
   slug,
-  date,
   dateStr,
+  timeZone,
   canCreate,
   canManageResources,
 }: ScheduleContentProps) {
   // Fetch reservations + resources in parallel.
   const [reservationsResult, resourcesResult] = await Promise.all([
-    listReservationsAction({ from: startOfDay(date), to: endOfDay(date) }),
+    listReservationsAction(dayWindow(dateStr, timeZone)),
     listResourcesAction({}),
   ]);
 
@@ -111,8 +110,13 @@ async function ScheduleContent({
 
   const hasError = !('ok' in reservationsResult) || !reservationsResult.ok;
 
+  // Keyed by the day and the zone its window was built in: ReservationList
+  // seeds its state from `reservations`, and Next.js keeps a client
+  // component's state across a ?date= navigation — without the key, Next /
+  // Previous kept listing the day you came from.
   return (
     <ReservationList
+      key={`${dateStr}@${timeZone}`}
       reservations={reservations}
       resources={resources}
       canCreate={canCreate}
@@ -131,6 +135,8 @@ interface MonthContentProps {
   year: number;
   month: number;
   todayIso: string;
+  /** The viewer's IANA zone (see ScheduleContentProps). */
+  timeZone: string;
   canManageResources: boolean;
 }
 
@@ -139,13 +145,14 @@ async function MonthContent({
   year,
   month,
   todayIso,
+  timeZone,
   canManageResources,
 }: MonthContentProps) {
-  // Padded grid window: local midnight of the first grid cell → end of the
-  // last grid cell (same local-day semantics as the List view's day window).
+  // Padded grid window: the first grid cell's midnight → the end of the last
+  // grid cell, in the viewer's zone (same day semantics as the List view).
   const grid = buildMonthGrid(year, month);
-  const from = startOfDay(parseDateParam(grid.gridStartIso) ?? new Date());
-  const to = endOfDay(parseDateParam(grid.gridEndIso) ?? new Date());
+  const from = dayWindow(grid.gridStartIso, timeZone).from;
+  const to = dayWindow(grid.gridEndIso, timeZone).to;
 
   // Fetch reservations + resources (+ member names when permitted) in parallel.
   // listReservations excludes cancelled by default — month chips never show them.
@@ -234,20 +241,21 @@ export default async function SchedulePage({
   const canAutoSchedule = isNavHrefVisible(session, '/o/[slug]/schedule/auto', enabledModules);
 
   // ── Resolve the display date + view ──────────────────────────────────────
-  // Default stays List — ?view=month is opt-in (linkable), zero behavior
-  // change for existing users. Malformed ?month= degrades to the display date.
-  const date = parseDateParam(dateParam) ?? new Date();
-  const dateStr = toDateInputValue(date);
+  // ?date= is a calendar day ("YYYY-MM-DD"), kept as a string end to end;
+  // today and the day's query window are in the viewer's zone
+  // (lib/schedule-day.ts). Default stays List — ?view=month is opt-in
+  // (linkable), zero behavior change for existing users. Malformed ?date= /
+  // ?month= degrade to today / the display date.
+  const timeZone = await getViewerTimeZone();
+  const todayIso = dayInZone(new Date(), timeZone);
+  const dateStr = parseDayParam(dateParam) ?? todayIso;
   const isMonthView = viewParam === 'month';
-  const ym = parseMonthParam(monthParam) ?? {
-    year: date.getFullYear(),
-    month: date.getMonth() + 1,
-  };
+  const ym = parseMonthParam(monthParam) ?? splitDay(dateStr);
   const monthStr = formatMonthParam(ym.year, ym.month);
-  const todayIso = toDateInputValue(new Date());
 
   return (
     <div className="space-y-4">
+      <ViewerTimeZoneSync serverTimeZone={timeZone} />
       {/* ── Page heading + primary action ────────────────────────────────── */}
       <PageHeader
         title="Schedule"
@@ -275,7 +283,7 @@ export default async function SchedulePage({
 
       {/* ── Toolbar: DateNav (List only) + List/Month/Board view toggle ──── */}
       <div className="flex flex-wrap items-center gap-3">
-        {!isMonthView && <DateNav date={date} basePath={`/o/${slug}/schedule`} />}
+        {!isMonthView && <DateNav day={dateStr} basePath={`/o/${slug}/schedule`} />}
 
         {/* List / Month / Board view toggle */}
         <div
@@ -346,13 +354,14 @@ export default async function SchedulePage({
             year={ym.year}
             month={ym.month}
             todayIso={todayIso}
+            timeZone={timeZone}
             canManageResources={canManageResources}
           />
         ) : (
           <ScheduleContent
             slug={slug}
-            date={date}
             dateStr={dateStr}
+            timeZone={timeZone}
             canCreate={canCreate}
             canManageResources={canManageResources}
           />
