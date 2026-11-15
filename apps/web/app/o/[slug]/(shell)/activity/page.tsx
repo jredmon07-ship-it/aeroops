@@ -143,7 +143,7 @@ function TimelineEntry({ entry, slug, isLast }: TimelineEntryProps) {
             {fullPath ? (
               <Link
                 href={fullPath}
-                className="text-brand hover:text-brand-ink underline underline-offset-2"
+                className="text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
               >
                 {entry.summary}
               </Link>

@@ -23,7 +23,7 @@ import { listMemberAvatarsAction } from '../actions';
 function RoleBadge({ role }: { role: MembershipRole }) {
   const label = ROLE_LABELS[role] ?? role;
   return (
-    <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
+    <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink dark:text-blue-200">
       {label}
     </span>
   );

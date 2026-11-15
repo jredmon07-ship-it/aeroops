@@ -55,7 +55,7 @@ export function statusBadgeConfig(status: BookingRequestStatus | string): Status
   const configs: Record<string, StatusBadgeConfig> = {
     new: {
       label: 'New',
-      cls: 'border-brand/30 bg-brand/8 text-brand-ink',
+      cls: 'border-brand/30 bg-brand/8 dark:bg-brand/20 text-brand-ink dark:text-blue-200',
     },
     contacted: {
       label: 'Contacted',

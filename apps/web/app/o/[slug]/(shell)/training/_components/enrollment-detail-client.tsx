@@ -61,7 +61,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink dark:text-blue-200">
         {enrollmentStatusLabel(status)}
       </span>
     );
@@ -1230,7 +1230,7 @@ export function EnrollmentDetailClient({
             Enrollment for{' '}
             <a
               href={`/o/${slug}/training/${enrollment.courseId}`}
-              className="text-brand hover:text-brand-ink hover:underline underline-offset-2"
+              className="text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
             >
               {enrollment.courseTitle}
             </a>
@@ -1341,7 +1341,7 @@ export function EnrollmentDetailClient({
                           </span>
                           {/* [VERIFY-T1-G]: stage_label = FREE-TEXT grouping */}
                           {lp.stageLabel && (
-                            <span className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-brand-ink">
+                            <span className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-brand-ink dark:text-blue-200">
                               {lp.stageLabel}
                             </span>
                           )}

@@ -358,7 +358,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
             <FileText className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Documents</h2>
             {!loading && !loadError && documents !== null && documents.length > 0 && (
-              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
+              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink dark:text-blue-200">
                 {documents.length}
               </span>
             )}

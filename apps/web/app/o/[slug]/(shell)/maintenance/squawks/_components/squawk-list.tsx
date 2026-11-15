@@ -52,7 +52,7 @@ function StatusChip({ status }: { status: SquawkStatus }) {
   const map: Record<SquawkStatus, { label: string; cls: string; icon: React.ReactNode }> = {
     open: {
       label: 'Open',
-      cls: 'border-brand/30 bg-brand/8 text-brand-ink',
+      cls: 'border-brand/30 bg-brand/8 dark:bg-brand/20 text-brand-ink dark:text-blue-200',
       icon: <AlertTriangle className="h-3 w-3" aria-hidden="true" />,
     },
     deferred: {

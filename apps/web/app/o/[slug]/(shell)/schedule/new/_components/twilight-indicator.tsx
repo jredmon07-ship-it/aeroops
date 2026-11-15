@@ -121,8 +121,8 @@ function ResourceBadge({
       >
         <Sun className="h-4 w-4 text-brand shrink-0 mt-0.5" aria-hidden="true" />
         <div>
-          <span className="font-mono text-brand-ink">{name}</span>
-          <p className="text-brand-ink/80 text-xs mt-0.5">{copy}</p>
+          <span className="font-mono text-brand-ink dark:text-blue-200">{name}</span>
+          <p className="text-brand-ink/80 dark:text-blue-200/80 text-xs mt-0.5">{copy}</p>
         </div>
       </div>
     );

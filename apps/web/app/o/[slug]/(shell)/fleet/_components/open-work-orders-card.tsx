@@ -22,7 +22,7 @@ import type { AircraftListRow } from '@aeroops/api';
 
 function StatusChip({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    open: { label: 'Open', cls: 'border-brand/30 bg-brand/8 text-brand-ink' },
+    open: { label: 'Open', cls: 'border-brand/30 bg-brand/8 dark:bg-brand/20 text-brand-ink dark:text-blue-200' },
     in_progress: { label: 'In progress', cls: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200' },
   };
   const conf = map[status] ?? { label: status, cls: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400' };
@@ -73,7 +73,7 @@ export function OpenWorkOrdersCard({
             <Wrench className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Open Work Orders</h2>
             {displayCount > 0 && (
-              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
+              <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink dark:text-blue-200">
                 {displayCount}
               </span>
             )}
@@ -81,7 +81,7 @@ export function OpenWorkOrdersCard({
           <div className="flex items-center gap-2">
             <Link
               href={`/o/${slug}/maintenance/work-orders?resourceId=${resourceId}`}
-              className="text-xs text-brand hover:text-brand-ink underline underline-offset-2"
+              className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
             >
               View all work orders
             </Link>

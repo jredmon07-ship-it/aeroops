@@ -157,7 +157,7 @@ export function WorkOrderDetailClient({
             Aircraft:{' '}
             <Link
               href={`/o/${slug}/fleet/${workOrder.resourceId}`}
-              className="font-mono nums text-brand hover:text-brand-ink underline underline-offset-2"
+              className="font-mono nums text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
             >
               {workOrder.resourceId}
             </Link>
@@ -229,7 +229,7 @@ export function WorkOrderDetailClient({
               <span
                 className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${
                   linkedSquawk.status === 'open'
-                    ? 'border-brand/30 bg-brand/8 text-brand-ink'
+                    ? 'border-brand/30 bg-brand/8 dark:bg-brand/20 text-brand-ink dark:text-blue-200'
                     : linkedSquawk.status === 'deferred'
                     ? 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200'
                     : 'border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-200'

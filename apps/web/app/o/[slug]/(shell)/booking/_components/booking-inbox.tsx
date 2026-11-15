@@ -502,7 +502,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
                 <button
                   type="button"
                   onClick={() => { void handleTabSwitch('new'); }}
-                  className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                  className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                 >
                   New
                 </button>{' '}

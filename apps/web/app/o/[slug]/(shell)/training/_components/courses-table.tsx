@@ -61,7 +61,7 @@ export function CoursesTable({ courses, slug }: CoursesTableProps) {
               <td className="px-4 py-3">
                 <Link
                   href={`/o/${slug}/training/${course.courseId}`}
-                  className="font-medium text-brand hover:text-brand-ink hover:underline underline-offset-2"
+                  className="font-medium text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
                 >
                   {course.title}
                 </Link>

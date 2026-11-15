@@ -148,7 +148,7 @@ export function AddMemberDialog({ onSuccess }: AddMemberDialogProps) {
           </DialogHeader>
 
           {/* [AUTH-DECISION] how-they-get-a-login notice */}
-          <div className="flex items-start gap-2 rounded-md border border-brand/20 bg-brand/5 px-3 py-2.5 text-sm text-brand-ink">
+          <div className="flex items-start gap-2 rounded-md border border-brand/20 bg-brand/5 px-3 py-2.5 text-sm text-brand-ink dark:text-blue-200">
             <Info className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
             <span>
               <strong>No login yet.</strong> To let them sign in, open their profile after adding

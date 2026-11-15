@@ -116,7 +116,7 @@ async function FleetContent({ slug, cursor }: FleetContentProps) {
             Add aircraft in{' '}
             <Link
               href={`/o/${slug}/schedule/resources`}
-              className="text-brand underline underline-offset-2 hover:text-brand-ink"
+              className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
             >
               Resources admin
             </Link>

@@ -50,7 +50,7 @@ export function SetupBanner({ slug }: { slug: string }) {
       <div className="min-w-0 flex-1">
         <Link
           href={`/o/${slug}/setup`}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-ink underline-offset-2 hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-ink dark:text-blue-200 underline-offset-2 hover:underline"
         >
           Finish setting up your operation
           <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

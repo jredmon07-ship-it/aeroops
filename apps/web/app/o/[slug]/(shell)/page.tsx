@@ -660,7 +660,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                     No active aircraft.{' '}
                     <Link
                       href={`/o/${slug}/schedule/resources`}
-                      className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                      className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                     >
                       Add aircraft in Resources admin.
                     </Link>
@@ -749,19 +749,19 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
           className="rounded-md border border-brand/20 bg-brand/5 px-5 py-4"
           role="note"
         >
-          <p className="text-sm font-semibold text-brand-ink">Getting started</p>
+          <p className="text-sm font-semibold text-brand-ink dark:text-blue-200">Getting started</p>
           <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">
             Add aircraft in{' '}
             <Link
               href={`/o/${slug}/schedule/resources`}
-              className="text-brand underline underline-offset-2 hover:text-brand-ink"
+              className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
             >
               Resources
             </Link>
             , then add members in{' '}
             <Link
               href={`/o/${slug}/people`}
-              className="text-brand underline underline-offset-2 hover:text-brand-ink"
+              className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
             >
               People
             </Link>{' '}
@@ -787,7 +787,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               </span>
               <Link
                 href={`/o/${slug}/schedule/board`}
-                className="text-xs text-brand hover:text-brand-ink underline-offset-2 hover:underline"
+                className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
               >
                 Board
               </Link>
@@ -832,7 +832,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 </span>
                 <Link
                   href={`/o/${slug}/fleet`}
-                  className="text-xs text-brand hover:text-brand-ink underline-offset-2 hover:underline"
+                  className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
                 >
                   Fleet
                 </Link>
@@ -878,7 +878,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 </span>
                 <Link
                   href={`/o/${slug}/maintenance/squawks`}
-                  className="text-xs text-brand hover:text-brand-ink underline-offset-2 hover:underline"
+                  className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
                 >
                   Maintenance
                 </Link>

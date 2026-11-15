@@ -273,7 +273,7 @@ export function DispatchRequirementsCard({
             Dispatch requirements
           </h2>
           {!loading && !loadError && tags !== null && tags.length > 0 && (
-            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
+            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink dark:text-blue-200">
               {tags.length}
             </span>
           )}
@@ -334,7 +334,7 @@ export function DispatchRequirementsCard({
             <span
               key={t.id}
               role="listitem"
-              className="inline-flex items-center gap-1 rounded-sm border border-brand/30 bg-brand/8 px-2 py-0.5 text-xs font-medium text-brand-ink"
+              className="inline-flex items-center gap-1 rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-2 py-0.5 text-xs font-medium text-brand-ink dark:text-blue-200"
             >
               {t.requiredTag}
               {canManageRequirements && (

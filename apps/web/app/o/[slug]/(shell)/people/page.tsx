@@ -129,7 +129,7 @@ async function PeopleContent({ slug, includeInactive, canManage, cursor }: Peopl
               Try enabling{' '}
               <Link
                 href={`/o/${slug}/people?includeInactive=1`}
-                className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
               >
                 Show inactive
               </Link>{' '}

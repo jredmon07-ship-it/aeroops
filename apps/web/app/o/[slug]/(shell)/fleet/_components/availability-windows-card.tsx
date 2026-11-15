@@ -451,7 +451,7 @@ export function AvailabilityWindowsCard({
             Operating hours
           </h2>
           {!loading && !loadError && windows !== null && windows.length > 0 && (
-            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink">
+            <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink dark:text-blue-200">
               {windows.length}
             </span>
           )}

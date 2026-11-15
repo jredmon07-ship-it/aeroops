@@ -175,7 +175,7 @@ async function BoardContent({
           {canManageResources && (
             <Link
               href={`/o/${slug}/schedule/resources`}
-              className="underline text-brand hover:text-brand-ink"
+              className="underline text-brand hover:text-brand-ink dark:hover:text-blue-200"
             >
               Manage resources
             </Link>

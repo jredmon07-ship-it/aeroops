@@ -64,7 +64,7 @@ function CourseStatusChip({ status }: { status: string }) {
 function StageLabelChip({ label }: { label: string }) {
   return (
     <span
-      className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-brand-ink"
+      className="inline-flex items-center rounded-sm border border-brand/25 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-brand-ink dark:text-blue-200"
       title="Operator-defined grouping label (not a Part-141 stage)"
     >
       {label}
@@ -630,7 +630,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
                 <>
                   Use{' '}
                   <button
-                    className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                    className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                     onClick={() => {
                       // Trigger the Add Lesson dialog via the header button
                       // (users can scroll up or we just give a hint)
@@ -718,7 +718,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
       <div className="flex items-center gap-2 pt-2">
         <Link
           href={`/o/${slug}/training/enrollments?courseId=${course.courseId}`}
-          className="text-sm text-brand hover:text-brand-ink hover:underline underline-offset-2"
+          className="text-sm text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
         >
           View enrollments for this course →
         </Link>

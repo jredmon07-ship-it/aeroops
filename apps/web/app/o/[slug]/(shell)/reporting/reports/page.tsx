@@ -613,7 +613,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                 No aircraft yet.{' '}
                 <Link
                   href={`/o/${slug}/schedule/resources`}
-                  className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                  className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                 >
                   Add aircraft in Resources.
                 </Link>
@@ -678,7 +678,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                     No active aircraft.{' '}
                     <Link
                       href={`/o/${slug}/schedule/resources`}
-                      className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                      className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                     >
                       Add aircraft in Resources admin.
                     </Link>
@@ -784,7 +784,7 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
                     No active aircraft.{' '}
                     <Link
                       href={`/o/${slug}/schedule/resources`}
-                      className="text-brand underline underline-offset-2 hover:text-brand-ink"
+                      className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                     >
                       Add aircraft in Resources admin.
                     </Link>

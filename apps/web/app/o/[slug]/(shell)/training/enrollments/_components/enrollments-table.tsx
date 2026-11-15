@@ -25,7 +25,7 @@ interface EnrollmentsTableProps {
 function EnrollmentStatusChip({ status }: { status: string }) {
   if (status === 'active') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink dark:text-blue-200">
         {enrollmentStatusLabel(status)}
       </span>
     );
@@ -112,7 +112,7 @@ export function EnrollmentsTable({
                 <td className="px-4 py-3">
                   <Link
                     href={`/o/${slug}/training/enrollments/${enrollment.enrollmentId}`}
-                    className="font-medium text-brand hover:text-brand-ink hover:underline underline-offset-2"
+                    className="font-medium text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
                   >
                     {enrollment.studentName}
                   </Link>

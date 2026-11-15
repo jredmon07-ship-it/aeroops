@@ -136,7 +136,7 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
           <div className="flex items-center gap-2">
             <Link
               href={`/o/${slug}/maintenance/due?resourceId=${resourceId}`}
-              className="text-xs text-brand hover:text-brand-ink underline underline-offset-2"
+              className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
             >
               View all
             </Link>

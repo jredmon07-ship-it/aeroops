@@ -115,7 +115,7 @@ function DetailSkeleton() {
 function DispatchStatusChip({ status }: { status: string }) {
   if (status === 'open') {
     return (
-      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink">
+      <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink dark:text-blue-200">
         Open
       </span>
     );
@@ -379,7 +379,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
           </div>
           <Link
             href={`/o/${slug}/maintenance/squawks?resourceId=${aircraft.id}`}
-            className="text-xs text-brand hover:text-brand-ink underline underline-offset-2"
+            className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
           >
             View all squawks
           </Link>
@@ -505,7 +505,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
           </div>
           <Link
             href={`/o/${slug}/schedule`}
-            className="text-xs text-brand hover:text-brand-ink underline underline-offset-2"
+            className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
           >
             View schedule
           </Link>

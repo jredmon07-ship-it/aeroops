@@ -16,7 +16,7 @@ export function WorkOrderStatusBadge({ status, className = '' }: WorkOrderStatus
   const configs: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
     open: {
       label: 'Open',
-      cls: 'border-brand/30 bg-brand/8 text-brand-ink',
+      cls: 'border-brand/30 bg-brand/8 dark:bg-brand/20 text-brand-ink dark:text-blue-200',
       icon: <Wrench className="h-3 w-3" aria-hidden="true" />,
     },
     in_progress: {

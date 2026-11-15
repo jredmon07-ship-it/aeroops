@@ -91,7 +91,7 @@ function formatLocalDate(iso: string): string {
 function EnrollmentStatusPill({ status }: { status: string }) {
   const variants: Record<string, string> = {
     active:
-      'inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink',
+      'inline-flex items-center rounded-sm border border-brand/30 bg-brand/10 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-brand-ink dark:text-blue-200',
     completed:
       'inline-flex items-center rounded-sm border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-emerald-800 dark:text-emerald-200',
     withdrawn:
