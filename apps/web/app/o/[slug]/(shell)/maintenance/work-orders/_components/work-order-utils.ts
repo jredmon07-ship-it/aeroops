@@ -9,6 +9,8 @@
  *   return-to-service or §43.9/§43.11 determination.
  */
 
+import { formatZonedDate, formatZonedDateTime } from '@/lib/zoned-format';
+
 // ─── workOrderStatusLabel ─────────────────────────────────────────────────────
 
 /**
@@ -96,31 +98,13 @@ export function formatCompleteResultSummary(
 }
 
 // ─── formatDate helpers ───────────────────────────────────────────────────────
+// In `timeZone`, the viewer's zone the page resolved (getViewerTimeZone): the
+// components render on the server first, where the runtime's zone is UTC.
 
-export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(iso));
-  } catch {
-    return iso ?? '—';
-  }
+export function formatDate(iso: string | null | undefined, timeZone: string): string {
+  return formatZonedDate(iso, timeZone);
 }
 
-export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(new Date(iso));
-  } catch {
-    return iso ?? '—';
-  }
+export function formatDateTime(iso: string | null | undefined, timeZone: string): string {
+  return formatZonedDateTime(iso, timeZone);
 }

@@ -199,7 +199,7 @@ function AddWindowDialog({ open, onOpenChange, resourceId, onSuccess }: AddWindo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Add operating hours window</DialogTitle>
         </DialogHeader>
@@ -446,7 +446,7 @@ export function AvailabilityWindowsCard({
       {/* ── Card header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <Clock className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Operating hours
           </h2>
@@ -470,7 +470,7 @@ export function AvailabilityWindowsCard({
       </div>
 
       {/* [VERIFY-AV1-A] operator-data framing + mandatory disclaimer */}
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Weekly windows during which this aircraft is available for scheduling.
         These are operator-defined operating hours only — NOT an FAA duty-time,
         rest-period, or Part-117/135/121 determination.
@@ -506,7 +506,7 @@ export function AvailabilityWindowsCard({
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {!loading && !loadError && windows !== null && windows.length === 0 && (
-        <p className="text-sm text-slate-400 dark:text-slate-500 italic">
+        <p className="text-sm text-slate-500 dark:text-slate-400 italic">
           No operating hours set — available any time.
         </p>
       )}
@@ -529,13 +529,13 @@ export function AvailabilityWindowsCard({
                       {w.range}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[0.6875rem] text-slate-400 dark:text-slate-500 font-mono">{w.tz}</span>
+                      <span className="text-[0.6875rem] text-slate-500 dark:text-slate-400 font-mono">{w.tz}</span>
                       <button
                         type="button"
                         onClick={() => setConfirmRemove({ id: w.id, label: `${group.label} ${w.range}` })}
                         disabled={removingId === w.id}
                         aria-label={`Remove window ${group.label} ${w.range}`}
-                        className="rounded-sm text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
+                        className="rounded-sm text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
                       >
                         {removingId === w.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

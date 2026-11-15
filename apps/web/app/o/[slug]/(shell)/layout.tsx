@@ -13,6 +13,9 @@
  *     (below md the account items move into the mobile nav drawer).
  *   - Role-filtered sidebar nav (desktop) + Sheet drawer (mobile).
  *   - Main content area that receives {children}.
+ *   - ViewerTimeZoneSync: reports the browser's zone in the aeroops-tz cookie
+ *     so every page's days and clock times are the viewer's, not the
+ *     server's (UTC on Vercel).
  *
  * TENANT ISOLATION PROOF:
  *   - orgName is fetched via getSessionOrg(session) — org_id comes from the
@@ -41,6 +44,8 @@ import { AlertsBell } from './alerts-bell';
 import { FieldStatusBar } from './field-status-bar';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeToggle } from './theme-toggle';
+import { ViewerTimeZoneSync } from './viewer-time-zone-sync';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -110,6 +115,11 @@ export default async function OrgShellLayout({
     myAvatarDataUrl = null;
   }
 
+  // The zone this request renders days and times in (the aeroops-tz cookie,
+  // else the server's own). ViewerTimeZoneSync compares it with the browser's
+  // and refreshes once when they differ, for every page in the shell.
+  const timeZone = await getViewerTimeZone();
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-800 dark:bg-slate-950">
       {/* ── Top header ──────────────────────────────────────────────────── */}
@@ -141,7 +151,7 @@ export default async function OrgShellLayout({
             <span className="truncate text-[0.95rem] font-semibold tracking-tightish text-slate-900 leading-tight dark:text-slate-100">
               {orgName}
             </span>
-            <span className="hidden shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400 lg:inline dark:text-slate-500">
+            <span className="hidden shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500 lg:inline dark:text-slate-400">
               · AeroOps
             </span>
           </div>
@@ -246,6 +256,9 @@ export default async function OrgShellLayout({
 
       {/* ── App-wide toast stack (toast-on-mutation standard) ─────────────── */}
       <Toaster />
+
+      {/* ── Viewer time zone: cookie + one refresh on a zone change ─────────── */}
+      <ViewerTimeZoneSync serverTimeZone={timeZone} />
     </div>
   );
 }

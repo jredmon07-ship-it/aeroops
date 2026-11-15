@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { SerializedPreviewResult, SerializedPreviewProposal } from '../actions';
 import type { ResourceRow } from '@aeroops/api';
+import { demandLabel } from './demand-labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,8 @@ interface PreviewPanelProps {
   resources: ResourceRow[];
   onCommit: () => void;
   isCommitting: boolean;
+  /** demand id → "Session N" (demand-labels.ts); never shown raw. */
+  demandLabels?: Record<string, string>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -108,7 +111,7 @@ function ProposalRow({
         {isCreate ? (
           <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" aria-label="Would create" />
         ) : (
-          <XCircle className="h-4 w-4 text-slate-400 dark:text-slate-500 mt-0.5" aria-label="Would skip" />
+          <XCircle className="h-4 w-4 text-slate-500 dark:text-slate-400 mt-0.5" aria-label="Would skip" />
         )}
       </td>
       <td className="py-2 pr-3 text-sm font-mono text-slate-600 dark:text-slate-300 align-top whitespace-nowrap nums">
@@ -149,6 +152,7 @@ export function PreviewPanel({
   resources,
   onCommit,
   isCommitting,
+  demandLabels = {},
 }: PreviewPanelProps) {
   if (state === 'idle') return null;
 
@@ -159,7 +163,7 @@ export function PreviewPanel({
       className="space-y-4"
     >
       <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-        <CalendarCheck className="h-5 w-5 text-brand" aria-hidden="true" />
+        <CalendarCheck className="h-5 w-5 text-brand dark:text-blue-400" aria-hidden="true" />
         Preview
       </h2>
 
@@ -244,7 +248,7 @@ export function PreviewPanel({
               <ul className="space-y-1" role="list">
                 {preview.unschedulable.map((u) => (
                   <li key={u.demandId} className="text-xs text-amber-800 dark:text-amber-200">
-                    <span className="font-mono nums">{u.demandId}</span>
+                    <span className="font-medium">{demandLabel(demandLabels, u.demandId)}</span>
                     {' — '}
                     {u.reason === 'no_feasible_window'
                       ? 'No feasible window in the scheduling range'

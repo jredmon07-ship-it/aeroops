@@ -43,7 +43,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
       </span>
     );
   }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
+  return <span className="text-xs text-slate-500 dark:text-slate-400">{status}</span>;
 }
 
 interface MemberTrainingCardProps {
@@ -75,14 +75,14 @@ export async function MemberTrainingCard({ userId, slug }: MemberTrainingCardPro
   return (
     <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <GraduationCap className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <GraduationCap className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Training</h2>
-        <span className="nums text-xs text-slate-400 dark:text-slate-500">({enrollments.length})</span>
+        <span className="nums text-xs text-slate-500 dark:text-slate-400">({enrollments.length})</span>
       </div>
 
       {/* [VERIFY-T1-B]: progress and status are operator content flags, NOT Part-141 */}
       {enrollments.length === 0 ? (
-        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No enrollments.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 italic">No enrollments.</p>
       ) : (
         <div className="space-y-2">
           {enrollments.map((e) => (
@@ -93,12 +93,12 @@ export async function MemberTrainingCard({ userId, slug }: MemberTrainingCardPro
               <div className="min-w-0 space-y-0.5">
                 <Link
                   href={`/o/${slug}/training/enrollments/${e.enrollmentId}`}
-                  className="text-sm font-medium text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2 block truncate"
+                  className="text-sm font-medium text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2 block truncate"
                 >
                   {e.courseTitle}
                 </Link>
                 {/* [VERIFY-T1-B]: NOT a Part-141 completion ratio */}
-                <p className="nums text-xs text-slate-400 dark:text-slate-500">
+                <p className="nums text-xs text-slate-500 dark:text-slate-400">
                   {formatProgress(e.completedCount, e.totalLessons)}
                 </p>
               </div>

@@ -198,7 +198,7 @@ export function LoginLinkButton({ userId, displayName, hasLogin }: LoginLinkButt
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   Send this link to {displayName} yourself — AeroOps does not send email.
                 </p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Anyone with this link can set this member&apos;s password, so send it only to them.
                 </p>
               </>

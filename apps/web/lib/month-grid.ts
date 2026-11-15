@@ -193,11 +193,12 @@ export function addMonthsClamped(year: number, month: number, delta: number): Ye
 
 /**
  * monthLabel — human heading, e.g. "July 2026". Formats the 1st of the month
- * at UTC so the label can never shift into a neighboring month.
+ * at UTC so the label can never shift into a neighboring month, and in en-US so
+ * the server and the browser render the same text (see dayLabel).
  */
 export function monthLabel(year: number, month: number): string {
   assertYearMonth(year, month);
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat('en-US', {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',

@@ -35,6 +35,7 @@ import { listBookingRequestsAction } from './actions';
 import { BookingInbox } from './_components/booking-inbox';
 import { RetentionSettingsCard } from './_components/retention-settings';
 import { PageHeader } from '@/components/ui/page-header';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -94,9 +95,11 @@ interface BookingContentProps {
    * UI only — gate enforced by requireCapability inside the server actions.
    */
   canManageSettings: boolean;
+  /** The viewer's zone (getViewerTimeZone) requested dates read in. */
+  timeZone: string;
 }
 
-async function BookingContent({ slug, canConvert, canManageSettings }: BookingContentProps) {
+async function BookingContent({ slug, canConvert, canManageSettings, timeZone }: BookingContentProps) {
   const result = await listBookingRequestsAction({ status: 'new' });
 
   if ('error' in result) {
@@ -125,6 +128,7 @@ async function BookingContent({ slug, canConvert, canManageSettings }: BookingCo
         initial={result}
         slug={slug}
         canConvert={canConvert}
+        timeZone={timeZone}
       />
     </div>
   );
@@ -181,6 +185,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
   // PB-LR.A cosmetic gate — Retention card visible only when org:manage_settings is held.
   // UI only — gate enforced by requireCapability inside the server actions.
   const canManageSettings = hasCapability(session, 'org:manage_settings');
+  const timeZone = await getViewerTimeZone();
 
   return (
     <div className="space-y-4">
@@ -193,7 +198,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
       {/* ── Inbox (Suspense so skeleton fires while the data loads) ──────── */}
       {hasAccess && (
         <Suspense fallback={<BookingInboxSkeleton />}>
-          <BookingContent slug={slug} canConvert={canConvert} canManageSettings={canManageSettings} />
+          <BookingContent slug={slug} canConvert={canConvert} canManageSettings={canManageSettings} timeZone={timeZone} />
         </Suspense>
       )}
     </div>

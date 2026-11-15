@@ -14,28 +14,19 @@ import * as React from 'react';
 import { BookOpen } from 'lucide-react';
 import { getPilotLogAction, exportPilotLogCsvAction } from '../actions';
 import { DownloadCsvButton } from './download-csv-button';
+import { formatZonedDate } from '@/lib/zoned-format';
 // Shared with the portal logbook page — the underlying annotateFlightAction
 // enforces self-vs-staff scoping server-side (people:access holders may
 // annotate any in-org pilot's closed flight).
 import { AnnotateFlightDialog } from '../../portal/logbook/_components/annotate-flight-dialog';
 
-function formatDate(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
-
 interface MemberLogbookCardProps {
   userId: string;
+  /** The viewer's zone (getViewerTimeZone): a flight's date is its local day. */
+  timeZone: string;
 }
 
-export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
+export async function MemberLogbookCard({ userId, timeZone }: MemberLogbookCardProps) {
   // Fail-closed: if people:access is somehow refused, render an empty card
   // rather than crash the page (the page itself already requires people:access).
   let entries: Array<{
@@ -78,9 +69,9 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
     <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <BookOpen className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Logbook</h2>
-          <span className="nums text-xs text-slate-400 dark:text-slate-500">({entries.length})</span>
+          <span className="nums text-xs text-slate-500 dark:text-slate-400">({entries.length})</span>
         </div>
         {/* A bound server action (not an inline closure) — a plain function can't
             cross the Server→Client boundary. exportPilotLogCsv re-checks
@@ -89,7 +80,7 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
       </div>
 
       {entries.length === 0 ? (
-        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No logged flights for this member.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 italic">No logged flights for this member.</p>
       ) : (
         <div className="rounded-md border border-slate-100 dark:border-slate-800 overflow-hidden overflow-x-auto">
           <table className="w-full text-sm" aria-label="Member logbook">
@@ -112,12 +103,12 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
             <tbody>
               {entries.map((e) => (
                 <tr key={e.ticketId} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">{formatDate(e.date)}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">{formatZonedDate(e.date, timeZone)}</td>
                   <td className="px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-100">{e.tail}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hidden sm:table-cell whitespace-nowrap">
                     {e.category || e.aircraftClass
                       ? [e.category, e.aircraftClass].filter(Boolean).join(' / ')
-                      : <span className="text-slate-400 dark:text-slate-500">—</span>}
+                      : <span className="text-slate-500 dark:text-slate-400">—</span>}
                   </td>
                   <td className="px-3 py-2 text-right hidden sm:table-cell">
                     <span className="nums text-xs text-slate-700 dark:text-slate-300">
@@ -172,7 +163,7 @@ export async function MemberLogbookCard({ userId }: MemberLogbookCardProps) {
       )}
 
       {/* Verbatim disclaimer — always rendered, not gated behind the empty state. */}
-      <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
+      <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400">
         This logbook is a convenience view generated from this member&rsquo;s dispatch
         records. It is not their official pilot logbook and is not a certified
         record under 14 CFR 61.51. AeroOps makes no determination of flight

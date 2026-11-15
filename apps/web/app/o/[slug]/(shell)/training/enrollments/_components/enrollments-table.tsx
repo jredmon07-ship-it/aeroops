@@ -47,7 +47,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
       </span>
     );
   }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
+  return <span className="text-xs text-slate-500 dark:text-slate-400">{status}</span>;
 }
 
 /**
@@ -112,19 +112,19 @@ export function EnrollmentsTable({
                 <td className="px-4 py-3">
                   <Link
                     href={`/o/${slug}/training/enrollments/${enrollment.enrollmentId}`}
-                    className="font-medium text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
+                    className="font-medium text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
                   >
                     {enrollment.studentName}
                   </Link>
                   {/* Course shown inline on mobile */}
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 sm:hidden line-clamp-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 sm:hidden line-clamp-1">
                     {enrollment.courseTitle}
                   </p>
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
                   <Link
                     href={`/o/${slug}/training/${enrollment.courseId}`}
-                    className="text-slate-700 dark:text-slate-300 hover:text-brand hover:underline underline-offset-2"
+                    className="text-slate-700 dark:text-slate-300 hover:text-brand dark:hover:text-blue-300 hover:underline underline-offset-2"
                   >
                     {enrollment.courseTitle}
                   </Link>

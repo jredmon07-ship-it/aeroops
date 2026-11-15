@@ -42,7 +42,7 @@ function StatusChip({ status }: { status: MaintenanceDueStatus }) {
   const map: Record<MaintenanceDueStatus, { label: string; cls: string; icon: React.ReactNode }> = {
     overdue: {
       label: 'Overdue',
-      cls: 'border-destructive/30 bg-destructive/10 text-destructive',
+      cls: 'border-destructive/30 bg-destructive/10 text-red-700 dark:text-red-400',
       icon: <AlertTriangle className="h-3 w-3" aria-hidden="true" />,
     },
     due_soon: {
@@ -125,10 +125,10 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
       <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <Wrench className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Maintenance due</h2>
             {dueCount > 0 && (
-              <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-destructive">
+              <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-red-700 dark:text-red-400">
                 {dueCount}
               </span>
             )}
@@ -136,7 +136,7 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
           <div className="flex items-center gap-2">
             <Link
               href={`/o/${slug}/maintenance/due?resourceId=${resourceId}`}
-              className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
+              className="text-xs text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
             >
               View all
             </Link>
@@ -149,7 +149,7 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
         </div>
 
         {localItems.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No maintenance items tracked.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 italic">No maintenance items tracked.</p>
         ) : (
           <div className="space-y-1.5">
             {localItems.map((item) => (
@@ -185,7 +185,7 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
           </div>
         )}
 
-        <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400">
           Operator-entered tracking data — not a computed Part-43/91.409 airworthiness or
           inspection-due determination.
         </p>
@@ -243,7 +243,6 @@ export function MaintenanceDueCard({ resourceId, items, aircraft, slug, canManag
                 handleDeactivateConfirm();
               }}
               disabled={isDeactivating}
-              className="bg-destructive hover:bg-destructive/90"
             >
               {isDeactivating ? 'Deactivating…' : 'Deactivate'}
             </AlertDialogAction>

@@ -21,9 +21,10 @@ const buttonVariants = cva(
         default:
           'bg-brand text-white shadow-sm hover:bg-brand-ink active:translate-y-px focus-visible:ring-brand dark:hover:bg-blue-500',
         // dark: the danger token is brightened for chips, so pin the solid fill
-        // to a darker red that keeps white-text AA in dark mode.
+        // to a darker red that keeps white-text AA in dark mode. Hover goes
+        // darker too: white on red-500 was 3.8:1.
         destructive:
-          'bg-danger text-white shadow-sm hover:bg-red-700 active:translate-y-px focus-visible:ring-danger dark:bg-red-600 dark:hover:bg-red-500',
+          'bg-danger text-white shadow-sm hover:bg-red-700 active:translate-y-px focus-visible:ring-danger dark:bg-red-600 dark:hover:bg-red-700',
         outline:
           'border border-slate-300 bg-white shadow-xs hover:bg-slate-50 hover:border-slate-400 text-slate-900 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:hover:border-slate-600',
         ghost:

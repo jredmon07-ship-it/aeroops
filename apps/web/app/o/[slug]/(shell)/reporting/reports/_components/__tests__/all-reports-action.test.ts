@@ -12,7 +12,8 @@
  *   2. No flag (default) or includeTraining: true → read and serialized as
  *      before (Dates → ISO strings)
  *
- * '@aeroops/api' and '@/lib/action-auth' are mocked: no DB, no next-auth.
+ * '@aeroops/api', '@/lib/action-auth' and '@/lib/viewer-time-zone' are
+ * mocked: no DB, no next-auth, no request cookies.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -82,6 +83,8 @@ const { actionAuth, api } = vi.hoisted(() => {
 });
 
 vi.mock('@/lib/action-auth', () => ({ actionAuth }));
+// next/headers' cookies() only works inside a request: the viewer's zone is stubbed.
+vi.mock('@/lib/viewer-time-zone', () => ({ getViewerTimeZone: async () => 'America/Chicago' }));
 vi.mock('@aeroops/api', () => ({
   ...api,
   // lib/action-errors-result.ts maps these with instanceof.
@@ -156,5 +159,18 @@ describe('2. Training module on → unchanged', () => {
     expect(api.getTrainingThroughput).toHaveBeenCalledWith(session, { range: '7d' });
     if (!('ok' in result)) throw new Error('expected ok');
     expect(result.data.trainingThroughput).not.toBeNull();
+  });
+});
+
+describe('3. maintenance reminders are due against the viewer\'s day', () => {
+  it('passes the viewer\'s calendar day (19:00 CST is still the 15th)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-16T01:00:00.000Z'));
+    try {
+      await getAllReportsAction({ range: '30d' });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(api.getMaintenanceRemindersReport).toHaveBeenCalledWith(session, { today: '2026-11-15' });
   });
 });

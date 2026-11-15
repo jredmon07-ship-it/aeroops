@@ -92,7 +92,7 @@ function ResourceBadge({
         className="flex items-start gap-2 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm"
         aria-label={`${name}: daylight unknown`}
       >
-        <HelpCircle className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" aria-hidden="true" />
+        <HelpCircle className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
         <div>
           <span className="font-mono text-slate-700 dark:text-slate-300">{name}</span>
           <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
@@ -119,7 +119,7 @@ function ResourceBadge({
         className="flex items-start gap-2 rounded-md border border-brand/20 bg-brand/5 px-3 py-2 text-sm"
         aria-label={`${name}: ${copy}`}
       >
-        <Sun className="h-4 w-4 text-brand shrink-0 mt-0.5" aria-hidden="true" />
+        <Sun className="h-4 w-4 text-brand dark:text-blue-400 shrink-0 mt-0.5" aria-hidden="true" />
         <div>
           <span className="font-mono text-brand-ink dark:text-blue-200">{name}</span>
           <p className="text-brand-ink/80 dark:text-blue-200/80 text-xs mt-0.5">{copy}</p>

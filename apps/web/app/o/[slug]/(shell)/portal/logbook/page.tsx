@@ -37,18 +37,11 @@ import { DownloadCsvButton } from './_components/download-csv-button';
 import { AnnotateFlightDialog } from './_components/annotate-flight-dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { formatZonedDate } from '@/lib/zoned-format';
 
-// ─── Date helpers ──────────────────────────────────────────────────────────────
-
-function formatLocalDate(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+// A flight's date is its calendar day in the viewer's zone (resolved once by
+// the page via getViewerTimeZone); the server's own zone is UTC on Vercel.
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
@@ -71,7 +64,7 @@ function LogbookSkeleton() {
 
 function LogbookDisclaimer() {
   return (
-    <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
+    <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400">
       This logbook is a convenience view generated from your operator&rsquo;s dispatch
       records. It is not your official pilot logbook and is not a certified record
       under 14 CFR 61.51. AeroOps makes no determination of flight experience,
@@ -85,7 +78,7 @@ function LogbookDisclaimer() {
 
 // ─── Table ────────────────────────────────────────────────────────────────────
 
-function LogbookTable({ log }: { log: SerializedPilotLog }) {
+function LogbookTable({ log, timeZone }: { log: SerializedPilotLog; timeZone: string }) {
   if (log.entries.length === 0) {
     return (
       <EmptyState icon={BookOpen} title="No logged flights yet." className="py-10" />
@@ -116,15 +109,15 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
         <tbody>
           {log.entries.map((e) => (
             <tr key={e.ticketId} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
-              <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums whitespace-nowrap">{formatLocalDate(e.date)}</td>
+              <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums whitespace-nowrap">{formatZonedDate(e.date, timeZone)}</td>
               <td className="px-3 py-2 text-sm font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{e.tail}</td>
               <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                {e.make || e.model ? [e.make, e.model].filter(Boolean).join(' ') : <span className="text-slate-400 dark:text-slate-500">—</span>}
+                {e.make || e.model ? [e.make, e.model].filter(Boolean).join(' ') : <span className="text-slate-500 dark:text-slate-400">—</span>}
               </td>
               <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
                 {e.category || e.aircraftClass
                   ? [e.category, e.aircraftClass].filter(Boolean).join(' / ')
-                  : <span className="text-slate-400 dark:text-slate-500">—</span>}
+                  : <span className="text-slate-500 dark:text-slate-400">—</span>}
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
                 <span className="nums text-xs text-slate-700 dark:text-slate-300">
@@ -155,7 +148,7 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
               <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 max-w-[16rem]">
                 {e.remarks
                   ? <span className="line-clamp-2" title={e.remarks}>{e.remarks}</span>
-                  : <span className="text-slate-400 dark:text-slate-500">—</span>}
+                  : <span className="text-slate-500 dark:text-slate-400">—</span>}
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
                 <AnnotateFlightDialog
@@ -188,9 +181,11 @@ function LogbookTable({ log }: { log: SerializedPilotLog }) {
 
 interface LogbookContentProps {
   slug: string;
+  /** The viewer's zone (getViewerTimeZone) the flight dates read in. */
+  timeZone: string;
 }
 
-async function LogbookContent({ slug }: LogbookContentProps) {
+async function LogbookContent({ slug, timeZone }: LogbookContentProps) {
   const result = await getMyPilotLogAction();
 
   if ('error' in result) {
@@ -231,7 +226,7 @@ async function LogbookContent({ slug }: LogbookContentProps) {
         className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden"
         aria-label="Logbook entries"
       >
-        <LogbookTable log={log} />
+        <LogbookTable log={log} timeZone={timeZone} />
       </section>
 
       <LogbookDisclaimer />
@@ -279,9 +274,12 @@ export default async function LogbookPage({ params }: LogbookPageProps) {
     redirect(`/o/${slug}/no-access?reason=module_disabled`);
   }
 
+  // Flight dates read in the viewer's zone.
+  const timeZone = await getViewerTimeZone();
+
   return (
     <Suspense fallback={<LogbookSkeleton />}>
-      <LogbookContent slug={slug} />
+      <LogbookContent slug={slug} timeZone={timeZone} />
     </Suspense>
   );
 }

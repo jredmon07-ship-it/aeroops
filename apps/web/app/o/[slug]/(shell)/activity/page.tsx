@@ -42,6 +42,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { listActivityAction } from './actions';
 import type { SerializedActivityEntry, SerializedActivityCursor } from './actions';
 import { formatRelativeTime } from '@/lib/activity-utils';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { formatZonedDateTime, zoneAbbreviation } from '@/lib/zoned-format';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -114,10 +116,17 @@ interface TimelineEntryProps {
   entry: SerializedActivityEntry;
   slug: string;
   isLast: boolean;
+  /** The viewer's zone (getViewerTimeZone) — the exact time on hover. */
+  timeZone: string;
 }
 
-function TimelineEntry({ entry, slug, isLast }: TimelineEntryProps) {
+function TimelineEntry({ entry, slug, isLast, timeZone }: TimelineEntryProps) {
   const relTime = formatRelativeTime(entry.createdAt);
+  // "Nov 15, 2026, 10:55 AM CST" — the same clock the schedule shows, not raw ISO.
+  const exactTime = `${formatZonedDateTime(entry.createdAt, timeZone)} ${zoneAbbreviation(
+    timeZone,
+    new Date(entry.createdAt),
+  )}`;
   const fullPath = entry.entityPath ? `/o/${slug}${entry.entityPath}` : null;
 
   return (
@@ -143,7 +152,7 @@ function TimelineEntry({ entry, slug, isLast }: TimelineEntryProps) {
             {fullPath ? (
               <Link
                 href={fullPath}
-                className="text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
+                className="text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
               >
                 {entry.summary}
               </Link>
@@ -153,13 +162,13 @@ function TimelineEntry({ entry, slug, isLast }: TimelineEntryProps) {
           </p>
           <time
             dateTime={entry.createdAt}
-            className="nums text-xs text-slate-400 dark:text-slate-500 shrink-0 tabular-nums whitespace-nowrap pt-0.5"
-            title={entry.createdAt}
+            className="nums text-xs text-slate-500 dark:text-slate-400 shrink-0 tabular-nums whitespace-nowrap pt-0.5"
+            title={exactTime}
           >
             {relTime}
           </time>
         </div>
-        <p className="mt-0.5 text-[0.6875rem] text-slate-400 dark:text-slate-500 capitalize">
+        <p className="mt-0.5 text-[0.6875rem] text-slate-500 dark:text-slate-400 capitalize">
           {entry.entityLabel}
         </p>
       </div>
@@ -201,7 +210,10 @@ interface ActivityContentProps {
 }
 
 async function ActivityContent({ slug, cursor }: ActivityContentProps) {
-  const result = await listActivityAction(cursor ? { cursor } : undefined);
+  const [result, timeZone] = await Promise.all([
+    listActivityAction(cursor ? { cursor } : undefined),
+    getViewerTimeZone(),
+  ]);
 
   // Error state
   if ('error' in result) {
@@ -255,6 +267,7 @@ async function ActivityContent({ slug, cursor }: ActivityContentProps) {
               entry={entry}
               slug={slug}
               isLast={idx === entries.length - 1 && !loadMoreHref}
+              timeZone={timeZone}
             />
           ))}
         </div>

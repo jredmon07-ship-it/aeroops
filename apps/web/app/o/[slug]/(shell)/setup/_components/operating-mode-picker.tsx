@@ -78,7 +78,7 @@ export function OperatingModePicker({ slug }: OperatingModePickerProps) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <Compass className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <Compass className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           Operating mode
         </CardTitle>
       </CardHeader>
@@ -137,12 +137,12 @@ export function OperatingModePicker({ slug }: OperatingModePickerProps) {
                     ].join(' ')}
                   >
                     <div className="flex items-center gap-2">
-                      {isCurrent && <CheckCircle2 className="h-4 w-4 text-brand shrink-0" aria-hidden="true" />}
+                      {isCurrent && <CheckCircle2 className="h-4 w-4 text-brand dark:text-blue-400 shrink-0" aria-hidden="true" />}
                       <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {meta.label}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{meta.description}</p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{meta.description}</p>
                   </button>
                 );
               })}

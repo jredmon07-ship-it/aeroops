@@ -52,36 +52,11 @@ import { MemberTrainingCard } from '../_components/member-training-card';
 import { MemberLogbookCard } from '../_components/member-logbook-card';
 import { DocumentsCard } from '../../documents-card';
 import { isModuleOn } from '../../module-flags';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { formatZonedDate, formatZonedDateTime } from '@/lib/zoned-format';
 
-// ─── Date helpers ──────────────────────────────────────────────────────────────
-
-function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
+// Dates and times read in the viewer's zone (resolved once by the page): the
+// server's own zone is UTC on Vercel.
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -128,7 +103,7 @@ function DispatchStatusChip({ status }: { status: string }) {
       </span>
     );
   }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
+  return <span className="text-xs text-slate-500 dark:text-slate-400">{status}</span>;
 }
 
 // ─── Static contact card ───────────────────────────────────────────────────────
@@ -140,20 +115,20 @@ function StaticContactCard({ member }: { member: SerializedMemberDetail }) {
       <dl className="space-y-2">
         <div className="flex items-center gap-2">
           <dt className="sr-only">Email</dt>
-          <Mail className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
+          <Mail className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
           <dd className="text-sm text-slate-700 dark:text-slate-300 break-all">{member.email}</dd>
         </div>
         {member.phone ? (
           <div className="flex items-center gap-2">
             <dt className="sr-only">Phone</dt>
-            <Phone className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
+            <Phone className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
             <dd className="text-sm text-slate-700 dark:text-slate-300">{member.phone}</dd>
           </div>
         ) : (
           <div className="flex items-center gap-2">
             <dt className="sr-only">Phone</dt>
             <Phone className="h-4 w-4 text-slate-300 shrink-0" aria-hidden="true" />
-            <dd className="text-sm text-slate-400 dark:text-slate-500 italic">No phone on file</dd>
+            <dd className="text-sm text-slate-500 dark:text-slate-400 italic">No phone on file</dd>
           </div>
         )}
       </dl>
@@ -163,18 +138,18 @@ function StaticContactCard({ member }: { member: SerializedMemberDetail }) {
 
 // ─── Upcoming reservations card ────────────────────────────────────────────────
 
-function StaticUpcomingReservationsCard({ member }: { member: SerializedMemberDetail }) {
+function StaticUpcomingReservationsCard({ member, timeZone }: { member: SerializedMemberDetail; timeZone: string }) {
   return (
     <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <CalendarDays className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         {/* [VERIFY-6-C]: wording must not imply flight assignment/training credit */}
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Upcoming Reservations</h2>
-        <span className="text-xs text-slate-400 dark:text-slate-500">(booked by them)</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">(booked by them)</span>
       </div>
 
       {member.upcomingReservations.length === 0 ? (
-        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No upcoming reservations booked by this member.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 italic">No upcoming reservations booked by this member.</p>
       ) : (
         <div className="space-y-1.5">
           {member.upcomingReservations.map((res) => (
@@ -183,8 +158,8 @@ function StaticUpcomingReservationsCard({ member }: { member: SerializedMemberDe
               className="flex items-center justify-between gap-2 rounded-md bg-slate-50 dark:bg-slate-800 px-3 py-2"
             >
               <div className="flex flex-wrap items-center gap-2 min-w-0">
-                <span className="text-sm text-slate-700 dark:text-slate-300">{formatDateTime(res.startAt)}</span>
-                <span className="text-xs text-slate-400 dark:text-slate-500">→ {formatDateTime(res.endAt)}</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300">{formatZonedDateTime(res.startAt, timeZone)}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">→ {formatZonedDateTime(res.endAt, timeZone)}</span>
               </div>
             </div>
           ))}
@@ -196,16 +171,16 @@ function StaticUpcomingReservationsCard({ member }: { member: SerializedMemberDe
 
 // ─── Recent dispatch card ──────────────────────────────────────────────────────
 
-function StaticDispatchCard({ member }: { member: SerializedMemberDetail }) {
+function StaticDispatchCard({ member, timeZone }: { member: SerializedMemberDetail; timeZone: string }) {
   return (
     <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <Plane className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <Plane className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent Dispatch as Pilot</h2>
       </div>
 
       {member.recentDispatch.length === 0 ? (
-        <p className="text-sm text-slate-400 dark:text-slate-500 italic">No dispatch history as pilot.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 italic">No dispatch history as pilot.</p>
       ) : (
         <div className="rounded-md border border-slate-100 dark:border-slate-800 overflow-x-auto">
           <table className="w-full text-sm" aria-label="Recent dispatch as pilot">
@@ -228,7 +203,7 @@ function StaticDispatchCard({ member }: { member: SerializedMemberDetail }) {
             <tbody>
               {member.recentDispatch.map((ticket) => (
                 <tr key={ticket.id} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">{formatDate(ticket.openedAt)}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">{formatZonedDate(ticket.openedAt, timeZone)}</td>
                   <td className="px-3 py-2 text-right hidden sm:table-cell">
                     <span className="nums text-xs text-slate-700 dark:text-slate-300">
                       {ticket.hobbsOut.toFixed(1)}
@@ -265,9 +240,11 @@ interface DetailContentProps {
   viewer: Pick<AppSession, 'userId' | 'role'>;
   /** Training module on — the Training card (Slice CLUB-MODE). */
   showTraining: boolean;
+  /** The viewer's zone (getViewerTimeZone) every date and time reads in. */
+  timeZone: string;
 }
 
-async function DetailContent({ userId, slug, canManage, viewer, showTraining }: DetailContentProps) {
+async function DetailContent({ userId, slug, canManage, viewer, showTraining, timeZone }: DetailContentProps) {
   const result = await getMemberDetailAction({ userId });
 
   if ('error' in result) {
@@ -293,7 +270,7 @@ async function DetailContent({ userId, slug, canManage, viewer, showTraining }: 
       >
         <Users className="h-10 w-10 text-slate-300" aria-hidden="true" />
         <p className="text-slate-700 dark:text-slate-300 font-medium">Member not found.</p>
-        <p className="text-sm text-slate-400 dark:text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           They may have been removed or you may not have access.
         </p>
         <Button asChild variant="outline" size="sm">
@@ -348,6 +325,7 @@ async function DetailContent({ userId, slug, canManage, viewer, showTraining }: 
         canCreateLoginLink={canCreateLoginLink}
         avatarDataUrl={avatarDataUrl}
         avatarAvailable={avatarAvailable}
+        timeZone={timeZone}
       />
 
       {/* ── Static cards ────────────────────────────────────────────────────── */}
@@ -357,8 +335,8 @@ async function DetailContent({ userId, slug, canManage, viewer, showTraining }: 
       {/* Operator-entered reminder dates — warn-only, never blocks dispatch. */}
       <MemberExpirationsCard memberUserId={member.userId} canManage={canManage} />
 
-      <StaticUpcomingReservationsCard member={member} />
-      <StaticDispatchCard member={member} />
+      <StaticUpcomingReservationsCard member={member} timeZone={timeZone} />
+      <StaticDispatchCard member={member} timeZone={timeZone} />
 
       {/* ── Documents card (Slice P1.6) [VERIFY-P1.6-A] ─────────────────────── */}
       <DocumentsCard ownerType="member" ownerId={member.userId} canManage={canManage} />
@@ -395,7 +373,7 @@ async function DetailContent({ userId, slug, canManage, viewer, showTraining }: 
           </div>
         }
       >
-        <MemberLogbookCard userId={member.userId} />
+        <MemberLogbookCard userId={member.userId} timeZone={timeZone} />
       </Suspense>
     </div>
   );
@@ -434,6 +412,9 @@ export default async function MemberDetailPage({ params }: MemberDetailPageProps
     moduleFlags = null;
   }
 
+  // Every date and time on the page reads in the viewer's zone.
+  const timeZone = await getViewerTimeZone();
+
   return (
     <Suspense fallback={<DetailSkeleton />}>
       <DetailContent
@@ -442,6 +423,7 @@ export default async function MemberDetailPage({ params }: MemberDetailPageProps
         canManage={canManage}
         viewer={{ userId: viewer.userId, role: viewer.role }}
         showTraining={isModuleOn(moduleFlags, 'training')}
+        timeZone={timeZone}
       />
     </Suspense>
   );

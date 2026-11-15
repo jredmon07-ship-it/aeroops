@@ -96,7 +96,7 @@ export default async function SignupPage() {
               <span className="font-mono text-slate-600 dark:text-slate-300">/o/your-org/login</span>.
             </p>
             {liveDemoHref && (
-              <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">
                 Want to look around first?{' '}
                 <Link href={liveDemoHref} className="underline hover:text-slate-600 dark:hover:text-slate-300">
                   Open the live demo

@@ -219,7 +219,7 @@ export function AnnotateFlightDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
               Annotate flight <span className="nums font-bold">{tail}</span>
@@ -275,7 +275,7 @@ export function AnnotateFlightDialog({
               )}
             </div>
 
-            <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
+            <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400">
               Saving adds a new annotation (the latest one is shown) — earlier
               annotations are kept for the record, never edited. Pilot/operator-entered
               data — not an FAA logbook of record; AeroOps does not compute currency.

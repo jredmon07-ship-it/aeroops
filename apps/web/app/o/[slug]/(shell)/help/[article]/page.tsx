@@ -54,7 +54,7 @@ function ArticleNotFoundPanel({ slug }: { slug: string }) {
       </p>
       <Link
         href={`/o/${slug}/help`}
-        className="inline-block text-sm font-medium text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+        className="inline-block text-sm font-medium text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
       >
         Back to Help
       </Link>

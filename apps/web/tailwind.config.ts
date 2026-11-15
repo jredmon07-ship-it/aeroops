@@ -19,6 +19,10 @@ const config: Config = {
         'text-default': 'hsl(var(--color-text) / <alpha-value>)',
         border: 'hsl(var(--color-border) / <alpha-value>)',
         danger: 'hsl(var(--color-danger) / <alpha-value>)',
+        // shadcn's name for the same token: ~20 files use *-destructive
+        // (error text, required asterisks, the board's Grounded chip), and
+        // without this alias none of those classes was ever emitted.
+        destructive: 'hsl(var(--color-danger) / <alpha-value>)',
         success: 'hsl(var(--color-success) / <alpha-value>)',
         warning: 'hsl(var(--color-warning) / <alpha-value>)',
         info: 'hsl(var(--color-info) / <alpha-value>)',

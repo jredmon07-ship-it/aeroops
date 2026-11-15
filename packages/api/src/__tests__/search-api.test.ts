@@ -27,6 +27,7 @@
  * Counts: N1 (≤5/type), N2 (≤30 total).
  * Fixed order: O1, O2 (empty omitted).
  * Ranking: R1 (prefix before non-prefix).
+ * Viewer zone: Z1 (reservation start + board day in input.timeZone), Z2 (UTC default).
  */
 
 import { dirname } from 'node:path';
@@ -82,6 +83,7 @@ const LIM_TOK    = 'LimTest9Zp';    // LIMIT 5 test
 const PCT_TOK    = 'PctPlnZQ5';     // % LIKE escaping test
 const UND_TOK    = 'UndPlnZQ5';     // _ LIKE escaping test
 const PFX_TOK    = 'PfxRnkW7k';     // ranking (prefix) test
+const TZ_TOK     = 'TzEveQ7m';      // reservation time + board day in the viewer's zone
 
 // ─── Shared test state (set by root beforeAll) ───────────────────────────────
 
@@ -247,6 +249,11 @@ beforeAll(async () => {
 
   await insAircraft(orgAId, `${PFX_TOK}StartMatch`, `NPFX1${PFX_TOK}`);
   await insAircraft(orgAId, `Middle${PFX_TOK}End`, `NPFX2${PFX_TOK}`);
+
+  // ── Viewer zone — 19:00 CST on Nov 16 is 01:00 UTC on Nov 17 ──────────────
+
+  await insResv(orgAId, `Evening notes ${TZ_TOK}`, userAId, 'booked',
+    new Date('2027-11-17T01:00:00Z'), new Date('2027-11-17T02:00:00Z'));
 
   // ── Switch to restricted app role ─────────────────────────────────────────
   await setTestAppRole({ pglite });
@@ -588,6 +595,29 @@ describe('searchOrg — ranking (prefix before non-prefix)', () => {
       if (seenNonPrefix && isPrefix) {
         throw new Error(`Prefix match "${res.primary}" appeared after a non-prefix match`);
       }
+    }
+  });
+});
+
+// ─── Viewer zone — reservation times and board day ──────────────────────────
+
+describe('searchOrg — reservations read in the viewer\'s zone', () => {
+  it('Z1: input.timeZone → local start with the zone name, board for the local day', async () => {
+    const r = await searchOrgWithDb(db, makeSession(orgAId, userAId, 'owner'), {
+      query: TZ_TOK,
+      timeZone: 'America/Chicago',
+    });
+    const hit = r.groups.find((g) => g.type === 'reservation')?.results[0];
+    expect(hit?.primary).toBe('Nov 16, 2027 19:00 CST');
+    expect(hit?.path).toBe('/schedule/board?date=2027-11-16');
+  });
+
+  it('Z2: no (or an unknown) zone → UTC, as before', async () => {
+    for (const timeZone of [undefined, 'Mars/Olympus_Mons']) {
+      const r = await searchOrgWithDb(db, makeSession(orgAId, userAId, 'owner'), { query: TZ_TOK, timeZone });
+      const hit = r.groups.find((g) => g.type === 'reservation')?.results[0];
+      expect(hit?.primary).toBe('Nov 17, 2027 01:00 UTC');
+      expect(hit?.path).toBe('/schedule/board?date=2027-11-17');
     }
   });
 });

@@ -113,11 +113,11 @@ export function AircraftCalendarFeedCard({ resourceId }: { resourceId: string })
   return (
     <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <CalendarDays className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Calendar feed</h2>
       </div>
 
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Subscribe this aircraft&apos;s schedule into your calendar app — updates automatically.
       </p>
 

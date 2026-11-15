@@ -55,15 +55,16 @@ export type MyEnrollmentRow = MemberEnrollmentRow;
  *   'pilot'             — dispatched pilot = me, but created_by ≠ me.
  *   'booker_and_pilot'  — both.
  *
- * resourceIds carries the aircraft tail numbers (display value) when present,
- * falling back to the resource id for non-aircraft / untailed resources.
+ * resourceIds carries display labels, not ids: the aircraft tail number, else
+ * the resource's display name (an instructor resource: "Casey Reed (CFI)").
+ * The raw resource id is only a last resort for a row with neither.
  */
 export interface MyReservationRow {
   id: string;
   startAt: Date;
   endAt: Date;
   seriesId: string | null;
-  /** Tail numbers (preferred) or resource ids, for display. */
+  /** Display labels: tail numbers for aircraft, display names otherwise. */
   resourceIds: string[];
   role: 'booker' | 'pilot' | 'booker_and_pilot';
 }

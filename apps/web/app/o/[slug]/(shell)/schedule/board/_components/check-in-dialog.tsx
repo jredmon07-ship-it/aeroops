@@ -329,7 +329,7 @@ export function CheckInDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
             {phase === 'service' ? 'Oil & fuel (optional)' : 'Check in aircraft'}
@@ -454,7 +454,7 @@ export function CheckInDialog({
               className="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <span className="font-medium">Report a squawk? (optional)</span>
-              <span aria-hidden="true" className="text-slate-400 dark:text-slate-500">
+              <span aria-hidden="true" className="text-slate-500 dark:text-slate-400">
                 {squawkOpen ? '▲' : '▼'}
               </span>
             </button>

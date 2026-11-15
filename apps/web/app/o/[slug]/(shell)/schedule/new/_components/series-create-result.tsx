@@ -139,7 +139,7 @@ function OccurrenceResultRow({
             {occ.result === 'created' && occ.reservationId ? (
               <Link
                 href={`/o/${slug}/schedule?date=${dateStr}`}
-                className="hover:underline text-brand"
+                className="hover:underline text-brand dark:text-blue-400"
                 aria-label={`View ${dateLabel} reservation on schedule`}
               >
                 {dateLabel}

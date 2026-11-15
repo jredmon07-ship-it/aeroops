@@ -98,7 +98,7 @@ export function MarkServicedDialog({ open, onOpenChange, item, onSuccess }: Mark
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Mark &ldquo;{item.title}&rdquo; serviced</DialogTitle>
         </DialogHeader>

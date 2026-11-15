@@ -28,10 +28,16 @@ import {
   type SerializedMemberMessage,
 } from '../actions';
 import { EmptyState } from '@/components/ui/empty-state';
+import { formatZonedDate } from '@/lib/zoned-format';
 
 interface ComposeClientProps {
   slug: string;
   initialHistory: SerializedMemberMessage[];
+  /**
+   * The viewer's zone, resolved by the page (getViewerTimeZone). Sent dates
+   * format in it on the server and in the browser alike, so hydration matches.
+   */
+  timeZone: string;
 }
 
 function audienceLabel(m: SerializedMemberMessage): string {
@@ -41,7 +47,7 @@ function audienceLabel(m: SerializedMemberMessage): string {
   return 'All active members';
 }
 
-export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
+export function ComposeClient({ slug, initialHistory, timeZone }: ComposeClientProps) {
   const [subject, setSubject] = React.useState('');
   const [body, setBody] = React.useState('');
   const [audience, setAudience] = React.useState<'all_active' | 'role'>('all_active');
@@ -186,7 +192,7 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
             maxLength={5000}
             required
           />
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Members who have opted out of announcements are skipped automatically.
           </p>
         </div>
@@ -210,8 +216,8 @@ export function ComposeClient({ slug, initialHistory }: ComposeClientProps) {
               <li key={m.id} className="rounded-md border border-slate-200 dark:border-slate-800 px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{m.subject}</p>
-                  <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap nums">
-                    {new Date(m.createdAt).toLocaleDateString()}
+                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap nums">
+                    {formatZonedDate(m.createdAt, timeZone)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">

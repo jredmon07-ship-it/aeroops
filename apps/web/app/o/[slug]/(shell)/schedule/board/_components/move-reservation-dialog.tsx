@@ -7,6 +7,11 @@
  *
  * For multi-resource reservations, shows a resource <select> so the user can
  * swap which row the dragged resource maps to.
+ *
+ * "Currently:" reads the board's zone (the viewer's), like the block itself;
+ * the date and time fields are filled and read in the browser's zone, as
+ * every booking form is. The two are the same once ViewerTimeZoneSync has
+ * reported the browser's zone.
  */
 'use client';
 
@@ -27,6 +32,7 @@ import { XCircle } from 'lucide-react';
 import { toDateInputValue, formatTimeRange } from '../../_utils/format-time';
 import type { BoardBlock } from '../_utils/board-layout';
 import type { ResourceRow, ConflictHit, PolicyViolationView } from '@aeroops/api';
+import { PolicyViolationBullet } from '../../new/_components/conflict-banner';
 
 /** Convert a Date to "HH:MM" for <input type="time"> */
 function toTimeInputValue(d: Date): string {
@@ -51,6 +57,8 @@ interface MoveReservationDialogProps {
   block: BoardBlock | null;
   /** All active resources (for the optional resource swap select). */
   resources: ResourceRow[];
+  /** The board's IANA zone (the viewer's), for the "Currently:" times. */
+  timeZone: string;
   /** Whether the dialog is open. */
   open: boolean;
   /** Called when dialog should close. */
@@ -78,6 +86,7 @@ interface MoveReservationDialogProps {
 export function MoveReservationDialog({
   block,
   resources,
+  timeZone,
   open,
   onOpenChange,
   onSubmit,
@@ -157,16 +166,16 @@ export function MoveReservationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Move reservation</DialogTitle>
         </DialogHeader>
 
         {/* Current time display */}
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Currently: {formatTimeRange(currentBlock.startAt, currentBlock.endAt)}
+          Currently: {formatTimeRange(currentBlock.startAt, currentBlock.endAt, timeZone)}
           {currentBlock.reservation.seriesId && (
-            <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">(series)</span>
+            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">(series)</span>
           )}
         </p>
 
@@ -198,7 +207,7 @@ export function MoveReservationDialog({
               aria-required="true"
               disabled={isSubmitting}
             />
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Duration is preserved ({Math.round(durationMs / 60000)} min)
             </p>
           </div>
@@ -257,7 +266,7 @@ export function MoveReservationDialog({
                 {hasViolation && (
                   <ul className="list-disc list-inside text-sm space-y-0.5">
                     {dialogViolations!.map((v, i) => (
-                      <li key={i}>{v.kind.replace(/_/g, ' ')}</li>
+                      <PolicyViolationBullet key={i} v={v} timeZone={timeZone} />
                     ))}
                   </ul>
                 )}

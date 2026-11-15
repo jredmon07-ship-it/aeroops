@@ -63,8 +63,9 @@ export interface ListActivityResult {
  * limit:    rows per page; default 50, cap 100.
  * cursor:   keyset cursor from a prior call's nextCursor.
  * timeZone: IANA zone for the times inside summaries (e.g. a reservation's
- *           start). Default: the server's own zone, which is what the
- *           server-rendered pages format dates in. An unknown zone → UTC.
+ *           start) and the day a reservation's board link opens on — the
+ *           viewer's (apps/web passes getViewerTimeZone()). Default: the
+ *           server's own zone. An unknown zone → UTC.
  */
 export interface ListActivityOptions {
   limit?: number;

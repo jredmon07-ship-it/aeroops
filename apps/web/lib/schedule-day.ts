@@ -123,9 +123,11 @@ export function addDays(day: string, delta: number): string {
 
 /**
  * dayLabel — human heading, e.g. "Monday, November 16, 2026". Formats the day
- * at UTC, so the label is the same on the server and in every browser zone.
+ * at UTC, so the label is the same on the server and in every browser zone,
+ * and in en-US (like the app's clock times, lib/zoned-format.ts): the server's
+ * default locale is not the browser's, and a mismatch fails hydration.
  */
-export function dayLabel(day: string, locale?: string): string {
+export function dayLabel(day: string, locale = 'en-US'): string {
   const p = splitDay(day);
   return new Intl.DateTimeFormat(locale, {
     weekday: 'long',

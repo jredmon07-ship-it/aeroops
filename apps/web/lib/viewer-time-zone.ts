@@ -1,13 +1,16 @@
 /**
  * lib/viewer-time-zone.ts — The viewer's IANA time zone, read on the server.
  *
- * The schedule's "today" and its day window (lib/schedule-day.ts) are in the
- * zone the browser books and shows reservation times in. The server cannot see
- * that zone, so the browser reports it in the aeroops-tz cookie
- * (schedule/_components/viewer-time-zone-sync.tsx). Until it has — a first
- * visit, blocked cookies, a zone this server's Intl does not know — the
- * server's own zone stands in (what the schedule used before), and the sync
- * component refreshes the page once the cookie is set.
+ * "Today", day windows (lib/schedule-day.ts) and clock times (lib/zoned-format.ts)
+ * are in the zone the browser books and shows reservation times in. The server
+ * cannot see that zone, so the browser reports it in the aeroops-tz cookie
+ * (app/o/[slug]/(shell)/viewer-time-zone-sync.tsx, mounted once by the shell
+ * layout). Until it has — a first visit, blocked cookies, a zone this server's
+ * Intl does not know — the server's own zone stands in, and the sync component
+ * refreshes the page once the cookie is set.
+ *
+ * Resolve it once per request (a page, or a server action) and pass it down:
+ * every date and time on the page then reads in the same zone.
  *
  * Server-only (next/headers). The pure parts live in lib/schedule-day.ts.
  */

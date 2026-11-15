@@ -39,6 +39,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DemandBuilder } from './demand-builder';
 import { PreviewPanel } from './preview-panel';
 import { CommitPanel } from './commit-panel';
+import { demandLabels } from './demand-labels';
 import { previewAutoScheduleAction, runAutoScheduleAction } from '../actions';
 import type {
   SerializedPreviewResult,
@@ -159,6 +160,9 @@ export function AutoSchedulerClient({ resources, slug }: AutoSchedulerClientProp
 
   const isCommitting = step === 'committing';
   const isPreviewing = step === 'previewing';
+  // "Session N" for each submitted demand, so the could-not-place lists name
+  // rows the way the builder does instead of printing internal row ids.
+  const labels = React.useMemo(() => demandLabels(lastInput?.demands ?? []), [lastInput]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -190,6 +194,7 @@ export function AutoSchedulerClient({ resources, slug }: AutoSchedulerClientProp
           resources={resources}
           onCommit={handleCommitRequest}
           isCommitting={isCommitting}
+          demandLabels={labels}
         />
       )}
 
@@ -200,6 +205,7 @@ export function AutoSchedulerClient({ resources, slug }: AutoSchedulerClientProp
           resources={resources}
           slug={slug}
           onReset={handleReset}
+          demandLabels={labels}
         />
       )}
 

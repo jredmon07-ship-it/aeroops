@@ -131,7 +131,7 @@ function StepRow({
       {/* Status icon */}
       <div className="mt-0.5 shrink-0">
         {done ? (
-          <CheckCircle2 className="h-5 w-5 text-brand" aria-hidden="true" />
+          <CheckCircle2 className="h-5 w-5 text-brand dark:text-blue-400" aria-hidden="true" />
         ) : (
           <Circle className="h-5 w-5 text-slate-300" aria-hidden="true" />
         )}
@@ -157,7 +157,7 @@ function StepRow({
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
             <Link
               href={meta.href(slug)}
-              className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
+              className="inline-flex items-center gap-1 text-sm font-medium text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
             >
               {meta.cta}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -299,7 +299,7 @@ export default async function SetupPage({ params }: SetupPageProps) {
           className="flex items-start gap-3 rounded-md border border-brand/20 bg-brand/5 px-5 py-4"
           role="note"
         >
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand dark:text-blue-400" aria-hidden="true" />
           <div>
             <p className="text-sm font-semibold text-brand-ink dark:text-blue-200">
               Your operation is fully set up.

@@ -15,6 +15,8 @@
 'use server';
 
 import { actionAuth as auth } from '@/lib/action-auth';
+import { dayInZone } from '@/lib/schedule-day';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 import {
   listReservations,
   createReservation,
@@ -690,7 +692,12 @@ export async function getDispatchPreflightAction(input: {
 
   // Pilot expirations (people:access). [VERIFY-FC-P2-A]: warn-only reminders.
   try {
-    const r = await listMemberExpirations(session, { memberUserId: input.pilotUserId });
+    // Due / lapsed are judged against the viewer's calendar day, not the
+    // server's UTC date (the people page does the same).
+    const r = await listMemberExpirations(session, {
+      memberUserId: input.pilotUserId,
+      today: dayInZone(new Date(), await getViewerTimeZone()),
+    });
     if (r.ok) {
       const items = r.expirations.map((e) => ({
         id: e.id,

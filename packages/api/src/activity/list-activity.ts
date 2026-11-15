@@ -21,9 +21,11 @@
  *   - LEFT JOIN app_user row present → full_name ?? email
  *   - LEFT JOIN app_user row missing (user hard-deleted) → "A former user"
  *
- * TIMES IN SUMMARIES: shown in opts.timeZone, else the server's own zone (the
- *   one the server-rendered pages format dates in), always with the zone's
- *   name, e.g. "Reservation created starting Jul 11, 2026 09:00 CDT".
+ * TIMES IN SUMMARIES: shown in opts.timeZone (the web passes the viewer's),
+ *   else the server's own zone, always with the zone's name, e.g.
+ *   "Reservation created starting Jul 11, 2026 09:00 CDT". A reservation's
+ *   link opens the board on its start day in that same zone
+ *   (/schedule/board?date=2026-07-11).
  *
  * TWO CALLING FORMS:
  *   listActivity(session, opts?)           — app code.
@@ -52,9 +54,9 @@ const MAX_LIMIT     = 100;
 // ─── Display time zone ────────────────────────────────────────────────────────
 
 /**
- * serverTimeZone — the server process's IANA zone (UTC on Vercel). The
- * server-rendered pages (fleet, people, work orders) format dates in it, so
- * activity times default to it too. UTC when the runtime can't name one.
+ * serverTimeZone — the server process's IANA zone (UTC on Vercel): the
+ * fallback when the caller passes no viewer zone. UTC when the runtime can't
+ * name one.
  */
 function serverTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -181,6 +183,7 @@ async function _listActivityImpl(
         entityType: row.entityType,
         entityId:   row.entityId ?? null,
         metadata:   row.metadata,
+        timeZone,
       });
 
       return {

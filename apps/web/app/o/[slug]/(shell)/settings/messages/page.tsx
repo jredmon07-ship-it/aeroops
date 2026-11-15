@@ -15,6 +15,7 @@ import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { listMemberMessagesAction } from './actions';
 import { ComposeClient } from './_components/compose-client';
 import { PageHeader } from '@/components/ui/page-header';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 interface MessagesPageProps {
   params: Promise<{ slug: string }>;
@@ -48,6 +49,8 @@ export default async function MessagesPage({ params }: MessagesPageProps) {
 
   const historyResult = await listMemberMessagesAction();
   const initialHistory = 'ok' in historyResult && historyResult.ok ? historyResult.messages : [];
+  // Sent dates read in the viewer's zone.
+  const timeZone = await getViewerTimeZone();
 
   return (
     <div className="space-y-6">
@@ -63,7 +66,7 @@ export default async function MessagesPage({ params }: MessagesPageProps) {
         }
       />
 
-      <ComposeClient slug={slug} initialHistory={initialHistory} />
+      <ComposeClient slug={slug} initialHistory={initialHistory} timeZone={timeZone} />
     </div>
   );
 }

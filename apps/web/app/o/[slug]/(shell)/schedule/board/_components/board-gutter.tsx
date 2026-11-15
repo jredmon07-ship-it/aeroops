@@ -79,7 +79,7 @@ function ResourceCell({
           {isGrounded && (
             <span
               title={status?.reason ?? 'Grounded'}
-              className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 py-0 text-[0.6875rem] font-semibold text-destructive leading-4"
+              className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 py-0 text-[0.6875rem] font-semibold text-red-700 dark:text-red-400 leading-4"
               aria-label={`Grounded: ${status?.reason ?? ''}`}
             >
               Grounded
@@ -108,7 +108,7 @@ function ResourceCell({
               <button
                 type="button"
                 onClick={() => onGroundClick(resource)}
-                className="text-[0.6875rem] text-destructive hover:text-destructive/80 underline leading-4"
+                className="text-[0.6875rem] text-destructive hover:text-red-800 dark:hover:text-red-300 underline leading-4"
                 aria-label={`Ground ${resource.tailNumber ?? resource.displayName}`}
               >
                 Ground
@@ -139,7 +139,7 @@ export function BoardGutter({
       {hasAircraft && (
         <>
           <div className="h-8 flex items-end px-3 pb-1 border-b border-slate-200 dark:border-slate-800">
-            <span className="text-xs uppercase text-slate-400 dark:text-slate-500 font-medium tracking-wide">
+            <span className="text-xs uppercase text-slate-500 dark:text-slate-400 font-medium tracking-wide">
               Aircraft
             </span>
           </div>
@@ -167,7 +167,7 @@ export function BoardGutter({
       {hasInstructors && (
         <>
           <div className="h-8 flex items-end px-3 pb-1 border-b border-slate-200 dark:border-slate-800">
-            <span className="text-xs uppercase text-slate-400 dark:text-slate-500 font-medium tracking-wide">
+            <span className="text-xs uppercase text-slate-500 dark:text-slate-400 font-medium tracking-wide">
               Instructors
             </span>
           </div>

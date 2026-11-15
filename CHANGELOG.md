@@ -4,6 +4,63 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-11-15 — Your time zone everywhere, and text you can read
+
+A second pass over the hosted demo. Outside the schedule the server (UTC on
+Vercel) still picked the day and printed the times, and a lot of small text
+failed contrast. No migration.
+
+**Fixed**
+
+- Every signed-in page, not just the schedule, shows days and times in your own
+  time zone. The browser reports its zone once, from the app shell; on a first
+  visit the page refreshes once, and it never loops when cookies are blocked.
+- Dashboard: "Today's flights" is your calendar day, labelled with your zone
+  (e.g. CST). A booking that started the day before reads "Yesterday 15:00"
+  instead of a bare time at the top of today.
+- The aircraft and member pages, squawks, work orders, training, the booking
+  inbox, the portal and logbook, reports, messages and search show local times:
+  a 16:30 CST checkout no longer reads 10:30 PM.
+- The schedule's list, month view, board, series page and New Reservation form
+  render clock times in your zone on the server too, so no page flashes UTC
+  times or logs "Hydration failed" (React #418) on load. Day and month headings
+  are pinned to English, like the clock times, so a browser set to another
+  language renders the same text as the server.
+- Dispatch board on daylight-saving days: the day is drawn at its real length
+  (25 hours on the fall-back day, 23 on the spring-forward day), the hour labels
+  follow the clock (1 am twice, no 2 am), and each block sits under its start
+  time. On November 1 in Chicago an 11:00 flight used to sit under 12 pm.
+- Activity times read in your zone, and a reservation opens the board on its own
+  day. The "Upcoming flight" alert opens that flight's local day, not the next
+  UTC day.
+- Maintenance due, member expirations (on People and in the check-out dialog)
+  and new common-reminder due dates count from your today, not the server's UTC
+  date. New Reservation's default date is your today too.
+- Training: "Completed at" on Record lesson is accepted (it was rejected) and
+  read as your local time.
+- Muted text meets WCAG AA in both themes: slate-500 in light, slate-400 in dark
+  (was 2.6:1 and 3.8:1). Zero values and empty-cell dashes on the dashboard and
+  Reports no longer fade to 1.5:1.
+- In dark mode, links, brand icons and the month view's "Today" use blue-400
+  (7.0:1, was 3.6:1).
+- Error text, required-field asterisks and the Grounded, Overdue and Error chips
+  render in red: the theme had no `destructive` color, so those classes were
+  never emitted. The Delete and Deactivate confirm buttons are no longer white
+  on white in light mode.
+- Status chips (Active, Grounded, Due soon, OK) meet AA in light mode, and the
+  red ones in dark mode too.
+- Reports uses the shared severity chip (High is orange, as everywhere else) and
+  labels its statuses (Open, Due soon, OK).
+- No raw ids or enum keys where people read: the portal and the alerts bell name
+  the instructor and the aircraft, work orders name the aircraft by tail number,
+  and Activity, ⌘K search, auto-schedule and the board's move dialog use words
+  ("in progress", "Session 2") instead of keys and row ids.
+- A member's Upcoming Reservations lists a dual (aircraft and instructor)
+  booking once, not twice.
+- Dispatch board on phones: blocks are no longer marked draggable when the page
+  first loads. The mobile menu and dialogs no longer log Radix's
+  missing-Description warning.
+
 ## 2026-11-15 — Fixes from a walk through the demo
 
 Bugs found walking through the hosted demo in both orgs, light and dark, on

@@ -272,9 +272,9 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
         aria-label="Open search"
         className={cn(
           'flex items-center gap-2 rounded-md px-3 py-1.5',
-          'text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300',
+          'text-sm text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300',
           'border border-slate-200 dark:border-slate-800 bg-white/70 hover:bg-white',
-          'dark:text-slate-500 dark:hover:text-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800',
+          'dark:text-slate-400 dark:hover:text-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800',
           'transition-colors',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900',
         )}
@@ -284,7 +284,7 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
             for the org name and the account cluster (see (shell)/layout.tsx). */}
         <span className="hidden lg:inline">Search</span>
         <kbd
-          className="hidden lg:inline-flex items-center gap-0.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
+          className="hidden lg:inline-flex items-center gap-0.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
           aria-hidden="true"
         >
           ⌘K
@@ -331,7 +331,7 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
             {/* ── Search input ──────────────────────────────────────────── */}
             <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
               <Search
-                className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500"
+                className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400"
                 aria-hidden="true"
               />
               <input
@@ -359,7 +359,7 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
               />
               {/* Esc hint */}
               <kbd
-                className="hidden shrink-0 items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-400 sm:flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
+                className="hidden shrink-0 items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-500 sm:flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                 aria-hidden="true"
               >
                 Esc
@@ -370,14 +370,14 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
             <div className="max-h-[min(28rem,60vh)] overflow-y-auto">
               {/* Empty / type-to-search */}
               {state.kind === 'empty' && (
-                <div className="flex items-center justify-center py-10 text-sm text-slate-400 dark:text-slate-500">
+                <div className="flex items-center justify-center py-10 text-sm text-slate-500 dark:text-slate-400">
                   Type to search…
                 </div>
               )}
 
               {/* Loading */}
               {state.kind === 'loading' && (
-                <div className="flex items-center justify-center py-10 text-sm text-slate-400 dark:text-slate-500">
+                <div className="flex items-center justify-center py-10 text-sm text-slate-500 dark:text-slate-400">
                   Searching…
                 </div>
               )}
@@ -411,10 +411,10 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
                         {/* Group header */}
                         <div className="flex items-center gap-2 px-4 py-2">
                           <Icon
-                            className="h-3 w-3 shrink-0 text-slate-400 dark:text-slate-500"
+                            className="h-3 w-3 shrink-0 text-slate-500 dark:text-slate-400"
                             aria-hidden="true"
                           />
-                          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                             {group.label}
                           </span>
                         </div>
@@ -452,7 +452,7 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
                                 {result.primary}
                               </span>
                               {result.secondary && (
-                                <span className="nums text-xs text-slate-400 leading-tight dark:text-slate-500">
+                                <span className="nums text-xs text-slate-500 leading-tight dark:text-slate-400">
                                   {result.secondary}
                                 </span>
                               )}

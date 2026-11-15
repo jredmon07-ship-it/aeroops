@@ -58,12 +58,42 @@ import type {
 } from './types.js';
 import { extractRows } from '../db-rows.js';
 import { loadOrgFeatureState } from '../org-features/org-features-internal.js';
+import { calendarDayInZone, isValidIanaTz } from '../scheduling/internal.js';
 
 // ─── Zod schema ───────────────────────────────────────────────────────────────
 
 const searchOrgInputSchema = z.object({
   query: z.string().max(200),
+  // The viewer's IANA zone for reservation times and their board day. A
+  // malformed value is dropped (→ UTC), never a reason to fail the search.
+  timeZone: z.string().max(64).optional().catch(undefined),
 });
+
+// ─── Reservation labels in the viewer's zone ──────────────────────────────────
+
+/**
+ * reservationLabel — "Jan 10, 2027 02:00 CST": the start in `zone` on the
+ * schedule's 24-hour clock, with the zone's short name so a viewer elsewhere
+ * cannot misread it.
+ */
+function reservationLabel(start: Date, zone: string): string {
+  const datePart = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: zone,
+  }).format(start);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZoneName: 'short',
+    timeZone: zone,
+  }).formatToParts(start);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${datePart} ${part('hour')}:${part('minute')} ${part('timeZoneName')}`;
+}
 
 // ─── LIKE ESCAPE character ───────────────────────────────────────────────────
 //
@@ -76,6 +106,18 @@ const searchOrgInputSchema = z.object({
 // This is for LIKE-semantics only (suppresses wildcards in the pattern).
 // SQL injection safety is handled separately by bound parameters.
 const LIKE_ESCAPE = sql.raw(`ESCAPE '\\'`);
+
+// ─── Status words ─────────────────────────────────────────────────────────────
+
+/**
+ * statusLabel — a stored status/severity as people read it in the palette's
+ * second line: 'in_progress' → 'In progress', 'high' → 'High'. The results
+ * printed the enum keys themselves.
+ */
+export function statusLabel(value: string): string {
+  const words = value.replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 // ─── Shared implementation ────────────────────────────────────────────────────
 
@@ -94,6 +136,8 @@ async function _searchOrgImpl(
     return { groups: [] };
   }
   const q = parsed.data.query.trim();
+  const tz = parsed.data.timeZone;
+  const zone = tz !== undefined && isValidIanaTz(tz) ? tz : 'UTC';
 
   // 3. SHORT-CIRCUIT: query too short → no db call.
   if (q.length < 2) {
@@ -221,7 +265,7 @@ async function _searchOrgImpl(
       const woResults: SearchResult[] = rows.map((r) => ({
         id: r.id,
         primary: r.title,
-        secondary: r.status,
+        secondary: statusLabel(r.status),
         path: `/maintenance/work-orders/${r.id}`,
       }));
       if (woResults.length > 0) {
@@ -253,7 +297,7 @@ async function _searchOrgImpl(
       const squawkResults: SearchResult[] = rows.map((r) => ({
         id: r.id,
         primary: r.title,
-        secondary: `${r.severity} · ${r.status}`,
+        secondary: `${statusLabel(r.severity)} · ${statusLabel(r.status)}`,
         path: `/maintenance/squawks`,
       }));
       if (squawkResults.length > 0) {
@@ -283,7 +327,7 @@ async function _searchOrgImpl(
       const courseResults: SearchResult[] = rows.map((r) => ({
         id: r.id,
         primary: r.title,
-        secondary: r.status,
+        secondary: statusLabel(r.status),
         path: `/training/${r.id}`,
       }));
       if (courseResults.length > 0) {
@@ -313,27 +357,16 @@ async function _searchOrgImpl(
       }>(result);
       const reservationResults: SearchResult[] = rows.map((r) => {
         const startDate = r.startAt instanceof Date ? r.startAt : new Date(r.startAt as string);
-        // Format: "Jan 10, 2027 08:00 UTC" — unambiguous, human-readable.
-        const datePart = new Intl.DateTimeFormat('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-          timeZone: 'UTC',
-        }).format(startDate);
-        const timePart = new Intl.DateTimeFormat('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-          timeZone: 'UTC',
-        }).format(startDate);
-        const primary = `${datePart} ${timePart} UTC`;
+        // "Jan 10, 2027 02:00 CST" in the viewer's zone (input.timeZone, else
+        // UTC), and the board for that same local day.
+        const primary = reservationLabel(startDate, zone);
         const notes = r.notes ?? '';
         const secondary = notes.length > 60 ? notes.slice(0, 60) + '…' : (notes || null);
         return {
           id: r.id,
           primary,
           secondary,
-          path: `/schedule/board`,
+          path: `/schedule/board?date=${calendarDayInZone(startDate, zone)}`,
         };
       });
       if (reservationResults.length > 0) {

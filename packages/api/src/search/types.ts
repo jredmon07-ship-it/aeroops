@@ -68,9 +68,14 @@ export interface SearchGroup {
 
 /**
  * SearchOrgInput — the validated input shape for searchOrg.
+ *
+ * timeZone: the viewer's IANA zone. Reservation results read their start in
+ *   it ("Jan 10, 2027 02:00 CST") and link to the board for that local day.
+ *   Absent or unknown → UTC.
  */
 export interface SearchOrgInput {
   query: string;
+  timeZone?: string;
 }
 
 /**

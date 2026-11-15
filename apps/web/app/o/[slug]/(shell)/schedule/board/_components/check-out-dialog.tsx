@@ -394,7 +394,7 @@ export function CheckOutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Check out aircraft</DialogTitle>
         </DialogHeader>
@@ -551,7 +551,7 @@ export function CheckOutDialog({
             </h3>
 
             {!PILOT_UUID_RE.test(pilotUserId.trim()) && (
-              <p className="text-xs text-slate-400 dark:text-slate-500 italic">
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">
                 Select a pilot to run the pre-flight check.
               </p>
             )}
@@ -565,7 +565,7 @@ export function CheckOutDialog({
             )}
 
             {PILOT_UUID_RE.test(pilotUserId.trim()) && !preflightLoading && preflight === null && (
-              <p className="text-xs text-slate-400 dark:text-slate-500 italic">
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">
                 Pre-flight status unavailable. You can still dispatch — the
                 dispatch gate runs on submit.
               </p>
@@ -637,7 +637,7 @@ export function CheckOutDialog({
                             </p>
                           ))}
                         {/* [VERIFY-FC-P2-A] — verbatim disclaimer. */}
-                        <p className="text-[0.6875rem] leading-4 text-slate-400 dark:text-slate-500">
+                        <p className="text-[0.6875rem] leading-4 text-slate-500 dark:text-slate-400">
                           Operator-entered reminder dates. Not a medical/currency/legal
                           determination — verifying actual validity remains the
                           operator&apos;s and pilot&apos;s responsibility.
@@ -661,7 +661,7 @@ export function CheckOutDialog({
               />
               <span>
                 Pilot briefed: W&amp;B, NOTAMs, weather verified{' '}
-                <span id="co-briefed-hint" className="text-xs text-slate-400 dark:text-slate-500">
+                <span id="co-briefed-hint" className="text-xs text-slate-500 dark:text-slate-400">
                   (confirmation to enable Dispatch — not recorded)
                 </span>
               </span>

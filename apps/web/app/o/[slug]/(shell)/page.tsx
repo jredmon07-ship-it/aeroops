@@ -25,7 +25,9 @@
  *   because the dashboard shell itself is accessible.
  *
  * BOUNDARY: imports ONLY from '@aeroops/api'. Never '@aeroops/db'.
- * [VERIFY-7-TZ]: "today's flights" uses UTC-day fallback; labelled accordingly.
+ * [VERIFY-7-TZ]: "today's flights" is the viewer's calendar day (aeroops-tz
+ *   cookie, lib/viewer-time-zone.ts), labelled with the zone's short name;
+ *   the activity chart's buckets are still UTC days.
  * [VERIFY-A]: Hours shown are OPERATIONAL utilization (Hobbs-derived). NOT billable.
  */
 
@@ -47,7 +49,7 @@ import { BarTrend, Sparkline } from '@/components/ui/chart';
 import {
   resolveRangeKey,
   rangeLabelFull,
-  formatUtcTime,
+  formatFlightStart,
   clampBarWidth,
 } from '@/lib/dashboard-utils';
 import {
@@ -230,10 +232,11 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
 
   const metrics = metricsResult.ok ? metricsResult.metrics : null;
   const utilizationRows = utilizationResult.ok ? utilizationResult.rows : [];
-  const todaysFlights =
+  const todaysFlightsOk =
     todaysFlightsResult && 'ok' in todaysFlightsResult && todaysFlightsResult.ok
-      ? todaysFlightsResult.reservations
-      : [];
+      ? todaysFlightsResult
+      : null;
+  const todaysFlights = todaysFlightsOk ? todaysFlightsOk.reservations : [];
   const groundedAircraft =
     groundedResult && 'ok' in groundedResult && groundedResult.ok
       ? groundedResult.aircraft
@@ -295,7 +298,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
     <div className="space-y-6">
       {/* ── B. Snapshot strip ─────────────────────────────────────────────── */}
       <section aria-label="Operational snapshot">
-        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
           As of now
         </p>
         {/* One white panel, hairline divide-x: instrument cluster */}
@@ -309,7 +312,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.groundedAircraftCount > 0 ? 'text-danger' : 'text-slate-400 dark:text-slate-500',
+                  metrics.groundedAircraftCount > 0 ? 'text-danger' : 'text-slate-500 dark:text-slate-400',
                 ].join(' ')}
               >
                 {metrics.groundedAircraftCount}
@@ -318,8 +321,8 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 className={[
                   'mt-1 text-xs',
                   metrics.groundedAircraftCount > 0
-                    ? 'text-danger/70'
-                    : 'text-slate-400 dark:text-slate-500',
+                    ? 'text-danger'
+                    : 'text-slate-500 dark:text-slate-400',
                 ].join(' ')}
               >
                 {metrics.groundedAircraftCount > 0
@@ -336,7 +339,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.openSquawkCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400 dark:text-slate-500',
+                  metrics.openSquawkCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400',
                 ].join(' ')}
               >
                 {metrics.openSquawkCount}
@@ -344,7 +347,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               <p
                 className={[
                   'mt-1 text-xs',
-                  metrics.openSquawkCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500',
+                  metrics.openSquawkCount > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400',
                 ].join(' ')}
               >
                 {metrics.openSquawkCount > 0 ? 'open' : 'all clear'}
@@ -359,12 +362,12 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.activeAircraftCount === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100',
+                  metrics.activeAircraftCount === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {metrics.activeAircraftCount}
               </p>
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {metrics.activeAircraftCount === 0 ? 'none yet' : 'in fleet'}
               </p>
             </div>
@@ -377,12 +380,12 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  metrics.activeMemberCount === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100',
+                  metrics.activeMemberCount === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {metrics.activeMemberCount}
               </p>
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {metrics.activeMemberCount === 0 ? 'none yet' : 'on roster'}
               </p>
             </div>
@@ -396,15 +399,15 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 <p
                   className={[
                     'nums mt-1 text-2xl font-bold leading-none',
-                    metrics.openWorkOrderCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400 dark:text-slate-500',
+                    metrics.openWorkOrderCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400',
                   ].join(' ')}
                 >
                   {metrics.openWorkOrderCount}
                 </p>
-                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   <Link
                     href={`/o/${slug}/maintenance/work-orders`}
-                    className="hover:text-brand underline-offset-2 hover:underline"
+                    className="hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline"
                   >
                     {metrics.openWorkOrderCount > 0 ? 'open or in progress' : 'none open'}
                   </Link>
@@ -421,15 +424,15 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 <p
                   className={[
                     'nums mt-1 text-2xl font-bold leading-none',
-                    metrics.activeEnrollmentCount === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100',
+                    metrics.activeEnrollmentCount === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
                   ].join(' ')}
                 >
                   {metrics.activeEnrollmentCount}
                 </p>
-                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   <Link
                     href={`/o/${slug}/training/enrollments`}
-                    className="hover:text-brand underline-offset-2 hover:underline"
+                    className="hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline"
                   >
                     {metrics.activeEnrollmentCount === 0 ? 'none yet' : 'students in training'}
                   </Link>
@@ -445,8 +448,8 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 </p>
                 {maintenanceDueSummary === null ? (
                   <>
-                    <p className="nums mt-1 text-2xl font-bold leading-none text-slate-300">—</p>
-                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">not available</p>
+                    <p className="nums mt-1 text-2xl font-bold leading-none text-slate-500 dark:text-slate-400">—</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">not available</p>
                   </>
                 ) : (
                   <>
@@ -457,15 +460,15 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                           ? 'text-danger'
                           : maintenanceDueSummary.dueSoonCount > 0
                             ? 'text-amber-700 dark:text-amber-300'
-                            : 'text-slate-400 dark:text-slate-500',
+                            : 'text-slate-500 dark:text-slate-400',
                       ].join(' ')}
                     >
                       {maintenanceDueSummary.overdueCount + maintenanceDueSummary.dueSoonCount}
                     </p>
-                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       <Link
                         href={`/o/${slug}/maintenance/due`}
-                        className="hover:text-brand underline-offset-2 hover:underline"
+                        className="hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline"
                       >
                         {maintenanceDueSummary.overdueCount > 0
                           ? `${maintenanceDueSummary.overdueCount} overdue`
@@ -484,7 +487,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
 
       {/* ── C. KPI row (range-scoped) ─────────────────────────────────────── */}
       <section aria-label={`Throughput — last ${rangeLbl}`}>
-        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
           Last {rangeLbl}
         </p>
         {/* Structurally DIFFERENT from B: separate gap-3 grid */}
@@ -497,12 +500,12 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
             <p
               className={[
                 'nums mt-1 text-3xl font-bold leading-none',
-                metrics.totalFlights === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
+                metrics.totalFlights === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
               ].join(' ')}
             >
               {metrics.totalFlights}
             </p>
-            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500" aria-hidden="true">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400" aria-hidden="true">
               {kpiSubLabel('flights', metrics.totalFlights)}
             </p>
             {/* Per-day flights sparkline (from the activity trend) */}
@@ -525,12 +528,12 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
             <p
               className={[
                 'nums mt-1 text-3xl font-bold leading-none',
-                metrics.totalFlightHours === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
+                metrics.totalFlightHours === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
               ].join(' ')}
             >
               {metrics.totalFlightHours.toFixed(1)}
             </p>
-            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
               {kpiSubLabel('flightHours', metrics.totalFlightHours)}
             </p>
             <div className="h-4" aria-hidden="true" />
@@ -544,12 +547,12 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
             <p
               className={[
                 'nums mt-1 text-3xl font-bold leading-none',
-                metrics.reservationsInRange === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
+                metrics.reservationsInRange === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
               ].join(' ')}
             >
               {metrics.reservationsInRange}
             </p>
-            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
               {kpiSubLabel('reservations', metrics.reservationsInRange)}
             </p>
             {/* Per-day reservations sparkline (from the activity trend) */}
@@ -566,7 +569,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
         </div>
         {/* Range-no-data subline */}
         {metrics.activeAircraftCount > 0 && metrics.totalFlights === 0 && (
-          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
             No completed flights in the selected period. Try a wider range.
           </p>
         )}
@@ -575,7 +578,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
       {/* ── C2. Activity trend chart ──────────────────────────────────────── */}
       {trend && (
         <section aria-label={`Activity — last ${rangeLbl}`}>
-          <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+          <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
             Activity — last {rangeLbl}
           </p>
           <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
@@ -602,7 +605,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
 
       {/* ── D. Utilization table ──────────────────────────────────────────── */}
       <section aria-label={`Fleet utilization — last ${rangeLbl}`}>
-        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
           Fleet utilization — last {rangeLbl}
         </p>
         <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
@@ -649,12 +652,12 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500"
+                    className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400"
                   >
                     No active aircraft.{' '}
                     <Link
                       href={`/o/${slug}/schedule/resources`}
-                      className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+                      className="text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                     >
                       Add aircraft in Resources admin.
                     </Link>
@@ -672,7 +675,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                       <td className="px-4 py-3">
                         <Link
                           href={`/o/${slug}/fleet/${row.resourceId}`}
-                          className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
+                          className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline"
                           aria-label={`View details for ${row.tailNumber}`}
                         >
                           {row.tailNumber}
@@ -719,7 +722,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                           )}
                           {!groundedIdSet.has(row.resourceId) &&
                             (squawkCountByResource.get(row.resourceId) ?? 0) === 0 && (
-                              <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
                             )}
                         </div>
                       </td>
@@ -731,7 +734,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
           </table>
         </div>
         {/* Mandatory hours footnote [VERIFY-A] */}
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
           * Utilization hours derived from recorded Hobbs at check-in. Operational
           figure only — not an airworthiness statement.
         </p>
@@ -748,14 +751,14 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
             Add aircraft in{' '}
             <Link
               href={`/o/${slug}/schedule/resources`}
-              className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+              className="text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
             >
               Resources
             </Link>
             , then add members in{' '}
             <Link
               href={`/o/${slug}/people`}
-              className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+              className="text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
             >
               People
             </Link>{' '}
@@ -766,7 +769,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
 
       {/* ── E. At-a-glance ───────────────────────────────────────────────── */}
       <section aria-label="Today's operations">
-        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+        <p className="mb-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
           On the board
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -775,20 +778,22 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
             <div className="hairline flex items-center justify-between px-4 py-2.5">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Today&apos;s flights
-                <span className="ml-1 text-[0.625rem] font-normal text-slate-400 dark:text-slate-500 uppercase tracking-wide">
-                  UTC
-                </span>
+                {todaysFlightsOk && (
+                  <span className="ml-1 text-[0.625rem] font-normal text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    {todaysFlightsOk.tzNote}
+                  </span>
+                )}
               </span>
               <Link
                 href={`/o/${slug}/schedule/board`}
-                className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
+                className="text-xs text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
               >
                 Board
               </Link>
             </div>
             <div className="max-h-52 overflow-y-auto">
               {todaysFlights.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                <p className="px-4 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
                   No flights today.
                 </p>
               ) : (
@@ -796,12 +801,14 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                   {todaysFlights.map((r) => (
                     <li key={r.id} className="flex items-baseline gap-2 px-4 py-2.5">
                       <span className="nums text-xs text-slate-500 dark:text-slate-400 shrink-0">
-                        {formatUtcTime(r.startAt)}
+                        {todaysFlightsOk
+                          ? formatFlightStart(r.startAt, todaysFlightsOk.today, todaysFlightsOk.timeZone)
+                          : '—'}
                       </span>
                       <span className="text-xs font-medium text-slate-700 dark:text-slate-300 shrink-0">
                         {tailForReservation(r.resourceIds)}
                       </span>
-                      <span className="text-xs text-slate-400 dark:text-slate-500 truncate ml-auto text-right">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate ml-auto text-right">
                         {r.notes?.trim() || r.status}
                       </span>
                     </li>
@@ -826,14 +833,14 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 </span>
                 <Link
                   href={`/o/${slug}/fleet`}
-                  className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
+                  className="text-xs text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
                 >
                   Fleet
                 </Link>
               </div>
               <div className="max-h-52 overflow-y-auto">
                 {groundedAircraft.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                  <p className="px-4 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
                     No aircraft grounded.
                   </p>
                 ) : (
@@ -842,11 +849,11 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                       <li key={a.id} className="flex items-baseline gap-2 px-4 py-2.5">
                         <Link
                           href={`/o/${slug}/fleet/${a.id}`}
-                          className="nums text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline shrink-0"
+                          className="nums text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline shrink-0"
                         >
                           {a.tailNumber}
                         </Link>
-                        <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
                           {a.groundingReason ?? 'No reason given'}
                         </span>
                       </li>
@@ -872,14 +879,14 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
                 </span>
                 <Link
                   href={`/o/${slug}/maintenance/squawks`}
-                  className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
+                  className="text-xs text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline-offset-2 hover:underline"
                 >
                   Maintenance
                 </Link>
               </div>
               <div className="max-h-52 overflow-y-auto">
                 {openSquawks.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                  <p className="px-4 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
                     No open squawks.
                   </p>
                 ) : (

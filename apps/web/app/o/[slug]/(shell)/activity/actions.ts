@@ -13,6 +13,7 @@
 'use server';
 
 import { actionAuth as auth } from '@/lib/action-auth';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 import {
   listActivity,
 } from '@aeroops/api';
@@ -83,7 +84,9 @@ export async function listActivityAction(opts?: {
   };
 
   try {
-    const result = await listActivity(session, apiOpts);
+    // Times inside summaries, and the day a reservation's board link opens
+    // on, are the viewer's.
+    const result = await listActivity(session, { ...apiOpts, timeZone: await getViewerTimeZone() });
 
     const serialized: SerializedListActivityResult = {
       entries: result.entries.map((e) => ({

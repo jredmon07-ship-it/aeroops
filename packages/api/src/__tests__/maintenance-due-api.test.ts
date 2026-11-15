@@ -1008,3 +1008,49 @@ describe('renderNotificationTemplate — maintenance.due', () => {
     expect(rendered.text.toLowerCase()).not.toContain('part 91.409');
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// TZ — date items are due against the viewer's calendar day (input.today)
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('maintenance-due — the viewer\'s day (today)', () => {
+  it('a date item due tomorrow is not overdue while it is still today for the viewer', async () => {
+    // At 19:00 CST on Nov 15 the server's UTC date is already Nov 16; an
+    // item due Nov 16 must still read as due tomorrow for that viewer.
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+    const aircraft = await seedAircraft(env.orgAId, sess, 'TZD');
+    const created = await createMaintenanceItemWithDb(env.db, sess, {
+      resourceId: aircraft.id,
+      title: 'ELT battery (tz)',
+      trackBy: 'date',
+      dueDate: '2026-11-16',
+      warnLeadDays: 30,
+    });
+    expect(created.ok).toBe(true);
+
+    const viewerDay = await listMaintenanceDueWithDb(env.db, sess, { resourceId: aircraft.id, today: '2026-11-15' });
+    expect(viewerDay).toHaveLength(1);
+    expect(viewerDay[0]!.remainingDays).toBe(1);
+    expect(viewerDay[0]!.status).toBe('due_soon');
+
+    const utcDay = await listMaintenanceDueWithDb(env.db, sess, { resourceId: aircraft.id, today: '2026-11-16' });
+    expect(utcDay[0]!.remainingDays).toBe(0);
+    expect(utcDay[0]!.status).toBe('overdue');
+  });
+
+  it('getMaintenanceDueSummary counts against input.today', async () => {
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+    const early = await getMaintenanceDueSummaryWithDb(env.db, sess, { today: '2000-01-01' });
+    const late = await getMaintenanceDueSummaryWithDb(env.db, sess, { today: '2999-01-01' });
+    // Far in the past nothing date-tracked is overdue yet; far in the future all of it is.
+    expect(late.overdueCount).toBeGreaterThan(early.overdueCount);
+  });
+
+  it('a malformed or impossible today → ValidationError', async () => {
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+    for (const today of ['2026-11-1', '2026-02-30', 'tomorrow']) {
+      await expect(listMaintenanceDueWithDb(env.db, sess, { today })).rejects.toBeInstanceOf(ValidationError);
+      await expect(getMaintenanceDueSummaryWithDb(env.db, sess, { today })).rejects.toBeInstanceOf(ValidationError);
+    }
+  });
+});

@@ -42,7 +42,7 @@ import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
-import { loadMaintenanceDueViews } from '../maintenance/list-maintenance-due.js';
+import { loadMaintenanceDueViews, maintenanceTodaySchema } from '../maintenance/list-maintenance-due.js';
 import type { MaintenanceDueView } from '../maintenance/maintenance-item-types.js';
 import { extractRows } from '../db-rows.js';
 
@@ -50,6 +50,8 @@ import { extractRows } from '../db-rows.js';
 
 const InputSchema = z.object({
   status: z.enum(['ok', 'due_soon', 'overdue', 'unknown']).optional(),
+  /** The viewer's calendar day 'YYYY-MM-DD' date items are due against; absent → now. */
+  today: maintenanceTodaySchema.optional(),
 });
 
 export type GetMaintenanceRemindersReportInput = z.infer<typeof InputSchema>;
@@ -91,7 +93,7 @@ async function _impl(
 
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     // Reuse the exact load+evaluate from listMaintenanceDue (org-wide → undefined).
-    const views = await loadMaintenanceDueViews(tx, undefined);
+    const views = await loadMaintenanceDueViews(tx, undefined, parsed.data.today);
 
     // Counts are over the FULL org (before any status filter) so the summary
     // stays stable regardless of which subset the caller is viewing.

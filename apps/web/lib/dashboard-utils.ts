@@ -6,6 +6,9 @@
  * PURE: no I/O; safe to import in both RSC and test environments.
  */
 
+import { addDays, dayInZone } from './schedule-day';
+import { NO_TIME, formatInZone, formatZonedClock } from './zoned-format';
+
 // ─── Range key ────────────────────────────────────────────────────────────────
 
 export type DashboardRangeKey = '7d' | '30d' | '90d';
@@ -36,20 +39,32 @@ export function rangeLabelFull(key: DashboardRangeKey): string {
 }
 
 /**
- * formatUtcTime — format a UTC ISO string as HH:MM.
+ * formatFlightStart — a reservation's start for the "Today's flights" card,
+ * on the 24-hour clock in the viewer's zone (the zone the card's day is in):
  *
- * [VERIFY-7-TZ]: UTC-day fallback; labelled "UTC" in the UI.
- * Returns '—' on any parse failure (never throws).
+ *   starts on `today`        → "15:00"
+ *   started the day before   → "Yesterday 15:00" (an overnight booking still running)
+ *   started earlier          → "Nov 13 15:00"
+ *   unreadable               → "—"
+ *
+ * The card lists every booking that overlaps today, so one that began
+ * yesterday must not read as a bare "15:00" at the top of today's list.
+ *
+ * @param iso      - The reservation's startAt (ISO instant).
+ * @param today    - The viewer's calendar day, "YYYY-MM-DD" (dayInZone).
+ * @param timeZone - The viewer's IANA zone (getViewerTimeZone).
+ * Never throws.
  */
-export function formatUtcTime(iso: string): string {
+export function formatFlightStart(iso: string, today: string, timeZone: string): string {
+  const clock = formatZonedClock(iso, timeZone);
+  if (clock === NO_TIME) return NO_TIME;
   try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '—';
-    const hh = String(d.getUTCHours()).padStart(2, '0');
-    const mm = String(d.getUTCMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
+    const day = dayInZone(new Date(iso), timeZone);
+    if (day === today) return clock;
+    if (day === addDays(today, -1)) return `Yesterday ${clock}`;
+    return `${formatInZone(iso, timeZone, { month: 'short', day: 'numeric' })} ${clock}`;
   } catch {
-    return '—';
+    return clock;
   }
 }
 

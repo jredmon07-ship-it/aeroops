@@ -37,7 +37,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DateNav } from './_components/date-nav';
 import { ReservationList } from './_components/reservation-list';
 import { MonthView } from './_components/month-view';
-import { ViewerTimeZoneSync } from './_components/viewer-time-zone-sync';
 import {
   listReservationsAction,
   listResourcesAction,
@@ -79,7 +78,10 @@ interface ScheduleContentProps {
   slug: string;
   /** The ?date= day, "YYYY-MM-DD". */
   dateStr: string;
-  /** The viewer's IANA zone: the day runs midnight to midnight there. */
+  /**
+   * The viewer's IANA zone: the day runs midnight to midnight there, and
+   * every clock time is read on it, on the server and in the browser alike.
+   */
   timeZone: string;
   canCreate: boolean;
   canManageResources: boolean;
@@ -122,6 +124,7 @@ async function ScheduleContent({
       canCreate={canCreate}
       canManageResources={canManageResources}
       dateStr={dateStr}
+      timeZone={timeZone}
       slug={slug}
       error={hasError}
     />
@@ -185,6 +188,7 @@ async function MonthContent({
       year={year}
       month={month}
       todayIso={todayIso}
+      timeZone={timeZone}
       reservations={reservations}
       resources={resources}
       memberNames={memberNames}
@@ -255,7 +259,6 @@ export default async function SchedulePage({
 
   return (
     <div className="space-y-4">
-      <ViewerTimeZoneSync serverTimeZone={timeZone} />
       {/* ── Page heading + primary action ────────────────────────────────── */}
       <PageHeader
         title="Schedule"

@@ -482,7 +482,19 @@ describe('summarizeAuditEntry — work order actions', () => {
 
   it('work_order.status_changed with newStatus', () => {
     const r = summarizeAuditEntry({ action: 'work_order.status_changed', entityType: 'work_order', metadata: { workOrderId: 'x', newStatus: 'in_progress' } });
-    expect(r).toBe('Work order status updated to in_progress');
+    // The enum key reads as words: never 'in_progress'.
+    expect(r).toBe('Work order status updated to in progress');
+  });
+
+  it('status summaries never print an enum key with an underscore', () => {
+    for (const [action, metadata] of [
+      ['work_order.status_changed', { newStatus: 'in_progress' }],
+      ['squawk.status_changed', { newStatus: 'some_new_state' }],
+      ['member.status_changed', { after: { status: 'on_leave' } }],
+      ['training.enrollment_status_changed', { to: 'on_hold' }],
+    ] as const) {
+      expect(summarizeAuditEntry({ action, entityType: 'x', metadata })).not.toContain('_');
+    }
   });
 
   it('work_order.completed', () => {
@@ -723,8 +735,55 @@ describe('activityEntityLabel', () => {
 // ─── UNIT TESTS — activityPath ────────────────────────────────────────────────
 
 describe('activityPath', () => {
-  it('reservation → /schedule/board', () => {
+  it('reservation without a start (e.g. a cancellation) → /schedule/board', () => {
     expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata: {} })).toBe('/schedule/board');
+    expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata: { reason: 'reschedule' } })).toBe('/schedule/board');
+  });
+
+  it('reservation.created → the board for its start day in the viewer\'s zone', () => {
+    // 19:00 CST on Nov 16 is 01:00 UTC on Nov 17.
+    const metadata = { resourceIds: [], startAt: '2026-11-17T01:00:00.000Z', endAt: '2026-11-17T02:00:00.000Z' };
+    expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata, timeZone: 'America/Chicago' }))
+      .toBe('/schedule/board?date=2026-11-16');
+    expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata, timeZone: 'Pacific/Auckland' }))
+      .toBe('/schedule/board?date=2026-11-17');
+  });
+
+  it('reservation.created without a zone → the UTC day (the default)', () => {
+    const metadata = { startAt: '2026-11-17T01:00:00.000Z' };
+    expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata })).toBe('/schedule/board?date=2026-11-17');
+    expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata, timeZone: 'Mars/Olympus_Mons' }))
+      .toBe('/schedule/board?date=2026-11-17');
+  });
+
+  it('reservation.rescheduled → the board for the new window\'s start', () => {
+    const metadata = {
+      rescheduledFrom: 'old-id',
+      oldWindow: { startAt: '2026-11-10T15:00:00.000Z', endAt: '2026-11-10T16:00:00.000Z' },
+      newWindow: { startAt: '2026-11-20T04:30:00.000Z', endAt: '2026-11-20T05:30:00.000Z' },
+    };
+    expect(activityPath({ entityType: 'reservation', entityId: 'new-id', metadata, timeZone: 'America/Chicago' }))
+      .toBe('/schedule/board?date=2026-11-19');
+  });
+
+  it('a start that is not an ISO instant links to today\'s board, never echoing the value', () => {
+    for (const startAt of ['tomorrow', '2026-11-17', '{"x":1}', '']) {
+      expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata: { startAt }, timeZone: 'America/Chicago' }))
+        .toBe('/schedule/board');
+    }
+  });
+
+  it('PROPERTY: a reservation path is the board, with at most a YYYY-MM-DD day', () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(fc.string(), fc.date({ min: new Date('1970-01-01'), max: new Date('9999-12-31'), noInvalidDate: true }).map((d) => d.toISOString())),
+        fc.constantFrom('UTC', 'America/Chicago', 'Pacific/Auckland', 'Asia/Kolkata', 'not/a-zone'),
+        (startAt, timeZone) => {
+          const path = activityPath({ entityType: 'reservation', entityId: null, metadata: { startAt }, timeZone });
+          expect(path).toMatch(/^\/schedule\/board(\?date=\d{4}-\d{2}-\d{2})?$/);
+        },
+      ),
+    );
   });
 
   it('reservation_series with entityId → /schedule/series/{id}', () => {

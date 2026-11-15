@@ -37,6 +37,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getEnrollmentDetailAction } from '../../actions';
 import { EnrollmentDetailClient } from '../../_components/enrollment-detail-client';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -64,12 +65,15 @@ interface EnrollmentDetailContentProps {
   enrollmentId: string;
   slug: string;
   canManage: boolean;
+  /** The viewer's zone (getViewerTimeZone) lesson and signing times read in. */
+  timeZone: string;
 }
 
 async function EnrollmentDetailContent({
   enrollmentId,
   slug,
   canManage,
+  timeZone,
 }: EnrollmentDetailContentProps) {
   const result = await getEnrollmentDetailAction({ enrollmentId });
 
@@ -95,7 +99,7 @@ async function EnrollmentDetailContent({
       >
         <Users className="h-10 w-10 text-slate-300" aria-hidden="true" />
         <p className="text-slate-700 dark:text-slate-300 font-medium">Enrollment not found.</p>
-        <p className="text-sm text-slate-400 dark:text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           It may have been removed or you may not have access.
         </p>
         <Button asChild variant="outline" size="sm">
@@ -113,6 +117,7 @@ async function EnrollmentDetailContent({
       enrollment={result.enrollment}
       slug={slug}
       canManage={canManage}
+      timeZone={timeZone}
     />
   );
 }
@@ -151,6 +156,7 @@ export default async function EnrollmentDetailPage({ params }: EnrollmentDetailP
   }
 
   const canManage = hasCapability(session, 'training:manage');
+  const timeZone = await getViewerTimeZone();
 
   return (
     <div className="space-y-4">
@@ -169,6 +175,7 @@ export default async function EnrollmentDetailPage({ params }: EnrollmentDetailP
           enrollmentId={enrollmentId}
           slug={slug}
           canManage={canManage}
+          timeZone={timeZone}
         />
       </Suspense>
     </div>

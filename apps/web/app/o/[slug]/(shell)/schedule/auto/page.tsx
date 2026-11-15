@@ -162,7 +162,7 @@ export default async function AutoSchedulerPage({ params }: AutoSchedulerPagePro
       <PageHeader
         title={
           <span className="flex items-center gap-3">
-            <Wand2 className="h-6 w-6 text-brand" aria-hidden="true" />
+            <Wand2 className="h-6 w-6 text-brand dark:text-blue-400" aria-hidden="true" />
             Auto-scheduler
           </span>
         }

@@ -21,6 +21,8 @@
 import { serializeDate } from '@/lib/serialize-date';
 
 import { actionAuth as auth } from '@/lib/action-auth';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { addDays, dayInZone } from '@/lib/schedule-day';
 import {
   createMaintenanceItem,
   updateMaintenanceItem,
@@ -217,7 +219,10 @@ export async function listMaintenanceDueAction(input?: {
 }): Promise<ListMaintenanceDueActionResult> {
   const session = await auth();
   try {
-    const items = await listMaintenanceDue(session, input ?? {});
+    const items = await listMaintenanceDue(session, {
+      ...(input?.resourceId !== undefined ? { resourceId: input.resourceId } : {}),
+      today: await viewerToday(),
+    });
     return { ok: true, items: items.map(serializeDueView) };
   } catch (err) {
     const authErr = mapAuthError(err);
@@ -239,7 +244,7 @@ export type GetMaintenanceDueSummaryActionResult =
 export async function getMaintenanceDueSummaryAction(): Promise<GetMaintenanceDueSummaryActionResult> {
   const session = await auth();
   try {
-    const summary = await getMaintenanceDueSummary(session);
+    const summary = await getMaintenanceDueSummary(session, { today: await viewerToday() });
     return { ok: true, summary };
   } catch (err) {
     const authErr = mapAuthError(err);
@@ -274,10 +279,13 @@ const COMMON_REMINDER_SEEDS: ReadonlyArray<
   { title: 'Pitot/Static Check', trackBy: 'date', intervalDays: 730, warnLeadDays: 60 },
 ];
 
-/** today + n days as 'YYYY-MM-DD' (UTC calendar math — no tz drift). */
-function isoDatePlusDays(days: number): string {
-  const d = new Date(Date.now() + days * 86_400_000);
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+/**
+ * The viewer's calendar day 'YYYY-MM-DD'. Date reminders are due against the
+ * day the viewer is on, not the server's UTC day (UTC on Vercel: at 19:00 CST
+ * the UTC date is already tomorrow). [VERIFY-P1.5-A]
+ */
+async function viewerToday(): Promise<string> {
+  return dayInZone(new Date(), await getViewerTimeZone());
 }
 
 export type SeedCommonRemindersActionResult =
@@ -308,6 +316,8 @@ export async function seedCommonRemindersAction(input: {
       return { error: 'validation', message: 'Aircraft not found.' };
     }
     const detail = detailResult.aircraft;
+    // Date items fall due the interval after the viewer's today (calendar math).
+    const today = await viewerToday();
     const meterBasis: 'hobbs' | 'tach' = detail.hasHobbs || !detail.hasTach ? 'hobbs' : 'tach';
     const currentMeter =
       (meterBasis === 'hobbs' ? detail.currentHobbs : detail.currentTach) ?? 0;
@@ -327,14 +337,14 @@ export async function seedCommonRemindersAction(input: {
           resourceId: input.resourceId,
           title: seed.title,
           trackBy: 'date',
-          dueDate: isoDatePlusDays(seed.intervalDays),
+          dueDate: addDays(today, seed.intervalDays),
           warnLeadDays: seed.warnLeadDays,
         });
       }
     }
 
     // Return the freshly evaluated due views so the list updates in place.
-    const items = await listMaintenanceDue(session, { resourceId: input.resourceId });
+    const items = await listMaintenanceDue(session, { resourceId: input.resourceId, today });
     return { ok: true, items: items.map(serializeDueView) };
   } catch (err) {
     const authErr = mapAuthError(err);

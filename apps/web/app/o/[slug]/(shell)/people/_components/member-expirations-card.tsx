@@ -210,12 +210,12 @@ export function MemberExpirationsCard({ memberUserId, canManage }: MemberExpirat
   return (
     <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <CalendarClock className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <CalendarClock className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Expirations</h2>
       </div>
 
       {/* [VERIFY-FC-P2-A] — verbatim disclaimer. */}
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Operator-entered reminder dates. Not a medical/currency/legal determination —
         verifying actual validity remains the operator&apos;s and pilot&apos;s
         responsibility.
@@ -232,14 +232,14 @@ export function MemberExpirationsCard({ memberUserId, canManage }: MemberExpirat
 
       {/* ── Load error ───────────────────────────────────────────────────────── */}
       {loadError && (
-        <p className="text-sm text-slate-400 dark:text-slate-500 italic">Could not load expirations.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 italic">Could not load expirations.</p>
       )}
 
       {/* ── List ─────────────────────────────────────────────────────────────── */}
       {expirations !== null && !loadError && (
         <>
           {expirations.length === 0 ? (
-            <p className="text-sm text-slate-400 dark:text-slate-500 italic">
+            <p className="text-sm text-slate-500 dark:text-slate-400 italic">
               No expiration reminders on file for this member.
             </p>
           ) : (

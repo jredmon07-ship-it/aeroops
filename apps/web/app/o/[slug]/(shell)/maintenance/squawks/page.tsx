@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { listResourcesAction } from '../../schedule/actions';
 import { listSquawksAction } from '../actions';
 import { SquawkList, SquawkListSkeleton } from './_components/squawk-list';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 // ─── Inner async component ────────────────────────────────────────────────────
 
@@ -35,13 +36,15 @@ interface SquawksContentProps {
   slug: string;
   canSquawk: boolean;
   canGround: boolean;
+  /** The viewer's zone (getViewerTimeZone) the reported times read in. */
+  timeZone: string;
 }
 
-async function SquawksContent({ slug, canSquawk, canGround }: SquawksContentProps) {
+async function SquawksContent({ slug, canSquawk, canGround, timeZone }: SquawksContentProps) {
   // Parallel fetch: squawks + aircraft resources
   const [squawksResult, resourcesResult] = await Promise.all([
     listSquawksAction({ limit: 200 }),
-    listResourcesAction({}),
+    listResourcesAction({ includeInactive: true }),
   ]);
 
   if (!('ok' in squawksResult) || !squawksResult.ok) {
@@ -59,10 +62,13 @@ async function SquawksContent({ slug, canSquawk, canGround }: SquawksContentProp
   }
 
   const squawks = squawksResult.squawks;
+  // Inactive aircraft too, so a row on a since-deactivated aircraft is named
+  // by its tail # (the list fell back to printing the resource id). The
+  // create/report dialogs get the active ones only.
   const aircraft = (resourcesResult && 'ok' in resourcesResult && resourcesResult.ok
     ? resourcesResult.resources
     : []
-  ).filter((r) => r.kind === 'aircraft' && r.active);
+  ).filter((r) => r.kind === 'aircraft');
 
   return (
     <SquawkList
@@ -70,6 +76,7 @@ async function SquawksContent({ slug, canSquawk, canGround }: SquawksContentProp
       aircraft={aircraft}
       canSquawk={canSquawk}
       canGround={canGround}
+      timeZone={timeZone}
     />
   );
 }
@@ -114,10 +121,11 @@ export default async function SquawksPage({ params }: SquawksPageProps) {
   // ── Capability checks (UI-only; gate enforced server-side in actions) ───────
   const canSquawk = hasCapability(session, 'maintenance:squawk');
   const canGround = hasCapability(session, 'maintenance:ground');
+  const timeZone = await getViewerTimeZone();
 
   return (
     <Suspense fallback={<SquawkListSkeleton />}>
-      <SquawksContent slug={slug} canSquawk={canSquawk} canGround={canGround} />
+      <SquawksContent slug={slug} canSquawk={canSquawk} canGround={canGround} timeZone={timeZone} />
     </Suspense>
   );
 }

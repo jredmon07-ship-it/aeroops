@@ -68,7 +68,7 @@ function TagChips({ tagChips, tagCount }: { tagChips: MemberTagChipView[]; tagCo
         </span>
       ))}
       {overflow > 0 && (
-        <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-medium text-slate-400 dark:text-slate-500">
+        <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-medium text-slate-500 dark:text-slate-400">
           +{overflow}
         </span>
       )}
@@ -153,7 +153,7 @@ export function MembersTable({ members, slug }: MembersTableProps) {
                   />
                   <Link
                     href={`/o/${slug}/people/${member.userId}`}
-                    className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand hover:underline underline-offset-2 transition-colors"
+                    className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 hover:underline underline-offset-2 transition-colors"
                   >
                     {member.displayName}
                   </Link>
@@ -172,7 +172,7 @@ export function MembersTable({ members, slug }: MembersTableProps) {
                 <TagChips tagChips={member.tagChips} tagCount={member.tagCount} />
               </td>
               <td className="px-4 py-3 text-slate-600 dark:text-slate-300 hidden xl:table-cell">
-                {member.phone ?? <span className="text-slate-300">—</span>}
+                {member.phone ?? <span className="text-slate-500 dark:text-slate-400">—</span>}
               </td>
             </tr>
           ))}

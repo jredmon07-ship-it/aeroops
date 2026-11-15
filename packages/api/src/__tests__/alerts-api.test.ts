@@ -22,6 +22,8 @@
  *   N12      — sort at ASC
  *   N13      — authz: null session → UnauthenticatedError
  *   N14      — deterministic under injected `now` (boundary exactly now+24h)
+ *   TZ       — the upcoming-flight link is the start day in the viewer's zone
+ *              (19:00 CST → that day, not the next UTC day); default UTC
  *   UNIT     — alertId: determinism + exact format
  *
  * NO property tests (no engine logic per spec).
@@ -50,6 +52,7 @@ import { groundAircraftWithDb, unGroundAircraftWithDb } from '../maintenance/gro
 
 import { getMyAlertsWithDb } from '../notifications/get-my-alerts.js';
 import { alertId } from '../notifications/internal.js';
+import { calendarDayInZone } from '../scheduling/internal.js';
 
 import { UnauthenticatedError } from '../auth/session.js';
 import type { AppSession } from '../auth/types.js';
@@ -858,5 +861,42 @@ describe('aircraft_grounded: blank reason → "No reason given" in detail', () =
     } finally {
       await unGroundAircraftWithDb(db, ownerSess, { resourceId: aircraft1Id });
     }
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// TZ — "Upcoming flight" links to the flight's day in the viewer's zone
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('TZ — the upcoming-flight link is the start day in the viewer\'s zone', () => {
+  it('calendarDayInZone: 2026-11-17T01:00Z is Nov 16 in Chicago, Nov 17 in UTC', () => {
+    // The live bug: a 19:00 CST flight linked to the next day's schedule.
+    const start = new Date('2026-11-17T01:00:00Z');
+    expect(calendarDayInZone(start, 'America/Chicago')).toBe('2026-11-16');
+    expect(calendarDayInZone(start, 'UTC')).toBe('2026-11-17');
+    // A zone this runtime does not know falls back to UTC.
+    expect(calendarDayInZone(start, 'Mars/Olympus_Mons')).toBe('2026-11-17');
+  });
+
+  it('a 19:00 CST flight links to that day with timeZone; the default stays the UTC day', async () => {
+    const { db, orgAId } = env;
+    // Same wall-clock shape as the live bug (19:00 CST = 01:00 UTC next day),
+    // a year out so the reservation is still upcoming whenever this runs.
+    const memberDId = await seedMember(db, orgAId, 'memberD@alpha.example', 'renter');
+    const start = new Date('2027-11-17T01:00:00Z');
+    const { reservationId } = await seedReservation(
+      db, orgAId, memberDId, 'ND001', start, new Date('2027-11-17T02:00:00Z'),
+    );
+    const sess = makeSession(orgAId, memberDId, 'renter');
+    const now = new Date('2027-11-16T12:00:00Z'); // within 24h of the start
+    const upcomingPath = async (timeZone?: string) => {
+      const result = await getMyAlertsWithDb(db, sess, now, timeZone);
+      return result.alerts.find((a) => a.id === alertId('reservation', [reservationId, 'upcoming']))?.path;
+    };
+
+    expect(await upcomingPath('America/Chicago')).toBe('/schedule?date=2027-11-16');
+    expect(await upcomingPath()).toBe('/schedule?date=2027-11-17');
+    expect(await upcomingPath('UTC')).toBe('/schedule?date=2027-11-17');
+    expect(await upcomingPath('Mars/Olympus_Mons')).toBe('/schedule?date=2027-11-17');
   });
 });

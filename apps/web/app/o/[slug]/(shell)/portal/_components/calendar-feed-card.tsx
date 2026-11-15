@@ -152,7 +152,7 @@ export function CalendarFeedCard() {
       aria-label="Calendar feed"
     >
       <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3 flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <Calendar className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Calendar feed</h2>
       </div>
 

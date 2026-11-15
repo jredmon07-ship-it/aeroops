@@ -184,7 +184,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Dispatch gate settings</DialogTitle>
           </DialogHeader>
@@ -195,7 +195,7 @@ export function GateSettingsDialog({ canManageRequirements }: GateSettingsDialog
               aria-busy="true"
               aria-label="Loading gate settings"
             >
-              <Loader2 className="h-6 w-6 animate-spin text-slate-400 dark:text-slate-500" aria-hidden="true" />
+              <Loader2 className="h-6 w-6 animate-spin text-slate-500 dark:text-slate-400" aria-hidden="true" />
             </div>
           )}
 

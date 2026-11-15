@@ -26,8 +26,8 @@ export function ThemeToggle() {
 
   const buttonClass = cn(
     'flex h-8 w-8 items-center justify-center rounded-md',
-    'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800',
-    'dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800',
+    'text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800',
+    'dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800',
     'transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900',
   );

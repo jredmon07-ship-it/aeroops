@@ -83,7 +83,7 @@ function EnrollmentStatusChip({ status }: { status: string }) {
       </span>
     );
   }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
+  return <span className="text-xs text-slate-500 dark:text-slate-400">{status}</span>;
 }
 
 // ─── Progress bar ──────────────────────────────────────────────────────────────
@@ -190,6 +190,15 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
     setDialogError(null);
     if (!validate()) return;
 
+    // The datetime-local value is a wall-clock time in the browser's (the
+    // viewer's) zone with no offset; the API takes an ISO instant, and
+    // rejected the raw value. The browser reads it as local time.
+    const completedAtMs = completedAt ? new Date(completedAt).getTime() : null;
+    if (completedAtMs !== null && Number.isNaN(completedAtMs)) {
+      setDialogError('Enter a valid completion date and time, or leave it empty for now.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const result = await recordLessonAction({
@@ -198,7 +207,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
         instructorUserId,
         gradeLabel: gradeLabel.trim() || undefined,
         notes: notes.trim() || undefined,
-        completedAt: completedAt || undefined,
+        completedAt: completedAtMs !== null ? new Date(completedAtMs).toISOString() : undefined,
         // Slice P2-SC1: only sent for stage-check lessons; instructor-stated.
         stageCheckPassed:
           selectedIsStageCheck && stageCheckOutcome !== ''
@@ -266,7 +275,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Record lesson completion</DialogTitle>
           </DialogHeader>
@@ -342,7 +351,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                     Fail
                   </label>
                 </div>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Instructor-stated outcome for your course structure — not a computed
                   ACS/Part-61/141 verdict. Only a Pass unlocks later lessons when
                   enforcement is on.
@@ -357,7 +366,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 Instructor <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               {loadingMembers ? (
-                <div className="flex items-center gap-2 h-10 px-3 text-sm text-slate-400 dark:text-slate-500">
+                <div className="flex items-center gap-2 h-10 px-3 text-sm text-slate-500 dark:text-slate-400">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Loading members…
                 </div>
@@ -388,7 +397,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                   {fieldErrors.instructorUserId}
                 </p>
               )}
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Data entry only — not a regulatory sign-off or e-signature.
               </p>
             </div>
@@ -415,7 +424,7 @@ function RecordLessonDialog({ enrollmentId, lessonProgress, onSuccess }: RecordL
                 placeholder="e.g. Satisfactory, Needs review…"
                 disabled={isSubmitting}
               />
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Free-text operator label — not a computed ACS/Part-61/141 verdict.
               </p>
             </div>
@@ -530,14 +539,14 @@ function VoidRecordDialog({ record, onSuccess }: VoidRecordDialogProps) {
         variant="ghost"
         size="sm"
         onClick={() => setOpen(true)}
-        className="text-slate-400 dark:text-slate-500 hover:text-danger hover:bg-danger/5 text-xs"
+        className="text-slate-500 dark:text-slate-400 hover:text-danger hover:bg-danger/5 text-xs"
         aria-label="Void this record"
       >
         Void
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Void lesson record</DialogTitle>
           </DialogHeader>
@@ -711,7 +720,7 @@ function SignLessonDialog({ lessonRecordId, onSuccess }: SignLessonDialogProps) 
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Sign lesson record</DialogTitle>
           </DialogHeader>
@@ -855,14 +864,14 @@ function VoidSignatureDialog({ signatureId, onSuccess }: VoidSignatureDialogProp
         variant="ghost"
         size="sm"
         onClick={() => setOpen(true)}
-        className="text-slate-400 dark:text-slate-500 hover:text-danger hover:bg-danger/5 text-xs"
+        className="text-slate-500 dark:text-slate-400 hover:text-danger hover:bg-danger/5 text-xs"
         aria-label="Void this signature"
       >
         Void signature
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Void signature</DialogTitle>
           </DialogHeader>
@@ -925,6 +934,8 @@ function VoidSignatureDialog({ signatureId, onSuccess }: VoidSignatureDialogProp
 interface SignaturePanelProps {
   lessonRecordId: string;
   canManage: boolean;
+  /** The viewer's zone (getViewerTimeZone) signing times read in. */
+  timeZone: string;
 }
 
 /**
@@ -935,7 +946,7 @@ interface SignaturePanelProps {
  * details + Void action) / voided (struck-through + Voided chip + Sign
  * button reappears since re-signing is allowed).
  */
-function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
+function SignaturePanel({ lessonRecordId, canManage, timeZone }: SignaturePanelProps) {
   const [signatures, setSignatures] = React.useState<SerializedLessonSignatureView[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [showSpinner, setShowSpinner] = React.useState(false);
@@ -987,7 +998,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
 
   if (signatures === null) {
     return showSpinner ? (
-      <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
+      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
         Loading…
       </span>
@@ -1016,11 +1027,11 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
               <VoidSignatureDialog signatureId={active.id} onSuccess={setSignatures} />
             )}
           </div>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            {active.signerName} ({active.roleAtSigning}) · {formatDateTime(active.signedAt)}
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {active.signerName} ({active.roleAtSigning}) · {formatDateTime(active.signedAt, timeZone)}
           </p>
           <p
-            className="nums text-[0.6875rem] text-slate-300 truncate max-w-[220px]"
+            className="nums text-[0.6875rem] text-slate-500 dark:text-slate-400 truncate max-w-[220px]"
             title="Tamper-evidence digest — not an FAA signature. [VERIFY-P2-A]"
           >
             {active.contentHash.slice(0, 16)}…
@@ -1031,7 +1042,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
       {!active && voidedOriginal && (
         <div className="space-y-0.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="line-through text-xs text-slate-400 dark:text-slate-500">
+            <span className="line-through text-xs text-slate-500 dark:text-slate-400">
               {voidedOriginal.signerName} ({voidedOriginal.roleAtSigning})
             </span>
             <span className="inline-flex items-center rounded-sm border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700 dark:text-red-300">
@@ -1039,8 +1050,8 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
             </span>
           </div>
           {tombstone && (
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              by {tombstone.signerName} · {formatDateTime(tombstone.signedAt)} — {tombstone.attestationText}
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              by {tombstone.signerName} · {formatDateTime(tombstone.signedAt, timeZone)} — {tombstone.attestationText}
             </p>
           )}
           {canManage && (
@@ -1051,7 +1062,7 @@ function SignaturePanel({ lessonRecordId, canManage }: SignaturePanelProps) {
 
       {!active && !voidedOriginal && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-slate-400 dark:text-slate-500 italic">Not signed.</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 italic">Not signed.</span>
           {canManage && (
             <SignLessonDialog lessonRecordId={lessonRecordId} onSuccess={setSignatures} />
           )}
@@ -1210,12 +1221,18 @@ interface EnrollmentDetailClientProps {
   enrollment: SerializedEnrollmentDetail;
   slug: string;
   canManage: boolean;
+  /**
+   * The viewer's zone, resolved by the page (getViewerTimeZone). Times format
+   * in it on the server and in the browser alike, so hydration matches.
+   */
+  timeZone: string;
 }
 
 export function EnrollmentDetailClient({
   enrollment: initialEnrollment,
   slug,
   canManage,
+  timeZone,
 }: EnrollmentDetailClientProps) {
   const [enrollment, setEnrollment] = React.useState(initialEnrollment);
 
@@ -1230,7 +1247,7 @@ export function EnrollmentDetailClient({
             Enrollment for{' '}
             <a
               href={`/o/${slug}/training/${enrollment.courseId}`}
-              className="text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
+              className="text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
             >
               {enrollment.courseTitle}
             </a>
@@ -1264,7 +1281,7 @@ export function EnrollmentDetailClient({
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Operator progress
-            <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
+            <span className="ml-1.5 text-xs font-normal text-slate-500 dark:text-slate-400">
               (content coverage — not a regulatory completion)
             </span>
           </h2>
@@ -1274,7 +1291,7 @@ export function EnrollmentDetailClient({
         </div>
         <ProgressBar percent={pr.percent} />
         <p
-          className="text-xs text-slate-400 dark:text-slate-500"
+          className="text-xs text-slate-500 dark:text-slate-400"
           aria-label={`${pr.completed} of ${pr.total} lessons covered`}
         >
           {pr.completed} of {pr.total} lesson{pr.total !== 1 ? 's' : ''} with a recorded completion.
@@ -1285,7 +1302,7 @@ export function EnrollmentDetailClient({
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Lessons
-          <span className="ml-1.5 nums text-slate-400 dark:text-slate-500 font-normal">
+          <span className="ml-1.5 nums text-slate-500 dark:text-slate-400 font-normal">
             ({enrollment.lessonProgress.length})
           </span>
         </h2>
@@ -1297,7 +1314,7 @@ export function EnrollmentDetailClient({
           >
             <BookOpen className="h-7 w-7 text-slate-300 mb-2" aria-hidden="true" />
             <p className="text-sm text-slate-500 dark:text-slate-400">This course has no lessons yet.</p>
-            <p className="nums text-xs text-slate-400 dark:text-slate-500 mt-0.5">0 / 0 — 0%</p>
+            <p className="nums text-xs text-slate-500 dark:text-slate-400 mt-0.5">0 / 0 — 0%</p>
           </div>
         ) : (
           <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
@@ -1356,10 +1373,10 @@ export function EnrollmentDetailClient({
                             )[0];
                           if (!rec) return null;
                           return (
-                            <div className="text-xs text-slate-400 dark:text-slate-500 space-x-2">
+                            <div className="text-xs text-slate-500 dark:text-slate-400 space-x-2">
                               <span>by {rec.instructorName}</span>
                               <span>·</span>
-                              <span>{formatDate(rec.completedAt)}</span>
+                              <span>{formatDate(rec.completedAt, timeZone)}</span>
                               {/* [VERIFY-T1-A]: grade_label = FREE-TEXT */}
                               {rec.gradeLabel && (
                                 <>
@@ -1385,17 +1402,17 @@ export function EnrollmentDetailClient({
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Record log
-          <span className="ml-1.5 nums text-slate-400 dark:text-slate-500 font-normal">
+          <span className="ml-1.5 nums text-slate-500 dark:text-slate-400 font-normal">
             ({enrollment.records.length})
           </span>
         </h2>
         {/* [VERIFY-T1-C]: the persisted log makes the same disclaimer the entry
             form does — the instructor column is attribution, not an endorsement. */}
-        <p className="text-xs text-slate-400 dark:text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Instructor-recorded data entry — not a regulatory sign-off or e-signature.
         </p>
         {/* [VERIFY-P2-A]: condensed disclaimer; full text shown in the Sign dialog. */}
-        <p className="text-xs text-slate-400 dark:text-slate-500">{ESIGN_DISCLAIMER_SHORT}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{ESIGN_DISCLAIMER_SHORT}</p>
 
         {enrollment.records.length === 0 ? (
           <EmptyState icon={ClipboardList} title="No records yet." className="py-6" />
@@ -1442,28 +1459,28 @@ export function EnrollmentDetailClient({
                       className={`border-b border-slate-100 dark:border-slate-800 last:border-0 ${isVoided ? 'opacity-50' : ''}`}
                     >
                       <td className="px-4 py-3">
-                        <span className={isVoided ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'}>
+                        <span className={isVoided ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}>
                           {lesson ? `${lesson.position + 1}. ${lesson.title}` : 'Unknown lesson'}
                         </span>
                         {isVoided && (
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             Voided: {record.voidedReason ?? '—'}
                           </p>
                         )}
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className={isVoided ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}>
+                        <span className={isVoided ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-600 dark:text-slate-300'}>
                           {record.instructorName}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <span className={`nums text-xs ${isVoided ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}`}>
-                          {formatDateTime(record.completedAt)}
+                        <span className={`nums text-xs ${isVoided ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                          {formatDateTime(record.completedAt, timeZone)}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         {/* [VERIFY-T1-A]: grade_label = FREE-TEXT only */}
-                        <span className={`italic text-xs ${isVoided ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                        <span className={`italic text-xs ${isVoided ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-500 dark:text-slate-400'}`}>
                           {record.gradeLabel ?? '—'}
                         </span>
                       </td>
@@ -1494,7 +1511,7 @@ export function EnrollmentDetailClient({
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <SignaturePanel lessonRecordId={record.id} canManage={canManage} />
+                        <SignaturePanel lessonRecordId={record.id} canManage={canManage} timeZone={timeZone} />
                       </td>
                       {canManage && (
                         <td className="px-4 py-3 text-right">

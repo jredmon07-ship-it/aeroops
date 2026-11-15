@@ -30,7 +30,6 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateNav } from '../_components/date-nav';
-import { ViewerTimeZoneSync } from '../_components/viewer-time-zone-sync';
 import { DispatchBoard } from './_components/dispatch-board';
 import { GateSettingsDialog } from './_components/gate-settings-dialog';
 import {
@@ -92,8 +91,9 @@ async function BoardContent({
   canMaintenanceAccess,
   canGround,
 }: BoardContentProps) {
-  // The day's window in the viewer's zone. Its start is also the board
-  // track's 00:00, so the server and the browser place blocks identically.
+  // The day's window in the viewer's zone. Its ends are also the board
+  // track's ends (23, 24 or 25 h apart), so the server and the browser place
+  // blocks identically, DST days included.
   const dayWin = dayWindow(dateStr, timeZone);
 
   // Parallel fetch — same pattern as schedule/page.tsx.
@@ -178,7 +178,7 @@ async function BoardContent({
           {canManageResources && (
             <Link
               href={`/o/${slug}/schedule/resources`}
-              className="underline text-brand hover:text-brand-ink dark:hover:text-blue-200"
+              className="underline text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200"
             >
               Manage resources
             </Link>
@@ -201,7 +201,7 @@ async function BoardContent({
         </div>
         {/* Overlay */}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <CalendarX className="h-8 w-8 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <CalendarX className="h-8 w-8 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
             No reservations on this date.
           </p>
@@ -230,6 +230,8 @@ async function BoardContent({
       resources={resources}
       day={dateStr}
       dayStartMs={dayWin.from.getTime()}
+      dayEndMs={dayWin.to.getTime()}
+      timeZone={timeZone}
       canDrag={canDrag}
       canDispatch={canDispatch}
       initialDispatchTickets={[...dispatchTickets.entries()]}
@@ -294,7 +296,6 @@ export default async function BoardPage({
 
   return (
     <div className="space-y-4">
-      <ViewerTimeZoneSync serverTimeZone={timeZone} />
       {/* ── Header row ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Dispatch Board</h1>

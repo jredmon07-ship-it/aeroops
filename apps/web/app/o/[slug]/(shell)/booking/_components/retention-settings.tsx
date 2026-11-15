@@ -244,7 +244,7 @@ function RetentionSettingsCardInner({ slug }: { slug: string }) {
     >
       {/* ── Card header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2">
-        <Clock className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
+        <Clock className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Booking request retention</h2>
       </div>
 
@@ -407,7 +407,7 @@ function EditView({
       <div className="space-y-1">
         <Label htmlFor="retention-days" className="text-sm font-medium text-slate-700 dark:text-slate-300">
           Retention window (days)
-          <span className="ml-1 text-slate-400 dark:text-slate-500 font-normal">(0 = keep forever)</span>
+          <span className="ml-1 text-slate-500 dark:text-slate-400 font-normal">(0 = keep forever)</span>
         </Label>
         <Input
           id="retention-days"

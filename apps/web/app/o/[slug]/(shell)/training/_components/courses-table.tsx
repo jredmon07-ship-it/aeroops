@@ -32,7 +32,7 @@ function CourseStatusChip({ status }: { status: string }) {
       </span>
     );
   }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
+  return <span className="text-xs text-slate-500 dark:text-slate-400">{status}</span>;
 }
 
 export function CoursesTable({ courses, slug }: CoursesTableProps) {
@@ -61,12 +61,12 @@ export function CoursesTable({ courses, slug }: CoursesTableProps) {
               <td className="px-4 py-3">
                 <Link
                   href={`/o/${slug}/training/${course.courseId}`}
-                  className="font-medium text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
+                  className="font-medium text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
                 >
                   {course.title}
                 </Link>
                 {course.description && (
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 line-clamp-1">{course.description}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{course.description}</p>
                 )}
               </td>
               <td className="px-4 py-3">

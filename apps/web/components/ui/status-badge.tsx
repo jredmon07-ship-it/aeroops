@@ -23,10 +23,15 @@ const statusBadgeVariants = cva(
   {
     variants: {
       variant: {
-        success: 'border-success/25 bg-success/10 text-success',
-        warning: 'border-warning/30 bg-warning/10 text-warning',
-        info: 'border-info/25 bg-info/10 text-info',
-        danger: 'border-danger/30 bg-danger/10 text-danger',
+        // Light mode reads one step darker than the token: each token on its
+        // own 10% tint measured under AA at this 10px size (success 4.49,
+        // warning 4.41, danger 4.12). Dark keeps the brightened tokens, except
+        // danger: on a slate-800 row (table hover) its tint was 3.8:1, red-400
+        // is 4.8:1 there.
+        success: 'border-success/25 bg-success/10 text-green-800 dark:text-success',
+        warning: 'border-warning/30 bg-warning/10 text-amber-800 dark:text-warning',
+        info: 'border-info/25 bg-info/10 text-sky-800 dark:text-info',
+        danger: 'border-danger/30 bg-danger/10 text-red-700 dark:text-red-400',
         neutral: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
       },
       size: {

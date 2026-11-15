@@ -6,6 +6,8 @@
  * Exported for use by BookingInbox (client component) and tests.
  */
 
+import { NO_TIME, formatInZone, formatZonedDate } from '@/lib/zoned-format';
+
 // ─── Status domain ────────────────────────────────────────────────────────────
 
 export type BookingRequestStatus = 'new' | 'contacted' | 'converted' | 'declined';
@@ -96,61 +98,47 @@ export function isTerminalStatus(status: BookingRequestStatus | string): boolean
 
 // ─── formatRequestedDate ──────────────────────────────────────────────────────
 
+/** "10:00 AM" */
+const CLOCK_12H: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
+
 /**
  * formatRequestedDate — formats a requested start (+ optional end) into a
- * human-readable string for the triage inbox.
+ * human-readable string for the triage inbox, in the viewer's zone.
  *
- * Examples:
+ * Examples (timeZone 'UTC'):
  *   start only  → "Jun 25, 2026 at 10:00 AM"
  *   with end    → "Jun 25, 2026 at 10:00 AM – 12:00 PM"
  *                  (end date omitted when same calendar day)
  *   invalid ISO → "—"
  *
+ * The inbox renders on the server first, so the zone is passed in (the one
+ * the page resolved with getViewerTimeZone) rather than read from the
+ * runtime: UTC on the server, the viewer's in the browser, would not hydrate.
+ *
  * @param startIso - ISO 8601 string for requested_start.
  * @param endIso   - ISO 8601 string for requested_end (nullable).
+ * @param timeZone - IANA zone the date and times read in.
  * @returns        - Formatted string.
  */
 export function formatRequestedDate(
   startIso: string,
   endIso: string | null,
+  timeZone: string,
 ): string {
-  try {
-    const start = new Date(startIso);
-    if (isNaN(start.getTime())) return '—';
+  const datePart = formatZonedDate(startIso, timeZone);
+  if (datePart === NO_TIME) return NO_TIME;
+  const timePart = formatInZone(startIso, timeZone, CLOCK_12H);
 
-    const datePart = start.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-    const timePart = start.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+  if (!endIso) return `${datePart} at ${timePart}`;
 
-    if (!endIso) return `${datePart} at ${timePart}`;
+  const endDatePart = formatZonedDate(endIso, timeZone);
+  if (endDatePart === NO_TIME) return `${datePart} at ${timePart}`;
+  const endTimePart = formatInZone(endIso, timeZone, CLOCK_12H);
 
-    const end = new Date(endIso);
-    if (isNaN(end.getTime())) return `${datePart} at ${timePart}`;
-
-    const endTimePart = end.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-
-    // If end is a different calendar date, include the full end date.
-    const endDatePart = end.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-
-    if (endDatePart !== datePart) {
-      return `${datePart} at ${timePart} – ${endDatePart} at ${endTimePart}`;
-    }
-
-    return `${datePart} at ${timePart} – ${endTimePart}`;
-  } catch {
-    return '—';
+  // If end is a different calendar date, include the full end date.
+  if (endDatePart !== datePart) {
+    return `${datePart} at ${timePart} – ${endDatePart} at ${endTimePart}`;
   }
+
+  return `${datePart} at ${timePart} – ${endTimePart}`;
 }

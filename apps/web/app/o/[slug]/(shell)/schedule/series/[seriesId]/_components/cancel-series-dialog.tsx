@@ -109,7 +109,7 @@ export function CancelSeriesDialog({
         </AlertDialogHeader>
         <div className="space-y-1.5">
           <label htmlFor="cancel-series-reason" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Reason <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
+            Reason <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span>
           </label>
           <Textarea
             id="cancel-series-reason"

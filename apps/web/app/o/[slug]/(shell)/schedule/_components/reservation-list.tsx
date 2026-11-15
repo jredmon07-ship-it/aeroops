@@ -25,6 +25,8 @@ interface ReservationListProps {
   canManageResources: boolean;
   /** Date in YYYY-MM-DD format for the + New Reservation link */
   dateStr: string;
+  /** The viewer's IANA zone the page resolved; the cards' times read its clock. */
+  timeZone: string;
   slug: string;
   error?: boolean;
 }
@@ -35,6 +37,7 @@ export function ReservationList({
   canCreate,
   canManageResources,
   dateStr,
+  timeZone,
   slug,
   error,
 }: ReservationListProps) {
@@ -118,7 +121,7 @@ export function ReservationList({
               Book one with{' '}
               <Link
                 href={`/o/${slug}/schedule/new?date=${dateStr}`}
-                className="text-brand underline hover:no-underline"
+                className="text-brand dark:text-blue-400 underline hover:no-underline"
               >
                 + New Reservation
               </Link>{' '}
@@ -129,7 +132,7 @@ export function ReservationList({
             <p className="text-sm text-slate-500 dark:text-slate-400">
               <Link
                 href={`/o/${slug}/schedule/resources`}
-                className="text-brand underline hover:no-underline"
+                className="text-brand dark:text-blue-400 underline hover:no-underline"
               >
                 Add a resource
               </Link>{' '}
@@ -144,6 +147,7 @@ export function ReservationList({
               <ReservationCard
                 key={r.id}
                 reservation={r}
+                timeZone={timeZone}
                 resourceMap={resourceMap}
                 canCancel={canCreate}
                 onCancelled={handleCancelled}

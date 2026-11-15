@@ -41,6 +41,8 @@ import { BookingStatusBadge } from './booking-status-badge';
 import { isTerminalStatus, formatRequestedDate } from './booking-utils';
 import { ConvertDialog, ConvertActionButton } from './convert-dialog';
 import { formatRelativeTime } from '@/lib/activity-utils';
+import { dayInZone } from '@/lib/schedule-day';
+import { formatZonedClock } from '@/lib/zoned-format';
 import {
   listBookingRequestsAction,
   updateBookingRequestStatusAction,
@@ -70,6 +72,26 @@ interface BookingInboxProps {
    * the button will receive a Forbidden from the server action.
    */
   canConvert?: boolean;
+  /**
+   * The viewer's zone, resolved by the page (getViewerTimeZone). Requested
+   * dates and schedule links use it on the server and in the browser alike,
+   * so hydration matches and links open the day the row shows.
+   */
+  timeZone: string;
+}
+
+/**
+ * The schedule for the day `iso` falls on in `timeZone` — the day the
+ * schedule page shows for ?date= — or today's schedule when unreadable.
+ */
+function scheduleDayHref(slug: string, iso: string | null | undefined, timeZone: string): string {
+  const at = iso ? new Date(iso) : null;
+  if (!at || Number.isNaN(at.getTime())) return `/o/${slug}/schedule`;
+  try {
+    return `/o/${slug}/schedule?date=${dayInZone(at, timeZone)}`;
+  } catch {
+    return `/o/${slug}/schedule`;
+  }
 }
 
 // ─── Status tab config ────────────────────────────────────────────────────────
@@ -134,25 +156,19 @@ function InlineErrorMessage({ reason }: { reason: 'not_found' | 'invalid_transit
 function ConvertSuccessBanner({
   notice,
   slug,
+  timeZone,
   onDismiss,
 }: {
   notice: ConvertSuccessNotice;
   slug: string;
+  timeZone: string;
   onDismiss: () => void;
 }) {
-  // Build the schedule day link from the reservation's startAt.
-  const scheduleDayLink = React.useMemo(() => {
-    try {
-      const d = new Date(notice.reservationStartAt);
-      if (!isNaN(d.getTime())) {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `/o/${slug}/schedule?date=${yyyy}-${mm}-${dd}`;
-      }
-    } catch { /* ignore */ }
-    return `/o/${slug}/schedule`;
-  }, [notice.reservationStartAt, slug]);
+  // The schedule for the reservation's start day in the viewer's zone.
+  const scheduleDayLink = React.useMemo(
+    () => scheduleDayHref(slug, notice.reservationStartAt, timeZone),
+    [notice.reservationStartAt, slug, timeZone],
+  );
 
   const hasWarnings =
     (notice.warnings.groundingWarnings?.length ?? 0) > 0 ||
@@ -173,9 +189,7 @@ function ConvertSuccessBanner({
               </li>
             ))}
             {(notice.warnings.twilightWarnings ?? []).map((w, i) => {
-              const time = new Intl.DateTimeFormat(undefined, {
-                hour: '2-digit', minute: '2-digit', hour12: false,
-              }).format(new Date(w.boundaryUtcMs));
+              const time = formatZonedClock(w.boundaryUtcMs, timeZone);
               const copy =
                 w.reason === 'ends_after_civil_dusk'
                   ? `Note: reservation ends after civil dusk (${time}).`
@@ -212,7 +226,7 @@ function ConvertSuccessBanner({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function BookingInbox({ initial, slug, canConvert = false }: BookingInboxProps) {
+export function BookingInbox({ initial, slug, canConvert = false, timeZone }: BookingInboxProps) {
   // Active status tab
   const [activeStatus, setActiveStatus] = React.useState<ActiveStatus>('new');
 
@@ -414,6 +428,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
         <ConvertSuccessBanner
           notice={convertSuccessNotice}
           slug={slug}
+          timeZone={timeZone}
           onDismiss={() => setConvertSuccessNotice(null)}
         />
       )}
@@ -497,12 +512,12 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
               {emptyLabel[activeStatus]}
             </p>
             {activeStatus !== 'new' && (
-              <p className="text-sm text-slate-400 dark:text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Switch to the{' '}
                 <button
                   type="button"
                   onClick={() => { void handleTabSwitch('new'); }}
-                  className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+                  className="text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                 >
                   New
                 </button>{' '}
@@ -565,6 +580,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
                     canConvert={canConvert}
                     onAction={openDialog}
                     onConvert={openConvertDialog}
+                    timeZone={timeZone}
                   />
                 ))}
               </tbody>
@@ -598,7 +614,7 @@ export function BookingInbox({ initial, slug, canConvert = false }: BookingInbox
           <div className="space-y-2 py-2">
             <Label htmlFor="triage-notes" className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Note{' '}
-              <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+              <span className="text-slate-500 dark:text-slate-400 font-normal">(optional)</span>
             </Label>
             <Textarea
               id="triage-notes"
@@ -671,9 +687,11 @@ interface BookingRowProps {
   ) => void;
   /** Opens the ConvertDialog for this row. */
   onConvert: (row: SerializedBookingRequestRow) => void;
+  /** The viewer's zone (see BookingInboxProps.timeZone). */
+  timeZone: string;
 }
 
-function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowProps) {
+function BookingRow({ row, slug, canConvert, onAction, onConvert, timeZone }: BookingRowProps) {
   const terminal = isTerminalStatus(row.status);
   const isNew = row.status === 'new';
   const isContacted = row.status === 'contacted';
@@ -686,20 +704,10 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
     // so link to the general schedule page. The actual date can be determined server-side
     // in a future enhancement. For now link to /schedule with the reservation surfaced.
     // Per spec: "link to the schedule board day of the new reservation".
-    // We use the requestedStart as a proxy date for the schedule link.
-    if (row.requestedStart) {
-      try {
-        const d = new Date(row.requestedStart);
-        if (!isNaN(d.getTime())) {
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          const dd = String(d.getDate()).padStart(2, '0');
-          return `/o/${slug}/schedule?date=${yyyy}-${mm}-${dd}`;
-        }
-      } catch { /* ignore */ }
-    }
-    return `/o/${slug}/schedule`;
-  }, [isConverted, row.convertedReservationId, row.requestedStart, slug]);
+    // We use the requestedStart as a proxy date for the schedule link: its
+    // day in the viewer's zone, the day the row shows.
+    return scheduleDayHref(slug, row.requestedStart, timeZone);
+  }, [isConverted, row.convertedReservationId, row.requestedStart, slug, timeZone]);
 
   return (
     <tr className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
@@ -710,7 +718,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
         </p>
         <a
           href={`mailto:${row.requesterEmail}`}
-          className="text-xs text-brand hover:underline underline-offset-2 truncate block max-w-[160px]"
+          className="text-xs text-brand dark:text-blue-400 hover:underline underline-offset-2 truncate block max-w-[160px]"
         >
           {row.requesterEmail}
         </a>
@@ -718,7 +726,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
           <p className="text-xs text-slate-500 dark:text-slate-400 nums">{row.requesterPhone}</p>
         )}
         {row.message && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[200px] mt-0.5 italic">
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px] mt-0.5 italic">
             &ldquo;{row.message}&rdquo;
           </p>
         )}
@@ -726,7 +734,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
 
       {/* Requested date */}
       <td className="px-3 py-3 hidden sm:table-cell text-xs text-slate-600 dark:text-slate-300 nums">
-        {formatRequestedDate(row.requestedStart, row.requestedEnd)}
+        {formatRequestedDate(row.requestedStart, row.requestedEnd, timeZone)}
       </td>
 
       {/* Aircraft pref */}
@@ -734,7 +742,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
         {row.aircraftTypePref ? (
           <span className="text-xs text-slate-700 dark:text-slate-300">{row.aircraftTypePref}</span>
         ) : (
-          <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
         )}
       </td>
 
@@ -742,7 +750,7 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
       <td className="px-3 py-3">
         <BookingStatusBadge status={row.status} />
         {terminal && row.handledAt && (
-          <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500 mt-0.5 nums">
+          <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400 mt-0.5 nums">
             {formatRelativeTime(row.handledAt)}
           </p>
         )}
@@ -821,18 +829,18 @@ function BookingRow({ row, slug, canConvert, onAction, onConvert }: BookingRowPr
             {viewReservationHref ? (
               <Link
                 href={viewReservationHref}
-                className="inline-flex items-center gap-1 text-xs text-brand hover:underline underline-offset-2"
+                className="inline-flex items-center gap-1 text-xs text-brand dark:text-blue-400 hover:underline underline-offset-2"
               >
                 <CalendarDays className="h-3 w-3" aria-hidden="true" />
                 View reservation
               </Link>
             ) : (
-              <span className="text-xs text-slate-400 dark:text-slate-500">Converted</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Converted</span>
             )}
           </div>
         )}
         {row.status === 'declined' && (
-          <span className="text-xs text-slate-400 dark:text-slate-500">No actions</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">No actions</span>
         )}
       </td>
     </tr>

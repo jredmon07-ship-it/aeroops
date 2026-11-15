@@ -79,7 +79,7 @@ export function FleetTable({ aircraft, slug }: FleetTableProps) {
               <td className="px-3 py-3">
                 <Link
                   href={`/o/${slug}/fleet/${row.id}`}
-                  className="font-bold nums text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
+                  className="font-bold nums text-slate-900 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline"
                   aria-label={`View details for ${row.tailNumber}`}
                 >
                   {row.tailNumber}
@@ -93,7 +93,7 @@ export function FleetTable({ aircraft, slug }: FleetTableProps) {
                     {[row.make, row.model].filter(Boolean).join(' ')}
                   </span>
                 ) : (
-                  <span className="text-slate-400 dark:text-slate-500 italic text-xs">—</span>
+                  <span className="text-slate-500 dark:text-slate-400 italic text-xs">—</span>
                 )}
               </td>
 

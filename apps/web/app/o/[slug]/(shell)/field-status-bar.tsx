@@ -129,13 +129,13 @@ export function FieldStatusBar({ status }: FieldStatusBarProps) {
               ))}
             {sunrise && (
               <span className="inline-flex items-center gap-1">
-                <Sunrise className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+                <Sunrise className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
                 <span className="nums">{sunrise}</span>
               </span>
             )}
             {sunset && (
               <span className="inline-flex items-center gap-1">
-                <Sunset className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+                <Sunset className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
                 <span className="nums">{sunset}</span>
               </span>
             )}
@@ -160,13 +160,13 @@ export function FieldStatusBar({ status }: FieldStatusBarProps) {
             <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{data.stationId}</span>
             {data.tempC !== null && (
               <span className="inline-flex items-center gap-1">
-                <Thermometer className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+                <Thermometer className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
                 <span className="nums">{data.tempC}°C</span>
               </span>
             )}
             {wind && (
               <span className="inline-flex items-center gap-1">
-                <Wind className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+                <Wind className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
                 <span className="nums">{wind}</span>
               </span>
             )}

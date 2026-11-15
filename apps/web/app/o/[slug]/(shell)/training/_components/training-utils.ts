@@ -9,6 +9,8 @@
  *   [VERIFY-T1-A]: grade_label is FREE-TEXT only — displayed as-is.
  */
 
+import { formatZonedDate, formatZonedDateTime } from '@/lib/zoned-format';
+
 // ─── formatProgress ────────────────────────────────────────────────────────────
 
 /**
@@ -51,34 +53,14 @@ export function courseStatusLabel(status: string): string {
   }
 }
 
-// ─── formatDateTime (ISO string → locale string) ─────────────────────────────
+// ─── formatDateTime / formatDate (ISO string → text in the viewer's zone) ────
+// `timeZone` is the zone the page resolved (getViewerTimeZone): the client
+// components render on the server first, where the runtime's zone is UTC.
 
-export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(new Date(iso));
-  } catch {
-    return iso ?? '—';
-  }
+export function formatDateTime(iso: string | null | undefined, timeZone: string): string {
+  return formatZonedDateTime(iso, timeZone);
 }
 
-// ─── formatDate (ISO string → locale date string) ────────────────────────────
-
-export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(iso));
-  } catch {
-    return iso ?? '—';
-  }
+export function formatDate(iso: string | null | undefined, timeZone: string): string {
+  return formatZonedDate(iso, timeZone);
 }

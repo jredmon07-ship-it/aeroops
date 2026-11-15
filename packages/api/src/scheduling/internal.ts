@@ -307,6 +307,25 @@ export function isValidIanaTz(tz: string): boolean {
   }
 }
 
+/**
+ * calendarDayInZone — the 'YYYY-MM-DD' calendar day `instant` falls on in
+ * `tz` (Intl en-CA parts), or in UTC when `tz` is not a valid IANA zone
+ * (isValidIanaTz). The form a schedule ?date= link takes: a 19:00 CST start on
+ * Nov 16 is '2026-11-16' in America/Chicago though its UTC day is the 17th.
+ */
+export function calendarDayInZone(instant: Date, tz: string): string {
+  const zone = isValidIanaTz(tz) ? tz : 'UTC';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
 // ─── Conflict probe (the core overlap query) ──────────────────────────────────
 
 /**

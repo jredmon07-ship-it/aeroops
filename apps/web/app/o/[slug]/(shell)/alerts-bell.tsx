@@ -90,6 +90,15 @@ function lsWrite(key: string, value: string): void {
   }
 }
 
+/** The browser's IANA zone, or undefined (the action then uses the cookie's). */
+function browserTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // ─── AlertsBell ───────────────────────────────────────────────────────────────
 
 export function AlertsBell({ slug, orgId, userId }: AlertsBellProps) {
@@ -116,7 +125,9 @@ export function AlertsBell({ slug, orgId, userId }: AlertsBellProps) {
   const fetchAlerts = React.useCallback(async () => {
     setState({ kind: 'loading' });
     try {
-      const result = await getMyAlertsAction();
+      // The browser's zone: "Upcoming flight" links open the schedule on the
+      // flight's local day, even before the aeroops-tz cookie is set.
+      const result = await getMyAlertsAction(browserTimeZone());
       if ('error' in result) {
         if (result.error === 'unauthenticated') {
           // Session gone — empty (not an error to show).
@@ -247,9 +258,9 @@ export function AlertsBell({ slug, orgId, userId }: AlertsBellProps) {
             className={cn(
               'relative flex items-center justify-center',
               'h-8 w-8 rounded-md',
-              'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300',
+              'text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300',
               'hover:bg-slate-100 dark:hover:bg-slate-800',
-              'dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800',
+              'dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800',
               'transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900',
             )}
@@ -317,9 +328,9 @@ export function AlertsBell({ slug, orgId, userId }: AlertsBellProps) {
                   aria-label="Close alerts"
                   className={cn(
                     'flex h-6 w-6 items-center justify-center rounded-sm',
-                    'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300',
+                    'text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300',
                     'hover:bg-slate-100 dark:hover:bg-slate-800',
-                    'dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800',
+                    'dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800',
                     'transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900',
                   )}
@@ -348,7 +359,7 @@ export function AlertsBell({ slug, orgId, userId }: AlertsBellProps) {
 
               {/* Empty — all caught up */}
               {(state.kind === 'empty' || state.kind === 'idle') && (
-                <div className="flex flex-col items-center justify-center py-10 text-sm text-slate-400 dark:text-slate-500">
+                <div className="flex flex-col items-center justify-center py-10 text-sm text-slate-500 dark:text-slate-400">
                   <Bell className="mb-2 h-6 w-6 opacity-30" aria-hidden="true" />
                   You&rsquo;re all caught up
                 </div>
@@ -391,8 +402,8 @@ export function AlertsBell({ slug, orgId, userId }: AlertsBellProps) {
                   type="button"
                   onClick={markAllSeen}
                   className={cn(
-                    'text-xs text-slate-400 dark:text-slate-500 hover:text-brand',
-                    'dark:text-slate-500 dark:hover:text-sky-400',
+                    'text-xs text-slate-500 dark:text-slate-400 hover:text-brand dark:hover:text-blue-300',
+                    'dark:text-slate-400 dark:hover:text-sky-400',
                     'transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900 rounded-sm',
                   )}
@@ -434,7 +445,7 @@ function AlertRow({ alert, href, isUnseen, isGrounded, onDismiss }: AlertRowProp
       <span className="text-xs leading-snug text-slate-500 line-clamp-2 dark:text-slate-400">
         {alert.detail}
       </span>
-      <span className="nums mt-0.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+      <span className="nums mt-0.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
         {formatRelativeTime(alert.at)}
       </span>
     </div>
@@ -489,8 +500,8 @@ function AlertRow({ alert, href, isUnseen, isGrounded, onDismiss }: AlertRowProp
         aria-label={`Dismiss alert: ${alert.title}`}
         className={cn(
           'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm',
-          'text-slate-300 hover:text-slate-500 dark:hover:text-slate-400',
-          'dark:text-slate-600 dark:hover:text-slate-400',
+          'text-slate-500 hover:text-slate-700',
+          'dark:text-slate-400 dark:hover:text-slate-200',
           'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
           'transition-opacity',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900',

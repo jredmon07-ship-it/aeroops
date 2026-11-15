@@ -133,7 +133,7 @@ export function EditMemberDialog({ member, onSuccess }: EditMemberDialogProps) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Edit {member.displayName}</DialogTitle>
           </DialogHeader>

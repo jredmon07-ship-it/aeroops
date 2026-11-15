@@ -55,7 +55,7 @@ function CourseStatusChip({ status }: { status: string }) {
       </span>
     );
   }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
+  return <span className="text-xs text-slate-500 dark:text-slate-400">{status}</span>;
 }
 
 // ─── Stage label chip ──────────────────────────────────────────────────────────
@@ -189,7 +189,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Add lesson</DialogTitle>
           </DialogHeader>
@@ -240,7 +240,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
                 placeholder="e.g. Ground School, Solo Prep"
                 disabled={isSubmitting}
               />
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Free-text operator grouping label — not a regulatory stage.
               </p>
             </div>
@@ -259,7 +259,7 @@ function AddLessonDialog({ courseId, onSuccess }: AddLessonDialogProps) {
                 <Label htmlFor="al-stage-check" className="cursor-pointer">
                   Stage check
                 </Label>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Marks this lesson a milestone evaluation in your course structure — not a
                   Part-61/141 stage check of record.
                 </p>
@@ -363,14 +363,14 @@ function RemoveLessonConfirm({
         variant="ghost"
         size="sm"
         onClick={() => setOpen(true)}
-        className="text-slate-400 dark:text-slate-500 hover:text-danger hover:bg-danger/5"
+        className="text-slate-500 dark:text-slate-400 hover:text-danger hover:bg-danger/5"
         aria-label={`Remove lesson: ${lessonTitle}`}
       >
         <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Remove lesson</DialogTitle>
           </DialogHeader>
@@ -467,7 +467,7 @@ function LessonStageCheckToggle({
       size="sm"
       onClick={handleToggle}
       disabled={isSubmitting}
-      className="text-slate-400 dark:text-slate-500 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-xs"
+      className="text-slate-500 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-xs"
       aria-label={
         isStageCheck
           ? `Unmark stage check: ${lessonTitle}`
@@ -615,7 +615,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
         )}
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Lessons
-          <span className="ml-1.5 nums text-slate-400 dark:text-slate-500 font-normal">
+          <span className="ml-1.5 nums text-slate-500 dark:text-slate-400 font-normal">
             ({course.lessons.length})
           </span>
         </h2>
@@ -630,7 +630,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
                 <>
                   Use{' '}
                   <button
-                    className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+                    className="text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                     onClick={() => {
                       // Trigger the Add Lesson dialog via the header button
                       // (users can scroll up or we just give a hint)
@@ -668,7 +668,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
                     className="border-b border-slate-100 dark:border-slate-800 last:border-0"
                   >
                     <td className="px-4 py-3">
-                      <span className="nums text-slate-400 dark:text-slate-500 text-xs">{lesson.position + 1}</span>
+                      <span className="nums text-slate-500 dark:text-slate-400 text-xs">{lesson.position + 1}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="space-y-0.5">
@@ -680,7 +680,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
                           {lesson.isStageCheck && <StageCheckChip />}
                         </div>
                         {lesson.description && (
-                          <p className="text-xs text-slate-400 dark:text-slate-500 line-clamp-2">{lesson.description}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{lesson.description}</p>
                         )}
                       </div>
                     </td>
@@ -718,7 +718,7 @@ export function CourseDetailClient({ course: initialCourse, slug, canManage }: C
       <div className="flex items-center gap-2 pt-2">
         <Link
           href={`/o/${slug}/training/enrollments?courseId=${course.courseId}`}
-          className="text-sm text-brand hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
+          className="text-sm text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 hover:underline underline-offset-2"
         >
           View enrollments for this course →
         </Link>

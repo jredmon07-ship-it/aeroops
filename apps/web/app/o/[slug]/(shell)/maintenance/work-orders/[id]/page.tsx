@@ -28,6 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getWorkOrderDetailAction } from '../actions';
 import { getAircraftDetailAction } from '../../../fleet/actions';
 import { WorkOrderDetailClient } from '../_components/work-order-detail-client';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
@@ -53,6 +54,8 @@ interface DetailContentProps {
   canWorkOrder: boolean;
   canResolveSquawk: boolean;
   canUnground: boolean;
+  /** The viewer's zone (getViewerTimeZone) every time reads in. */
+  timeZone: string;
 }
 
 async function DetailContent({
@@ -61,6 +64,7 @@ async function DetailContent({
   canWorkOrder,
   canResolveSquawk,
   canUnground,
+  timeZone,
 }: DetailContentProps) {
   const result = await getWorkOrderDetailAction({ workOrderId });
 
@@ -86,7 +90,7 @@ async function DetailContent({
       >
         <Wrench className="h-10 w-10 text-slate-300" aria-hidden="true" />
         <p className="text-slate-700 dark:text-slate-300 font-medium">Work order not found.</p>
-        <p className="text-sm text-slate-400 dark:text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           It may have been removed or you may not have access.
         </p>
         <Button asChild variant="outline" size="sm">
@@ -107,12 +111,16 @@ async function DetailContent({
   let isGrounded = false;
   let groundingMatchesSquawk = false;
   let groundingSquawkId: string | null = null;
+  // The same read names the aircraft: its tail # labels the "Aircraft:" link,
+  // which printed the raw resource id.
+  let aircraftTailNumber: string | null = null;
 
   const aircraftResult = await getAircraftDetailAction({
     resourceId: workOrder.resourceId,
   });
 
   if ('ok' in aircraftResult && aircraftResult.ok) {
+    aircraftTailNumber = aircraftResult.aircraft.tailNumber;
     const grounding = aircraftResult.aircraft.grounding;
     isGrounded = grounding.grounded;
     // For grounding basis matching: the grounding event's squawkId must equal
@@ -142,6 +150,8 @@ async function DetailContent({
       canWorkOrder={canWorkOrder}
       canResolveSquawk={canResolveSquawk}
       canUnground={canUnground}
+      timeZone={timeZone}
+      aircraftTailNumber={aircraftTailNumber}
     />
   );
 }
@@ -186,6 +196,7 @@ export default async function WorkOrderDetailPage({ params }: WorkOrderDetailPag
   const canWorkOrder = hasCapability(session, 'maintenance:work_order');
   const canResolveSquawk = hasCapability(session, 'maintenance:squawk');
   const canUnground = hasCapability(session, 'maintenance:ground');
+  const timeZone = await getViewerTimeZone();
 
   return (
     <Suspense fallback={<DetailSkeleton />}>
@@ -195,6 +206,7 @@ export default async function WorkOrderDetailPage({ params }: WorkOrderDetailPag
         canWorkOrder={canWorkOrder}
         canResolveSquawk={canResolveSquawk}
         canUnground={canUnground}
+        timeZone={timeZone}
       />
     </Suspense>
   );

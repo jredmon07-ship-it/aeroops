@@ -15,6 +15,9 @@
  *
  * A11y: role=alert / aria-live="assertive" on destructive; role=status /
  * aria-live="polite" on informational — mirrors Slice-1 §4 posture.
+ *
+ * Times are read on `timeZone`'s clock: the viewer's zone the page resolved,
+ * the same clock the board and the list show reservations on.
  */
 import * as React from 'react';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
@@ -25,6 +28,8 @@ import type { ConflictHit, PolicyViolationView } from '@aeroops/api';
 
 interface ConflictBannerProps {
   state: ConflictCheckState;
+  /** The viewer's IANA zone, for the conflict and blackout times. */
+  timeZone: string;
   conflicts: ConflictHit[];
   policyViolations?: PolicyViolationView[];
   /** Optional: override for the hard "submit-failed" variant — conflicts section */
@@ -33,13 +38,16 @@ interface ConflictBannerProps {
   submitViolations?: PolicyViolationView[];
 }
 
-/** Format epoch ms to local HH:mm string. */
-function epochToHHmm(epochMs: number): string {
-  return formatTime(new Date(epochMs));
+/** Format epoch ms to an HH:mm string on `timeZone`'s clock. */
+function epochToHHmm(epochMs: number, timeZone: string): string {
+  return formatTime(new Date(epochMs), timeZone);
 }
 
-/** Render one policy violation bullet per spec §3.2 copy. */
-function PolicyViolationBullet({ v }: { v: PolicyViolationView }) {
+/**
+ * Render one policy violation bullet per spec §3.2 copy. Exported for the
+ * board's move dialog, which printed the raw kind ("max duration exceeded").
+ */
+export function PolicyViolationBullet({ v, timeZone }: { v: PolicyViolationView; timeZone: string }) {
   switch (v.kind) {
     case 'max_duration_exceeded':
       return (
@@ -62,7 +70,7 @@ function PolicyViolationBullet({ v }: { v: PolicyViolationView }) {
     case 'blackout_overlap':
       return (
         <li>
-          {v.resourceDisplayName} is unavailable {epochToHHmm(v.blackoutStart)}–{epochToHHmm(v.blackoutEnd)} (blackout).
+          {v.resourceDisplayName} is unavailable {epochToHHmm(v.blackoutStart, timeZone)}–{epochToHHmm(v.blackoutEnd, timeZone)} (blackout).
         </li>
       );
     default:
@@ -82,6 +90,7 @@ function policyViolationKey(v: PolicyViolationView, i: number): string {
 
 export function ConflictBanner({
   state,
+  timeZone,
   conflicts,
   policyViolations = [],
   submitConflicts,
@@ -106,7 +115,7 @@ export function ConflictBanner({
                 {submitConflicts!.map((hit) => (
                   <li key={`${hit.resourceId}-${hit.start.toString()}`}>
                     {hit.resourceDisplayName} is booked{' '}
-                    {formatTimeRange(hit.start, hit.end)}
+                    {formatTimeRange(hit.start, hit.end, timeZone)}
                   </li>
                 ))}
               </ul>
@@ -117,7 +126,7 @@ export function ConflictBanner({
               <p className="font-medium text-sm mb-0.5">Booking rules not met:</p>
               <ul className="list-disc list-inside space-y-0.5 text-sm">
                 {submitViolations!.map((v, i) => (
-                  <PolicyViolationBullet key={policyViolationKey(v, i)} v={v} />
+                  <PolicyViolationBullet key={policyViolationKey(v, i)} v={v} timeZone={timeZone} />
                 ))}
               </ul>
             </>
@@ -158,7 +167,7 @@ export function ConflictBanner({
             {conflicts.map((hit) => (
               <li key={`${hit.resourceId}-${hit.start.toString()}`}>
                 {hit.resourceDisplayName} is booked{' '}
-                {formatTimeRange(hit.start, hit.end)}
+                {formatTimeRange(hit.start, hit.end, timeZone)}
               </li>
             ))}
           </ul>
@@ -178,7 +187,7 @@ export function ConflictBanner({
           </p>
           <ul className="list-disc list-inside space-y-0.5 text-sm">
             {policyViolations.map((v, i) => (
-              <PolicyViolationBullet key={policyViolationKey(v, i)} v={v} />
+              <PolicyViolationBullet key={policyViolationKey(v, i)} v={v} timeZone={timeZone} />
             ))}
           </ul>
         </AlertDescription>
@@ -198,14 +207,14 @@ export function ConflictBanner({
             {conflicts.map((hit) => (
               <li key={`${hit.resourceId}-${hit.start.toString()}`}>
                 {hit.resourceDisplayName} is booked{' '}
-                {formatTimeRange(hit.start, hit.end)}
+                {formatTimeRange(hit.start, hit.end, timeZone)}
               </li>
             ))}
           </ul>
           <p className="font-medium text-sm mb-0.5">Booking rules not met:</p>
           <ul className="list-disc list-inside space-y-0.5 text-sm">
             {policyViolations.map((v, i) => (
-              <PolicyViolationBullet key={policyViolationKey(v, i)} v={v} />
+              <PolicyViolationBullet key={policyViolationKey(v, i)} v={v} timeZone={timeZone} />
             ))}
           </ul>
         </AlertDescription>

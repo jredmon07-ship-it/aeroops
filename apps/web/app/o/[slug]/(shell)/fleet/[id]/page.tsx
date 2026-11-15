@@ -52,36 +52,11 @@ import { DocumentsCard } from '../../documents-card';
 import type { SerializedAircraftDetail } from '../actions';
 import type { AircraftListRow } from '@aeroops/api';
 import { EmptyState } from '@/components/ui/empty-state';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { formatZonedDate, formatZonedDateTime } from '@/lib/zoned-format';
 
-// ─── Date helpers ─────────────────────────────────────────────────────────────
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
-
-function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
+// Dates and times read in the viewer's zone (resolved once by the page): the
+// server's own zone is UTC on Vercel, which put a 16:30 CST checkout at 10:30 PM.
 
 function formatMeter(val: number | null): string {
   if (val === null) return '—';
@@ -134,7 +109,7 @@ function DispatchStatusChip({ status }: { status: string }) {
       </span>
     );
   }
-  return <span className="text-xs text-slate-400 dark:text-slate-500">{status}</span>;
+  return <span className="text-xs text-slate-500 dark:text-slate-400">{status}</span>;
 }
 
 // ─── Inner async component ────────────────────────────────────────────────────
@@ -146,9 +121,11 @@ interface DetailContentProps {
   canManageRequirements: boolean;
   canManageResources: boolean;
   canWorkOrder: boolean;
+  /** The viewer's zone (getViewerTimeZone) every date and time reads in. */
+  timeZone: string;
 }
 
-async function DetailContent({ resourceId, slug, canManage, canManageRequirements, canManageResources, canWorkOrder }: DetailContentProps) {
+async function DetailContent({ resourceId, slug, canManage, canManageRequirements, canManageResources, canWorkOrder, timeZone }: DetailContentProps) {
   const [result, aircraftListResult, maintenanceDueResult] = await Promise.all([
     getAircraftDetailAction({ resourceId }),
     listAircraftAction({ includeInactive: false }),
@@ -179,7 +156,7 @@ async function DetailContent({ resourceId, slug, canManage, canManageRequirement
       >
         <Plane className="h-10 w-10 text-slate-300" aria-hidden="true" />
         <p className="text-slate-700 dark:text-slate-300 font-medium">Aircraft not found.</p>
-        <p className="text-sm text-slate-400 dark:text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           It may have been removed or you may not have access.
         </p>
         <Button asChild variant="outline" size="sm">
@@ -212,6 +189,7 @@ async function DetailContent({ resourceId, slug, canManage, canManageRequirement
       canWorkOrder={canWorkOrder}
       aircraftList={aircraftList}
       maintenanceDueItems={maintenanceDueItems}
+      timeZone={timeZone}
     />
   );
 }
@@ -227,9 +205,10 @@ interface AircraftDetailViewProps {
   canWorkOrder: boolean;
   aircraftList: AircraftListRow[];
   maintenanceDueItems: SerializedMaintenanceDueView[];
+  timeZone: string;
 }
 
-function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, canManageResources, canWorkOrder, aircraftList, maintenanceDueItems }: AircraftDetailViewProps) {
+function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, canManageResources, canWorkOrder, aircraftList, maintenanceDueItems, timeZone }: AircraftDetailViewProps) {
   const { grounding } = aircraft;
 
   return (
@@ -294,7 +273,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
               <span>: {grounding.reason}</span>
             )}
             {grounding.since && (
-              <span className="ml-2 text-xs opacity-80">since {formatDateTime(grounding.since)}</span>
+              <span className="ml-2 text-xs opacity-80">since {formatZonedDateTime(grounding.since, timeZone)}</span>
             )}
           </AlertDescription>
         </Alert>
@@ -327,19 +306,19 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       {(aircraft.hasHobbs || aircraft.hasTach) && (
         <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <Gauge className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               Last Recorded Meters
             </h2>
             {aircraft.currentMetersAsOf && (
-              <span className="text-xs text-slate-400 dark:text-slate-500">
-                as of {formatDateTime(aircraft.currentMetersAsOf)}
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                as of {formatZonedDateTime(aircraft.currentMetersAsOf, timeZone)}
               </span>
             )}
           </div>
 
           {aircraft.currentMetersAsOf === null ? (
-            <p className="text-sm text-slate-400 dark:text-slate-500 italic">No recorded meters yet.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 italic">No recorded meters yet.</p>
           ) : (
             <div className="flex flex-wrap gap-6">
               {aircraft.hasHobbs && (
@@ -369,7 +348,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <WrenchIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <WrenchIcon className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Open Squawks</h2>
             {aircraft.openSquawkCount > 0 && (
               <span className="inline-flex items-center rounded-sm border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-amber-800 dark:text-amber-200">
@@ -379,14 +358,14 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
           </div>
           <Link
             href={`/o/${slug}/maintenance/squawks?resourceId=${aircraft.id}`}
-            className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
+            className="text-xs text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
           >
             View all squawks
           </Link>
         </div>
 
         {aircraft.recentSquawks.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No open squawks.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 italic">No open squawks.</p>
         ) : (
           <div className="space-y-1.5">
             {aircraft.recentSquawks.map((s) => (
@@ -400,7 +379,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{s.description}</p>
                   )}
                 </div>
-                <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">{formatDate(s.reportedAt)}</span>
+                <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{formatZonedDate(s.reportedAt, timeZone)}</span>
               </div>
             ))}
           </div>
@@ -410,7 +389,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       {/* ── Recent dispatch card ───────────────────────────────────────────── */}
       <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Plane className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <Plane className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent Dispatch</h2>
         </div>
 
@@ -427,7 +406,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
                 className="flex-1"
                 ariaLabel={`Flight-hours trend across the last ${hrs.length} dispatches`}
               />
-              <span className="shrink-0 whitespace-nowrap text-[0.6875rem] text-slate-400 dark:text-slate-500">
+              <span className="shrink-0 whitespace-nowrap text-[0.6875rem] text-slate-500 dark:text-slate-400">
                 last {hrs.length} flights
               </span>
             </div>
@@ -465,7 +444,7 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
                     className="border-b border-slate-100 dark:border-slate-800 last:border-0"
                   >
                     <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">
-                      {formatDate(ticket.openedAt)}
+                      {formatZonedDate(ticket.openedAt, timeZone)}
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hidden sm:table-cell truncate max-w-[8rem]">
                       {ticket.pilotName ?? '—'}
@@ -500,19 +479,19 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
       <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Upcoming Reservations</h2>
           </div>
           <Link
             href={`/o/${slug}/schedule`}
-            className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
+            className="text-xs text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
           >
             View schedule
           </Link>
         </div>
 
         {aircraft.upcomingReservations.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No upcoming reservations.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 italic">No upcoming reservations.</p>
         ) : (
           <div className="space-y-1.5">
             {aircraft.upcomingReservations.map((res) => (
@@ -522,10 +501,10 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
               >
                 <div className="flex flex-wrap items-center gap-2 min-w-0">
                   <span className="text-sm text-slate-700 dark:text-slate-300">
-                    {formatDateTime(res.startAt)}
+                    {formatZonedDateTime(res.startAt, timeZone)}
                   </span>
-                  <span className="text-xs text-slate-400 dark:text-slate-500">
-                    → {formatDateTime(res.endAt)}
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    → {formatZonedDateTime(res.endAt, timeZone)}
                   </span>
                   {res.seriesId && (
                     <Badge variant="outline" className="text-[0.6875rem] px-1.5 py-0 h-4">
@@ -598,6 +577,8 @@ export default async function AircraftDetailPage({ params }: AircraftDetailPageP
   const canManageResources = hasCapability(session, 'schedule:manage_resources');
   // maintenance:work_order → owner/manager/dispatcher/mechanic.
   const canWorkOrder = hasCapability(session, 'maintenance:work_order');
+  // Every date and time on the page reads in the viewer's zone.
+  const timeZone = await getViewerTimeZone();
 
   return (
     <Suspense fallback={<DetailSkeleton />}>
@@ -608,6 +589,7 @@ export default async function AircraftDetailPage({ params }: AircraftDetailPageP
         canManageRequirements={canManageRequirements}
         canManageResources={canManageResources}
         canWorkOrder={canWorkOrder}
+        timeZone={timeZone}
       />
     </Suspense>
   );

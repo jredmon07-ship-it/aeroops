@@ -11,8 +11,8 @@
  *   A. Heading — "Welcome, {firstName}" (derived from account.displayName).
  *      Rendered inside the Suspense boundary so it shows the real name,
  *      not a skeleton placeholder.
- *   B. My upcoming reservations — start/end local-formatted, tail #s from
- *      resourceIds, booker/pilot chip. Empty: "No upcoming reservations."
+ *   B. My upcoming reservations — start/end local-formatted, tail #s and
+ *      instructor names from resourceIds, booker/pilot chip. Empty: "No upcoming reservations."
  *      NO book CTA (self-booking is deferred).
  *   C. My training — per-enrollment: course title + status pill + progress bar
  *      + completedCount/totalLessons. Empty: "Not enrolled in a course yet."
@@ -61,33 +61,11 @@ import { deriveFirstName, portalSubtitle, reservationRoleLabel } from './_utils/
 import { CalendarFeedCard } from './_components/calendar-feed-card';
 import { PortalAvatarCard } from './_components/portal-avatar-card';
 import { isModuleOn } from '../module-flags';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { formatZonedDate, formatZonedShortDateTime } from '@/lib/zoned-format';
 
-/**
- * formatLocalDateTime — formats an ISO string to a readable local date+time.
- */
-function formatLocalDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
-/**
- * formatLocalDate — formats an ISO string to a readable local date.
- */
-function formatLocalDate(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+// Dates and times read in the viewer's zone (resolved once by the page via
+// getViewerTimeZone): the server's own zone is UTC on Vercel.
 
 // ─── Status pill ──────────────────────────────────────────────────────────────
 
@@ -215,13 +193,15 @@ function SectionCard({
 
 function ReservationsSection({
   reservations,
+  timeZone,
 }: {
   reservations: SerializedMyPortalSummary['reservations'];
+  timeZone: string;
 }) {
   if (reservations.length === 0) {
     return (
       <div className="px-5 py-10 text-center">
-        <p className="text-sm text-slate-400 dark:text-slate-500">No upcoming reservations.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">No upcoming reservations.</p>
       </div>
     );
   }
@@ -238,16 +218,16 @@ function ReservationsSection({
           >
             {/* Start time */}
             <span className="nums text-sm text-slate-700 dark:text-slate-300 shrink-0">
-              {formatLocalDateTime(r.startAt)}
+              {formatZonedShortDateTime(r.startAt, timeZone)}
             </span>
-            <span className="text-xs text-slate-400 dark:text-slate-500" aria-hidden="true">
+            <span className="text-xs text-slate-500 dark:text-slate-400" aria-hidden="true">
               →
             </span>
             {/* End time */}
             <span className="nums text-sm text-slate-700 dark:text-slate-300 shrink-0">
-              {formatLocalDateTime(r.endAt)}
+              {formatZonedShortDateTime(r.endAt, timeZone)}
             </span>
-            {/* Tail numbers / resource ids */}
+            {/* Tail numbers + instructor names (display labels, never ids) */}
             <span className="nums text-sm font-medium text-slate-900 dark:text-slate-100">
               {tailDisplay}
             </span>
@@ -271,7 +251,7 @@ function TrainingSection({
     <>
       {training.length === 0 ? (
         <div className="px-5 py-10 text-center">
-          <p className="text-sm text-slate-400 dark:text-slate-500">Not enrolled in a course yet.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Not enrolled in a course yet.</p>
         </div>
       ) : (
         <ul className="divide-y divide-slate-100 dark:divide-slate-800" role="list">
@@ -309,7 +289,7 @@ function TrainingSection({
         </ul>
       )}
       {/* Verbatim [VERIFY-T1-B] footnote — required by spec */}
-      <p className="px-5 pb-4 pt-2 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+      <p className="px-5 pb-4 pt-2 text-[0.6875rem] text-slate-500 dark:text-slate-400">
         Progress reflects lessons recorded by your instructor — not a regulatory
         completion or graduation.
       </p>
@@ -321,8 +301,10 @@ function TrainingSection({
 
 function AccountSection({
   account,
+  timeZone,
 }: {
   account: SerializedMyPortalSummary['account'];
+  timeZone: string;
 }) {
   const roleLabel =
     ROLE_LABELS[account.role as keyof typeof ROLE_LABELS] ?? account.role;
@@ -356,7 +338,7 @@ function AccountSection({
             {account.phone !== null ? (
               account.phone
             ) : (
-              <span className="text-slate-400 dark:text-slate-500">—</span>
+              <span className="text-slate-500 dark:text-slate-400">—</span>
             )}
           </p>
         </div>
@@ -375,7 +357,7 @@ function AccountSection({
             Member since
           </p>
           <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
-            {formatLocalDate(account.joinedAt)}
+            {formatZonedDate(account.joinedAt, timeZone)}
           </p>
         </div>
       </div>
@@ -384,12 +366,12 @@ function AccountSection({
       <div>
         <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1.5">
           Tags
-          <span className="ml-1 font-normal normal-case tracking-normal text-slate-400 dark:text-slate-500">
+          <span className="ml-1 font-normal normal-case tracking-normal text-slate-500 dark:text-slate-400">
             (operator labels)
           </span>
         </p>
         {account.tags.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500">No tags assigned.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">No tags assigned.</p>
         ) : (
           <ul
             className="flex flex-wrap gap-1.5"
@@ -416,9 +398,11 @@ interface PortalContentProps {
   slug: string;
   /** Training module on — section C (Slice CLUB-MODE). */
   showTraining: boolean;
+  /** The viewer's zone (getViewerTimeZone) every date and time reads in. */
+  timeZone: string;
 }
 
-async function PortalContent({ slug, showTraining }: PortalContentProps) {
+async function PortalContent({ slug, showTraining, timeZone }: PortalContentProps) {
   // The avatar is best-effort — any failure just hides that piece and falls
   // back gracefully (never blocks the portal).
   const [result, avatarResult] = await Promise.all([
@@ -491,7 +475,7 @@ async function PortalContent({ slug, showTraining }: PortalContentProps) {
         title="My upcoming reservations"
         aria-label="My upcoming reservations"
       >
-        <ReservationsSection reservations={summary.reservations} />
+        <ReservationsSection reservations={summary.reservations} timeZone={timeZone} />
       </SectionCard>
 
       {/* ── Calendar feed (Slice P1.4) ────────────────────────────────────── */}
@@ -506,7 +490,7 @@ async function PortalContent({ slug, showTraining }: PortalContentProps) {
 
       {/* ── D. Account ────────────────────────────────────────────────────── */}
       <SectionCard title="Account" aria-label="My account">
-        <AccountSection account={summary.account} />
+        <AccountSection account={summary.account} timeZone={timeZone} />
       </SectionCard>
     </div>
   );
@@ -554,12 +538,16 @@ export default async function PortalPage({ params }: PortalPageProps) {
     redirect(`/o/${slug}/no-access?reason=module_disabled`);
   }
 
+  // Every date and time on the page reads in the viewer's zone.
+  const timeZone = await getViewerTimeZone();
+
   return (
     // Suspense wraps A+B+C+D so the heading "Welcome, {firstName}" uses real data.
     <Suspense fallback={<PortalSkeleton />}>
       <PortalContent
         slug={slug}
         showTraining={isModuleOn(orgFeatures?.features, 'training')}
+        timeZone={timeZone}
       />
     </Suspense>
   );

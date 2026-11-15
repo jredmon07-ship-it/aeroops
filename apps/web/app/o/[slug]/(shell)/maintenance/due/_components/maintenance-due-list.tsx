@@ -59,7 +59,7 @@ function StatusChip({ status }: { status: MaintenanceDueStatus }) {
   const map: Record<MaintenanceDueStatus, { label: string; cls: string; icon: React.ReactNode }> = {
     overdue: {
       label: 'Overdue',
-      cls: 'border-destructive/30 bg-destructive/10 text-destructive',
+      cls: 'border-destructive/30 bg-destructive/10 text-red-700 dark:text-red-400',
       icon: <AlertTriangle className="h-3 w-3" aria-hidden="true" />,
     },
     due_soon: {
@@ -116,7 +116,7 @@ function itemProgress(item: SerializedMaintenanceDueView) {
 function RemainingBar({ item }: { item: SerializedMaintenanceDueView }) {
   const p = itemProgress(item);
   if (p.tone === 'unknown') {
-    return <span className="text-xs text-slate-400 dark:text-slate-500">—</span>;
+    return <span className="text-xs text-slate-500 dark:text-slate-400">—</span>;
   }
   const fillCls =
     p.tone === 'expired' ? 'bg-red-500' : p.tone === 'warn' ? 'bg-amber-400' : 'bg-green-500';
@@ -346,7 +346,7 @@ export function MaintenanceDueList({
               className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
             >
               <option value="">All aircraft</option>
-              {aircraft.map((r) => (
+              {aircraft.filter((r) => r.active).map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.tailNumber ?? r.displayName}
                 </option>
@@ -397,7 +397,7 @@ export function MaintenanceDueList({
           <Button variant="outline" size="sm" onClick={handleSeedCommon} disabled={seedState === 'seeding'}>
             {seedState === 'seeding' ? 'Adding…' : 'Add common reminders'}
           </Button>
-          <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
+          <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400">
             Adds 50 Hour Oil Change, 100 Hour Inspection, Annual Inspection, ELT Battery,
             Transponder Check and Pitot/Static Check as plain operator reminder items — each can be
             edited or deactivated individually.
@@ -514,7 +514,7 @@ export function MaintenanceDueList({
         open={createOpen}
         onOpenChange={setCreateOpen}
         mode="create"
-        aircraft={aircraft}
+        aircraft={aircraft.filter((a) => a.active)}
         preselectResourceId={fixedResourceId}
         onSuccess={handleCreateSuccess}
       />
@@ -570,7 +570,6 @@ export function MaintenanceDueList({
                 handleDeactivateConfirm();
               }}
               disabled={isDeactivating}
-              className="bg-destructive hover:bg-destructive/90"
             >
               {isDeactivating ? 'Deactivating…' : 'Deactivate'}
             </AlertDialogAction>

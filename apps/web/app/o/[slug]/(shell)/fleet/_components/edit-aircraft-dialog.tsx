@@ -236,12 +236,12 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
         <div
           role="alert"
           aria-live="assertive"
-          className="fixed bottom-4 right-4 z-50 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-md"
+          className="fixed bottom-4 right-4 z-50 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-md dark:border-red-900/50 dark:bg-red-950 dark:text-red-200"
         >
           Aircraft not found — it may have been removed.
           <button
             type="button"
-            className="ml-3 underline underline-offset-2 text-destructive/80 hover:text-destructive"
+            className="ml-3 underline underline-offset-2 text-red-700 hover:text-red-900 dark:text-red-300 dark:hover:text-red-100"
             onClick={() => setNotFoundToast(false)}
           >
             Dismiss
@@ -261,7 +261,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
               Edit aircraft{' '}
@@ -388,7 +388,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                   disabled={isSubmitting}
                 />
               </div>
-              <p className="col-span-2 text-xs text-slate-400 dark:text-slate-500">
+              <p className="col-span-2 text-xs text-slate-500 dark:text-slate-400">
                 Free-text identity labels shown on logbook rows — operator-entered,
                 not a certification determination.
               </p>
@@ -463,7 +463,7 @@ export function EditAircraftDialog({ aircraft, slug: _slug, onSuccess }: EditAir
                   <span className="text-sm text-slate-700 dark:text-slate-300">Track Tach meter</span>
                 </label>
               </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Display only — does not affect the dispatch meter-capture path.
               </p>
             </div>

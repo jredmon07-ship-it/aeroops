@@ -88,7 +88,7 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
         className="flex items-start gap-2 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm"
         aria-label={`${aircraftName}: current weather unavailable`}
       >
-        <HelpCircle className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" aria-hidden="true" />
+        <HelpCircle className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-slate-500 dark:text-slate-400 text-xs">
           Current weather unavailable — no home-base airport configured, or the
           weather service could not be reached.
@@ -117,7 +117,7 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
       aria-label={`${aircraftName}: current weather ${style.label}`}
     >
       <div className="flex items-center gap-2 px-3 py-2">
-        <CloudSun className="h-4 w-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden="true" />
+        <CloudSun className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
         <span
           className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${style.chipClass}`}
         >
@@ -134,14 +134,14 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
             {visSummary && <span>{visSummary}</span>}
           </span>
         )}
-        {asOf && <span className="text-slate-400 dark:text-slate-500 text-xs ml-auto">as of {asOf}</span>}
+        {asOf && <span className="text-slate-500 dark:text-slate-400 text-xs ml-auto">as of {asOf}</span>}
         {rawText && (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
             aria-label={expanded ? 'Hide raw METAR text' : 'Show raw METAR text'}
-            className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 shrink-0"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0"
           >
             <ChevronDown
               className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
@@ -155,7 +155,7 @@ export function WeatherChip({ state, weather, aircraftName }: WeatherChipProps) 
           {rawText}
         </div>
       )}
-      <p className="px-3 pb-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+      <p className="px-3 pb-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
         Advisory only — not a go/no-go or airworthiness determination. The
         pilot in command decides.
       </p>

@@ -30,6 +30,7 @@ import { LoginLinkButton } from './login-link-button';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { actionErrorMessage } from '@/lib/action-feedback';
+import { formatZonedDate } from '@/lib/zoned-format';
 
 // ─── Status chip ───────────────────────────────────────────────────────────────
 
@@ -74,6 +75,11 @@ interface MemberDetailClientProps {
   avatarDataUrl: string | null;
   /** false while migration 0048 is unapplied — hides the upload control. */
   avatarAvailable: boolean;
+  /**
+   * The viewer's zone, resolved by the page (getViewerTimeZone). Dates format
+   * in it on the server and in the browser alike, so hydration matches.
+   */
+  timeZone: string;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -85,6 +91,7 @@ export function MemberDetailClient({
   canCreateLoginLink,
   avatarDataUrl: initialAvatarDataUrl,
   avatarAvailable,
+  timeZone,
 }: MemberDetailClientProps) {
   const router = useRouter();
   const [member, setMember] = React.useState<SerializedMemberDetail>(initialMember);
@@ -142,7 +149,7 @@ export function MemberDetailClient({
             </div>
             {/* No-login hint — only for members without a credential. */}
             {!member.hasLogin && (
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 No login yet.
                 {canManage && member.status === 'active'
                   ? canCreateLoginLink
@@ -153,13 +160,7 @@ export function MemberDetailClient({
             )}
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Member since{' '}
-              {member.joinedAt
-                ? new Intl.DateTimeFormat('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  }).format(new Date(member.joinedAt))
-                : '—'}
+              {formatZonedDate(member.joinedAt, timeZone)}
             </p>
 
             {canManage &&
@@ -171,7 +172,7 @@ export function MemberDetailClient({
                   className="pt-1"
                 />
               ) : (
-                <p className="pt-1 text-xs text-slate-400 dark:text-slate-500">
+                <p className="pt-1 text-xs text-slate-500 dark:text-slate-400">
                   Profile photos become available in an upcoming update.
                 </p>
               ))}
@@ -196,7 +197,7 @@ export function MemberDetailClient({
       {/* ── Tags card ──────────────────────────────────────────────────────── */}
       <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Tag className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <Tag className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tags</h2>
         </div>
         <TagEditor member={member} canManage={canManage} onUpdate={handleTagUpdate} />

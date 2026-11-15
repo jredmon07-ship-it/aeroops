@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, XCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ConflictBanner } from '../../new/_components/conflict-banner';
-import { BoardTimeAxis, TRACK_WIDTH_PX } from './board-time-axis';
+import { BoardTimeAxis } from './board-time-axis';
 import { BoardGutter } from './board-gutter';
 import { BoardResourceRow } from './board-resource-row';
 import { MoveReservationDialog } from './move-reservation-dialog';
@@ -33,6 +33,13 @@ import { GroundAircraftDialog, ReleaseAircraftDialog } from './ground-aircraft-d
 import {
   fanOutBlocks,
   groupResourcesByKind,
+  hourLabelAt,
+  hourTicks,
+  quarterCount,
+  trackWidthPx,
+  HOUR_MS,
+  HOUR_WIDTH_PX,
+  QUARTER_MS,
 } from '../_utils/board-layout';
 import { rescheduleAction } from '../../actions';
 import { formatTimeRange } from '../../_utils/format-time';
@@ -75,6 +82,18 @@ interface DispatchBoardProps {
    * server render and the browser place blocks identically.
    */
   dayStartMs: number;
+  /**
+   * Epoch ms of the next day's first instant (the track's right edge), from
+   * the same dayWindow. The day is 23 or 25 h long on DST days, so the track
+   * is never assumed to be 24 h.
+   */
+  dayEndMs: number;
+  /**
+   * The viewer's IANA zone the page resolved: every time label (blocks, hour
+   * axis, live regions, dialogs) is read on its clock, so the server HTML and
+   * the browser's first render are identical.
+   */
+  timeZone: string;
   canDrag: boolean;
   /** Whether the current user has dispatch:create. Controls action button visibility. */
   canDispatch: boolean;
@@ -109,6 +128,8 @@ export function DispatchBoard({
   resources,
   day,
   dayStartMs,
+  dayEndMs,
+  timeZone,
   canDrag,
   canDispatch,
   initialDispatchTickets,
@@ -196,9 +217,23 @@ export function DispatchBoard({
   );
 
   const blocks = React.useMemo(
-    () => fanOutBlocks(reservations, activeResourceIds, dayStartMs),
-    [reservations, activeResourceIds, dayStartMs],
+    () => fanOutBlocks(reservations, activeResourceIds, dayStartMs, dayEndMs),
+    [reservations, activeResourceIds, dayStartMs, dayEndMs],
   );
+
+  // The day's real track: 23, 24 or 25 h at HOUR_WIDTH_PX per hour, hour
+  // labels from the viewer's wall clock (1am twice on the fall-back day).
+  const trackWidth = trackWidthPx(dayStartMs, dayEndMs);
+  const cellCount = quarterCount(dayStartMs, dayEndMs);
+  const ticks = React.useMemo(
+    () => hourTicks(dayStartMs, dayEndMs, timeZone),
+    [dayStartMs, dayEndMs, timeZone],
+  );
+  const endLabel = React.useMemo(() => hourLabelAt(dayEndMs, timeZone), [dayEndMs, timeZone]);
+  // Opening scroll position: the 6am label (5 h in on a spring-forward day,
+  // 7 h on a fall-back day), else 6 h in.
+  const sixAmPx =
+    ((ticks.find((t) => t.hour === 6)?.offsetMs ?? 6 * HOUR_MS) / HOUR_MS) * HOUR_WIDTH_PX;
 
   const grouped = React.useMemo(
     () => groupResourcesByKind(resources),
@@ -233,14 +268,14 @@ export function DispatchBoard({
     };
   }, []);
 
-  // Scroll to 06:00 on mount
+  // Scroll to 06:00 on mount. sixAmPx only changes with the day, and the
+  // page keys the board by day, so this runs once per day shown.
   const scrollRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     if (scrollRef.current) {
-      // 6 hours × 200px/hr = 1200px
-      scrollRef.current.scrollLeft = 1200;
+      scrollRef.current.scrollLeft = sixAmPx;
     }
-  }, []);
+  }, [sixAmPx]);
 
   // ── Reschedule handler (shared by DnD + dialog) ────────────────────────────
   async function executeReschedule(
@@ -368,7 +403,7 @@ export function DispatchBoard({
       });
       onSuccess?.();
 
-      const timeLabel = formatTimeRange(result.reservation.startAt, result.reservation.endAt);
+      const timeLabel = formatTimeRange(result.reservation.startAt, result.reservation.endAt, timeZone);
       setAriaSuccess(`Reservation moved to ${timeLabel}.`);
       setFeedback({ kind: 'none' });
     } catch {
@@ -441,9 +476,8 @@ export function DispatchBoard({
     setHoveredDropResourceId(resourceId);
     setHoveredCellIndex(cellIndex);
 
-    // Compute snap preview
-    const cellMs = 15 * 60 * 1000;
-    const newStartAt = new Date(dayStartMs + cellIndex * cellMs);
+    // Compute snap preview: cell i starts i quarter hours into the day.
+    const newStartAt = new Date(dayStartMs + cellIndex * QUARTER_MS);
     const newEndAt = new Date(newStartAt.getTime() + dragPayload.durationMs);
     const hue = reservationHue(dragPayload.reservationId);
     setSnapPreview({ newStartAt, newEndAt, hue });
@@ -467,9 +501,8 @@ export function DispatchBoard({
       }
     }
 
-    // Compute snapped new start
-    const cellMs = 15 * 60 * 1000;
-    const newStartAt = new Date(dayStartMs + cellIndex * cellMs);
+    // Compute snapped new start: cell i starts i quarter hours into the day.
+    const newStartAt = new Date(dayStartMs + cellIndex * QUARTER_MS);
     const newEndAt = new Date(newStartAt.getTime() + payload.durationMs);
 
     // Determine newResourceIds (cross-row swap or null)
@@ -616,7 +649,7 @@ export function DispatchBoard({
         newRow,
       ]);
       setMoveDialogOpen(false);
-      const timeLabel = formatTimeRange(result.reservation.startAt, result.reservation.endAt);
+      const timeLabel = formatTimeRange(result.reservation.startAt, result.reservation.endAt, timeZone);
       setAriaSuccess(`Reservation moved to ${timeLabel}.`);
     } catch {
       setDialogError('Something went wrong. Please try again.');
@@ -786,6 +819,7 @@ export function DispatchBoard({
           {feedback.kind === 'conflict' && (
             <ConflictBanner
               state="conflict"
+              timeZone={timeZone}
               conflicts={feedback.conflicts}
               submitConflicts={feedback.conflicts}
             />
@@ -793,6 +827,7 @@ export function DispatchBoard({
           {feedback.kind === 'policy' && (
             <ConflictBanner
               state="policy"
+              timeZone={timeZone}
               conflicts={[]}
               policyViolations={feedback.violations}
               submitViolations={feedback.violations}
@@ -801,6 +836,7 @@ export function DispatchBoard({
           {feedback.kind === 'conflict_and_policy' && (
             <ConflictBanner
               state="conflict_and_policy"
+              timeZone={timeZone}
               conflicts={feedback.conflicts}
               policyViolations={feedback.violations}
               submitConflicts={feedback.conflicts}
@@ -853,11 +889,15 @@ export function DispatchBoard({
         >
           {/* Sticky time axis */}
           <div className="sticky top-0 z-20">
-            <BoardTimeAxis />
+            <BoardTimeAxis
+              ticks={ticks}
+              dayLengthMs={dayEndMs - dayStartMs}
+              endLabel={endLabel}
+            />
           </div>
 
           {/* Resource rows — group headers mirror the gutter so rows stay aligned. */}
-          <div style={{ width: TRACK_WIDTH_PX }}>
+          <div style={{ width: trackWidth }}>
             {/* Aircraft group */}
             {grouped.aircraft.length > 0 && (
               <>
@@ -883,6 +923,10 @@ export function DispatchBoard({
                       hoveredDropResourceId === resource.id ? snapPreview : null
                     }
                     dayStartMs={dayStartMs}
+                    dayEndMs={dayEndMs}
+                    trackWidthPx={trackWidth}
+                    cellCount={cellCount}
+                    timeZone={timeZone}
                     dispatchTickets={dispatchTickets}
                     onBlockDragStart={handleBlockDragStart}
                     onBlockDragEnd={handleBlockDragEnd}
@@ -932,6 +976,10 @@ export function DispatchBoard({
                       hoveredDropResourceId === resource.id ? snapPreview : null
                     }
                     dayStartMs={dayStartMs}
+                    dayEndMs={dayEndMs}
+                    trackWidthPx={trackWidth}
+                    cellCount={cellCount}
+                    timeZone={timeZone}
                     dispatchTickets={dispatchTickets}
                     onBlockDragStart={handleBlockDragStart}
                     onBlockDragEnd={handleBlockDragEnd}
@@ -958,6 +1006,7 @@ export function DispatchBoard({
       <MoveReservationDialog
         block={moveDialogBlock}
         resources={resources}
+        timeZone={timeZone}
         open={moveDialogOpen}
         onOpenChange={setMoveDialogOpen}
         onSubmit={handleDialogSubmit}

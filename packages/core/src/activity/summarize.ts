@@ -11,7 +11,7 @@
  *
  * Three exported functions (plus ACTIVITY_ENTITY_TYPES, the labelled types):
  *   summarizeAuditEntry({ action, entityType, metadata, timeZone? }) → string
- *   activityPath({ entityType, entityId, metadata }) → string | null
+ *   activityPath({ entityType, entityId, metadata, timeZone? }) → string | null
  *   activityEntityLabel(entityType) → string
  */
 
@@ -131,6 +131,28 @@ function formatInstant(iso: string, timeZone: string): string | undefined {
   return `${date} ${part('hour')}:${part('minute')} ${part('timeZoneName')}`;
 }
 
+/**
+ * calendarDay — the "YYYY-MM-DD" day an ISO instant falls on in `timeZone`
+ * (an unknown zone → UTC): the form the board's ?date= takes. Undefined when
+ * `iso` is not an ISO instant.
+ */
+function calendarDay(iso: string, timeZone: string): string | undefined {
+  if (!ISO_INSTANT_RE.test(iso)) return undefined;
+  const at = new Date(iso);
+  if (isNaN(at.getTime())) return undefined;
+  const zone = isKnownTimeZone(timeZone) ? timeZone : 'UTC';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(at);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  const day = `${part('year')}-${part('month')}-${part('day')}`;
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : undefined;
+}
+
 // ─── Safe field accessors (whitelist-only) ────────────────────────────────────
 
 /**
@@ -164,6 +186,14 @@ function safeNestedString(metadata: unknown, outer: string, inner: string): stri
   if (metadata == null || typeof metadata !== 'object' || Array.isArray(metadata)) return undefined;
   const outerVal = (metadata as Record<string, unknown>)[outer];
   return safeString(outerVal, inner);
+}
+
+/**
+ * statusWords — a stored status as words people read: 'in_progress' →
+ * 'in progress'. Summaries printed the enum key itself.
+ */
+function statusWords(status: string): string {
+  return status.replace(/_/g, ' ');
 }
 
 /**
@@ -293,7 +323,7 @@ export function summarizeAuditEntry({
     }
     case 'squawk.status_changed': {
       const newStatus = safeString(metadata, 'newStatus');
-      if (newStatus) return `Squawk status updated to ${newStatus}`;
+      if (newStatus) return `Squawk status updated to ${statusWords(newStatus)}`;
       return 'Squawk status updated';
     }
 
@@ -305,7 +335,7 @@ export function summarizeAuditEntry({
     }
     case 'work_order.status_changed': {
       const newStatus = safeString(metadata, 'newStatus');
-      if (newStatus) return `Work order status updated to ${newStatus}`;
+      if (newStatus) return `Work order status updated to ${statusWords(newStatus)}`;
       return 'Work order status updated';
     }
     case 'work_order.completed':
@@ -330,7 +360,7 @@ export function summarizeAuditEntry({
       return 'Member profile updated';
     case 'member.status_changed': {
       const after = safeNestedString(metadata, 'after', 'status');
-      if (after) return `Member status changed to ${after}`;
+      if (after) return `Member status changed to ${statusWords(after)}`;
       return 'Member status changed';
     }
     case 'member.login_link_created':
@@ -369,7 +399,7 @@ export function summarizeAuditEntry({
       return 'Member enrolled in course';
     case 'training.enrollment_status_changed': {
       const to = safeString(metadata, 'to');
-      if (to) return `Enrollment status changed to ${to}`;
+      if (to) return `Enrollment status changed to ${statusWords(to)}`;
       return 'Enrollment status changed';
     }
     case 'training.lesson_recorded':
@@ -396,6 +426,12 @@ export interface ActivityPathInput {
   entityType: string;
   entityId: string | null | undefined;
   metadata: unknown;
+  /**
+   * IANA zone the board's ?date= day is read in — the viewer's, the same one
+   * the board shows (e.g. 'America/Chicago'). Defaults to UTC; an unknown
+   * zone also falls back to UTC.
+   */
+  timeZone?: string;
 }
 
 /**
@@ -404,7 +440,10 @@ export interface ActivityPathInput {
  *
  * Routes (each is a page under apps/web/app/o/[slug]; activity-paths.test.ts
  * in packages/api checks every path this can return against that tree):
- *   reservation → /schedule/board (dispatch board)
+ *   reservation → /schedule/board?date={start day in timeZone} when the row
+ *     carries the start (metadata.startAt on reservation.created,
+ *     metadata.newWindow.startAt on reservation.rescheduled), else
+ *     /schedule/board (today's board)
  *   reservation_series → /schedule/series/{entityId} (series view)
  *   resource / booking_policy / resource_blackout → /fleet/{entityId}
  *     (resource entityId IS the resourceId, or read resourceId from metadata)
@@ -420,9 +459,21 @@ export interface ActivityPathInput {
  *
  * NOTE: there is NO bare /maintenance page, and NO bare /board page.
  */
-export function activityPath({ entityType, entityId, metadata }: ActivityPathInput): string | null {
+export function activityPath({
+  entityType,
+  entityId,
+  metadata,
+  timeZone = 'UTC',
+}: ActivityPathInput): string | null {
   switch (entityType) {
-    case 'reservation':
+    case 'reservation': {
+      // The board for the day the reservation starts, in the viewer's zone —
+      // a 19:00 CST start is the 16th there, though its UTC day is the 17th.
+      const startAt =
+        safeString(metadata, 'startAt') ?? safeNestedString(metadata, 'newWindow', 'startAt');
+      const day = startAt === undefined ? undefined : calendarDay(startAt, timeZone);
+      return day ? `/schedule/board?date=${day}` : '/schedule/board';
+    }
     case 'dispatch_ticket':
     case 'dispatch_config':
       return '/schedule/board';

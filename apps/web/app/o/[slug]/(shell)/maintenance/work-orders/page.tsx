@@ -28,18 +28,24 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { listWorkOrdersAction } from './actions';
 import { listAircraftAction } from '../../fleet/actions';
 import { WorkOrdersList, WorkOrdersListSkeleton } from './_components/work-orders-list';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 // ─── Inner async component ────────────────────────────────────────────────────
 
 interface WorkOrdersContentProps {
   slug: string;
   canWorkOrder: boolean;
+  /** The viewer's zone (getViewerTimeZone) the opened dates read in. */
+  timeZone: string;
 }
 
-async function WorkOrdersContent({ slug, canWorkOrder }: WorkOrdersContentProps) {
+async function WorkOrdersContent({ slug, canWorkOrder, timeZone }: WorkOrdersContentProps) {
   const [woResult, aircraftResult] = await Promise.all([
     listWorkOrdersAction(),
-    listAircraftAction({ includeInactive: false }),
+    // Inactive aircraft too: a work order on a since-deactivated aircraft is
+    // still named by its tail # (the list printed the resource id). The open
+    // dialog filters to active aircraft itself.
+    listAircraftAction({ includeInactive: true }),
   ]);
 
   if ('error' in woResult) {
@@ -65,6 +71,7 @@ async function WorkOrdersContent({ slug, canWorkOrder }: WorkOrdersContentProps)
       aircraft={aircraft}
       slug={slug}
       canWorkOrder={canWorkOrder}
+      timeZone={timeZone}
     />
   );
 }
@@ -107,10 +114,11 @@ export default async function WorkOrdersPage({ params }: WorkOrdersPageProps) {
   }
 
   const canWorkOrder = hasCapability(session, 'maintenance:work_order');
+  const timeZone = await getViewerTimeZone();
 
   return (
     <Suspense fallback={<WorkOrdersListSkeleton />}>
-      <WorkOrdersContent slug={slug} canWorkOrder={canWorkOrder} />
+      <WorkOrdersContent slug={slug} canWorkOrder={canWorkOrder} timeZone={timeZone} />
     </Suspense>
   );
 }

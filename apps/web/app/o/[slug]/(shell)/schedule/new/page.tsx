@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 import { NewReservationForm } from './_components/new-reservation-form';
 
 // NOTE: The "Back to Schedule" button is rendered inside NewReservationForm
@@ -88,6 +89,12 @@ export default async function NewReservationPage({
   const initialDate =
     dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : '';
 
+  // The viewer's zone (aeroops-tz cookie, else the server's): "today" and the
+  // conflict times are read in it, so the server HTML matches the browser's
+  // first render. The form is keyed by it: when the first visit's refresh
+  // brings the browser's zone, the form starts over on the right "today".
+  const timeZone = await getViewerTimeZone();
+
   return (
     <div className="space-y-6">
       {/* ── Page heading ──────────────────────────────────────────────────── */}
@@ -123,9 +130,11 @@ export default async function NewReservationPage({
       {/* ── Booking form — rendered when resources exist ────────────────────── */}
       {(hasResources || resourcesError) && (
         <NewReservationForm
+          key={timeZone}
           resources={resources}
           slug={slug}
           initialDate={initialDate}
+          timeZone={timeZone}
           canManageResources={canManageResources}
           backHref={`/o/${slug}/schedule${initialDate ? `?date=${initialDate}` : ''}`}
         />

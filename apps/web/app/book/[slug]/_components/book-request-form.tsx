@@ -361,7 +361,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       {/* Phone (optional) */}
       <div className="space-y-1.5">
         <Label htmlFor="phone">
-          Phone <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+          Phone <span className="text-slate-500 dark:text-slate-400 font-normal">(optional)</span>
         </Label>
         <Input
           id="phone"
@@ -404,7 +404,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       {/* Optional end date + time */}
       <fieldset className="space-y-1.5">
         <legend className="text-sm font-medium text-slate-700 dark:text-slate-300">
-          End date &amp; time <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+          End date &amp; time <span className="text-slate-500 dark:text-slate-400 font-normal">(optional)</span>
         </legend>
         <div className="flex gap-3">
           <Input
@@ -429,7 +429,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       {/* Aircraft type preference (free-text, optional) */}
       <div className="space-y-1.5">
         <Label htmlFor="aircraftTypePref">
-          Aircraft preference <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+          Aircraft preference <span className="text-slate-500 dark:text-slate-400 font-normal">(optional)</span>
         </Label>
         <Input
           id="aircraftTypePref"
@@ -444,7 +444,7 @@ export function BookRequestForm({ slug, orgName }: BookRequestFormProps) {
       {/* Message (optional textarea) */}
       <div className="space-y-1.5">
         <Label htmlFor="message">
-          Message <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+          Message <span className="text-slate-500 dark:text-slate-400 font-normal">(optional)</span>
         </Label>
         <Textarea
           id="message"

@@ -29,7 +29,9 @@
  * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT airworthiness.
  * [VERIFY-T1-B] Training counts = operator state; NOT Part-141 or FAA determination.
  * [VERIFY-M1-A] Maintenance counts = operator data; NOT Part-43/airworthiness/RTS.
- * [VERIFY-R1-TZ] UTC bucketing throughout.
+ * [VERIFY-R1-TZ] Trend buckets are UTC days; event dates (squawk reported,
+ *   reservation cancelled / start) read in the viewer's zone, on the page and
+ *   in the CSVs.
  */
 
 import * as React from 'react';
@@ -51,6 +53,8 @@ import {
   clampReportBarWidth,
 } from './_components/report-utils';
 import type { ReportRangeKey } from './_components/report-utils';
+import { dueStatusLabel, squawkStatusLabel } from './_components/report-labels';
+import { squawkSeverityChip } from '../../squawk-severity';
 import { PageHeader } from '@/components/ui/page-header';
 import { BarTrend } from '@/components/ui/chart';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -58,6 +62,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ExportCsvButton } from '@/components/ui/export-csv-button';
 import { csvDate, csvFilename } from '@/lib/csv-format';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { formatZonedDate } from '@/lib/zoned-format';
 import { isModuleOn } from '../../module-flags';
 
 // ─── Hours footnote (verbatim per spec) ──────────────────────────────────────
@@ -74,6 +80,13 @@ const LEAD_TIME_LABELS: Record<'lt24h' | 'd1_7' | 'gt7d', string> = {
   d1_7: '1–7d',
   gt7d: '>7d',
 };
+
+// The shared squawk severity chip (squawk-severity.ts): High is orange here
+// too, as on the Squawks list and the dashboard (this table had it red).
+function SeverityChip({ severity }: { severity: string }) {
+  const { label, className } = squawkSeverityChip(severity);
+  return <span className={className}>{label}</span>;
+}
 
 // ─── Permission-denied panel (reuses dashboard design) ───────────────────────
 
@@ -253,13 +266,13 @@ function StatNum({
         danger && !isZero
           ? 'text-danger'
           : isZero
-          ? 'text-slate-300'
+          ? 'text-slate-500 dark:text-slate-400'
           : 'text-slate-900 dark:text-slate-100',
       ].join(' ')}
     >
       {value}
       {suffix && (
-        <span className="text-base font-normal text-slate-400 dark:text-slate-500 ml-0.5">{suffix}</span>
+        <span className="text-base font-normal text-slate-500 dark:text-slate-400 ml-0.5">{suffix}</span>
       )}
     </span>
   );
@@ -284,7 +297,7 @@ function StatRow({
       <span className="text-sm text-slate-600 dark:text-slate-300">{label}</span>
       <div className="flex items-center gap-2 shrink-0">
         {note && (
-          <span className="text-xs text-slate-400 dark:text-slate-500">{note}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">{note}</span>
         )}
         <span
           className={[
@@ -292,7 +305,7 @@ function StatRow({
             danger && !isZero
               ? 'text-danger'
               : isZero
-              ? 'text-slate-300'
+              ? 'text-slate-500 dark:text-slate-400'
               : 'text-slate-900 dark:text-slate-100',
           ].join(' ')}
         >
@@ -310,9 +323,15 @@ interface ReportsContentProps {
   range: ReportRangeKey;
   /** Training module on — section E and its read (Slice CLUB-MODE). */
   showTraining: boolean;
+  /**
+   * The viewer's zone (getViewerTimeZone): event dates (reported, cancelled,
+   * reservation start) read as the viewer's calendar day. Trend buckets stay
+   * UTC days. [VERIFY-R1-TZ]
+   */
+  timeZone: string;
 }
 
-async function ReportsContent({ slug, range, showTraining }: ReportsContentProps) {
+async function ReportsContent({ slug, range, showTraining, timeZone }: ReportsContentProps) {
   const result = await getAllReportsAction({ range, includeTraining: showTraining });
 
   // Error state
@@ -450,18 +469,18 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
       r.title,
       r.severity,
       r.status,
-      csvDate(r.reportedAt),
+      csvDate(r.reportedAt, timeZone),
       r.description ?? '',
     ]),
   ];
   const cancellationsCsv: string[][] = [
     ['Cancelled', 'Resource', 'Cancelled by', 'Reason', 'Reservation start', 'Lead time'],
     ...cancellations.rows.map((r) => [
-      csvDate(r.cancelledAt),
+      csvDate(r.cancelledAt, timeZone),
       r.resourceLabel,
       r.cancelledByName,
       r.reason ?? '—',
-      csvDate(r.startAt),
+      csvDate(r.startAt, timeZone),
       LEAD_TIME_LABELS[r.leadTimeBucket],
     ]),
   ];
@@ -486,8 +505,6 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
     s === 'overdue' ? 'danger' : s === 'due_soon' ? 'warning' : s === 'unknown' ? 'neutral' : 'success';
   const squawkStatusVariant = (s: string) =>
     s === 'open' ? 'warning' : s === 'deferred' ? 'info' : 'neutral';
-  const severityVariant = (s: string) =>
-    s === 'grounding' ? 'danger' : s === 'high' ? 'danger' : s === 'medium' ? 'warning' : 'neutral';
 
   return (
     <div className="space-y-8">
@@ -495,7 +512,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
       {/* ── B. Fleet utilization over time ───────────────────────────────── */}
       <section aria-label={`Fleet utilization over time — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
             Fleet utilization over time — last {rangeLbl}
           </p>
           <ExportCsvButton rows={utilizationCsv} filename={csvFilename('utilization-trend')} />
@@ -508,7 +525,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                 Total flights
               </p>
               <StatNum value={utilizationTrend.totalFlights} />
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {utilizationTrend.totalFlights === 0 ? 'none in period' : 'completed dispatches'}
               </p>
             </div>
@@ -519,12 +536,12 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  utilizationTrend.totalFlightHours === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
+                  utilizationTrend.totalFlightHours === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {utilizationTrend.totalFlightHours.toFixed(1)}
               </p>
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">utilization hrs</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">utilization hrs</p>
             </div>
             <div className="px-5 py-4">
               <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -533,12 +550,12 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
               <p
                 className={[
                   'nums mt-1 text-2xl font-bold leading-none',
-                  utilizationTrend.avgHoursPerFlight === 0 ? 'text-slate-300' : 'text-slate-900 dark:text-slate-100',
+                  utilizationTrend.avgHoursPerFlight === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100',
                 ].join(' ')}
               >
                 {utilizationTrend.avgHoursPerFlight.toFixed(1)}
               </p>
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {utilizationTrend.totalFlights === 0 ? '—' : 'per closed dispatch'}
               </p>
             </div>
@@ -563,7 +580,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
               />
             )}
             {utilizationTrend.buckets.length === 0 ? (
-              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-4">
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-4">
                 No bucket data available.
               </p>
             ) : (
@@ -579,7 +596,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                       <span
                         className={[
                           'nums w-8 shrink-0 text-right tabular-nums',
-                          bucket.flightCount === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
+                          bucket.flightCount === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300',
                         ].join(' ')}
                         aria-label={`${bucket.flightCount} flights`}
                       >
@@ -588,7 +605,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                       <span
                         className={[
                           'nums w-12 shrink-0 text-right tabular-nums',
-                          bucket.flightHours === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
+                          bucket.flightHours === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300',
                         ].join(' ')}
                         aria-label={`${bucket.flightHours.toFixed(1)} hours`}
                       >
@@ -611,18 +628,18 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
 
             {/* Range-no-data note */}
             {!hasUtilizationData && !isEmptyOrg && (
-              <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                 No flights in the selected period. Try a wider range.
               </p>
             )}
 
             {/* Empty-org nudge */}
             {isEmptyOrg && (
-              <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                 No aircraft yet.{' '}
                 <Link
                   href={`/o/${slug}/schedule/resources`}
-                  className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+                  className="text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                 >
                   Add aircraft in Resources.
                 </Link>
@@ -631,7 +648,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
           </div>
         </div>
         {/* Hours footnote — verbatim [VERIFY-A] */}
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
           * {HOURS_FOOTNOTE}
         </p>
       </section>
@@ -639,7 +656,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
       {/* ── C. Hours by tail ──────────────────────────────────────────────── */}
       <section aria-label={`Hours by tail — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
             Hours by tail — last {rangeLbl}
           </p>
           <ExportCsvButton rows={hoursByTailCsv} filename={csvFilename('hours-by-tail')} disabled={hoursByTail.length === 0} />
@@ -682,12 +699,12 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500"
+                    className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400"
                   >
                     No active aircraft.{' '}
                     <Link
                       href={`/o/${slug}/schedule/resources`}
-                      className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+                      className="text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                     >
                       Add aircraft in Resources admin.
                     </Link>
@@ -704,7 +721,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                       <td className="px-4 py-3">
                         <Link
                           href={`/o/${slug}/fleet/${row.resourceId}`}
-                          className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
+                          className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline"
                           aria-label={`View details for ${row.tailNumber}`}
                         >
                           {row.tailNumber}
@@ -714,7 +731,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                         <span
                           className={[
                             'nums tabular-nums',
-                            row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
+                            row.flightCount === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300',
                           ].join(' ')}
                         >
                           {row.flightCount}
@@ -724,7 +741,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                         <span
                           className={[
                             'nums tabular-nums',
-                            row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
+                            row.flightHours === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300',
                           ].join(' ')}
                         >
                           {row.flightHours.toFixed(1)}h
@@ -748,7 +765,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
             </tbody>
           </table>
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
           * {HOURS_FOOTNOTE}
         </p>
       </section>
@@ -756,7 +773,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
       {/* ── C2. Aircraft report (FC-parity: flights/hours/oil/fuel) ───────── */}
       <section aria-label={`Aircraft report — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
             Aircraft report — last {rangeLbl}
           </p>
           <ExportCsvButton
@@ -789,11 +806,11 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
             <tbody>
               {aircraftReport.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
                     No active aircraft.{' '}
                     <Link
                       href={`/o/${slug}/schedule/resources`}
-                      className="text-brand underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
+                      className="text-brand dark:text-blue-400 underline underline-offset-2 hover:text-brand-ink dark:hover:text-blue-200"
                     >
                       Add aircraft in Resources admin.
                     </Link>
@@ -808,29 +825,29 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                     <td className="px-4 py-3">
                       <Link
                         href={`/o/${slug}/fleet/${row.resourceId}`}
-                        className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
+                        className="nums font-bold text-slate-900 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline"
                         aria-label={`View details for ${row.tailNumber}`}
                       >
                         {row.tailNumber}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
+                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.flightCount}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
+                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.flightHours.toFixed(1)}h
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.oilAddedQuarts === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
+                      <span className={['nums tabular-nums', row.oilAddedQuarts === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.oilAddedQuarts.toFixed(1)} qt
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.fuelAddedGallons === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
+                      <span className={['nums tabular-nums', row.fuelAddedGallons === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.fuelAddedGallons.toFixed(1)} gal
                       </span>
                     </td>
@@ -840,7 +857,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
             </tbody>
           </table>
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
           * {HOURS_FOOTNOTE} Oil &amp; fuel are operator line-ops uplift figures recorded at check-in — not a maintenance or airworthiness record.
         </p>
       </section>
@@ -848,7 +865,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
       {/* ── D. Reservations & flights trend ──────────────────────────────── */}
       <section aria-label={`Reservations and flights trend — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+          <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
             Reservations &amp; flights trend — last {rangeLbl}
           </p>
           <ExportCsvButton rows={reservationsCsv} filename={csvFilename('reservations-vs-flights')} />
@@ -861,7 +878,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                 Reservations created
               </p>
               <StatNum value={reservationsVsFlights.totalReservationsCreated} />
-              <p className="mt-0.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+              <p className="mt-0.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
                 all statuses incl. cancelled
               </p>
             </div>
@@ -870,7 +887,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                 Flights completed
               </p>
               <StatNum value={reservationsVsFlights.totalFlightsClosed} />
-              <p className="mt-0.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">closed dispatches</p>
+              <p className="mt-0.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">closed dispatches</p>
             </div>
           </div>
 
@@ -910,7 +927,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
               />
             )}
             {reservationsVsFlights.buckets.length === 0 ? (
-              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-4">
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-4">
                 No bucket data available.
               </p>
             ) : (
@@ -928,7 +945,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                         <span
                           className={[
                             'nums block tabular-nums',
-                            bucket.reservationsCreated === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300',
+                            bucket.reservationsCreated === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300',
                           ].join(' ')}
                         >
                           {bucket.reservationsCreated}
@@ -936,7 +953,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                         <span
                           className={[
                             'nums block tabular-nums',
-                            bucket.flightsClosed === 0 ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400',
+                            bucket.flightsClosed === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500 dark:text-slate-400',
                           ].join(' ')}
                         >
                           {bucket.flightsClosed}
@@ -963,7 +980,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
             )}
 
             {!hasResvData && !isEmptyOrg && (
-              <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                 No activity in the selected period. Try a wider range.
               </p>
             )}
@@ -979,7 +996,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
         {trainingThroughput && (
           <section aria-label={`Training throughput — last ${rangeLbl}`}>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+              <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
                 Training throughput — last {rangeLbl}
               </p>
               <ExportCsvButton rows={trainingCsv} filename={csvFilename('training-throughput')} />
@@ -1004,11 +1021,11 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
               />
             </div>
             {!hasTrainingData && !isEmptyOrg && (
-              <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                 No training activity in period. Try a wider range.
               </p>
             )}
-            <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+            <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
               {OPERATOR_COUNT_CAPTION}
             </p>
           </section>
@@ -1017,7 +1034,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
         {/* F. Maintenance trend */}
         <section aria-label={`Maintenance trend — last ${rangeLbl}`}>
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
               Maintenance trend — last {rangeLbl}
             </p>
             <ExportCsvButton rows={maintenanceTrendCsv} filename={csvFilename('maintenance-trend')} />
@@ -1052,11 +1069,11 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
             />
           </div>
           {!hasMaintenanceData && !isEmptyOrg && (
-            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
               No maintenance activity in period. Try a wider range.
             </p>
           )}
-          <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+          <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
             {OPERATOR_COUNT_CAPTION}
           </p>
         </section>
@@ -1114,28 +1131,28 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                     <td className="px-4 py-3">
                       <Link
                         href={`/o/${slug}/people/${row.instructorUserId}`}
-                        className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand underline-offset-2 hover:underline"
+                        className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 underline-offset-2 hover:underline"
                       >
                         {row.instructorName}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
+                      <span className={['nums tabular-nums', row.flightCount === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.flightCount}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
+                      <span className={['nums tabular-nums', row.flightHours === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.flightHours.toFixed(1)}h
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.lessonsGiven === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
+                      <span className={['nums tabular-nums', row.lessonsGiven === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.lessonsGiven}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={['nums tabular-nums', row.distinctStudents === 0 ? 'text-slate-300' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
+                      <span className={['nums tabular-nums', row.distinctStudents === 0 ? 'text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'].join(' ')}>
                         {row.distinctStudents}
                       </span>
                     </td>
@@ -1146,11 +1163,11 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
           )}
         </div>
         {instructorUtilization.length > 0 && !hasInstructorActivity && !isEmptyOrg && (
-          <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
             No instructor activity in the selected period. Try a wider range.
           </p>
         )}
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
           * {HOURS_FOOTNOTE} {OPERATOR_COUNT_CAPTION}
         </p>
       </section>
@@ -1158,7 +1175,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
       {/* ── H. Squawks (org-wide) ─────────────────────────────────────────── */}
       <section aria-label="Squawks — org-wide">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
             <Wrench className="h-3 w-3" aria-hidden="true" />
             Squawks — {squawks.openCount} open · {squawks.deferredCount} deferred · {squawks.resolvedCount} resolved
           </p>
@@ -1189,13 +1206,13 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                     <td className="px-4 py-3 nums font-bold text-slate-900 dark:text-slate-100">{r.tailNumber}</td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{r.title}</td>
                     <td className="px-4 py-3">
-                      <StatusBadge variant={severityVariant(r.severity)}>{r.severity}</StatusBadge>
+                      <SeverityChip severity={r.severity} />
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge variant={squawkStatusVariant(r.status)}>{r.status}</StatusBadge>
+                      <StatusBadge variant={squawkStatusVariant(r.status)}>{squawkStatusLabel(r.status)}</StatusBadge>
                     </td>
                     <td className="px-4 py-3 nums text-slate-500 dark:text-slate-400 text-xs">
-                      {new Date(r.reportedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {formatZonedDate(r.reportedAt, timeZone)}
                     </td>
                   </tr>
                 ))}
@@ -1203,13 +1220,13 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
             </table>
           )}
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">{OPERATOR_COUNT_CAPTION}</p>
+        <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">{OPERATOR_COUNT_CAPTION}</p>
       </section>
 
       {/* ── I. Maintenance reminders (org-wide) ───────────────────────────── */}
       <section aria-label="Maintenance reminders — org-wide">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
             <ClipboardList className="h-3 w-3" aria-hidden="true" />
             Maintenance reminders — {maintenanceReminders.overdueCount} overdue · {maintenanceReminders.dueSoonCount} due soon
           </p>
@@ -1240,17 +1257,17 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                     <td className="px-4 py-3 nums font-bold text-slate-900 dark:text-slate-100">{r.tailNumber}</td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{r.title}</td>
                     <td className="px-4 py-3">
-                      <StatusBadge variant={dueStatusVariant(r.status)}>{r.status.replace('_', ' ')}</StatusBadge>
+                      <StatusBadge variant={dueStatusVariant(r.status)}>{dueStatusLabel(r.status)}</StatusBadge>
                     </td>
                     <td className="px-4 py-3 text-right nums text-slate-600 dark:text-slate-300 text-xs">
-                      {r.dueDate ?? (r.dueValueHours != null ? `${r.dueValueHours.toFixed(1)}h` : <span className="text-slate-300">—</span>)}
+                      {r.dueDate ?? (r.dueValueHours != null ? `${r.dueValueHours.toFixed(1)}h` : <span className="text-slate-500 dark:text-slate-400">—</span>)}
                     </td>
                     <td className="px-4 py-3 text-right nums text-slate-600 dark:text-slate-300 text-xs">
                       {r.remainingHours != null
                         ? `${r.remainingHours.toFixed(1)}h`
                         : r.remainingDays != null
                           ? `${r.remainingDays}d`
-                          : <span className="text-slate-300">—</span>}
+                          : <span className="text-slate-500 dark:text-slate-400">—</span>}
                     </td>
                   </tr>
                 ))}
@@ -1258,7 +1275,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
             </table>
           )}
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
           Arithmetic on operator-entered thresholds vs last-recorded meters — {OPERATOR_COUNT_CAPTION}
         </p>
       </section>
@@ -1266,7 +1283,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
       {/* ── J. Cancellations ──────────────────────────────────────────────── */}
       <section aria-label={`Cancellations — last ${rangeLbl}`}>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+          <p className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
             <CalendarX2 className="h-3 w-3" aria-hidden="true" />
             Cancellations — last {rangeLbl}
           </p>
@@ -1327,12 +1344,12 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
                   {cancellations.rows.map((r) => (
                     <tr key={r.reservationId} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                       <td className="px-4 py-3 nums text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
-                        {new Date(r.cancelledAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {formatZonedDate(r.cancelledAt, timeZone)}
                       </td>
                       <td className="px-4 py-3 nums font-medium text-slate-900 dark:text-slate-100">{r.resourceLabel}</td>
                       <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{r.cancelledByName}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                        {r.reason ?? <span className="text-slate-300">—</span>}
+                        {r.reason ?? <span className="text-slate-500 dark:text-slate-400">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <StatusBadge variant={r.leadTimeBucket === 'lt24h' ? 'danger' : r.leadTimeBucket === 'd1_7' ? 'warning' : 'neutral'}>
@@ -1346,7 +1363,7 @@ async function ReportsContent({ slug, range, showTraining }: ReportsContentProps
             )}
           </div>
         </div>
-        <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="mt-1.5 text-[0.6875rem] text-slate-500 dark:text-slate-400">
           Lead time = notice before the scheduled start (start − cancelled). {OPERATOR_COUNT_CAPTION}
         </p>
       </section>
@@ -1399,6 +1416,8 @@ export default async function ReportsPage({
   }
   const reportsModuleEnabled = isModuleOn(moduleFlags, 'reports');
   const canViewReports = canViewReporting && reportsModuleEnabled;
+  // Event dates on the page (and in its CSVs) read in the viewer's zone.
+  const timeZone = await getViewerTimeZone();
 
   return (
     <div className="space-y-6">
@@ -1420,6 +1439,7 @@ export default async function ReportsPage({
             slug={slug}
             range={range}
             showTraining={isModuleOn(moduleFlags, 'training')}
+            timeZone={timeZone}
           />
         </Suspense>
       )}

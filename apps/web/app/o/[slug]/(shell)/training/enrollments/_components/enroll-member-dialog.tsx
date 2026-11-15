@@ -162,7 +162,7 @@ export function EnrollMemberDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Enroll member in course</DialogTitle>
           </DialogHeader>
@@ -215,7 +215,7 @@ export function EnrollMemberDialog({
                 Member <span aria-hidden="true" className="text-red-500 dark:text-red-400">*</span>
               </Label>
               {loadingMembers ? (
-                <div className="flex items-center gap-2 h-10 px-3 text-sm text-slate-400 dark:text-slate-500">
+                <div className="flex items-center gap-2 h-10 px-3 text-sm text-slate-500 dark:text-slate-400">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   Loading members…
                 </div>

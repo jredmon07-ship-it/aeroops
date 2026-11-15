@@ -41,6 +41,7 @@
  *
  * TIMES AND LABELS FOR PEOPLE:
  *   - times in summaries use opts.timeZone (default: server zone), never raw ISO
+ *   - a reservation links to the board for its start day in that same zone
  *   - entityLabel is the human label; an unlabelled type reads as "a record"
  *
  * Every path the activity feed can link to is checked against the web app's
@@ -64,7 +65,7 @@ import { auditLog, appUser, membership } from '@aeroops/db';
 import { sql } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 
-import { summarizeAuditEntry } from '@aeroops/core';
+import { summarizeAuditEntry, activityPath } from '@aeroops/core';
 import { listActivityWithDb } from '../activity/list-activity.js';
 import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
@@ -541,8 +542,16 @@ describe('Null entity_id → no link', () => {
       (e) => e.actorName === 'System' && e.entityType === 'reservation',
     );
     expect(reservationEntry).toBeDefined();
-    // reservation → /schedule/board (entityId doesn't matter for this entityType)
-    expect(reservationEntry?.entityPath).toBe('/schedule/board');
+    // reservation → the board for its start day (entityId doesn't matter for
+    // this entityType); without opts.timeZone the day is the server zone's.
+    const serverZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    expect(reservationEntry?.entityPath).toBe(activityPath({
+      entityType: 'reservation',
+      entityId: null,
+      metadata: { startAt: '2026-07-15T08:00:00Z' },
+      timeZone: serverZone,
+    }));
+    expect(reservationEntry?.entityPath).toMatch(/^\/schedule\/board\?date=2026-07-1[45]$/);
 
     // For squawk entityType with null entityId → /maintenance/squawks
     // (aircraft_grounding also → /maintenance/squawks regardless of entityId)
@@ -607,6 +616,31 @@ describe('Times and labels for people', () => {
       (e) => e.actorName === 'System' && e.entityType === 'reservation',
     );
     expect(reservationEntry?.summary).toBe('Reservation created starting Jul 15, 2026 03:00 CDT');
+  });
+
+  it('an evening reservation links to the board for its start day in opts.timeZone', async () => {
+    // 19:00 CST on Nov 16 is 01:00 UTC on Nov 17: the UTC day is the next one.
+    const reservationId = '00000000-0000-0000-0007-000000000017';
+    await withOrgContext(env.db, env.orgAId, async (tx) => {
+      await tx.insert(auditLog).values({
+        orgId: env.orgAId,
+        actorUserId: env.userAId,
+        action: 'reservation.created',
+        entityType: 'reservation',
+        entityId: reservationId,
+        metadata: { resourceIds: [], startAt: '2026-11-17T01:00:00.000Z', endAt: '2026-11-17T02:00:00.000Z' },
+      });
+    });
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+
+    const chicago = await listActivityWithDb(env.db, sess, { timeZone: 'America/Chicago', limit: 100 });
+    const inChicago = chicago.entries.find((e) => e.summary.includes('Nov 16, 2026 19:00 CST'));
+    expect(inChicago?.summary).toBe('Reservation created starting Nov 16, 2026 19:00 CST');
+    expect(inChicago?.entityPath).toBe('/schedule/board?date=2026-11-16');
+
+    const utc = await listActivityWithDb(env.db, sess, { timeZone: 'UTC', limit: 100 });
+    const inUtc = utc.entries.find((e) => e.summary.includes('Nov 17, 2026 01:00 UTC'));
+    expect(inUtc?.entityPath).toBe('/schedule/board?date=2026-11-17');
   });
 
   it('without opts.timeZone, times use the server zone', async () => {

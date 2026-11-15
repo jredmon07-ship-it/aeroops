@@ -117,7 +117,7 @@ export function BuildCourseDialog({ slug }: BuildCourseDialogProps) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Build a new course</DialogTitle>
           </DialogHeader>

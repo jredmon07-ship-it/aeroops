@@ -576,7 +576,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
                     }
                     className={fieldErrors.maxDurationMinutes ? 'border-red-500' : ''}
                   />
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Leave blank for no maximum. Must be at least 1 minute.
                   </p>
                   {fieldErrors.maxDurationMinutes && (
@@ -608,7 +608,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
                     }
                     className={fieldErrors.maxAdvanceDays ? 'border-red-500' : ''}
                   />
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Leave blank for no advance limit. 0 = same-day only.
                   </p>
                   {fieldErrors.maxAdvanceDays && (
@@ -640,7 +640,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
                     }
                     className={fieldErrors.minAdvanceMinutes ? 'border-red-500' : ''}
                   />
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Leave blank for no lead time requirement. 0 = last-minute bookings allowed.
                   </p>
                   {fieldErrors.minAdvanceMinutes && (
@@ -658,7 +658,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
                   className="text-sm font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Blackout windows
-                  <span className="ml-1 text-xs font-normal text-slate-400 dark:text-slate-500">
+                  <span className="ml-1 text-xs font-normal text-slate-500 dark:text-slate-400">
                     (times when this resource cannot be booked)
                   </span>
                 </h3>
@@ -675,7 +675,7 @@ export function BookingRulesDialog({ resourceId, displayName }: BookingRulesDial
 
                 {/* Existing blackouts */}
                 {blackouts.length === 0 ? (
-                  <p className="text-xs text-slate-400 dark:text-slate-500">No blackouts configured.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">No blackouts configured.</p>
                 ) : (
                   <ul className="space-y-2" aria-label="Existing blackout windows">
                     {blackouts.map((b) => (
@@ -774,7 +774,7 @@ function BlackoutRow({ blackout, onDelete }: BlackoutRowProps) {
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0 shrink-0 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400"
+            className="h-7 w-7 p-0 shrink-0 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
             aria-label={`Remove blackout ${formatDatetime(blackout.startAt)} – ${formatDatetime(blackout.endAt)}`}
             disabled={pending}
           >

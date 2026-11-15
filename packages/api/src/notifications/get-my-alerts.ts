@@ -19,8 +19,11 @@
  *   - `now` injected (defaults to new Date()) for deterministic tests.
  *
  * TWO CALLING FORMS:
- *   getMyAlerts(session)           — app code; uses getDb() internally.
- *   getMyAlertsWithDb(db, session) — tests; inject pglite client.
+ *   getMyAlerts(session, now?, timeZone?)           — app code; uses getDb() internally.
+ *   getMyAlertsWithDb(db, session, now?, timeZone?) — tests; inject pglite client.
+ *
+ * timeZone (optional, default UTC) is the viewer's zone: an "Upcoming flight"
+ * alert links to /schedule?date=<the flight's start day in that zone>.
  */
 
 import type { AnyDb } from '@aeroops/db';
@@ -37,13 +40,14 @@ async function _getMyAlertsImpl(
   db: AnyDb,
   session: AppSession | null | undefined,
   now: Date = new Date(),
+  timeZone?: string,
 ): Promise<MyAlertsResult> {
   // AUTHZ FIRST: app:access is held by ALL 8 roles (students, renters, staff, etc.)
   requireCapability(session, 'app:access');
 
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
     // SELF-SCOPED: sess.userId only — NEVER a caller-supplied id.
-    const alerts = await deriveMyAlerts(tx, sess.userId, now);
+    const alerts = await deriveMyAlerts(tx, sess.userId, now, timeZone);
     return { alerts, count: alerts.length };
   });
 }
@@ -53,15 +57,18 @@ async function _getMyAlertsImpl(
 /**
  * getMyAlerts — app code form. Uses getDb() internally.
  *
- * @param session - AppSession from auth() (may be null/undefined).
- * @param now     - Reference instant (defaults to new Date(); injected for tests).
+ * @param session  - AppSession from auth() (may be null/undefined).
+ * @param now      - Reference instant (defaults to new Date(); injected for tests).
+ * @param timeZone - The viewer's IANA zone: "Upcoming flight" links open the
+ *                   schedule on the flight's start day there. Default UTC.
  */
 export async function getMyAlerts(
   session: AppSession | null | undefined,
   now: Date = new Date(),
+  timeZone?: string,
 ): Promise<MyAlertsResult> {
   const db = await getDb();
-  return _getMyAlertsImpl(db, session, now);
+  return _getMyAlertsImpl(db, session, now, timeZone);
 }
 
 // ─── Test/injectable form ─────────────────────────────────────────────────────
@@ -69,14 +76,16 @@ export async function getMyAlerts(
 /**
  * getMyAlertsWithDb — test form. Injects a pglite db client.
  *
- * @param db      - The Drizzle database client (pglite test client or prod).
- * @param session - AppSession from auth() (may be null/undefined).
- * @param now     - Reference instant (defaults to new Date(); injected for tests).
+ * @param db       - The Drizzle database client (pglite test client or prod).
+ * @param session  - AppSession from auth() (may be null/undefined).
+ * @param now      - Reference instant (defaults to new Date(); injected for tests).
+ * @param timeZone - The viewer's IANA zone for the links' day. Default UTC.
  */
 export async function getMyAlertsWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   now: Date = new Date(),
+  timeZone?: string,
 ): Promise<MyAlertsResult> {
-  return _getMyAlertsImpl(db, session, now);
+  return _getMyAlertsImpl(db, session, now, timeZone);
 }

@@ -541,7 +541,10 @@ export {
   getMaintenanceDueSummary,
   getMaintenanceDueSummaryWithDb,
 } from './maintenance/list-maintenance-due.js';
-export type { ListMaintenanceDueInput } from './maintenance/list-maintenance-due.js';
+export type {
+  ListMaintenanceDueInput,
+  GetMaintenanceDueSummaryInput,
+} from './maintenance/list-maintenance-due.js';
 
 export {
   notifyMaintenanceDue,

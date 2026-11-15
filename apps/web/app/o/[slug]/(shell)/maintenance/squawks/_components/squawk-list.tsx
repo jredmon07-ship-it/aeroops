@@ -20,6 +20,7 @@ import type { SquawkView, ResourceRow } from '@aeroops/api';
 import type { SquawkSeverity, SquawkStatus } from '@aeroops/core';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { formatZonedDateTime } from '@/lib/zoned-format';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,11 @@ interface SquawkListProps {
   aircraft: ResourceRow[];
   canSquawk: boolean;
   canGround: boolean;
+  /**
+   * The viewer's zone, resolved by the page (getViewerTimeZone). Times format
+   * in it on the server and in the browser alike, so hydration matches.
+   */
+  timeZone: string;
 }
 
 // ─── Chip helpers ─────────────────────────────────────────────────────────────
@@ -66,20 +72,6 @@ function StatusChip({ status }: { status: SquawkStatus }) {
   );
 }
 
-function formatDate(d: Date): string {
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(d);
-  } catch {
-    return d.toLocaleString();
-  }
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function SquawkList({
@@ -87,6 +79,7 @@ export function SquawkList({
   aircraft,
   canSquawk,
   canGround,
+  timeZone,
 }: SquawkListProps) {
   const [squawks, setSquawks] = React.useState<SquawkView[]>(initialSquawks);
 
@@ -159,7 +152,7 @@ export function SquawkList({
             className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             <option value="">All aircraft</option>
-            {aircraft.map((r) => (
+            {aircraft.filter((r) => r.active).map((r) => (
               <option key={r.id} value={r.id}>
                 {r.tailNumber ?? r.displayName}
               </option>
@@ -268,7 +261,7 @@ export function SquawkList({
                       dateTime={squawk.reportedAt instanceof Date ? squawk.reportedAt.toISOString() : String(squawk.reportedAt)}
                       className="text-xs text-slate-500 dark:text-slate-400 nums"
                     >
-                      {formatDate(squawk.reportedAt instanceof Date ? squawk.reportedAt : new Date(squawk.reportedAt))}
+                      {formatZonedDateTime(squawk.reportedAt, timeZone)}
                     </time>
                   </td>
                   <td className="px-3 py-3">
@@ -293,7 +286,7 @@ export function SquawkList({
                       </div>
                     )}
                     {squawk.status !== 'open' && (
-                      <span className="text-xs text-slate-400 dark:text-slate-500 italic">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 italic">
                         {squawk.status === 'resolved' ? 'Resolved' : 'Deferred'}
                       </span>
                     )}
@@ -320,7 +313,7 @@ export function SquawkList({
       <ReportSquawkDialog
         open={reportOpen}
         onOpenChange={setReportOpen}
-        aircraft={aircraft}
+        aircraft={aircraft.filter((a) => a.active)}
         canGround={canGround}
         onSuccess={handleReportSuccess}
       />

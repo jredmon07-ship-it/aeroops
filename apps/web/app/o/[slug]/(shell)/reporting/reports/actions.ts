@@ -21,6 +21,8 @@
 'use server';
 
 import { actionAuth as auth } from '@/lib/action-auth';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { dayInZone } from '@/lib/schedule-day';
 import {
   getUtilizationTrend,
   getHoursByTail,
@@ -333,6 +335,8 @@ export async function getAllReportsAction(input?: {
   const includeTraining = input?.includeTraining ?? true;
 
   try {
+    // Date reminders are due against the viewer's calendar day, not UTC's.
+    const today = dayInZone(new Date(), await getViewerTimeZone());
     const [
       utilizationTrend,
       hoursByTail,
@@ -354,7 +358,7 @@ export async function getAllReportsAction(input?: {
         getMaintenanceTrend(session, { range }),
         getInstructorUtilization(session, { range }),
         getSquawksReport(session, {}),
-        getMaintenanceRemindersReport(session, {}),
+        getMaintenanceRemindersReport(session, { today }),
         getCancellationsReport(session, { range }),
       ]);
 

@@ -3,7 +3,8 @@
  *
  * Single action: searchOrgAction(query: string)
  *   1. await auth() → session.
- *   2. searchOrg(session, { query }) — requireCapability + RLS inside.
+ *   2. searchOrg(session, { query, timeZone }) — requireCapability + RLS
+ *      inside; timeZone is the viewer's (reservation times + board day).
  *   3. UnauthenticatedError → safe { groups: [] } (palette shows empty, not forbidden).
  *
  * INVARIANTS:
@@ -17,6 +18,7 @@
 'use server';
 
 import { actionAuth as auth } from '@/lib/action-auth';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 import { searchOrg, UnauthenticatedError } from '@aeroops/api';
 import type { SearchOrgResult } from '@aeroops/api';
 
@@ -37,7 +39,9 @@ export async function searchOrgAction(
 ): Promise<SearchOrgResult | { error: true }> {
   const session = await auth();
   try {
-    return await searchOrg(session, { query });
+    // Reservation results read their start, and open the board on its day,
+    // in the viewer's zone (the aeroops-tz cookie) rather than UTC.
+    return await searchOrg(session, { query, timeZone: await getViewerTimeZone() });
   } catch (err) {
     if (err instanceof UnauthenticatedError) {
       // Palette shows the "no matches" / empty state — not an error screen.

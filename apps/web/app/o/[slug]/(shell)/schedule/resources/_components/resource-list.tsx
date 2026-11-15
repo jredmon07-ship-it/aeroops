@@ -157,7 +157,7 @@ function AircraftSection({ activeAircraft, inactiveAircraft, onDeactivated }: Ai
     <div className="space-y-6 pt-4">
       {activeAircraft.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 px-1">
             Active
           </h2>
           <div className="space-y-2">
@@ -173,7 +173,7 @@ function AircraftSection({ activeAircraft, inactiveAircraft, onDeactivated }: Ai
       )}
       {inactiveAircraft.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 px-1">
             Inactive
           </h2>
           <div className="space-y-2">
@@ -210,7 +210,7 @@ function InstructorsSection({ activeInstructors, inactiveInstructors, onDeactiva
     <div className="space-y-6 pt-4">
       {activeInstructors.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 px-1">
             Active
           </h2>
           <div className="space-y-2">
@@ -226,7 +226,7 @@ function InstructorsSection({ activeInstructors, inactiveInstructors, onDeactiva
       )}
       {inactiveInstructors.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 px-1">
             Inactive
           </h2>
           <div className="space-y-2">

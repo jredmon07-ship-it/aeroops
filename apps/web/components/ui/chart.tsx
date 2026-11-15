@@ -94,7 +94,7 @@ export function BarTrend({
 
       {isEmpty ? (
         <div
-          className="flex items-center justify-center rounded-md border border-dashed border-slate-200 dark:border-slate-800 text-sm text-slate-400 dark:text-slate-500"
+          className="flex items-center justify-center rounded-md border border-dashed border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400"
           style={{ height }}
         >
           {emptyLabel}
@@ -140,7 +140,7 @@ export function BarTrend({
         {categories.map((cat, i) => (
           <div
             key={i}
-            className="min-w-0 flex-1 truncate text-center text-[0.625rem] leading-tight text-slate-400 dark:text-slate-500"
+            className="min-w-0 flex-1 truncate text-center text-[0.625rem] leading-tight text-slate-500 dark:text-slate-400"
           >
             {i % labelStep === 0 ? cat : ''}
           </div>

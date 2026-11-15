@@ -22,6 +22,11 @@ import type { ReservationRow, ResourceRow } from '@aeroops/api';
 
 interface ReservationCardProps {
   reservation: ReservationRow;
+  /**
+   * The viewer's IANA zone the page resolved. The time range is read on its
+   * clock, so the server's HTML and the browser's first render agree.
+   */
+  timeZone: string;
   resourceMap: Map<string, ResourceRow>;
   canCancel: boolean;
   onCancelled: (reservationId: string) => void;
@@ -37,6 +42,7 @@ interface ReservationCardProps {
 
 export function ReservationCard({
   reservation,
+  timeZone,
   resourceMap,
   canCancel,
   onCancelled,
@@ -45,7 +51,7 @@ export function ReservationCard({
 }: ReservationCardProps) {
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
-  const timeRange = formatTimeRange(reservation.startAt, reservation.endAt);
+  const timeRange = formatTimeRange(reservation.startAt, reservation.endAt, timeZone);
   const sortedIds = sortResourceIds(reservation.resourceIds, resourceMap);
 
   const resourceNames = sortedIds
@@ -99,7 +105,7 @@ export function ReservationCard({
           const row = resourceMap.get(id);
           if (!row) {
             return (
-              <span key={id} className="text-sm text-slate-400 dark:text-slate-500 italic">
+              <span key={id} className="text-sm text-slate-500 dark:text-slate-400 italic">
                 Unknown resource
               </span>
             );

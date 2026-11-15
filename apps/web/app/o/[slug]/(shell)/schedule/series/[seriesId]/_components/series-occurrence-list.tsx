@@ -5,6 +5,12 @@
  * Spec §4.2 (Slice 2b): Occurrence list (start–end local, status booked/cancelled/past).
  * Also renders the cancel-series dialog trigger and success/error feedback.
  *
+ * Dates and times are read in the series' own zone — the one its rule (start
+ * time, weekdays) is defined in and the summary above names — or, for a
+ * series without one, the viewer's zone the page resolved. Never the
+ * runtime's own zone: that is UTC on the server and the viewer's in the
+ * browser, and the two renders would not match.
+ *
  * States: empty / populated / success (toast inline) / error.
  */
 'use client';
@@ -15,36 +21,22 @@ import { Calendar } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { CancelSeriesDialog } from './cancel-series-dialog';
+import { formatTimeRange } from '../../../_utils/format-time';
 import type { ReservationRow, SeriesRow } from '@aeroops/api';
 
 // ─── Tz-aware formatting helpers ─────────────────────────────────────────────
 
 /**
- * Format a time range as "HH:mm – HH:mm" in the given IANA tz.
- * Falls back to browser tz when tz is undefined/null (matching legacy behaviour).
- */
-function formatTimeRangeTz(start: Date, end: Date, tz?: string | null): string {
-  const opts: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    ...(tz ? { timeZone: tz } : {}),
-  };
-  const fmt = new Intl.DateTimeFormat(undefined, opts);
-  return `${fmt.format(start)} – ${fmt.format(end)}`;
-}
-
-/**
  * Format a Date as a long human-readable date string in the given IANA tz.
  * e.g. "Monday, June 16, 2026"
  */
-function formatDateTz(date: Date, tz?: string | null): string {
+function formatDateTz(date: Date, tz: string): string {
   return new Intl.DateTimeFormat(undefined, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    ...(tz ? { timeZone: tz } : {}),
+    timeZone: tz,
   }).format(date);
 }
 
@@ -53,6 +45,8 @@ interface SeriesOccurrenceListProps {
   occurrences: ReservationRow[];
   slug: string;
   canCancel: boolean;
+  /** The viewer's IANA zone the page resolved; used when the series has none. */
+  timeZone: string;
 }
 
 /** Derive human-readable status + badge variant per occurrence. */
@@ -83,10 +77,11 @@ export function SeriesOccurrenceList({
   occurrences,
   slug,
   canCancel,
+  timeZone,
 }: SeriesOccurrenceListProps) {
   // Resolve IANA tz from the series row (supports both camelCase and snake_case
-  // variants of SeriesRow — see types.ts dual-form interface).
-  const seriesTz: string | null = (series.ianaTz ?? series.iana_tz) || null;
+  // variants of SeriesRow — see types.ts dual-form interface), else the viewer's.
+  const seriesTz: string = (series.ianaTz ?? series.iana_tz) || timeZone;
 
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
@@ -194,7 +189,7 @@ export function SeriesOccurrenceList({
           <p className="text-slate-600 dark:text-slate-300">No occurrences found for this series.</p>
           <Link
             href={`/o/${slug}/schedule`}
-            className="text-sm text-brand underline hover:no-underline"
+            className="text-sm text-brand dark:text-blue-400 underline hover:no-underline"
           >
             Back to Schedule
           </Link>
@@ -203,7 +198,7 @@ export function SeriesOccurrenceList({
         <div className="space-y-2">
           {localOccurrences.map((r, idx) => {
             const { label, variant } = occurrenceStatus(r);
-            const timeRange = formatTimeRangeTz(r.startAt, r.endAt, seriesTz);
+            const timeRange = formatTimeRange(r.startAt, r.endAt, seriesTz);
             const dateLabel = formatDateTz(r.startAt, seriesTz);
             return (
               <article

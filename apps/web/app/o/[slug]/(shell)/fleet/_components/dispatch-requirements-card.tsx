@@ -124,7 +124,7 @@ function AddRequirementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Add dispatch requirement</DialogTitle>
         </DialogHeader>
@@ -268,7 +268,7 @@ export function DispatchRequirementsCard({
       {/* ── Card header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <ShieldCheck className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Dispatch requirements
           </h2>
@@ -292,7 +292,7 @@ export function DispatchRequirementsCard({
       </div>
 
       {/* ── [VERIFY-3c-A] operator-data framing ─────────────────────────── */}
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Required tags (free-text labels you define). A pilot must carry a matching
         tag to be checked out in this aircraft. These are operator-defined labels
         only — no regulatory or eligibility determination is computed.
@@ -318,7 +318,7 @@ export function DispatchRequirementsCard({
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {!loading && !loadError && tags !== null && tags.length === 0 && (
-        <p className="text-sm text-slate-400 dark:text-slate-500 italic">
+        <p className="text-sm text-slate-500 dark:text-slate-400 italic">
           No dispatch requirements. Any qualified pilot can be checked out in this aircraft.
         </p>
       )}
@@ -343,7 +343,7 @@ export function DispatchRequirementsCard({
                   onClick={() => handleRemove(t.id, t.requiredTag)}
                   disabled={removingIds.has(t.id)}
                   aria-label={`Remove requirement: ${t.requiredTag}`}
-                  className="ml-0.5 rounded-sm text-brand/60 hover:text-red-500 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
+                  className="ml-0.5 rounded-sm text-brand dark:text-blue-300 hover:text-red-500 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500 disabled:opacity-50"
                 >
                   {removingIds.has(t.id) ? (
                     <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />

@@ -283,7 +283,7 @@ function UploadStep({ kind, onFileSelected }: { kind: ImportKind; onFileSelected
   const inputRef = React.useRef<HTMLInputElement>(null);
   return (
     <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-10 text-center space-y-3">
-      <Upload className="h-8 w-8 mx-auto text-slate-400 dark:text-slate-500" aria-hidden="true" />
+      <Upload className="h-8 w-8 mx-auto text-slate-500 dark:text-slate-400" aria-hidden="true" />
       <p className="text-sm text-slate-600 dark:text-slate-300">
         Upload a {kind === 'members' ? 'Users Export' : 'aircraft list'} CSV from your previous provider.
       </p>
@@ -506,7 +506,7 @@ function RowStatusChip({ status, errorDetail }: { status: string; errorDetail: s
   }
   return (
     <span
-      className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-destructive"
+      className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700 dark:text-red-400"
       title={errorDetail ?? undefined}
     >
       Error{errorDetail ? `: ${errorDetail}` : ''}
@@ -568,7 +568,7 @@ function HistorySection({ kind, refreshKey }: { kind: ImportKind; refreshKey: nu
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <History className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+        <History className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Import history</h2>
       </div>
 
@@ -652,9 +652,12 @@ function BatchStatusChip({ status, outOfScope }: { status: string; outOfScope: b
       </span>
     );
   }
+  // 'failed' (or 'pending', which a listed batch should not be): a label,
+  // never the raw status value.
+  const label = status === 'failed' ? 'Failed' : status === 'pending' ? 'Pending' : status;
   return (
-    <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-destructive">
-      {status}
+    <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 text-red-700 dark:text-red-400">
+      {label}
     </span>
   );
 }

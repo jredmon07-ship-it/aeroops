@@ -333,7 +333,7 @@ export function ConvertDialog({
           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{row.requesterName}</p>
           <a
             href={`mailto:${row.requesterEmail}`}
-            className="text-sm text-brand hover:underline underline-offset-2 block"
+            className="text-sm text-brand dark:text-blue-400 hover:underline underline-offset-2 block"
           >
             {row.requesterEmail}
           </a>

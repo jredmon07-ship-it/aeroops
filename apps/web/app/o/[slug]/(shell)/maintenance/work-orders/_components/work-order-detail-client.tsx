@@ -41,6 +41,17 @@ interface WorkOrderDetailClientProps {
   canWorkOrder: boolean;
   canResolveSquawk: boolean;
   canUnground: boolean;
+  /**
+   * The viewer's zone, resolved by the page (getViewerTimeZone). Times format
+   * in it on the server and in the browser alike, so hydration matches.
+   */
+  timeZone: string;
+  /**
+   * The aircraft's tail # for the "Aircraft:" link (the page reads it with the
+   * grounding status). null when that read is unavailable: the link then says
+   * "View aircraft", never the resource id.
+   */
+  aircraftTailNumber?: string | null;
 }
 
 // ─── Severity chip ────────────────────────────────────────────────────────────
@@ -61,6 +72,8 @@ export function WorkOrderDetailClient({
   canWorkOrder,
   canResolveSquawk,
   canUnground,
+  timeZone,
+  aircraftTailNumber = null,
 }: WorkOrderDetailClientProps) {
   const [workOrder, setWorkOrder] = React.useState(initialWorkOrder);
   const [completeOpen, setCompleteOpen] = React.useState(false);
@@ -145,13 +158,13 @@ export function WorkOrderDetailClient({
             Aircraft:{' '}
             <Link
               href={`/o/${slug}/fleet/${workOrder.resourceId}`}
-              className="font-mono nums text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
+              className="font-mono nums text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
             >
-              {workOrder.resourceId}
+              {aircraftTailNumber ?? 'View aircraft'}
             </Link>
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            Opened {formatDateTime(workOrder.openedAt)}
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Opened {formatDateTime(workOrder.openedAt, timeZone)}
           </p>
         </div>
 
@@ -253,13 +266,13 @@ export function WorkOrderDetailClient({
       {/* ── Work performed ────────────────────────────────────────────────── */}
       <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-1.5">
         <div className="flex items-center gap-2">
-          <WrenchIcon className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <WrenchIcon className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Work Performed</h2>
         </div>
         {workOrder.workPerformed ? (
           <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{workOrder.workPerformed}</p>
         ) : (
-          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No work performed notes.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 italic">No work performed notes.</p>
         )}
       </div>
 
@@ -280,7 +293,7 @@ export function WorkOrderDetailClient({
               <p className="text-green-700 dark:text-green-300 italic">Signer not recorded (account removed).</p>
             )}
             {workOrder.signedOffAt && (
-              <p className="text-green-700 dark:text-green-300 text-xs">{formatDateTime(workOrder.signedOffAt)}</p>
+              <p className="text-green-700 dark:text-green-300 text-xs">{formatDateTime(workOrder.signedOffAt, timeZone)}</p>
             )}
             {workOrder.signOffNotes && (
               <p className="text-green-800 dark:text-green-200 text-sm mt-1 whitespace-pre-wrap">
@@ -306,9 +319,9 @@ export function WorkOrderDetailClient({
             {workOrder.cancelledReason ?? '—'}
           </p>
           {workOrder.cancelledAt && (
-            <p className="text-xs text-slate-400 dark:text-slate-500">{formatDateTime(workOrder.cancelledAt)}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{formatDateTime(workOrder.cancelledAt, timeZone)}</p>
           )}
-          <p className="text-xs text-slate-400 dark:text-slate-500 italic">
+          <p className="text-xs text-slate-500 dark:text-slate-400 italic">
             Cancellation does not resolve squawks or return the aircraft to service.
           </p>
         </div>

@@ -14,7 +14,6 @@ import type { BoardBlock as BoardBlockData } from '../_utils/board-layout';
 import { BoardBlock } from './board-block';
 import { BoardDropZones } from './board-drop-zones';
 import { BoardSnapPreview } from './board-snap-preview';
-import { TRACK_WIDTH_PX } from './board-time-axis';
 
 interface BoardResourceRowProps {
   resource: ResourceRow;
@@ -31,7 +30,16 @@ interface BoardResourceRowProps {
   isDropTarget: boolean;
   /** Snap-preview slot (only shown when isDropTarget). */
   snapPreview: { newStartAt: Date; newEndAt: Date; hue: number } | null;
+  /** Epoch ms of the day's first instant (the track's left edge). */
   dayStartMs: number;
+  /** Epoch ms of the next day's first instant (the track's right edge). */
+  dayEndMs: number;
+  /** The track's width: trackWidthPx(dayStartMs, dayEndMs). */
+  trackWidthPx: number;
+  /** The day's 15-min drop cells: quarterCount(dayStartMs, dayEndMs). */
+  cellCount: number;
+  /** The viewer's IANA zone, for the blocks' time labels. */
+  timeZone: string;
   /** Map from reservationId → dispatch ticket (or null) for this day. */
   dispatchTickets: Map<string, DispatchTicketView | null>;
   onBlockDragStart: (e: React.DragEvent<HTMLDivElement>, block: BoardBlockData) => void;
@@ -62,6 +70,10 @@ export function BoardResourceRow({
   isDropTarget,
   snapPreview,
   dayStartMs,
+  dayEndMs,
+  trackWidthPx,
+  cellCount,
+  timeZone,
   dispatchTickets,
   onBlockDragStart,
   onBlockDragEnd,
@@ -82,11 +94,12 @@ export function BoardResourceRow({
       role="row"
       aria-label={`${resource.kind === 'aircraft' ? 'Aircraft' : 'Instructor'} ${resource.displayName}`}
       className="relative h-16 border-b border-slate-100 dark:border-slate-800 flex-shrink-0"
-      style={{ width: TRACK_WIDTH_PX }}
+      style={{ width: trackWidthPx }}
     >
       {/* Drop zones — only during active drag */}
       {isDragActive && (
         <BoardDropZones
+          cellCount={cellCount}
           hoveredCellIndex={isDropTarget ? hoveredCellIndex : null}
           onDragOver={(e, cellIndex) =>
             onDropZoneDragOver(e, cellIndex, resource.id)
@@ -104,6 +117,8 @@ export function BoardResourceRow({
           newStartAt={snapPreview.newStartAt}
           newEndAt={snapPreview.newEndAt}
           dayStartMs={dayStartMs}
+          dayEndMs={dayEndMs}
+          timeZone={timeZone}
           hue={snapPreview.hue}
         />
       )}
@@ -113,6 +128,7 @@ export function BoardResourceRow({
         <BoardBlock
           key={`${block.reservationId}-${block.resourceId}`}
           block={block}
+          timeZone={timeZone}
           canDrag={canDrag}
           canDispatch={canDispatch}
           draggedReservationId={draggedReservationId}

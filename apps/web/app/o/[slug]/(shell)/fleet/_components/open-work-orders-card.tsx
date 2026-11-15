@@ -70,7 +70,7 @@ export function OpenWorkOrdersCard({
       <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <Wrench className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Open Work Orders</h2>
             {displayCount > 0 && (
               <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink dark:text-blue-200">
@@ -81,7 +81,7 @@ export function OpenWorkOrdersCard({
           <div className="flex items-center gap-2">
             <Link
               href={`/o/${slug}/maintenance/work-orders?resourceId=${resourceId}`}
-              className="text-xs text-brand hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
+              className="text-xs text-brand dark:text-blue-400 hover:text-brand-ink dark:hover:text-blue-200 underline underline-offset-2"
             >
               View all work orders
             </Link>
@@ -94,7 +94,7 @@ export function OpenWorkOrdersCard({
         </div>
 
         {localWorkOrders.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No open work orders.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 italic">No open work orders.</p>
         ) : (
           <div className="space-y-1.5">
             {localWorkOrders.map((wo) => (
@@ -106,7 +106,7 @@ export function OpenWorkOrdersCard({
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Link
                       href={`/o/${slug}/maintenance/work-orders/${wo.id}`}
-                      className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-brand hover:underline underline-offset-2 truncate"
+                      className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 hover:underline underline-offset-2 truncate"
                     >
                       {wo.title}
                     </Link>

@@ -20,6 +20,7 @@
  *   P7  — past / cancelled reservations excluded.
  *   P8  — getMyAccount returns own tags only; no status / hasLogin fields.
  *   P9  — getMyPortalSummary bundles the 3 self-scoped facets.
+ *   P10 — an instructor on a reservation is labelled by name, never by id.
  *
  * NO writes, NO audit, NO money, NO migration (read-only slice).
  */
@@ -534,5 +535,84 @@ describe('P9 — training progress', () => {
     expect(courseA?.completedCount).toBe(1);
     expect(courseA?.totalLessons).toBe(2);
     expect(courseA?.progressRatio.percent).toBe(50);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// P10 — a reservation line with an instructor shows the instructor's name.
+// The portal printed the instructor resource's raw id (COALESCE(tail_number,
+// resource_id)); an instructor has no tail number, so the line read
+// "N…, 3f2a…-uuid". It now falls back to the resource's display name.
+// ════════════════════════════════════════════════════════════════════════════
+
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+describe('P10 — instructor resources are labelled by name, never by id', () => {
+  it('a dual lesson lists the tail # and the instructor name; no uuid', async () => {
+    const { db, orgAId, ownerAId } = env;
+    const sId = await seedMember(db, orgAId, `dual-p10-${Date.now()}@alpha.example`, 'student');
+    const cfiId = await seedMember(db, orgAId, `cfi-p10-${Date.now()}@alpha.example`, 'cfi');
+    const ownerSess = makeSession(orgAId, ownerAId, 'owner');
+    const aircraft = await createResourceWithDb(db, ownerSess, {
+      kind: 'aircraft', displayName: 'Dual AC', tailNumber: 'NDUAL10',
+    });
+    const instructor = await createResourceWithDb(db, ownerSess, {
+      kind: 'instructor', displayName: 'Pat Example (CFI)', instructorUserId: cfiId,
+    });
+    // created_by = the student (a booker session for that user, as seedReservation does).
+    const r = await createReservationWithDb(db, makeSession(orgAId, sId, 'owner'), {
+      startAt: FUT(80, 8), endAt: FUT(80, 10), resourceIds: [aircraft.id, instructor.id],
+    });
+    expect(r.ok).toBe(true);
+
+    const rows = await getMyReservationsWithDb(db, makeSession(orgAId, sId, 'student'));
+    expect(rows).toHaveLength(1);
+    expect([...rows[0]!.resourceIds].sort()).toEqual(['NDUAL10', 'Pat Example (CFI)']);
+    expect(rows[0]!.resourceIds).not.toContain(instructor.id);
+    expect(rows[0]!.resourceIds.some((l) => UUID_RE.test(l))).toBe(false);
+
+    // The portal page reads the bundled summary: same labels there.
+    const s = await getMyPortalSummaryWithDb(db, makeSession(orgAId, sId, 'student'));
+    expect([...s.reservations[0]!.resourceIds].sort()).toEqual(['NDUAL10', 'Pat Example (CFI)']);
+  });
+
+  it('an aircraft-only line is unchanged (tail # only)', async () => {
+    const { db, orgAId, studentAId } = env;
+    const rows = await getMyReservationsWithDb(db, makeSession(orgAId, studentAId, 'student'));
+    const own = rows.find((r) => r.resourceIds.includes('NAAA111'));
+    expect(own?.resourceIds).toEqual(['NAAA111']);
+  });
+
+  it("the alerts bell's upcoming-flight alert names the aircraft, never an id", async () => {
+    // Same self-scoped reservation read, in notifications/internal.ts: it took
+    // the FIRST resource row's label, and an instructor row's label was its id.
+    const { db, orgAId, ownerAId } = env;
+    const sId = await seedMember(db, orgAId, `alert-p10-${Date.now()}@alpha.example`, 'student');
+    const cfiId = await seedMember(db, orgAId, `alertcfi-p10-${Date.now()}@alpha.example`, 'cfi');
+    const ownerSess = makeSession(orgAId, ownerAId, 'owner');
+    // Instructor created first, so its row is not ahead by insertion order alone.
+    const instructor = await createResourceWithDb(db, ownerSess, {
+      kind: 'instructor', displayName: 'Alex Example (CFI)', instructorUserId: cfiId,
+    });
+    const aircraft = await createResourceWithDb(db, ownerSess, {
+      kind: 'aircraft', displayName: 'Alert AC', tailNumber: 'NALRT10',
+    });
+    const start = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    start.setUTCSeconds(0, 0);
+    const r = await createReservationWithDb(db, makeSession(orgAId, sId, 'owner'), {
+      startAt: start, endAt: new Date(start.getTime() + 60 * 60 * 1000),
+      resourceIds: [instructor.id, aircraft.id],
+    });
+    expect(r.ok).toBe(true);
+
+    const { getMyAlertsWithDb } = await import('../notifications/get-my-alerts.js');
+    const res = await getMyAlertsWithDb(db, makeSession(orgAId, sId, 'student'));
+    const upcoming = res.alerts.filter((a) => a.kind === 'reservation_upcoming');
+    expect(upcoming).toHaveLength(1);
+    expect(upcoming[0]!.title).toBe('Upcoming flight: NALRT10');
+    for (const a of res.alerts) {
+      expect(UUID_RE.test(a.title), a.title).toBe(false);
+      expect(UUID_RE.test(a.detail), a.detail).toBe(false);
+    }
   });
 });

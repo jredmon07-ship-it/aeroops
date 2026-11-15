@@ -12,6 +12,9 @@
  * Accessibility:
  *   - Trigger has aria-label="Open navigation menu"
  *   - SheetTitle describes the drawer for screen readers
+ *   - aria-describedby={undefined}: a nav list has nothing to describe; it
+ *     tells Radix the drawer has no Description on purpose (without it every
+ *     open logged "Missing `Description` or `aria-describedby={undefined}`")
  *   - Nav links close the drawer on click (SheetClose as child)
  *   - Focus moves to the first link when the drawer opens (Radix default)
  *   - The role badge keeps the header's aria-label ("Role: Owner")
@@ -68,7 +71,7 @@ export function MobileNav({
           <Menu className="h-5 w-5" aria-hidden="true" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="flex flex-col">
+      <SheetContent className="flex flex-col" aria-describedby={undefined}>
         <SheetHeader>
           <SheetTitle>{orgName}</SheetTitle>
         </SheetHeader>

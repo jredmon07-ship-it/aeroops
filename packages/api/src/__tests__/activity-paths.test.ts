@@ -103,16 +103,23 @@ describe('activity links resolve to web routes', () => {
     const metadatas = [
       {},
       { resourceId: '0b0c5c6e-0000-4000-8000-000000000002', courseId: '0b0c5c6e-0000-4000-8000-000000000003' },
+      // reservation.created / reservation.rescheduled carry the start: the
+      // link opens the board on that day (?date=…).
+      { startAt: '2026-11-17T01:00:00.000Z' },
+      { newWindow: { startAt: '2026-11-20T04:30:00.000Z', endAt: '2026-11-20T05:30:00.000Z' } },
     ];
     const paths = new Set<string>();
     for (const entityType of [...ACTIVITY_ENTITY_TYPES, 'unlabelled_entity']) {
       for (const entityId of ids) {
         for (const metadata of metadatas) {
-          const path = activityPath({ entityType, entityId, metadata });
-          if (path !== null) paths.add(path);
+          for (const timeZone of [undefined, 'America/Chicago']) {
+            const path = activityPath({ entityType, entityId, metadata, timeZone });
+            if (path !== null) paths.add(path);
+          }
         }
       }
     }
+    expect(paths).toContain('/schedule/board?date=2026-11-16');
 
     expect(paths.size).toBeGreaterThan(5);
     const broken = [...paths].filter((path) => !isWebRoute(path));

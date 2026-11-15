@@ -16,6 +16,9 @@
 'use server';
 
 import { actionAuth as auth } from '@/lib/action-auth';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { dayInZone, dayWindow } from '@/lib/schedule-day';
+import { zoneAbbreviation } from '@/lib/zoned-format';
 import {
   getOrgDashboardMetrics,
   getAircraftUtilization,
@@ -118,7 +121,8 @@ export interface SerializedSquawkView {
   id: string;
   resourceId: string;
   title: string;
-  severity: string;
+  /** Typed from the API row so a severity the chip map lacks fails typecheck. */
+  severity: SquawkView['severity'];
   status: string;
   reportedAt: string;
 }
@@ -242,23 +246,37 @@ export async function getAircraftUtilizationAction(input?: {
 // ─── getTodaysFlightsAction ───────────────────────────────────────────────────
 
 export type GetTodaysFlightsActionResult =
-  | { ok: true; reservations: SerializedReservationRow[]; tzNote: string }
+  | {
+      ok: true;
+      reservations: SerializedReservationRow[];
+      /** The zone's short name for the card's label, e.g. "CST". */
+      tzNote: string;
+      /** The viewer's IANA zone the day and the times are in. */
+      timeZone: string;
+      /** The viewer's calendar day, "YYYY-MM-DD". */
+      today: string;
+    }
   | AuthErrorResult
   | ServerErrorResult;
 
 export async function getTodaysFlightsAction(): Promise<GetTodaysFlightsActionResult> {
   const session = await auth();
-  // [VERIFY-7-TZ]: UTC-day fallback with label. Rolling metrics are tz-neutral.
-  const now = new Date();
-  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
   try {
-    const reservations = await listReservations(session, { from: todayStart, to: todayEnd });
+    // "Today" is the viewer's calendar day, from its first instant to the next
+    // day's (DST days are 23 or 25 hours), the same window the schedule and
+    // the board query. Rolling metrics are tz-neutral.
+    const now = new Date();
+    const timeZone = await getViewerTimeZone();
+    const today = dayInZone(now, timeZone);
+    const { from, to } = dayWindow(today, timeZone);
+    const reservations = await listReservations(session, { from, to });
     return {
       ok: true,
       reservations: reservations.map(serializeReservation),
-      tzNote: 'UTC',
+      tzNote: zoneAbbreviation(timeZone, now),
+      timeZone,
+      today,
     };
   } catch (err) {
     const authErr = mapAuthError(err);

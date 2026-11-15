@@ -17,12 +17,12 @@
  *     9. '30d' → '30 days'
  *    10. '90d' → '90 days'
  *
- *   formatUtcTime:
- *    11. ISO string at midnight UTC → '00:00'
- *    12. ISO string at noon UTC → '12:00'
- *    13. ISO string with minutes → correct HH:MM
- *    14. Invalid ISO string → '—'
- *    15. Empty string → '—'
+ *   formatFlightStart ("Today's flights", in the viewer's zone):
+ *    11. A start on the viewer's today → 24-hour "HH:MM" in that zone
+ *    12. An evening start west of UTC stays on today (UTC would say tomorrow)
+ *    13. An overnight booking from yesterday → "Yesterday HH:MM"
+ *    14. Earlier starts → "Mon D HH:MM"
+ *    15. Invalid / empty ISO string → '—'
  *
  *   clampBarWidth:
  *    16. maxHours=0 → 0 (empty fleet / all-zero)
@@ -38,7 +38,7 @@ import { describe, it, expect } from 'vitest';
 import {
   resolveRangeKey,
   rangeLabelFull,
-  formatUtcTime,
+  formatFlightStart,
   clampBarWidth,
 } from '../dashboard-utils';
 import type { DashboardRangeKey } from '../dashboard-utils';
@@ -123,40 +123,44 @@ describe('rangeLabelFull', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 11–15. formatUtcTime
+// 11–15. formatFlightStart
 // ═════════════════════════════════════════════════════════════════════════════
 
-describe('formatUtcTime', () => {
-  it('midnight UTC → "00:00"', () => {
-    expect(formatUtcTime('2026-06-19T00:00:00.000Z')).toBe('00:00');
+describe('formatFlightStart', () => {
+  // The hosted demo's Bravo card at 10:55 CST on Nov 15, 2026 listed these
+  // starts as UTC clock times (21:00, 16:00, 18:30, 20:00, 22:30).
+  const TODAY = '2026-11-15';
+  const CHICAGO = 'America/Chicago';
+
+  it('a start on the viewer\'s today reads as the local 24-hour clock', () => {
+    expect(formatFlightStart('2026-11-15T16:00:00.000Z', TODAY, CHICAGO)).toBe('10:00');
+    expect(formatFlightStart('2026-11-15T18:30:00.000Z', TODAY, CHICAGO)).toBe('12:30');
+    expect(formatFlightStart('2026-11-15T20:00:00.000Z', TODAY, CHICAGO)).toBe('14:00');
+    expect(formatFlightStart('2026-11-15T22:30:00.000Z', TODAY, CHICAGO)).toBe('16:30');
   });
 
-  it('noon UTC → "12:00"', () => {
-    expect(formatUtcTime('2026-06-19T12:00:00.000Z')).toBe('12:00');
+  it('a 19:00 CST start is still today (its UTC day is tomorrow)', () => {
+    expect(formatFlightStart('2026-11-16T01:00:00.000Z', TODAY, CHICAGO)).toBe('19:00');
   });
 
-  it('14:37 UTC → "14:37"', () => {
-    expect(formatUtcTime('2026-06-19T14:37:00.000Z')).toBe('14:37');
+  it('an overnight booking that began yesterday says so', () => {
+    expect(formatFlightStart('2026-11-14T21:00:00.000Z', TODAY, CHICAGO)).toBe('Yesterday 15:00');
   });
 
-  it('23:59 UTC → "23:59"', () => {
-    expect(formatUtcTime('2026-06-19T23:59:59.000Z')).toBe('23:59');
+  it('a booking that began before yesterday shows its date', () => {
+    expect(formatFlightStart('2026-11-13T21:00:00.000Z', TODAY, CHICAGO)).toBe('Nov 13 15:00');
   });
 
-  it('08:05 UTC → "08:05" (zero-padded)', () => {
-    expect(formatUtcTime('2026-06-19T08:05:00.000Z')).toBe('08:05');
+  it('UTC viewers see UTC clock times, midnight as 00:00', () => {
+    expect(formatFlightStart('2026-06-19T00:00:00.000Z', '2026-06-19', 'UTC')).toBe('00:00');
+    expect(formatFlightStart('2026-06-19T14:37:00.000Z', '2026-06-19', 'UTC')).toBe('14:37');
+    expect(formatFlightStart('2026-06-19T08:05:00.000Z', '2026-06-19', 'UTC')).toBe('08:05');
   });
 
-  it('invalid ISO string → "—"', () => {
-    expect(formatUtcTime('not-a-date')).toBe('—');
-  });
-
-  it('empty string → "—"', () => {
-    expect(formatUtcTime('')).toBe('—');
-  });
-
-  it('random text → "—"', () => {
-    expect(formatUtcTime('hello world')).toBe('—');
+  it('invalid / empty ISO string → "—"', () => {
+    expect(formatFlightStart('not-a-date', TODAY, CHICAGO)).toBe('—');
+    expect(formatFlightStart('', TODAY, CHICAGO)).toBe('—');
+    expect(formatFlightStart('hello world', TODAY, CHICAGO)).toBe('—');
   });
 });
 

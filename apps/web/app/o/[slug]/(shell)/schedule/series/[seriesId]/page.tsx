@@ -35,6 +35,7 @@ import { SeriesRuleSummary } from './_components/series-rule-summary';
 import { SeriesOccurrenceList } from './_components/series-occurrence-list';
 import { listSeriesOccurrencesAction } from '../../actions';
 import { PageHeader } from '@/components/ui/page-header';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -61,9 +62,11 @@ interface SeriesContentProps {
   slug: string;
   seriesId: string;
   canCancel: boolean;
+  /** The viewer's IANA zone: occurrence times fall back to it when the series has none. */
+  timeZone: string;
 }
 
-async function SeriesContent({ slug, seriesId, canCancel }: SeriesContentProps) {
+async function SeriesContent({ slug, seriesId, canCancel, timeZone }: SeriesContentProps) {
   const result = await listSeriesOccurrencesAction({ seriesId });
 
   // Auth errors
@@ -99,6 +102,7 @@ async function SeriesContent({ slug, seriesId, canCancel }: SeriesContentProps) 
         occurrences={occurrences}
         slug={slug}
         canCancel={canCancel}
+        timeZone={timeZone}
       />
     </div>
   );
@@ -128,6 +132,10 @@ export default async function SeriesPage({ params }: SeriesPageProps) {
   // Real gate is cancelSeriesAction → requireCapability('schedule:create_reservation')
   const canCancel = hasCapability(session, 'schedule:create_reservation');
 
+  // The viewer's zone (aeroops-tz cookie, else the server's), resolved per
+  // request so the server HTML and the browser's first render agree.
+  const timeZone = await getViewerTimeZone();
+
   return (
     <div className="space-y-4">
       {/* ── Page heading ──────────────────────────────────────────────────── */}
@@ -142,7 +150,7 @@ export default async function SeriesPage({ params }: SeriesPageProps) {
 
       {/* ── Series content under Suspense ─────────────────────────────────── */}
       <Suspense fallback={<SeriesSkeleton />}>
-        <SeriesContent slug={slug} seriesId={seriesId} canCancel={canCancel} />
+        <SeriesContent slug={slug} seriesId={seriesId} canCancel={canCancel} timeZone={timeZone} />
       </Suspense>
     </div>
   );

@@ -27,7 +27,8 @@
  *   8. Page wiring (source scan, like action-auth.test.ts): both schedule pages
  *      resolve ?date= with these helpers, and key the client components that
  *      seed state from the day's reservations by that day — without the key,
- *      Next / Previous kept showing the day you came from.
+ *      Next / Previous kept showing the day you came from. The zone sync is
+ *      mounted once, by the shell layout, not per page.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -408,9 +409,18 @@ describe('8. the schedule pages use the day helpers end to end', () => {
       expect(src).toContain('await getViewerTimeZone()');
       expect(src).toContain('parseDayParam(dateParam)');
       expect(src).toContain('dayWindow(dateStr, timeZone)');
-      expect(src).toContain('<ViewerTimeZoneSync serverTimeZone={timeZone} />');
+      // The shell layout reports the zone for every page (below); a second
+      // mount here would ask for a second refresh.
+      expect(src).not.toContain('ViewerTimeZoneSync');
     },
   );
+
+  it('the shell layout mounts the zone sync once, with the zone it resolved', () => {
+    const src = source('layout.tsx');
+    expect(src).toContain('const timeZone = await getViewerTimeZone();');
+    expect(src).toContain('<ViewerTimeZoneSync serverTimeZone={timeZone} />');
+    expect(src.split('<ViewerTimeZoneSync').length - 1).toBe(1);
+  });
 
   it.each([
     ['schedule/page.tsx', 'ReservationList'],

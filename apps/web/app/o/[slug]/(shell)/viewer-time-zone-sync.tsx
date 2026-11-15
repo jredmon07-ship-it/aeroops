@@ -1,12 +1,19 @@
 /**
  * viewer-time-zone-sync.tsx — Reports the browser's time zone to the server.
  *
- * The schedule pages pick "today" and query a day's reservations in the
+ * Every signed-in page picks "today", day windows and clock times in the
  * viewer's zone, which the server reads from the aeroops-tz cookie
  * (lib/viewer-time-zone.ts). This writes that cookie and, when the page was
  * rendered for another zone (a first visit, or the device changed zones),
- * refreshes it once so the day shown matches the times the browser shows.
+ * refreshes it once so the days and times shown match the viewer's clock.
  * Renders nothing.
+ *
+ * MOUNTING: once, in (shell)/layout.tsx, with the zone the layout resolved.
+ * The layout survives client navigation, so the check runs on the first page
+ * of a visit and again after each refresh (the new layout render brings the
+ * new serverTimeZone). No refresh loop: a blocked cookie, or a zone the
+ * server's Intl does not know, leaves serverTimeZone unchanged after the
+ * refresh, and refreshedFor keeps that from asking again.
  */
 'use client';
 

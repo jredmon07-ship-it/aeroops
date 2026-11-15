@@ -29,6 +29,11 @@ interface WorkOrdersListProps {
   aircraft: AircraftListRow[];
   slug: string;
   canWorkOrder: boolean;
+  /**
+   * The viewer's zone, resolved by the page (getViewerTimeZone). Dates format
+   * in it on the server and in the browser alike, so hydration matches.
+   */
+  timeZone: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,6 +53,7 @@ export function WorkOrdersList({
   aircraft,
   slug,
   canWorkOrder,
+  timeZone,
 }: WorkOrdersListProps) {
   const [workOrders, setWorkOrders] =
     React.useState<SerializedWorkOrderView[]>(initialWorkOrders);
@@ -74,7 +80,8 @@ export function WorkOrdersList({
 
   function aircraftName(resourceId: string): string {
     const a = aircraft.find((r) => r.id === resourceId);
-    return a?.tailNumber ?? resourceId;
+    // Never the raw resource id: '—' only if the fleet read failed.
+    return a?.tailNumber ?? '—';
   }
 
   return (
@@ -104,7 +111,7 @@ export function WorkOrdersList({
             className="flex h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 transition-colors"
           >
             <option value="">All aircraft</option>
-            {aircraft.map((a) => (
+            {aircraft.filter((a) => a.active).map((a) => (
               <option key={a.id} value={a.id}>
                 {a.tailNumber}
               </option>
@@ -202,7 +209,7 @@ export function WorkOrdersList({
                   <td className="px-3 py-3 max-w-xs">
                     <Link
                       href={`/o/${slug}/maintenance/work-orders/${wo.id}`}
-                      className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand hover:underline underline-offset-2 truncate block"
+                      className="font-medium text-slate-900 dark:text-slate-100 hover:text-brand dark:hover:text-blue-300 hover:underline underline-offset-2 truncate block"
                     >
                       {wo.title}
                     </Link>
@@ -223,11 +230,11 @@ export function WorkOrdersList({
                         Linked
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">—</span>
                     )}
                   </td>
                   <td className="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 nums hidden sm:table-cell">
-                    {formatDate(wo.openedAt)}
+                    {formatDate(wo.openedAt, timeZone)}
                   </td>
                 </tr>
               ))}
@@ -240,7 +247,7 @@ export function WorkOrdersList({
       <OpenWorkOrderDialog
         open={openDialogOpen}
         onOpenChange={setOpenDialogOpen}
-        aircraft={aircraft}
+        aircraft={aircraft.filter((a) => a.active)}
         onSuccess={handleOpenSuccess}
       />
     </div>

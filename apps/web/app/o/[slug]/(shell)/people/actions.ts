@@ -27,6 +27,8 @@ import { serializeDate } from '@/lib/serialize-date';
 
 import { actionAuth as auth } from '@/lib/action-auth';
 import { revalidatePath } from 'next/cache';
+import { getViewerTimeZone } from '@/lib/viewer-time-zone';
+import { dayInZone } from '@/lib/schedule-day';
 import {
   listMembers,
   listMembersPage,
@@ -42,6 +44,7 @@ import {
   addMemberExpiration,
   deactivateMemberExpiration,
   listMemberExpirations,
+  classifyExpiration,
   getMemberAvatars,
   updateMemberAvatar,
 } from '@aeroops/api';
@@ -529,6 +532,20 @@ function serializeExpiration(e: MemberExpirationView): SerializedMemberExpiratio
   };
 }
 
+/**
+ * The viewer's calendar day ("YYYY-MM-DD"): expired / due-soon is reminder
+ * arithmetic against the day the viewer is on, not the server's UTC day (at
+ * 19:00 CST the UTC date is already tomorrow). [VERIFY-FC-P2-A]
+ */
+async function viewerToday(): Promise<string> {
+  return dayInZone(new Date(), await getViewerTimeZone());
+}
+
+/** serializeExpiration with the display status re-read against `today`. */
+function serializeExpirationAsOf(e: MemberExpirationView, today: string): SerializedMemberExpirationView {
+  return { ...serializeExpiration(e), status: classifyExpiration(e.expiresOn, today) };
+}
+
 // ─── listMemberExpirationsAction ───────────────────────────────────────────────
 
 export type ListMemberExpirationsActionResult =
@@ -543,7 +560,10 @@ export async function listMemberExpirationsAction(input: {
 }): Promise<ListMemberExpirationsActionResult> {
   const session = await auth();
   try {
-    const result = await listMemberExpirations(session, input);
+    const result = await listMemberExpirations(session, {
+      memberUserId: input.memberUserId,
+      today: await viewerToday(),
+    });
     if (!result.ok) return { ok: false, reason: result.reason };
     return { ok: true, expirations: result.expirations.map(serializeExpiration) };
   } catch (err) {
@@ -570,7 +590,7 @@ export async function addMemberExpirationAction(
   try {
     const result = await addMemberExpiration(session, input);
     if (!result.ok) return { ok: false, reason: result.reason };
-    return { ok: true, expiration: serializeExpiration(result.expiration) };
+    return { ok: true, expiration: serializeExpirationAsOf(result.expiration, await viewerToday()) };
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
@@ -597,7 +617,7 @@ export async function deactivateMemberExpirationAction(input: {
     if (!result.ok) return { ok: false, reason: result.reason };
     return {
       ok: true,
-      expiration: serializeExpiration(result.expiration),
+      expiration: serializeExpirationAsOf(result.expiration, await viewerToday()),
       alreadyInactive: result.alreadyInactive,
     };
   } catch (err) {

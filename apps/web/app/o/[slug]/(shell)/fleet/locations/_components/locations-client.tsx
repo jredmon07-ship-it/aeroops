@@ -262,7 +262,7 @@ function LocationDialog({ mode, slug, location, open, onOpenChange }: LocationDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'Add location' : `Edit ${location?.name ?? 'location'}`}</DialogTitle>
         </DialogHeader>
@@ -374,7 +374,7 @@ function LocationDialog({ mode, slug, location, open, onOpenChange }: LocationDi
               )}
             </div>
           </div>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Coordinates (WGS84 decimal degrees) enable accurate day/night scheduling.
             Operator data — not an FAA determination.
           </p>

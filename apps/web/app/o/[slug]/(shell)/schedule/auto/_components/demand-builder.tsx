@@ -202,7 +202,7 @@ function DemandBuilderRow({
           <button
             type="button"
             aria-label={`Remove session ${index + 1}`}
-            className="text-slate-400 dark:text-slate-500 hover:text-danger transition-colors p-0.5"
+            className="text-slate-500 dark:text-slate-400 hover:text-danger transition-colors p-0.5"
             onClick={() => onRemove(row.id)}
           >
             <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -240,7 +240,7 @@ function DemandBuilderRow({
 
         <div className="space-y-1">
           <Label htmlFor={`${prefix}-instructor`} className="text-xs">
-            Instructor <span className="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+            Instructor <span className="text-slate-500 dark:text-slate-400 font-normal">(optional)</span>
           </Label>
           <select
             id={`${prefix}-instructor`}
@@ -284,7 +284,7 @@ function DemandBuilderRow({
 
         <div className="space-y-1">
           <Label htmlFor={`${prefix}-priority`} className="text-xs">
-            Priority <span className="text-slate-400 dark:text-slate-500 font-normal">(higher first)</span>
+            Priority <span className="text-slate-500 dark:text-slate-400 font-normal">(higher first)</span>
           </Label>
           <Input
             id={`${prefix}-priority`}
@@ -302,7 +302,7 @@ function DemandBuilderRow({
       <div>
         <button
           type="button"
-          className="text-xs text-brand hover:underline flex items-center gap-1"
+          className="text-xs text-brand dark:text-blue-400 hover:underline flex items-center gap-1"
           onClick={() => {
             if (showPerDemandWindow) {
               onUpdate(row.id, { earliestDate: '', latestDate: '' });
@@ -459,7 +459,7 @@ export function DemandBuilder({
       {/* ── Global window ────────────────────────────────────────────────────── */}
       <section aria-labelledby="window-heading">
         <h2 id="window-heading" className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-          <CalendarRange className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <CalendarRange className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
           Scheduling window
         </h2>
         <div className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -574,7 +574,7 @@ export function DemandBuilder({
         <button
           type="button"
           onClick={addRow}
-          className="mt-3 text-sm text-brand hover:underline flex items-center gap-1"
+          className="mt-3 text-sm text-brand dark:text-blue-400 hover:underline flex items-center gap-1"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add session

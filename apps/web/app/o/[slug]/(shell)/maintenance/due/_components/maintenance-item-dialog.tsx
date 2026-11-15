@@ -198,7 +198,7 @@ export function MaintenanceItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'Add maintenance item' : 'Edit maintenance item'}</DialogTitle>
         </DialogHeader>

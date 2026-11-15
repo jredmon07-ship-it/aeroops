@@ -99,8 +99,11 @@ export async function readMyTraining(
  * In-scope iff status='booked' AND start > NOW() AND
  *   (reservation.created_by = me  OR  a NON-VOIDED dispatch_ticket links the
  *    reservation with pilot_user_id = me).
- * role derived from which condition(s) matched. resourceIds carries the aircraft
- * tail number when present (display), else the resource id. start ASC, LIMIT 20.
+ * role derived from which condition(s) matched. resourceIds carries display
+ * labels: the aircraft tail number, else the resource's display name (an
+ * instructor: "Casey Reed (CFI)"), and the resource id only if a row somehow has
+ * neither (display_name is NOT NULL). Same join to `resource` as before, so
+ * RLS scopes it exactly as it scoped the tail number. start ASC, LIMIT 20.
  */
 export async function readMyReservations(
   tx: AnyDb,
@@ -112,7 +115,7 @@ export async function readMyReservations(
       lower(rr.during)                                    AS "startAt",
       upper(rr.during)                                    AS "endAt",
       r.series_id                                         AS "seriesId",
-      COALESCE(res.tail_number, rr.resource_id::text)     AS "resourceLabel",
+      COALESCE(res.tail_number, res.display_name, rr.resource_id::text) AS "resourceLabel",
       (r.created_by = ${userId}::uuid)                    AS "isBooker",
       bool_or(
         dt.id IS NOT NULL
@@ -134,7 +137,7 @@ export async function readMyReservations(
             AND dt2.status <> 'voided'
         )
       )
-    GROUP BY r.id, lower(rr.during), upper(rr.during), r.series_id, rr.resource_id, res.tail_number, r.created_by
+    GROUP BY r.id, lower(rr.during), upper(rr.during), r.series_id, rr.resource_id, res.tail_number, res.display_name, r.created_by
     ORDER BY lower(rr.during) ASC
     LIMIT 20
   `);

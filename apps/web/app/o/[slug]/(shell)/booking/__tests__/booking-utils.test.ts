@@ -6,7 +6,7 @@
  *   1. statusLabel — human-readable status labels
  *   2. statusBadgeConfig — correct visual config per status
  *   3. isTerminalStatus — terminal status detection
- *   4. formatRequestedDate — date formatting with optional end
+ *   4. formatRequestedDate — date formatting with optional end, in the zone passed
  *
  * PURE: no DOM, no React, no Next.js, no DB, no I/O.
  */
@@ -120,52 +120,50 @@ describe('3. isTerminalStatus', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('4. formatRequestedDate', () => {
-  // Fixed date for deterministic tests: Jun 25 2026, 10:00 AM UTC.
-  // We use a known ISO string and check the parts of the output.
-  const START_ISO = '2026-06-25T14:00:00.000Z'; // 14:00 UTC
+  // The zone is passed in (the viewer's, resolved by the page), so no
+  // expectation depends on the process zone the suite runs in.
+  const START_ISO = '2026-06-25T10:00:00.000Z';
 
-  it('start only (no end) → includes date and time', () => {
-    const result = formatRequestedDate(START_ISO, null);
-    expect(result).toContain('2026');
-    expect(result).toContain('Jun');
-    expect(result).toContain('25');
-    expect(result).not.toBe('—');
+  it('start only (no end) → date and time in the zone passed', () => {
+    expect(formatRequestedDate(START_ISO, null, 'UTC')).toBe('Jun 25, 2026 at 10:00 AM');
+    expect(formatRequestedDate(START_ISO, null, 'America/Chicago')).toBe('Jun 25, 2026 at 5:00 AM');
   });
 
   it('with end on same day → includes "–" separator, no duplicate date', () => {
-    const END_ISO = '2026-06-25T16:00:00.000Z'; // 2h later, same UTC date
-    const result = formatRequestedDate(START_ISO, END_ISO);
-    expect(result).toContain('–');
-    expect(result).not.toBe('—');
+    const END_ISO = '2026-06-25T11:00:00.000Z';
+    const result = formatRequestedDate(START_ISO, END_ISO, 'UTC');
+    expect(result).toBe('Jun 25, 2026 at 10:00 AM – 11:00 AM');
+    expect(result.match(/Jun 25, 2026/g)).toHaveLength(1);
   });
 
   it('with end on different day → includes full end date', () => {
-    const END_ISO = '2026-06-26T14:00:00.000Z'; // next day
-    const result = formatRequestedDate(START_ISO, END_ISO);
-    expect(result).toContain('–');
-    expect(result).not.toBe('—');
-    // Should mention June 26 somewhere (as end date)
-    const hasEndDateContext = result.includes('26') || result.includes('Jun');
-    expect(hasEndDateContext).toBe(true);
+    const END_ISO = '2026-06-26T10:00:00.000Z';
+    const result = formatRequestedDate(START_ISO, END_ISO, 'UTC');
+    expect(result).toBe('Jun 25, 2026 at 10:00 AM – Jun 26, 2026 at 10:00 AM');
+  });
+
+  it('an evening request west of UTC stays on its local day', () => {
+    // 19:00–21:00 CDT on Jun 25 is Jun 26 00:00–02:00 UTC.
+    const start = '2026-06-26T00:00:00.000Z';
+    const end = '2026-06-26T02:00:00.000Z';
+    expect(formatRequestedDate(start, end, 'America/Chicago')).toBe('Jun 25, 2026 at 7:00 PM – 9:00 PM');
+    expect(formatRequestedDate(start, end, 'UTC')).toBe('Jun 26, 2026 at 12:00 AM – 2:00 AM');
   });
 
   it('invalid start ISO → "—"', () => {
-    expect(formatRequestedDate('not-a-date', null)).toBe('—');
+    expect(formatRequestedDate('not-a-date', null, 'UTC')).toBe('—');
   });
 
   it('empty start string → "—"', () => {
-    expect(formatRequestedDate('', null)).toBe('—');
+    expect(formatRequestedDate('', null, 'UTC')).toBe('—');
   });
 
   it('invalid end ISO → falls back to start-only display', () => {
-    const result = formatRequestedDate(START_ISO, 'invalid-end');
-    // Should still show the start date, not crash
-    expect(result).not.toBe('—');
-    expect(result).toContain('2026');
+    expect(formatRequestedDate(START_ISO, 'invalid-end', 'UTC')).toBe('Jun 25, 2026 at 10:00 AM');
   });
 
   it('null end → no "–" separator in output', () => {
-    const result = formatRequestedDate(START_ISO, null);
+    const result = formatRequestedDate(START_ISO, null, 'UTC');
     expect(result).not.toContain('–');
   });
 
@@ -178,8 +176,10 @@ describe('4. formatRequestedDate', () => {
     ] as [string, string | null][];
 
     for (const [start, end] of cases) {
-      expect(() => formatRequestedDate(start, end)).not.toThrow();
-      expect(typeof formatRequestedDate(start, end)).toBe('string');
+      for (const zone of ['UTC', 'America/Chicago', 'not/a-zone']) {
+        expect(() => formatRequestedDate(start, end, zone)).not.toThrow();
+        expect(typeof formatRequestedDate(start, end, zone)).toBe('string');
+      }
     }
   });
 });

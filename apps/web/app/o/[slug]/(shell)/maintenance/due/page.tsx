@@ -40,7 +40,7 @@ interface DueContentProps {
 async function DueContent({ slug, canManage, canSeedCommon }: DueContentProps) {
   const [dueResult, resourcesResult] = await Promise.all([
     listMaintenanceDueAction({}),
-    listResourcesAction({}),
+    listResourcesAction({ includeInactive: true }),
   ]);
 
   if (!('ok' in dueResult) || !dueResult.ok) {
@@ -58,10 +58,13 @@ async function DueContent({ slug, canManage, canSeedCommon }: DueContentProps) {
   }
 
   const items = dueResult.items;
+  // Inactive aircraft too, so a row on a since-deactivated aircraft is named
+  // by its tail # (the list fell back to printing the resource id). The
+  // create/report dialogs get the active ones only.
   const aircraft = (resourcesResult && 'ok' in resourcesResult && resourcesResult.ok
     ? resourcesResult.resources
     : []
-  ).filter((r) => r.kind === 'aircraft' && r.active);
+  ).filter((r) => r.kind === 'aircraft');
 
   return (
     <MaintenanceDueList

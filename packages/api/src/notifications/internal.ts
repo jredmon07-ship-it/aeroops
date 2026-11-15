@@ -3,7 +3,7 @@
  *
  * NOT exported from @aeroops/api. Contains:
  *   alertId(kind, parts)       — pure deterministic id generator (unit-tested).
- *   deriveMyAlerts(tx, userId, now) — ≤2-query derive inside an existing org context.
+ *   deriveMyAlerts(tx, userId, now, timeZone?) — ≤2-query derive inside an existing org context.
  *
  * INVARIANT: All helpers accept an AnyDb tx with the org GUC already set by the
  * caller's withSessionOrgContextWithDb. They NEVER set the org GUC themselves.
@@ -24,6 +24,7 @@
 import { sql } from 'drizzle-orm';
 import type { AnyDb } from '@aeroops/db';
 import { loadGroundingProbe } from '../maintenance/internal.js';
+import { calendarDayInZone } from '../scheduling/internal.js';
 import type { MyAlert } from './types.js';
 import { extractRows } from '../db-rows.js';
 
@@ -81,29 +82,36 @@ interface UpcomingReservationRaw {
  *
  * Called inside an existing org context. NEVER sets org GUC.
  *
- * @param tx     - Active AnyDb tx with org GUC already set.
- * @param userId - session.userId (SELF-SCOPED — never caller-supplied).
- * @param now    - Reference instant (injected for deterministic tests).
- * @returns      - Sorted, deduped, capped MyAlert[].
+ * @param tx       - Active AnyDb tx with org GUC already set.
+ * @param userId   - session.userId (SELF-SCOPED — never caller-supplied).
+ * @param now      - Reference instant (injected for deterministic tests).
+ * @param timeZone - IANA zone of the viewer: an "Upcoming flight" links to the
+ *                   schedule for its start day in this zone (a 19:00 CST
+ *                   flight is that day's, not the next UTC day's). Default
+ *                   UTC; a zone this runtime does not know → UTC.
+ * @returns        - Sorted, deduped, capped MyAlert[].
  */
 export async function deriveMyAlerts(
   tx: AnyDb,
   userId: string,
   now: Date,
+  timeZone: string = 'UTC',
 ): Promise<MyAlert[]> {
   // ── Query 1: my upcoming reservations (CLONE of portal predicate) ────────────
   //
   // Self-scoped: status='booked' AND lower(during)>NOW() AND
   // (created_by=me OR non-voided dispatch_ticket.pilot_user_id=me).
   // Multi-resource: one row per (reservation, resource); we collapse below.
-  // We add raw resource_id UUID (for grounding probe) AND the tail label.
+  // We add raw resource_id UUID (for grounding probe) AND the display label:
+  // the tail #, else the resource's display name (an instructor), never the
+  // id. Aircraft rows sort first, so a dual lesson's alert names the aircraft.
   // No LIMIT here — we need ALL upcoming reservations to probe grounding.
   const qResult = await tx.execute(sql`
     SELECT
       r.id                                                    AS "reservationId",
       lower(rr.during)                                        AS "startAt",
       rr.resource_id::text                                    AS "resourceId",
-      COALESCE(res.tail_number, rr.resource_id::text)         AS "resourceLabel"
+      COALESCE(res.tail_number, res.display_name, rr.resource_id::text) AS "resourceLabel"
     FROM reservation r
     JOIN reservation_resource rr ON rr.reservation_id = r.id
     LEFT JOIN resource res ON res.id = rr.resource_id
@@ -119,7 +127,7 @@ export async function deriveMyAlerts(
             AND dt2.status <> 'voided'
         )
       )
-    ORDER BY lower(rr.during) ASC
+    ORDER BY lower(rr.during) ASC, (res.tail_number IS NULL) ASC, res.display_name ASC
   `);
 
   const qRows = extractRows<{
@@ -159,8 +167,10 @@ export async function deriveMyAlerts(
   for (const res of upcoming) {
     if (res.startAt <= cutoff) {
       const tailLabel = res.resourceLabels[0] ?? res.reservationId;
-      // path → schedule board for that date (slug-less; slug prepended by the UI)
-      const dateStr = res.startAt.toISOString().slice(0, 10); // YYYY-MM-DD
+      // path → the schedule for the flight's start day in the viewer's zone
+      // (slug-less; slug prepended by the UI). Not the UTC day: west of UTC an
+      // evening flight's UTC day is the next one.
+      const dateStr = calendarDayInZone(res.startAt, timeZone); // YYYY-MM-DD
       alerts.push({
         id: alertId('reservation', [res.reservationId, 'upcoming']),
         kind: 'reservation_upcoming',

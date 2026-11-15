@@ -90,7 +90,7 @@ export default async function LocationsPage({ params }: LocationsPageProps) {
         backLabel="Fleet"
         title={
           <span className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-brand" aria-hidden="true" />
+            <MapPin className="h-5 w-5 text-brand dark:text-blue-400" aria-hidden="true" />
             Locations
           </span>
         }

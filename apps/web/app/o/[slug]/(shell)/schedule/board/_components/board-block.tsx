@@ -32,6 +32,8 @@ export function reservationHue(reservationId: string): number {
 
 interface BoardBlockProps {
   block: BoardBlockData;
+  /** The viewer's IANA zone: the block's times are read on its clock. */
+  timeZone: string;
   /** Whether the current user has schedule:create_reservation. */
   canDrag: boolean;
   /** Whether the current user has dispatch:create (controls action buttons). */
@@ -66,12 +68,15 @@ interface BoardBlockProps {
   onVoid: (block: BoardBlockData, ticket: DispatchTicketView) => void;
 }
 
-/** Returns true when the viewport is at least 640 px wide (sm breakpoint). */
+/**
+ * Returns true when the viewport is at least 640 px wide (sm breakpoint).
+ * Starts true on the server AND in the browser's first render, so the
+ * hydrated `draggable` attribute matches the server HTML (reading matchMedia
+ * there made a phone's first render disagree, and React keeps the server's
+ * attribute on a mismatch); the effect corrects it right after mount.
+ */
 function useIsWide(): boolean {
-  const [isWide, setIsWide] = React.useState<boolean>(() => {
-    if (typeof window === 'undefined') return true; // SSR: default true, corrected on mount
-    return window.matchMedia('(min-width: 640px)').matches;
-  });
+  const [isWide, setIsWide] = React.useState(true);
 
   React.useEffect(() => {
     const mq = window.matchMedia('(min-width: 640px)');
@@ -86,6 +91,7 @@ function useIsWide(): boolean {
 
 export function BoardBlock({
   block,
+  timeZone,
   canDrag,
   canDispatch,
   draggedReservationId,
@@ -126,6 +132,8 @@ export function BoardBlock({
 
   const blockColor = `hsl(${hue}, 60%, 45%)`;
   const { leftPct, widthPct } = block.position;
+  // On the viewer's clock — the same text on the server and in the browser.
+  const timeRange = formatTimeRange(block.startAt, block.endAt, timeZone);
 
   // Is this block narrow? (<4% ≈ ~58min on a full-day 4800px track)
   const isNarrow = widthPct < 4;
@@ -158,7 +166,7 @@ export function BoardBlock({
   // voided tickets come back as null from getDispatchForReservation (spec §3.4)
 
   const ariaLabel = [
-    `Reservation ${formatTimeRange(block.startAt, block.endAt)}`,
+    `Reservation ${timeRange}`,
     partnerNames ? `linked with ${partnerNames}` : null,
     block.reservation.seriesId ? 'recurring series' : null,
     isAircraft && dispatchStatus === 'open' ? 'checked out' : null,
@@ -228,7 +236,7 @@ export function BoardBlock({
       <div className="flex flex-col justify-center min-w-0 px-2 pt-1">
         {/* Time range */}
         <span className="text-xs font-medium text-white leading-tight truncate">
-          {formatTimeRange(block.startAt, block.endAt)}
+          {timeRange}
         </span>
 
         {/* Partner resource line (hidden on narrow blocks) */}
@@ -260,7 +268,7 @@ export function BoardBlock({
             }}
             disabled={isSubmitting}
             className="mt-0.5 self-start inline-flex items-center rounded px-1 py-0.5 text-[0.6875rem] font-medium bg-white/15 hover:bg-white/25 text-white/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white transition-colors leading-none"
-            aria-label={`Move reservation ${formatTimeRange(block.startAt, block.endAt)}`}
+            aria-label={`Move reservation ${timeRange}`}
             aria-describedby="board-move-hint"
           >
             Move

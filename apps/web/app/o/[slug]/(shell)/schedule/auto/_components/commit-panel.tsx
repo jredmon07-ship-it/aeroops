@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import type { SerializedCommitResult, SerializedCommitProposal } from '../actions';
 import type { ResourceRow } from '@aeroops/api';
 import { toDateInputValue } from '../../_utils/format-time';
+import { demandLabel } from './demand-labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,8 @@ interface CommitPanelProps {
   resources: ResourceRow[];
   slug: string;
   onReset: () => void;
+  /** demand id → "Session N" (demand-labels.ts); never shown raw. */
+  demandLabels?: Record<string, string>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -104,7 +107,7 @@ function CommitProposalRow({
         {isCreated ? (
           <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" aria-label="Created" />
         ) : (
-          <XCircle className="h-4 w-4 text-slate-400 dark:text-slate-500 mt-0.5" aria-label="Skipped" />
+          <XCircle className="h-4 w-4 text-slate-500 dark:text-slate-400 mt-0.5" aria-label="Skipped" />
         )}
       </td>
       <td className="py-2 pr-3 text-sm text-slate-600 dark:text-slate-300 align-top whitespace-nowrap nums">
@@ -125,7 +128,7 @@ function CommitProposalRow({
             {proposal.reservationId && (
               <Link
                 href={`/o/${slug}/schedule/board?date=${boardDate}`}
-                className="text-xs text-brand hover:underline"
+                className="text-xs text-brand dark:text-blue-400 hover:underline"
               >
                 View on board
               </Link>
@@ -143,7 +146,7 @@ function CommitProposalRow({
 
 // ─── CommitPanel ─────────────────────────────────────────────────────────────
 
-export function CommitPanel({ result, resources, slug, onReset }: CommitPanelProps) {
+export function CommitPanel({ result, resources, slug, onReset, demandLabels = {} }: CommitPanelProps) {
   const hasCreated = result.createdCount > 0;
   const hasSkipped = result.skippedCount > 0;
   const hasUnschedulable = result.unschedulable.length > 0;
@@ -204,13 +207,13 @@ export function CommitPanel({ result, resources, slug, onReset }: CommitPanelPro
                 {result.skippedCount}
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Skipped <span className="text-slate-400 dark:text-slate-500">(non-fatal)</span>
+                Skipped <span className="text-slate-500 dark:text-slate-400">(non-fatal)</span>
               </div>
             </div>
           )}
           {hasUnschedulable && (
             <div className="text-center">
-              <div className="nums text-2xl font-bold text-slate-400 dark:text-slate-500">
+              <div className="nums text-2xl font-bold text-slate-500 dark:text-slate-400">
                 {result.unschedulable.length}
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Unschedulable</div>
@@ -284,7 +287,7 @@ export function CommitPanel({ result, resources, slug, onReset }: CommitPanelPro
           <ul className="space-y-1" role="list">
             {result.unschedulable.map((u) => (
               <li key={u.demandId} className="text-xs text-amber-800 dark:text-amber-200">
-                <span className="font-mono nums">{u.demandId}</span>
+                <span className="font-medium">{demandLabel(demandLabels, u.demandId)}</span>
                 {' — '}
                 {u.reason === 'no_feasible_window'
                   ? 'No feasible window in the scheduling range'

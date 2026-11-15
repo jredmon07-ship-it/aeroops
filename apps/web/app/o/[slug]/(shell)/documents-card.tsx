@@ -176,7 +176,7 @@ function UploadDialog({ open, onOpenChange, ownerType, ownerId, onSuccess }: Upl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Upload a document</DialogTitle>
         </DialogHeader>
@@ -355,7 +355,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
       <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+            <FileText className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Documents</h2>
             {!loading && !loadError && documents !== null && documents.length > 0 && (
               <span className="inline-flex items-center rounded-sm border border-brand/30 bg-brand/8 dark:bg-brand/20 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand-ink dark:text-blue-200">
@@ -372,7 +372,7 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
         </div>
 
         {/* [VERIFY-P1.6-A] operator-data framing — verbatim disclaimer */}
-        <p className="text-[0.6875rem] text-slate-400 dark:text-slate-500">
+        <p className="text-[0.6875rem] text-slate-500 dark:text-slate-400">
           Files are stored as uploaded — never scanned, parsed, or interpreted. Category
           labels are free-text tags the operator sets, not a verified classification.
         </p>
@@ -492,7 +492,6 @@ export function DocumentsCard({ ownerType, ownerId, canManage }: DocumentsCardPr
                 handleDeleteConfirm();
               }}
               disabled={isDeleting}
-              className="bg-destructive hover:bg-destructive/90"
             >
               {isDeleting ? 'Deleting…' : 'Delete'}
             </AlertDialogAction>

@@ -10,6 +10,12 @@
  * listReservationsAction (org-scoped, cancelled excluded by default) and
  * passes serialized rows down. This component renders only — no fetching.
  *
+ * Time zone: chips go on the day their start falls on, with its clock time,
+ * both read in the viewer's zone the page resolved (`timeZone`) — never the
+ * runtime's own zone, which is UTC on the server and the viewer's in the
+ * browser: an evening flight landed on the next day's cell in the server HTML
+ * and React threw the HTML away ("Hydration failed").
+ *
  * a11y:
  *   - role=grid / row / columnheader / gridcell semantics.
  *   - Roving tabindex + arrow-key navigation between day cells; Enter/Space
@@ -33,13 +39,12 @@ import {
   addMonthsClamped,
   formatMonthParam,
   monthLabel,
-  groupByStartDay,
   paletteIndex,
   shortName,
   type MonthDayCell,
 } from '@/lib/month-grid';
 import { formatTime } from '../_utils/format-time';
-import { dayLabel } from '@/lib/schedule-day';
+import { dayInZone, dayLabel } from '@/lib/schedule-day';
 import { buildResourceMap, sortResourceIds } from '../_utils/resource-map';
 import type { ReservationRow, ResourceRow } from '@aeroops/api';
 
@@ -71,6 +76,11 @@ interface MonthViewProps {
   month: number;
   /** "YYYY-MM-DD" of today, computed once server-side (avoids hydration drift). */
   todayIso: string;
+  /**
+   * The viewer's IANA zone the page resolved: chips are bucketed by their
+   * start's calendar day there and show its clock time.
+   */
+  timeZone: string;
   reservations: ReservationRow[];
   resources: ResourceRow[];
   /**
@@ -119,6 +129,8 @@ interface ReservationChipProps {
   memberNameById: Map<string, string>;
   boardHref: string;
   dayLabel: string;
+  /** The viewer's IANA zone, for the start time. */
+  timeZone: string;
 }
 
 function ReservationChip({
@@ -127,9 +139,10 @@ function ReservationChip({
   memberNameById,
   boardHref,
   dayLabel,
+  timeZone,
 }: ReservationChipProps) {
   const { resourceLabel, colorClass } = chipInfoFor(reservation, resourceMap);
-  const time = formatTime(reservation.startAt);
+  const time = formatTime(reservation.startAt, timeZone);
   const bookedBy = memberNameById.get(reservation.createdBy);
   const bookedByShort = bookedBy ? shortName(bookedBy) : null;
 
@@ -156,6 +169,7 @@ export function MonthView({
   year,
   month,
   todayIso,
+  timeZone,
   reservations,
   resources,
   memberNames,
@@ -168,30 +182,32 @@ export function MonthView({
   const grid = React.useMemo(() => buildMonthGrid(year, month), [year, month]);
   const resourceMap = React.useMemo(() => buildResourceMap(resources), [resources]);
   const memberNameById = React.useMemo(() => new Map(memberNames), [memberNames]);
-  const byDay = React.useMemo(
-    () => groupByStartDay(reservations, (r) => r.startAt),
-    [reservations],
-  );
+  // Each reservation on the calendar day its start falls on in the viewer's
+  // zone, in the order the page fetched them (start order). Not
+  // groupByStartDay (lib/month-grid.ts): that keys by the RUNTIME's local day.
+  const byDay = React.useMemo(() => {
+    const map = new Map<string, ReservationRow[]>();
+    for (const r of reservations) {
+      const key = dayInZone(r.startAt, timeZone);
+      const bucket = map.get(key);
+      if (bucket) bucket.push(r);
+      else map.set(key, [r]);
+    }
+    return map;
+  }, [reservations, timeZone]);
 
   const label = monthLabel(year, month);
   const flatCells = React.useMemo(() => grid.weeks.flat(), [grid]);
 
-  // `todayIso` is computed server-side in the viewer's zone once the browser
-  // has reported it (lib/viewer-time-zone.ts); before that (a first visit) it
-  // is the server's zone (UTC on Vercel), while the chips and their times
-  // render in the VIEWER's local tz (groupByStartDay + formatTime). Recompute
-  // today in the viewer's local tz AFTER mount so the ring always matches the
-  // local basis everything else uses. Server + first client render still use
-  // the passed value → no hydration mismatch.
+  // `todayIso` is computed server-side in `timeZone`, the zone the chips are
+  // bucketed and timed in. Recompute it in that same zone AFTER mount, so a
+  // page left open (or restored from the router cache) past midnight still
+  // rings the right day. Server + first client render use the passed value →
+  // no hydration mismatch.
   const [localTodayIso, setLocalTodayIso] = React.useState<string | null>(null);
   React.useEffect(() => {
-    const d = new Date();
-    setLocalTodayIso(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-        d.getDate(),
-      ).padStart(2, '0')}`,
-    );
-  }, []);
+    setLocalTodayIso(dayInZone(new Date(), timeZone));
+  }, [timeZone]);
   const effectiveTodayIso = localTodayIso ?? todayIso;
 
   // ── Roving tabindex for grid keyboard navigation ──────────────────────────
@@ -291,13 +307,14 @@ export function MonthView({
             memberNameById={memberNameById}
             boardHref={`${boardPath}?date=${cell.iso}`}
             dayLabel={dayLabel}
+            timeZone={timeZone}
           />
         ))}
         {overflow > 0 && (
           <Link
             href={`${boardPath}?date=${cell.iso}`}
             aria-label={`${overflow} more reservation${overflow === 1 ? '' : 's'} on ${dayLabel} — open day board`}
-            className="block truncate rounded-sm px-1 py-0.5 text-[0.6875rem] leading-4 font-medium text-brand hover:underline"
+            className="block truncate rounded-sm px-1 py-0.5 text-[0.6875rem] leading-4 font-medium text-brand dark:text-blue-400 hover:underline"
           >
             +{overflow} more
           </Link>
@@ -361,7 +378,7 @@ export function MonthView({
             Pick a day on the calendar to open its board, or book from{' '}
             <Link
               href={`${basePath}/new?date=${grid.firstOfMonthIso}`}
-              className="text-brand underline hover:no-underline"
+              className="text-brand dark:text-blue-400 underline hover:no-underline"
             >
               + New Reservation
             </Link>
@@ -426,7 +443,7 @@ export function MonthView({
                             ? isToday
                               ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white'
                               : 'text-slate-700 dark:text-slate-300'
-                            : 'text-slate-400 dark:text-slate-500'
+                            : 'text-slate-500 dark:text-slate-400'
                         }`}
                       >
                         {cell.day}
@@ -471,7 +488,7 @@ export function MonthView({
                         >
                           {dayLabelFor(cell.iso)}
                           {isToday ? (
-                            <span className="ml-1.5 text-xs font-semibold text-brand">Today</span>
+                            <span className="ml-1.5 text-xs font-semibold text-brand dark:text-blue-400">Today</span>
                           ) : null}
                         </Link>
                         <div className="space-y-0.5">{renderDayChips(cell, MAX_CHIPS_PER_DAY)}</div>

@@ -8,6 +8,13 @@
  * Slice 2b extension: "Repeat" toggle. OFF → existing single-create path
  * (UNCHANGED). ON → recurrence controls + live previewSeriesAction debounce
  * + createSeriesAction submit → create-result screen.
+ *
+ * Time zones: "today" (the default date, and what makes the form dirty) and
+ * the conflict times are read in `timeZone`, the viewer's zone the page
+ * resolved, so the server HTML and the browser's first render agree — the
+ * dirty state switches the Back / Cancel buttons between a link and a
+ * guarded button. The date and times the user types are read in the
+ * browser's zone; the two are the same once ViewerTimeZoneSync has reported it.
  */
 'use client';
 
@@ -42,7 +49,7 @@ import { useSeriesPreview } from '../_hooks/use-series-preview';
 import { toast } from '@/lib/toast-store';
 import { createReservationAction, createSeriesAction, previewTwilightAction, previewAvailabilityAction, getMetarForAircraftAction } from '../../actions';
 import { getGroundingStatusAction } from '../../../maintenance/actions';
-import { toDateInputValue } from '../../_utils/format-time';
+import { dayInZone } from '@/lib/schedule-day';
 import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView, PreviewTwilightResourceReport, TwilightHit, PreviewAvailabilityResourceReport, ParsedMetar } from '@aeroops/api';
 import type { RecurrenceValue, RecurrenceFieldErrors } from './recurrence-controls';
 import type { TwilightPreviewState } from './twilight-indicator';
@@ -55,6 +62,8 @@ interface NewReservationFormProps {
   slug: string;
   /** Initial date from ?date= query param — YYYY-MM-DD or empty */
   initialDate: string;
+  /** The viewer's IANA zone the page resolved: "today" and conflict times read it. */
+  timeZone: string;
   canManageResources: boolean;
   /** href for the "Back to Schedule" button rendered inside this client boundary */
   backHref: string;
@@ -91,6 +100,7 @@ export function NewReservationForm({
   resources,
   slug,
   initialDate,
+  timeZone,
   canManageResources,
   backHref,
 }: NewReservationFormProps) {
@@ -98,7 +108,11 @@ export function NewReservationForm({
   const dateRef = React.useRef<HTMLInputElement>(null);
   const errorRef = React.useRef<HTMLDivElement>(null);
 
-  const [date, setDate] = React.useState(initialDate || toDateInputValue(new Date()));
+  // Today on the viewer's calendar — the same day on the server and in the
+  // browser (the runtime's own zone is UTC on the server).
+  const today = dayInZone(new Date(), timeZone);
+
+  const [date, setDate] = React.useState(initialDate || today);
   const [startTime, setStartTime] = React.useState('');
   const [endTime, setEndTime] = React.useState('');
   const [aircraftId, setAircraftId] = React.useState('');
@@ -138,7 +152,7 @@ export function NewReservationForm({
   // ── Recurrence (Slice 2b) ──────────────────────────────────────────────────
   const [repeatEnabled, setRepeatEnabled] = React.useState(false);
   const [recurrence, setRecurrence] = React.useState<RecurrenceValue>(() => ({
-    weekdays: [isoWeekdayFromDate(initialDate || toDateInputValue(new Date()))],
+    weekdays: [isoWeekdayFromDate(initialDate || today)],
     intervalWeeks: 1,
     end: { kind: 'count', count: 4 },
     tz: browserTz(),
@@ -192,7 +206,7 @@ export function NewReservationForm({
 
   // Is form "dirty" (has user entered anything)?
   const isDirty = !!(
-    (date && date !== toDateInputValue(new Date())) ||
+    (date && date !== today) ||
     startTime ||
     endTime ||
     aircraftId ||
@@ -601,7 +615,7 @@ export function NewReservationForm({
         onReset={() => {
           setSeriesResult(null);
           setRepeatEnabled(false);
-          setDate(toDateInputValue(new Date()));
+          setDate(dayInZone(new Date(), timeZone));
           setStartTime('');
           setEndTime('');
           setAircraftId('');
@@ -730,6 +744,7 @@ export function NewReservationForm({
         {(submitConflicts.length > 0 || submitViolations.length > 0) && (
           <ConflictBanner
             state="conflict"
+            timeZone={timeZone}
             conflicts={[]}
             submitConflicts={submitConflicts}
             submitViolations={submitViolations}
@@ -940,7 +955,7 @@ export function NewReservationForm({
                 role="status"
                 className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm"
               >
-                <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 text-[0.6875rem] font-semibold text-destructive leading-5 shrink-0">
+                <span className="inline-flex items-center rounded-sm border border-destructive/30 bg-destructive/10 px-1 text-[0.6875rem] font-semibold text-red-700 dark:text-red-400 leading-5 shrink-0">
                   Grounded
                 </span>
                 <span className="text-amber-900 dark:text-amber-200">
@@ -1057,6 +1072,7 @@ export function NewReservationForm({
         {!repeatEnabled && submitConflicts.length === 0 && submitViolations.length === 0 && (
           <ConflictBanner
             state={conflictState}
+            timeZone={timeZone}
             conflicts={conflicts}
             policyViolations={policyViolations}
           />

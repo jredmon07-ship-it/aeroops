@@ -28,7 +28,7 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <div className={cn('mb-1.5', className)}>
-      <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+      <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
         {eyebrow}
       </p>
       {title && (
@@ -36,7 +36,7 @@ export function SectionHeader({
           {title}
         </h2>
       )}
-      {hint && <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{hint}</p>}
+      {hint && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{hint}</p>}
     </div>
   );
 }

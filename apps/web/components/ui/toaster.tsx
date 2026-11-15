@@ -64,7 +64,7 @@ function ToastCard({ item }: { item: ToastItem }) {
         type="button"
         onClick={() => toastStore.dismiss(id)}
         aria-label="Dismiss notification"
-        className="shrink-0 rounded-sm p-0.5 text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+        className="shrink-0 rounded-sm p-0.5 text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
       >
         <X className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
