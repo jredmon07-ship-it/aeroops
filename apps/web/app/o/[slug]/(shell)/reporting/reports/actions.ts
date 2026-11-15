@@ -303,7 +303,8 @@ export interface AllReportsResult {
   /** FC-parity Aircraft report — per-tail flights/hours/oil/fuel. Plain numbers. */
   aircraftReport: AircraftReportRow[];
   reservationsVsFlights: SerializedReservationsVsFlightsTrend;
-  trainingThroughput: SerializedTrainingThroughput;
+  /** null when the caller passed includeTraining: false (Training module off). */
+  trainingThroughput: SerializedTrainingThroughput | null;
   maintenanceTrend: SerializedMaintenanceTrend;
   /** Per-CFI utilization — plain numbers/strings, no Dates to serialize. */
   instructorUtilization: InstructorUtilizationRow[];
@@ -320,9 +321,16 @@ export type GetAllReportsActionResult =
 
 export async function getAllReportsAction(input?: {
   range?: string;
+  /**
+   * false when the org has the Training module off (Slice CLUB-MODE): the
+   * training read is skipped and trainingThroughput comes back null.
+   * Defaults to true.
+   */
+  includeTraining?: boolean;
 }): Promise<GetAllReportsActionResult> {
   const session = await auth();
   const range = input?.range ?? '30d';
+  const includeTraining = input?.includeTraining ?? true;
 
   try {
     const [
@@ -342,7 +350,7 @@ export async function getAllReportsAction(input?: {
         getHoursByTail(session, { range }),
         getAircraftReport(session, { range }),
         getReservationsVsFlightsTrend(session, { range }),
-        getTrainingThroughput(session, { range }),
+        includeTraining ? getTrainingThroughput(session, { range }) : null,
         getMaintenanceTrend(session, { range }),
         getInstructorUtilization(session, { range }),
         getSquawksReport(session, {}),
@@ -357,7 +365,7 @@ export async function getAllReportsAction(input?: {
         hoursByTail,
         aircraftReport,
         reservationsVsFlights: serializeReservationsVsFlightsTrend(reservationsVsFlights),
-        trainingThroughput: serializeTrainingThroughput(trainingThroughput),
+        trainingThroughput: trainingThroughput ? serializeTrainingThroughput(trainingThroughput) : null,
         maintenanceTrend: serializeMaintenanceTrend(maintenanceTrend),
         instructorUtilization,
         squawks: {

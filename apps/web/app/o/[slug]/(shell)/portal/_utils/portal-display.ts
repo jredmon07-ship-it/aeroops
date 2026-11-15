@@ -21,6 +21,17 @@ export function deriveFirstName(displayName: string): string {
 }
 
 /**
+ * portalSubtitle — the line under "Welcome, {firstName}". It names training
+ * progress only while the page shows "My training" (Training module on).
+ * Pure; unit-tested.
+ */
+export function portalSubtitle(showTraining: boolean): string {
+  return showTraining
+    ? 'Your upcoming reservations, training progress, and account info.'
+    : 'Your upcoming reservations and account info.';
+}
+
+/**
  * reservationRoleLabel — human-readable label for a reservation role.
  * Pure; unit-tested.
  */

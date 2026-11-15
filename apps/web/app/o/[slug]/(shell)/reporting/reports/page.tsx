@@ -11,7 +11,9 @@
  *   B. Fleet utilization over time (stat strip + bucket bar-rows + hours footnote)
  *   C. Hours by tail (utilization-table: Tail# → /fleet/[id], Flights, Hours, bar)
  *   D. Reservations & flights trend (two-series bucket rows)
- *   E. Training throughput (compact stat group + operator-count caption)
+ *   E. Training throughput (compact stat group + operator-count caption);
+ *      only when the org has the Training module on — club mode hides it
+ *      and skips its read
  *   F. Maintenance trend (stat group; grounded>0 → text-danger; caption)
  *
  * States:
@@ -37,6 +39,7 @@ import { redirect } from 'next/navigation';
 import { AlertCircle, GraduationCap, Wrench, ClipboardList, CalendarX2 } from 'lucide-react';
 import { auth } from '@/auth';
 import { hasCapability, getOrgFeatures } from '@aeroops/api';
+import type { OrgFeatureFlags } from '@aeroops/core';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAllReportsAction } from './actions';
@@ -55,6 +58,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ExportCsvButton } from '@/components/ui/export-csv-button';
 import { csvDate, csvFilename } from '@/lib/csv-format';
+import { isModuleOn } from '../../module-flags';
 
 // ─── Hours footnote (verbatim per spec) ──────────────────────────────────────
 
@@ -304,10 +308,12 @@ function StatRow({
 interface ReportsContentProps {
   slug: string;
   range: ReportRangeKey;
+  /** Training module on — section E and its read (Slice CLUB-MODE). */
+  showTraining: boolean;
 }
 
-async function ReportsContent({ slug, range }: ReportsContentProps) {
-  const result = await getAllReportsAction({ range });
+async function ReportsContent({ slug, range, showTraining }: ReportsContentProps) {
+  const result = await getAllReportsAction({ range, includeTraining: showTraining });
 
   // Error state
   if ('error' in result) {
@@ -368,9 +374,10 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
     reservationsVsFlights.totalReservationsCreated > 0 ||
     reservationsVsFlights.totalFlightsClosed > 0;
   const hasTrainingData =
-    trainingThroughput.enrollmentsCreatedInRange > 0 ||
-    trainingThroughput.enrollmentsCompletedInRange > 0 ||
-    trainingThroughput.lessonsRecordedInRange > 0;
+    trainingThroughput !== null &&
+    (trainingThroughput.enrollmentsCreatedInRange > 0 ||
+      trainingThroughput.enrollmentsCompletedInRange > 0 ||
+      trainingThroughput.lessonsRecordedInRange > 0);
   const hasMaintenanceData =
     maintenanceTrend.squawksOpenedInRange > 0 ||
     maintenanceTrend.squawksResolvedInRange > 0 ||
@@ -408,13 +415,15 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
       String(b.flightsClosed),
     ]),
   ];
-  const trainingCsv: string[][] = [
-    ['Metric', 'Value'],
-    ['Enrollments created', String(trainingThroughput.enrollmentsCreatedInRange)],
-    ['Enrollments completed', String(trainingThroughput.enrollmentsCompletedInRange)],
-    ['Lessons recorded', String(trainingThroughput.lessonsRecordedInRange)],
-    ['Active enrollments now', String(trainingThroughput.activeEnrollmentCount)],
-  ];
+  const trainingCsv: string[][] = trainingThroughput
+    ? [
+        ['Metric', 'Value'],
+        ['Enrollments created', String(trainingThroughput.enrollmentsCreatedInRange)],
+        ['Enrollments completed', String(trainingThroughput.enrollmentsCompletedInRange)],
+        ['Lessons recorded', String(trainingThroughput.lessonsRecordedInRange)],
+        ['Active enrollments now', String(trainingThroughput.activeEnrollmentCount)],
+      ]
+    : [];
   const maintenanceTrendCsv: string[][] = [
     ['Metric', 'Value'],
     ['Squawks opened', String(maintenanceTrend.squawksOpenedInRange)],
@@ -962,45 +971,48 @@ async function ReportsContent({ slug, range }: ReportsContentProps) {
         </div>
       </section>
 
-      {/* ── E + F compact stat groups (side by side on sm+) ──────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {/* ── E + F compact stat groups (side by side on sm+; F takes the row
+          alone when the Training module is off) ───────────────────────── */}
+      <div className={trainingThroughput ? 'grid grid-cols-1 sm:grid-cols-2 gap-6' : 'grid grid-cols-1 gap-6'}>
 
-        {/* E. Training throughput */}
-        <section aria-label={`Training throughput — last ${rangeLbl}`}>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
-              Training throughput — last {rangeLbl}
+        {/* E. Training throughput — Training module only (Slice CLUB-MODE) */}
+        {trainingThroughput && (
+          <section aria-label={`Training throughput — last ${rangeLbl}`}>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-[0.625rem] uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+                Training throughput — last {rangeLbl}
+              </p>
+              <ExportCsvButton rows={trainingCsv} filename={csvFilename('training-throughput')} />
+            </div>
+            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-4 py-3">
+              <StatRow
+                label="Enrollments created"
+                value={trainingThroughput.enrollmentsCreatedInRange}
+              />
+              <StatRow
+                label="Enrollments completed"
+                value={trainingThroughput.enrollmentsCompletedInRange}
+              />
+              <StatRow
+                label="Lessons recorded"
+                value={trainingThroughput.lessonsRecordedInRange}
+              />
+              <StatRow
+                label="Active enrollments now"
+                value={trainingThroughput.activeEnrollmentCount}
+                note="snapshot"
+              />
+            </div>
+            {!hasTrainingData && !isEmptyOrg && (
+              <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+                No training activity in period. Try a wider range.
+              </p>
+            )}
+            <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
+              {OPERATOR_COUNT_CAPTION}
             </p>
-            <ExportCsvButton rows={trainingCsv} filename={csvFilename('training-throughput')} />
-          </div>
-          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs px-4 py-3">
-            <StatRow
-              label="Enrollments created"
-              value={trainingThroughput.enrollmentsCreatedInRange}
-            />
-            <StatRow
-              label="Enrollments completed"
-              value={trainingThroughput.enrollmentsCompletedInRange}
-            />
-            <StatRow
-              label="Lessons recorded"
-              value={trainingThroughput.lessonsRecordedInRange}
-            />
-            <StatRow
-              label="Active enrollments now"
-              value={trainingThroughput.activeEnrollmentCount}
-              note="snapshot"
-            />
-          </div>
-          {!hasTrainingData && !isEmptyOrg && (
-            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
-              No training activity in period. Try a wider range.
-            </p>
-          )}
-          <p className="mt-1.5 text-[0.6875rem] text-slate-400 dark:text-slate-500">
-            {OPERATOR_COUNT_CAPTION}
-          </p>
-        </section>
+          </section>
+        )}
 
         {/* F. Maintenance trend */}
         <section aria-label={`Maintenance trend — last ${rangeLbl}`}>
@@ -1374,15 +1386,18 @@ export default async function ReportsPage({
 
   // ── Module gate (Slice CLUB-MODE) — panel pattern, no redirect. Only checked
   // once role access is confirmed; fail-soft to enabled on read failure.
-  let reportsModuleEnabled = true;
+  // The same flags decide section E: Training throughput follows the
+  // Training module (club mode turns it off).
+  let moduleFlags: OrgFeatureFlags | null = null;
   if (canViewReporting) {
     try {
       const orgFeatures = await getOrgFeatures(session);
-      reportsModuleEnabled = orgFeatures.features.reports;
+      moduleFlags = orgFeatures.features;
     } catch {
-      reportsModuleEnabled = true;
+      moduleFlags = null;
     }
   }
+  const reportsModuleEnabled = isModuleOn(moduleFlags, 'reports');
   const canViewReports = canViewReporting && reportsModuleEnabled;
 
   return (
@@ -1401,7 +1416,11 @@ export default async function ReportsPage({
         <ModuleDisabledPanel />
       ) : (
         <Suspense fallback={<ReportsSkeleton />}>
-          <ReportsContent slug={slug} range={range} />
+          <ReportsContent
+            slug={slug}
+            range={range}
+            showTraining={isModuleOn(moduleFlags, 'training')}
+          />
         </Suspense>
       )}
     </div>

@@ -30,6 +30,11 @@
  *    19. accountant → false (has reporting:access, no portal:access)
  *    20. mechanic → false (neither portal:access nor reporting:access)
  *
+ *   portalSubtitle (apps/web/app/o/[slug]/(shell)/portal/page.tsx):
+ *    23. Training module on → names training progress (unchanged)
+ *    24. Training module off (club mode, "My training" hidden) → does not
+ *
+
  * These are PURE unit tests — no DOM, no Next.js, no DB.
  */
 
@@ -40,7 +45,11 @@ import type { AppSession } from '@aeroops/api';
 import { isPortalOnly } from '../nav';
 // Import from the pure helper file — NOT the page (page has Next.js/React imports
 // that don't work in the node vitest environment).
-import { deriveFirstName, reservationRoleLabel } from '../../app/o/[slug]/(shell)/portal/_utils/portal-display';
+import {
+  deriveFirstName,
+  portalSubtitle,
+  reservationRoleLabel,
+} from '../../app/o/[slug]/(shell)/portal/_utils/portal-display';
 
 // ─── Session helper ───────────────────────────────────────────────────────────
 
@@ -158,5 +167,20 @@ describe('isPortalOnly', () => {
       const expected = expectedPortalOnly.includes(role);
       expect(result, `role=${role}`).toBe(expected);
     }
+  });
+});
+
+// ─── portalSubtitle ───────────────────────────────────────────────────────────
+
+describe('portalSubtitle', () => {
+  it('23. Training module on → names training progress (unchanged copy)', () => {
+    expect(portalSubtitle(true)).toBe(
+      'Your upcoming reservations, training progress, and account info.',
+    );
+  });
+
+  it('24. Training module off → no mention of training ("My training" is hidden)', () => {
+    expect(portalSubtitle(false)).toBe('Your upcoming reservations and account info.');
+    expect(portalSubtitle(false)).not.toMatch(/training/i);
   });
 });

@@ -13,6 +13,8 @@
  *                       Contact card; Tags card (add/remove if people:manage);
  *                       Upcoming reservations booked by them (created_by) [VERIFY-6-C];
  *                       Recent dispatch as pilot;
+ *                       Training card only when the org has the Training
+ *                       module on (club mode hides it and skips its read);
  *                       Edit + Deactivate/Reactivate if people:manage.
  *   Deactivated       — still renders full detail.
  *
@@ -34,9 +36,10 @@ import {
   Mail,
 } from 'lucide-react';
 import { auth } from '@/auth';
-import { requireCapability, hasCapability, loginLinkPermission } from '@aeroops/api';
+import { requireCapability, hasCapability, loginLinkPermission, getOrgFeatures } from '@aeroops/api';
 import type { AppSession } from '@aeroops/api';
 import { isMembershipRole } from '@aeroops/core';
+import type { OrgFeatureFlags } from '@aeroops/core';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -48,6 +51,7 @@ import { MemberExpirationsCard } from '../_components/member-expirations-card';
 import { MemberTrainingCard } from '../_components/member-training-card';
 import { MemberLogbookCard } from '../_components/member-logbook-card';
 import { DocumentsCard } from '../../documents-card';
+import { isModuleOn } from '../../module-flags';
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -259,9 +263,11 @@ interface DetailContentProps {
   canManage: boolean;
   /** The viewer — for the UI-only login-link permission check. */
   viewer: Pick<AppSession, 'userId' | 'role'>;
+  /** Training module on — the Training card (Slice CLUB-MODE). */
+  showTraining: boolean;
 }
 
-async function DetailContent({ userId, slug, canManage, viewer }: DetailContentProps) {
+async function DetailContent({ userId, slug, canManage, viewer, showTraining }: DetailContentProps) {
   const result = await getMemberDetailAction({ userId });
 
   if ('error' in result) {
@@ -358,20 +364,23 @@ async function DetailContent({ userId, slug, canManage, viewer }: DetailContentP
       <DocumentsCard ownerType="member" ownerId={member.userId} canManage={canManage} />
 
       {/* ── Training card (Slice T1.3) — fetched in Suspense ────────────── */}
-      {/* Renders for people:access holders; [VERIFY-T1-B] applies. */}
-      <Suspense
-        fallback={
-          <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 animate-pulse" aria-busy="true">
-            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
-            <div className="space-y-2">
-              <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded" />
-              <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded" />
+      {/* Renders for people:access holders while the org has the Training
+          module on (not mounted → no enrollments read); [VERIFY-T1-B] applies. */}
+      {showTraining && (
+        <Suspense
+          fallback={
+            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 animate-pulse" aria-busy="true">
+              <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
+              <div className="space-y-2">
+                <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded" />
+                <div className="h-8 w-full bg-slate-100 dark:bg-slate-800 rounded" />
+              </div>
             </div>
-          </div>
-        }
-      >
-        <MemberTrainingCard userId={member.userId} slug={slug} />
-      </Suspense>
+          }
+        >
+          <MemberTrainingCard userId={member.userId} slug={slug} />
+        </Suspense>
+      )}
 
       {/* ── Logbook card (Slice P2) — fetched in Suspense ─────────────────── */}
       {/* Convenience view of dispatch history — NOT a §61.51 record of record. */}
@@ -415,6 +424,16 @@ export default async function MemberDetailPage({ params }: MemberDetailPageProps
 
   const canManage = hasCapability(session, 'people:manage');
 
+  // Per-org module toggles (Slice CLUB-MODE) — the same read the shell nav
+  // uses; null on a read failure, which fails soft to showing the card.
+  let moduleFlags: OrgFeatureFlags | null = null;
+  try {
+    const orgFeatures = await getOrgFeatures(viewer);
+    moduleFlags = orgFeatures.features;
+  } catch {
+    moduleFlags = null;
+  }
+
   return (
     <Suspense fallback={<DetailSkeleton />}>
       <DetailContent
@@ -422,6 +441,7 @@ export default async function MemberDetailPage({ params }: MemberDetailPageProps
         slug={slug}
         canManage={canManage}
         viewer={{ userId: viewer.userId, role: viewer.role }}
+        showTraining={isModuleOn(moduleFlags, 'training')}
       />
     </Suspense>
   );

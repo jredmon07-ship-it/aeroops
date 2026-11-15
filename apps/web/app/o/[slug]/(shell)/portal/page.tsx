@@ -16,7 +16,9 @@
  *      NO book CTA (self-booking is deferred).
  *   C. My training — per-enrollment: course title + status pill + progress bar
  *      + completedCount/totalLessons. Empty: "Not enrolled in a course yet."
- *      Verbatim [VERIFY-T1-B] footnote required by spec.
+ *      Verbatim [VERIFY-T1-B] footnote required by spec. Only when the org has
+ *      the Training module on (club mode hides it, and A's subtitle drops
+ *      "training progress").
  *   D. Account — name/email/phone/role label/member-since/read-only tag chips.
  *      No edit (self-edit is deferred).
  *
@@ -55,9 +57,10 @@ import type { SerializedMyPortalSummary } from './actions';
 // Pure display helpers — extracted to a separate file so they can be
 // unit-tested without the Next.js/React imports in this page.
 // Imported for use within this file; the utils file is the canonical export.
-import { deriveFirstName, reservationRoleLabel } from './_utils/portal-display';
+import { deriveFirstName, portalSubtitle, reservationRoleLabel } from './_utils/portal-display';
 import { CalendarFeedCard } from './_components/calendar-feed-card';
 import { PortalAvatarCard } from './_components/portal-avatar-card';
+import { isModuleOn } from '../module-flags';
 
 /**
  * formatLocalDateTime — formats an ISO string to a readable local date+time.
@@ -411,9 +414,11 @@ function AccountSection({
 
 interface PortalContentProps {
   slug: string;
+  /** Training module on — section C (Slice CLUB-MODE). */
+  showTraining: boolean;
 }
 
-async function PortalContent({ slug }: PortalContentProps) {
+async function PortalContent({ slug, showTraining }: PortalContentProps) {
   // The avatar is best-effort — any failure just hides that piece and falls
   // back gracefully (never blocks the portal).
   const [result, avatarResult] = await Promise.all([
@@ -460,7 +465,7 @@ async function PortalContent({ slug }: PortalContentProps) {
           Welcome, {firstName}
         </h1>
         <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-          Your upcoming reservations, training progress, and account info.
+          {portalSubtitle(showTraining)}
         </p>
       </div>
 
@@ -492,10 +497,12 @@ async function PortalContent({ slug }: PortalContentProps) {
       {/* ── Calendar feed (Slice P1.4) ────────────────────────────────────── */}
       <CalendarFeedCard />
 
-      {/* ── C. My training ────────────────────────────────────────────────── */}
-      <SectionCard title="My training" aria-label="My training">
-        <TrainingSection training={summary.training} />
-      </SectionCard>
+      {/* ── C. My training — Training module only (Slice CLUB-MODE) ──────── */}
+      {showTraining && (
+        <SectionCard title="My training" aria-label="My training">
+          <TrainingSection training={summary.training} />
+        </SectionCard>
+      )}
 
       {/* ── D. Account ────────────────────────────────────────────────────── */}
       <SectionCard title="Account" aria-label="My account">
@@ -550,7 +557,10 @@ export default async function PortalPage({ params }: PortalPageProps) {
   return (
     // Suspense wraps A+B+C+D so the heading "Welcome, {firstName}" uses real data.
     <Suspense fallback={<PortalSkeleton />}>
-      <PortalContent slug={slug} />
+      <PortalContent
+        slug={slug}
+        showTraining={isModuleOn(orgFeatures?.features, 'training')}
+      />
     </Suspense>
   );
 }
