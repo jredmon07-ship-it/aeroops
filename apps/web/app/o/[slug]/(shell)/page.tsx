@@ -59,6 +59,8 @@ import {
   getOpenSquawksAction,
 } from './reporting-actions';
 import { getMaintenanceDueSummaryAction } from './maintenance/due-actions';
+import { kpiSubLabel } from './dashboard-kpi';
+import { squawkSeverityChip } from './squawk-severity';
 
 // ─── Local alias ─────────────────────────────────────────────────────────────
 
@@ -77,18 +79,10 @@ function fmtBucketLabel(iso: string): string {
 
 // ─── Severity chip (squawk severity) ─────────────────────────────────────────
 
-const SEVERITY_VARIANT: Record<string, 'danger' | 'warning' | 'neutral'> = {
-  grounding: 'danger',
-  major: 'warning',
-  minor: 'neutral',
-};
-
+// The Squawks list's chip, from the shared map typed against core's SquawkSeverity.
 function SeverityChip({ severity }: { severity: string }) {
-  return (
-    <StatusBadge variant={SEVERITY_VARIANT[severity] ?? 'neutral'}>
-      {severity}
-    </StatusBadge>
-  );
+  const { label, className } = squawkSeverityChip(severity);
+  return <span className={className}>{label}</span>;
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -509,7 +503,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               {metrics.totalFlights}
             </p>
             <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500" aria-hidden="true">
-              {metrics.totalFlights === 0 ? 'no flights in period' : 'completed dispatches'}
+              {kpiSubLabel('flights', metrics.totalFlights)}
             </p>
             {/* Per-day flights sparkline (from the activity trend) */}
             <div className="mt-2 h-4">
@@ -537,7 +531,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               {metrics.totalFlightHours.toFixed(1)}
             </p>
             <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
-              {metrics.totalFlightHours === 0 ? 'no … in period' : 'utilization hrs'}
+              {kpiSubLabel('flightHours', metrics.totalFlightHours)}
             </p>
             <div className="h-4" aria-hidden="true" />
           </div>
@@ -556,7 +550,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
               {metrics.reservationsInRange}
             </p>
             <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
-              {metrics.reservationsInRange === 0 ? 'no … in period' : 'incl. upcoming'}
+              {kpiSubLabel('reservations', metrics.reservationsInRange)}
             </p>
             {/* Per-day reservations sparkline (from the activity trend) */}
             <div className="mt-2 h-4">

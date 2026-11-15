@@ -11,6 +11,7 @@
 'use client';
 
 import * as React from 'react';
+import { squawkSeverityChip } from '../../../squawk-severity';
 import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResolveSquawkDialog } from './resolve-squawk-dialog';
@@ -32,20 +33,8 @@ interface SquawkListProps {
 // ─── Chip helpers ─────────────────────────────────────────────────────────────
 
 function SeverityChip({ severity }: { severity: SquawkSeverity }) {
-  const map: Record<SquawkSeverity, { label: string; cls: string }> = {
-    low: { label: 'Low', cls: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
-    medium: { label: 'Medium', cls: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200' },
-    high: { label: 'High', cls: 'border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-200' },
-    grounding: { label: 'Grounding', cls: 'border-destructive/30 bg-destructive/10 text-destructive' },
-  };
-  const { label, cls } = map[severity];
-  return (
-    <span
-      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${cls}`}
-    >
-      {label}
-    </span>
-  );
+  const { label, className } = squawkSeverityChip(severity);
+  return <span className={className}>{label}</span>;
 }
 
 function StatusChip({ status }: { status: SquawkStatus }) {

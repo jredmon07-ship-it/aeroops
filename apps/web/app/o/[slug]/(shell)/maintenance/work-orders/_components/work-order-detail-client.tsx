@@ -11,6 +11,7 @@
 'use client';
 
 import * as React from 'react';
+import { squawkSeverityChip } from '../../../squawk-severity';
 import Link from 'next/link';
 import { ArrowLeft, WrenchIcon, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,21 +46,8 @@ interface WorkOrderDetailClientProps {
 // ─── Severity chip ────────────────────────────────────────────────────────────
 
 function SeverityChip({ severity }: { severity: string }) {
-  const map: Record<string, string> = {
-    low: 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300',
-    medium: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200',
-    high: 'border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-200',
-    grounding: 'border-destructive/30 bg-destructive/10 text-destructive',
-  };
-  const cls = map[severity] ?? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
-  const label = severity.charAt(0).toUpperCase() + severity.slice(1);
-  return (
-    <span
-      className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-4 ${cls}`}
-    >
-      {label}
-    </span>
-  );
+  const { label, className } = squawkSeverityChip(severity);
+  return <span className={className}>{label}</span>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
