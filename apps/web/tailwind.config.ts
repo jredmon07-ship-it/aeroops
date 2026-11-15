@@ -2,9 +2,12 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   darkMode: 'class',
+  // Every directory whose files hold class strings, lib/ included: its literal
+  // class maps (member-tag-color.ts) are rendered by the People pages.
   content: [
     './app/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
+    './lib/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
   theme: {
@@ -68,6 +71,11 @@ const config: Config = {
       },
       letterSpacing: {
         tightish: '-0.012em',
+      },
+      // Opacity steps the app uses that Tailwind's default scale (0, 5, 10 … 100)
+      // lacks. Without '8', every `bg-brand/8` chip tint was never emitted.
+      opacity: {
+        '8': '0.08',
       },
     },
   },
