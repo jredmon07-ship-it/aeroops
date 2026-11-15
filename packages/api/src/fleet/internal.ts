@@ -8,7 +8,7 @@
  *   loadUpcomingReservations — future booked reservations for one aircraft,
  *     joined via reservation_resource, ORDER BY start_at ASC LIMIT 10.
  *   loadRecentDispatch       — last-N dispatch tickets (incl. voided) for one
- *     aircraft, ORDER BY created_at DESC LIMIT N.
+ *     aircraft with the pilot's name, ORDER BY opened_at DESC LIMIT N.
  *   loadCurrentMeters        — latest status='closed' ticket's hobbsIn/tachIn
  *     + closedAt (null if no closed ticket exists).
  *
@@ -20,8 +20,7 @@
 
 import { sql } from 'drizzle-orm';
 import type { AnyDb } from '@aeroops/db';
-import type { UpcomingReservationRow, AircraftDetail } from './types.js';
-import type { DispatchTicketView } from '../dispatch/types.js';
+import type { UpcomingReservationRow, AircraftDetail, RecentDispatchRow } from './types.js';
 import { toDispatchTicketView } from '../dispatch/internal.js';
 import { loadGroundingProbe, toSquawkView, toWorkOrderView } from '../maintenance/internal.js';
 import { extractRows } from '../db-rows.js';
@@ -75,7 +74,12 @@ export async function loadUpcomingReservations(
 
 /**
  * loadRecentDispatch — return ≤10 most-recent dispatch tickets for one aircraft,
- * including voided tickets (for audit history). Ordered newest-first.
+ * including voided tickets (for audit history), each with the pilot's name.
+ *
+ * Ordered by the flight's own check-out time (opened_at), newest first, which
+ * is the date the page shows. Not created_at: back-dated history (the demo's
+ * backfilled flights) is written after today's flight, so ordering by write
+ * time pushed today's flight off the list.
  *
  * RLS-scoped by caller's GUC.
  */
@@ -83,30 +87,32 @@ export async function loadRecentDispatch(
   tx: AnyDb,
   resourceId: string,
   limit = 10,
-): Promise<DispatchTicketView[]> {
+): Promise<RecentDispatchRow[]> {
   const result = await tx.execute(sql`
     SELECT
-      id,
-      org_id            AS "orgId",
-      reservation_id    AS "reservationId",
-      resource_id       AS "resourceId",
-      pilot_user_id     AS "pilotUserId",
-      status,
-      hobbs_out         AS "hobbsOut",
-      tach_out          AS "tachOut",
-      hobbs_in          AS "hobbsIn",
-      tach_in           AS "tachIn",
-      flight_time_hours AS "flightTimeHours",
-      notes,
-      opened_by         AS "openedBy",
-      opened_at         AS "openedAt",
-      closed_by         AS "closedBy",
-      closed_at         AS "closedAt",
-      created_at        AS "createdAt",
-      updated_at        AS "updatedAt"
-    FROM dispatch_ticket
-    WHERE resource_id = ${resourceId}::uuid
-    ORDER BY created_at DESC
+      dt.id,
+      dt.org_id            AS "orgId",
+      dt.reservation_id    AS "reservationId",
+      dt.resource_id       AS "resourceId",
+      dt.pilot_user_id     AS "pilotUserId",
+      dt.status,
+      dt.hobbs_out         AS "hobbsOut",
+      dt.tach_out          AS "tachOut",
+      dt.hobbs_in          AS "hobbsIn",
+      dt.tach_in           AS "tachIn",
+      dt.flight_time_hours AS "flightTimeHours",
+      dt.notes,
+      dt.opened_by         AS "openedBy",
+      dt.opened_at         AS "openedAt",
+      dt.closed_by         AS "closedBy",
+      dt.closed_at         AS "closedAt",
+      dt.created_at        AS "createdAt",
+      dt.updated_at        AS "updatedAt",
+      COALESCE(u.full_name, u.email) AS "pilotName"
+    FROM dispatch_ticket dt
+    LEFT JOIN app_user u ON u.id = dt.pilot_user_id
+    WHERE dt.resource_id = ${resourceId}::uuid
+    ORDER BY dt.opened_at DESC, dt.id DESC
     LIMIT ${limit}
   `);
 
@@ -129,9 +135,13 @@ export async function loadRecentDispatch(
     closedAt: Date | string | null;
     createdAt: Date | string;
     updatedAt: Date | string;
+    pilotName: string | null;
   }>(result);
 
-  return rows.map(toDispatchTicketView);
+  return rows.map((row) => ({
+    ...toDispatchTicketView(row),
+    pilotName: row.pilotName ?? null,
+  }));
 }
 
 // ─── CurrentMeters ────────────────────────────────────────────────────────────

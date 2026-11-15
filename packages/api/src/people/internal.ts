@@ -149,6 +149,8 @@ export async function assembleMemberDetail(
   }));
 
   // ── 4. Recent dispatch as pilot (incl. voided, newest-first, ≤10) ─────────
+  // Newest by opened_at (the flight's check-out time, which the page shows),
+  // not created_at: back-dated history is written after today's flight.
   const dispatchResult = await tx.execute(sql`
     SELECT
       id,
@@ -171,7 +173,7 @@ export async function assembleMemberDetail(
       updated_at        AS "updatedAt"
     FROM dispatch_ticket
     WHERE pilot_user_id = ${userId}::uuid
-    ORDER BY created_at DESC
+    ORDER BY opened_at DESC, id DESC
     LIMIT 10
   `);
 

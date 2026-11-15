@@ -45,7 +45,7 @@ import {
   loadMigrationSql,
 } from '@aeroops/db';
 import { appUser, membership, authCredential, auditLog } from '@aeroops/db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { createResourceWithDb } from '../scheduling/resource-commands.js';
@@ -430,6 +430,49 @@ describe('T13 — getMemberDetail no activity', () => {
     expect(result.member.tags).toHaveLength(0);
     expect(result.member.upcomingReservations).toHaveLength(0);
     expect(result.member.recentDispatch).toHaveLength(0);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// T13b — getMemberDetail: recent dispatch in flight order
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('T13b — getMemberDetail recent dispatch order', () => {
+  it('newest flight (opened_at) first, even when an older flight was written later', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const pilotId = await seedOrgAMember(db, orgAId, `order-t13b-${Date.now()}@test.com`, 'renter');
+
+    const ticketIds: string[] = [];
+    for (const tag of ['A', 'B']) {
+      const { aircraftId, reservationId } = await seedAircraftWithReservation(
+        db, orgAId, userAId, `T13B${tag}-${Date.now()}`,
+      );
+      const opened = await openDispatchWithDb(db, sess, {
+        reservationId,
+        resourceId: aircraftId,
+        pilotUserId: pilotId,
+        hobbsOut: 10,
+        tachOut:  10,
+      });
+      if (!opened.ok) throw new Error(`open dispatch failed: ${opened.reason}`);
+      ticketIds.push(opened.ticket.id);
+    }
+    const [latestFlight, olderFlight] = ticketIds as [string, string];
+    // Back-date the second ticket the way the demo's history backfill does: it
+    // was written AFTER the first, but its flight is a week earlier.
+    await withOrgContext(db, orgAId, (tx) => tx.execute(sql`
+      UPDATE dispatch_ticket
+         SET opened_at  = now() - interval '7 days',
+             created_at = (SELECT created_at FROM dispatch_ticket WHERE id = ${latestFlight}::uuid)
+                          + interval '1 second'
+       WHERE id = ${olderFlight}::uuid
+    `));
+
+    const result = await getMemberDetailWithDb(db, sess, { userId: pilotId });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.member.recentDispatch.map((d) => d.id)).toEqual([latestFlight, olderFlight]);
   });
 });
 

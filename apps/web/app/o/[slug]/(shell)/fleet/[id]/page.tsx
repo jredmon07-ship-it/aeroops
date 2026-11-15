@@ -467,8 +467,8 @@ function AircraftDetailView({ aircraft, slug, canManage, canManageRequirements, 
                     <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 nums">
                       {formatDate(ticket.openedAt)}
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hidden sm:table-cell font-mono truncate max-w-[8rem]">
-                      {ticket.pilotUserId}
+                    <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hidden sm:table-cell truncate max-w-[8rem]">
+                      {ticket.pilotName ?? '—'}
                     </td>
                     <td className="px-3 py-2 text-right">
                       <span className="nums text-xs text-slate-700 dark:text-slate-300">

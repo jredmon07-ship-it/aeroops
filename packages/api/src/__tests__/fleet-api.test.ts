@@ -51,8 +51,8 @@ import {
   seedTwoOrgs,
   loadMigrationSql,
 } from '@aeroops/db';
-import { auditLog, location } from '@aeroops/db';
-import { eq, and } from 'drizzle-orm';
+import { auditLog, location, appUser, membership } from '@aeroops/db';
+import { eq, and, sql } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 
 import { createResourceWithDb } from '../scheduling/resource-commands.js';
@@ -550,6 +550,90 @@ describe('T12 — getAircraftDetail happy path (all facets)', () => {
     // Upcoming reservations.
     expect(a.upcomingReservations.length).toBeGreaterThanOrEqual(1);
     expect(a.upcomingReservations[0]!.startAt).toBeInstanceOf(Date);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// T12b — getAircraftDetail recent dispatch: flight order + pilot name
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('T12b — getAircraftDetail recent dispatch order + pilot name', () => {
+  /** Book + check out + check in one flight on `aircraftId`; returns the ticket id. */
+  async function flyOnce(
+    sess: AppSession,
+    aircraftId: string,
+    pilotUserId: string,
+    start: Date,
+    end: Date,
+    hobbs: number,
+  ): Promise<string> {
+    const { db } = sharedEnv;
+    const r = await createReservationWithDb(db, sess, { startAt: start, endAt: end, resourceIds: [aircraftId] });
+    if (!r.ok) throw new Error(`seed reservation failed: ${r.reason}`);
+    const opened = await openDispatchWithDb(db, sess, {
+      reservationId: r.reservation.id,
+      resourceId: aircraftId,
+      pilotUserId,
+      hobbsOut: hobbs,
+      tachOut: hobbs,
+    });
+    if (!opened.ok) throw new Error(`open dispatch failed: ${opened.reason}`);
+    const closed = await closeDispatchWithDb(db, sess, {
+      ticketId: opened.ticket.id,
+      hobbsIn: hobbs + 1,
+      tachIn: hobbs + 1,
+    });
+    if (!closed.ok) throw new Error(`close dispatch failed: ${closed.reason}`);
+    return opened.ticket.id;
+  }
+
+  it('newest flight (opened_at) first, even when an older flight was written later', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const aircraftId = await seedAircraft(db, orgAId, userAId, 'ORDER01');
+
+    const latestFlight = await flyOnce(sess, aircraftId, userAId, T.W1_start, T.W1_end, 300);
+    const olderFlight  = await flyOnce(sess, aircraftId, userAId, T.W2_start, T.W2_end, 302);
+    // Back-date the second ticket the way the demo's history backfill does: it
+    // was written AFTER the first, but its flight is a week earlier.
+    await withOrgContext(db, orgAId, (tx) => tx.execute(sql`
+      UPDATE dispatch_ticket
+         SET opened_at  = now() - interval '7 days',
+             closed_at  = now() - interval '7 days' + interval '1 hour',
+             created_at = (SELECT created_at FROM dispatch_ticket WHERE id = ${latestFlight}::uuid)
+                          + interval '1 second'
+       WHERE id = ${olderFlight}::uuid
+    `));
+
+    const result = await getAircraftDetailWithDb(db, sess, { resourceId: aircraftId });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.aircraft.recentDispatch.map((t) => t.id)).toEqual([latestFlight, olderFlight]);
+  });
+
+  it('names the pilot (full name, else email), not a user id', async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const aircraftId = await seedAircraft(db, orgAId, userAId, 'PILOT01');
+
+    // A second pilot with no full name → shown by email.
+    const noNameEmail = `no-name-pilot-${Date.now()}@alpha.example`;
+    const noNamePilotId = await withOrgContext(db, orgAId, async (tx) => {
+      const [user] = await tx.insert(appUser).values({ orgId: orgAId, email: noNameEmail, fullName: null }).returning();
+      await tx.insert(membership).values({ orgId: orgAId, userId: user!.id, role: 'renter' });
+      return user!.id;
+    });
+
+    const byAlice  = await flyOnce(sess, aircraftId, userAId, T.W1_start, T.W1_end, 400);
+    const byNoName = await flyOnce(sess, aircraftId, noNamePilotId, T.W2_start, T.W2_end, 402);
+
+    const result = await getAircraftDetailWithDb(db, sess, { resourceId: aircraftId });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const byId = new Map(result.aircraft.recentDispatch.map((t) => [t.id, t]));
+    expect(byId.get(byAlice)?.pilotName).toBe('Alice Alpha');
+    expect(byId.get(byAlice)?.pilotUserId).toBe(userAId);
+    expect(byId.get(byNoName)?.pilotName).toBe(noNameEmail);
   });
 });
 

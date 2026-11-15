@@ -100,6 +100,19 @@ export interface UpcomingReservationRow {
   seriesId: string | null;
 }
 
+// ─── RecentDispatchRow ────────────────────────────────────────────────────────
+
+/**
+ * RecentDispatchRow — one dispatch ticket in an aircraft's recent history,
+ * plus the pilot's display name so the page never has to show a user id.
+ *
+ * pilotName: full_name ?? email of the pilot; null only when the user row is
+ *   not visible (never expected — the pilot FK is same-org).
+ */
+export interface RecentDispatchRow extends DispatchTicketView {
+  pilotName: string | null;
+}
+
 // ─── AircraftDetail ───────────────────────────────────────────────────────────
 
 /**
@@ -140,7 +153,7 @@ export interface AircraftDetail {
   recentSquawks: SquawkView[];  // ≤10, newest-first
 
   // Dispatch (incl. voided tickets for audit history)
-  recentDispatch: DispatchTicketView[];  // ≤10, newest-first
+  recentDispatch: RecentDispatchRow[];  // ≤10, newest check-out (opened_at) first
 
   // Current meters — latest closed ticket's _in readings [VERIFY-5-A]
   currentHobbs: number | null;

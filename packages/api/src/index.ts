@@ -628,6 +628,7 @@ export type {
   CreateLocationResult,
   UpdateLocationResult,
   UpcomingReservationRow,
+  RecentDispatchRow,
 } from './fleet/types.js';
 
 // ─── Slice 6.2 — People / Members (PEOPLE-6.2) ────────────────────────────────

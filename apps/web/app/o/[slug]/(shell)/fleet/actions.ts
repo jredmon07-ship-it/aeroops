@@ -68,6 +68,7 @@ export interface SerializedDispatchTicketView {
   reservationId: string;
   resourceId: string;
   pilotUserId: string;
+  pilotName: string | null;
   status: string;
   hobbsOut: number;
   tachOut: number;
@@ -208,6 +209,7 @@ function serializeAircraftDetail(detail: AircraftDetail): SerializedAircraftDeta
       reservationId: t.reservationId,
       resourceId: t.resourceId,
       pilotUserId: t.pilotUserId,
+      pilotName: t.pilotName,
       status: t.status,
       hobbsOut: t.hobbsOut,
       tachOut: t.tachOut,
