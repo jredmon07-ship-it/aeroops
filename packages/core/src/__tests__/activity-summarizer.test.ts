@@ -17,7 +17,12 @@
 
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { summarizeAuditEntry, activityPath } from '../activity/summarize.js';
+import {
+  summarizeAuditEntry,
+  activityPath,
+  activityEntityLabel,
+  ACTIVITY_ENTITY_TYPES,
+} from '../activity/summarize.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -241,6 +246,23 @@ describe('PROPERTY: summarizeAuditEntry safety boundary', () => {
       { numRuns: 300 },
     );
   });
+
+  it('P8: a start time is shown as "Mon D, YYYY HH:MM ZONE", never as the raw ISO string', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom('reservation.created', 'resource_blackout.created'),
+        fc.date({ min: new Date('1970-01-01T00:00:00Z'), max: new Date('2100-01-01T00:00:00Z'), noInvalidDate: true }),
+        fc.constantFrom('UTC', 'America/Chicago', 'Pacific/Auckland', 'Asia/Kolkata', 'Not/AZone'),
+        (action, at, timeZone) => {
+          const startAt = at.toISOString();
+          const result = summarizeAuditEntry({ action, entityType: 'reservation', metadata: { startAt }, timeZone });
+          expect(result).not.toContain(startAt);
+          expect(result).toMatch(/ starting [A-Z][a-z]{2} \d{1,2}, \d{4} \d{2}:\d{2} \S+$/);
+        },
+      ),
+      { numRuns: 300 },
+    );
+  });
 });
 
 // ─── UNIT TESTS — every known action ─────────────────────────────────────────
@@ -248,11 +270,40 @@ describe('PROPERTY: summarizeAuditEntry safety boundary', () => {
 describe('summarizeAuditEntry — reservation actions', () => {
   it('reservation.created with startAt', () => {
     const r = summarizeAuditEntry({ action: 'reservation.created', entityType: 'reservation', metadata: { startAt: '2026-07-15T08:00:00Z', resourceIds: ['id1'] } });
-    expect(r).toContain('Reservation created starting');
-    expect(r).toContain('2026-07-15');
+    expect(r).toBe('Reservation created starting Jul 15, 2026 08:00 UTC');
     // Must NOT contain raw metadata
     expect(r).not.toContain('resourceIds');
     expect(r).not.toContain('"id1"');
+  });
+
+  it('reservation.created shows the start in the given time zone, with its name', () => {
+    const metadata = { startAt: '2026-07-11T14:00:00.000Z' };
+    expect(summarizeAuditEntry({ action: 'reservation.created', entityType: 'reservation', metadata, timeZone: 'America/Chicago' }))
+      .toBe('Reservation created starting Jul 11, 2026 09:00 CDT');
+    // Standard time, and a start that falls on the previous local day.
+    expect(summarizeAuditEntry({ action: 'reservation.created', entityType: 'reservation', metadata: { startAt: '2026-01-11T00:00:00.000Z' }, timeZone: 'America/Chicago' }))
+      .toBe('Reservation created starting Jan 10, 2026 18:00 CST');
+  });
+
+  it('reservation.created never echoes the raw ISO timestamp', () => {
+    const r = summarizeAuditEntry({ action: 'reservation.created', entityType: 'reservation', metadata: { startAt: '2026-07-11T14:00:00.000Z' }, timeZone: 'America/Chicago' });
+    expect(r).not.toContain('2026-07-11T14:00:00.000Z');
+    expect(r).not.toContain('T14:00');
+  });
+
+  it('reservation.created with an unknown time zone → UTC (never throws)', () => {
+    const metadata = { startAt: '2026-07-15T08:00:00Z' };
+    for (const timeZone of ['', 'Not/AZone', 'UTC+99']) {
+      expect(summarizeAuditEntry({ action: 'reservation.created', entityType: 'reservation', metadata, timeZone }))
+        .toBe('Reservation created starting Jul 15, 2026 08:00 UTC');
+    }
+  });
+
+  it('reservation.created with a startAt that is not an ISO instant → no time, not the raw value', () => {
+    for (const startAt of ['next Tuesday', '1', '2026-07-15', '2026-13-45T99:99:00Z']) {
+      const r = summarizeAuditEntry({ action: 'reservation.created', entityType: 'reservation', metadata: { startAt } });
+      expect(r).toBe('Reservation created');
+    }
   });
 
   it('reservation.created without startAt → safe fallback', () => {
@@ -315,8 +366,18 @@ describe('summarizeAuditEntry — resource actions', () => {
 describe('summarizeAuditEntry — blackout and booking policy actions', () => {
   it('resource_blackout.created with startAt', () => {
     const r = summarizeAuditEntry({ action: 'resource_blackout.created', entityType: 'resource_blackout', metadata: { startAt: '2026-07-20T00:00:00Z', reason: 'Maintenance' } });
-    expect(r).toContain('Blackout window created starting');
+    expect(r).toBe('Blackout window created starting Jul 20, 2026 00:00 UTC');
     expect(r).not.toContain('Maintenance'); // reason is NOT whitelisted for display
+  });
+
+  it('resource_blackout.created in a time zone', () => {
+    const r = summarizeAuditEntry({ action: 'resource_blackout.created', entityType: 'resource_blackout', metadata: { startAt: '2026-07-20T00:00:00Z' }, timeZone: 'America/Chicago' });
+    expect(r).toBe('Blackout window created starting Jul 19, 2026 19:00 CDT');
+  });
+
+  it('resource_blackout.created with a non-ISO startAt → no time', () => {
+    const r = summarizeAuditEntry({ action: 'resource_blackout.created', entityType: 'resource_blackout', metadata: { startAt: 'soon' } });
+    expect(r).toBe('Blackout window created');
   });
 
   it('resource_blackout.deleted', () => {
@@ -552,9 +613,66 @@ describe('summarizeAuditEntry — generic fallback', () => {
     expect(r).not.toContain('do-not-show');
   });
 
-  it('unknown entity type → underscores replaced with spaces', () => {
+  it('unknown entity type → generic "a record", never the raw table name', () => {
     const r = summarizeAuditEntry({ action: 'unknown.action', entityType: 'some_new_table', metadata: {} });
-    expect(r).toContain('some new table');
+    expect(r).toBe('performed an action on a record');
+    expect(r).not.toContain('some_new_table');
+    expect(r).not.toContain('some new table');
+  });
+
+  it('retired table names (e.g. from old audit rows) are not shown', () => {
+    for (const entityType of ['invoice', 'ledger_entry', 'stripe_event']) {
+      const r = summarizeAuditEntry({ action: `${entityType}.created`, entityType, metadata: {} });
+      expect(r).toBe('performed an action on a record');
+    }
+  });
+
+  it('uses "an" before a label that starts with a vowel', () => {
+    expect(summarizeAuditEntry({ action: 'unknown.action', entityType: 'aircraft_grounding', metadata: {} }))
+      .toBe('performed an action on an aircraft grounding');
+    expect(summarizeAuditEntry({ action: 'import.committed', entityType: 'import_batch', metadata: {} }))
+      .toBe('performed an action on an import');
+  });
+
+  it('every labelled entity type reads with its label and the right article', () => {
+    // A checked list: adding a label to ENTITY_TYPE_LABELS without adding it
+    // here fails, so each new label's wording and article get a human look.
+    const expected: Record<string, string> = {
+      reservation:                  'a reservation',
+      reservation_series:           'a recurring series',
+      resource:                     'a resource',
+      resource_blackout:            'a blackout window',
+      resource_availability_window: 'an operating-hours window',
+      booking_policy:               'a booking policy',
+      booking_request:              'a booking request',
+      dispatch_ticket:              'a dispatch ticket',
+      dispatch_config:              'a dispatch configuration',
+      dispatch_requirement:         'a dispatch requirement',
+      aircraft_grounding:           'an aircraft grounding',
+      squawk:                       'a squawk',
+      work_order:                   'a work order',
+      maintenance_item:             'a maintenance item',
+      location:                     'a location',
+      app_user:                     'a member',
+      member_expiration:            'a member expiration',
+      member_message:               'a message',
+      mobile_session:               'a mobile app session',
+      calendar_feed:                'a calendar feed',
+      document:                     'a document',
+      import_batch:                 'an import',
+      org_feature_config:           'a module setting',
+      enrollment:                   'a training enrollment',
+      course:                       'a training course',
+      course_lesson:                'a course lesson',
+      lesson_record:                'a lesson record',
+      lesson_signature:             'a lesson signature',
+      schedule_optimization_run:    'an auto-schedule run',
+    };
+    expect([...ACTIVITY_ENTITY_TYPES].sort()).toEqual(Object.keys(expected).sort());
+    for (const [entityType, phrase] of Object.entries(expected)) {
+      expect(summarizeAuditEntry({ action: 'unknown.action', entityType, metadata: {} }))
+        .toBe(`performed an action on ${phrase}`);
+    }
   });
 
   it('null metadata → never throws (total)', () => {
@@ -569,27 +687,81 @@ describe('summarizeAuditEntry — generic fallback', () => {
   });
 });
 
+// ─── UNIT TESTS — activityEntityLabel ─────────────────────────────────────────
+
+describe('activityEntityLabel', () => {
+  it('known entity type → its label', () => {
+    expect(activityEntityLabel('dispatch_ticket')).toBe('dispatch ticket');
+    expect(activityEntityLabel('app_user')).toBe('member');
+    expect(activityEntityLabel('resource_availability_window')).toBe('operating-hours window');
+  });
+
+  it('unknown entity type → "record", never the raw name', () => {
+    expect(activityEntityLabel('invoice')).toBe('record');
+    expect(activityEntityLabel('some_new_table')).toBe('record');
+    expect(activityEntityLabel('')).toBe('record');
+  });
+
+  it('prototype keys → "record" (no "[object Object]" or function source)', () => {
+    for (const key of ['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'valueOf']) {
+      expect(activityEntityLabel(key)).toBe('record');
+      expect(summarizeAuditEntry({ action: 'unknown.action', entityType: key, metadata: {} }))
+        .toBe('performed an action on a record');
+    }
+  });
+
+  it('every label is a lowercase phrase with no underscores', () => {
+    for (const entityType of ACTIVITY_ENTITY_TYPES) {
+      const label = activityEntityLabel(entityType);
+      expect(label).not.toBe('record');
+      expect(label).not.toContain('_');
+      expect(label).toBe(label.toLowerCase());
+    }
+  });
+});
+
 // ─── UNIT TESTS — activityPath ────────────────────────────────────────────────
 
 describe('activityPath', () => {
-  it('reservation → /board', () => {
-    expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata: {} })).toBe('/board');
+  it('reservation → /schedule/board', () => {
+    expect(activityPath({ entityType: 'reservation', entityId: 'abc', metadata: {} })).toBe('/schedule/board');
   });
 
-  it('reservation_series → /board', () => {
-    expect(activityPath({ entityType: 'reservation_series', entityId: 'abc', metadata: {} })).toBe('/board');
+  it('reservation_series with entityId → /schedule/series/{id}', () => {
+    expect(activityPath({ entityType: 'reservation_series', entityId: 'abc', metadata: {} })).toBe('/schedule/series/abc');
   });
 
-  it('dispatch_ticket → /board', () => {
-    expect(activityPath({ entityType: 'dispatch_ticket', entityId: 'x', metadata: {} })).toBe('/board');
+  it('reservation_series without entityId → /schedule/board', () => {
+    expect(activityPath({ entityType: 'reservation_series', entityId: null, metadata: {} })).toBe('/schedule/board');
   });
 
-  it('dispatch_config → /board', () => {
-    expect(activityPath({ entityType: 'dispatch_config', entityId: 'orgId', metadata: {} })).toBe('/board');
+  it('dispatch_ticket → /schedule/board', () => {
+    expect(activityPath({ entityType: 'dispatch_ticket', entityId: 'x', metadata: {} })).toBe('/schedule/board');
   });
 
-  it('dispatch_requirement → /board', () => {
-    expect(activityPath({ entityType: 'dispatch_requirement', entityId: 'x', metadata: {} })).toBe('/board');
+  it('dispatch_config → /schedule/board', () => {
+    expect(activityPath({ entityType: 'dispatch_config', entityId: 'orgId', metadata: {} })).toBe('/schedule/board');
+  });
+
+  it('dispatch_requirement with resourceId in metadata → /fleet/{resourceId}', () => {
+    expect(activityPath({ entityType: 'dispatch_requirement', entityId: 'res-1', metadata: { resourceId: 'res-1', requiredTag: 'x' } })).toBe('/fleet/res-1');
+  });
+
+  it('dispatch_requirement without metadata.resourceId → /fleet/{entityId}', () => {
+    expect(activityPath({ entityType: 'dispatch_requirement', entityId: 'res-2', metadata: {} })).toBe('/fleet/res-2');
+  });
+
+  it('dispatch_requirement with neither → null', () => {
+    expect(activityPath({ entityType: 'dispatch_requirement', entityId: null, metadata: {} })).toBeNull();
+  });
+
+  it('no path is the retired bare /board route', () => {
+    for (const entityType of ACTIVITY_ENTITY_TYPES) {
+      for (const entityId of ['id-1', null]) {
+        const path = activityPath({ entityType, entityId, metadata: { resourceId: 'res-1', courseId: 'course-1' } });
+        expect(path).not.toBe('/board');
+      }
+    }
   });
 
   it('resource with entityId → /fleet/{id}', () => {
@@ -668,7 +840,7 @@ describe('activityPath', () => {
     expect(activityPath({ entityType: 'unknown_future_entity', entityId: 'x', metadata: {} })).toBeNull();
   });
 
-  it('null entity_id for reservation → still /board (not entity-id dependent)', () => {
-    expect(activityPath({ entityType: 'reservation', entityId: null, metadata: {} })).toBe('/board');
+  it('null entity_id for reservation → still /schedule/board (not entity-id dependent)', () => {
+    expect(activityPath({ entityType: 'reservation', entityId: null, metadata: {} })).toBe('/schedule/board');
   });
 });

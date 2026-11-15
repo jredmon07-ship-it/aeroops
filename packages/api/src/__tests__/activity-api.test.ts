@@ -39,6 +39,13 @@
  * UNKNOWN ACTION:
  *   - generic fallback summary returned; output never contains raw JSON
  *
+ * TIMES AND LABELS FOR PEOPLE:
+ *   - times in summaries use opts.timeZone (default: server zone), never raw ISO
+ *   - entityLabel is the human label; an unlabelled type reads as "a record"
+ *
+ * Every path the activity feed can link to is checked against the web app's
+ * routes in activity-paths.test.ts.
+ *
  * READS NOT AUDITED:
  *   - calling listActivity produces no new audit_log rows
  */
@@ -57,6 +64,7 @@ import { auditLog, appUser, membership } from '@aeroops/db';
 import { sql } from 'drizzle-orm';
 import type { PgliteTestClient } from '@aeroops/db';
 
+import { summarizeAuditEntry } from '@aeroops/core';
 import { listActivityWithDb } from '../activity/list-activity.js';
 import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
@@ -522,19 +530,19 @@ describe('Null entity_id → no link', () => {
   it('entityPath is null when entity_id is NULL in the audit row', async () => {
     const sess = makeSession(env.orgAId, env.userAId, 'owner');
     const result = await listActivityWithDb(env.db, sess);
-    // The reservation.created row has entity_id = null (and entityType=reservation → /board)
-    // Actually reservation → /board regardless of entity_id; let's check aircraft_grounding
+    // The reservation.created row has entity_id = null (and entityType=reservation → /schedule/board)
+    // Actually reservation → /schedule/board regardless of entity_id; let's check aircraft_grounding
     // row which also has entity_id=null → /maintenance/squawks (not null)
     // The real null-path test is for entity types where entity_id IS the path component
     // e.g., app_user with entity_id=null → null path.
     // We seeded one row: 'member.created' with entity_id = userAId (not null).
-    // Let's verify the 'reservation.created' row (entity_id=null, entityType=reservation → /board)
+    // Let's verify the 'reservation.created' row (entity_id=null, entityType=reservation → /schedule/board)
     const reservationEntry = result.entries.find(
       (e) => e.actorName === 'System' && e.entityType === 'reservation',
     );
     expect(reservationEntry).toBeDefined();
-    // reservation → /board (entityId doesn't matter for this entityType)
-    expect(reservationEntry?.entityPath).toBe('/board');
+    // reservation → /schedule/board (entityId doesn't matter for this entityType)
+    expect(reservationEntry?.entityPath).toBe('/schedule/board');
 
     // For squawk entityType with null entityId → /maintenance/squawks
     // (aircraft_grounding also → /maintenance/squawks regardless of entityId)
@@ -583,6 +591,65 @@ describe('Entity path mapping', () => {
     );
     expect(memberEntry).toBeDefined();
     expect(memberEntry?.entityPath).toBe(`/people/${env.userAId}`);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// TIMES AND LABELS FOR PEOPLE
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('Times and labels for people', () => {
+  it('reservation start is shown in opts.timeZone with the zone name, not as raw ISO', async () => {
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+    const result = await listActivityWithDb(env.db, sess, { timeZone: 'America/Chicago' });
+    // Seeded row 0: reservation.created, startAt '2026-07-15T08:00:00Z'.
+    const reservationEntry = result.entries.find(
+      (e) => e.actorName === 'System' && e.entityType === 'reservation',
+    );
+    expect(reservationEntry?.summary).toBe('Reservation created starting Jul 15, 2026 03:00 CDT');
+  });
+
+  it('without opts.timeZone, times use the server zone', async () => {
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+    const result = await listActivityWithDb(env.db, sess);
+    const reservationEntry = result.entries.find(
+      (e) => e.actorName === 'System' && e.entityType === 'reservation',
+    );
+    const serverZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    expect(reservationEntry?.summary).toBe(summarizeAuditEntry({
+      action: 'reservation.created',
+      entityType: 'reservation',
+      metadata: { startAt: '2026-07-15T08:00:00Z' },
+      timeZone: serverZone,
+    }));
+    expect(reservationEntry?.summary).not.toContain('2026-07-15T08:00');
+  });
+
+  it('entries carry a human entity label', async () => {
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+    const result = await listActivityWithDb(env.db, sess);
+    expect(result.entries.find((e) => e.entityType === 'work_order')?.entityLabel).toBe('work order');
+    expect(result.entries.find((e) => e.entityType === 'app_user')?.entityLabel).toBe('member');
+  });
+
+  it('an entity type with no label (e.g. a retired table) reads as "a record", never its raw name', async () => {
+    await withOrgContext(env.db, env.orgAId, async (tx) => {
+      await tx.insert(auditLog).values({
+        orgId: env.orgAId,
+        actorUserId: env.userAId,
+        action: 'retired_table.created',
+        entityType: 'retired_table',
+        entityId: null,
+        metadata: {},
+      });
+    });
+
+    const sess = makeSession(env.orgAId, env.userAId, 'owner');
+    const result = await listActivityWithDb(env.db, sess, { limit: 100 });
+    const entry = result.entries.find((e) => e.entityType === 'retired_table');
+    expect(entry?.summary).toBe('performed an action on a record');
+    expect(entry?.entityLabel).toBe('record');
+    expect(entry?.entityPath).toBeNull();
   });
 });
 

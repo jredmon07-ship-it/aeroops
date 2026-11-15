@@ -15,6 +15,9 @@
  *              "A former user" when the join row is missing (user hard-deleted).
  * summary:     whitelist-only human string from summarizeAuditEntry (core, no raw jsonb).
  * entityType:  raw entity_type from audit_log (for UI icon selection).
+ * entityLabel: human label for entityType from activityEntityLabel (core), e.g.
+ *              "dispatch ticket"; "record" for a type with no label. Show this,
+ *              not entityType, wherever people read it.
  * entityPath:  relative nav path from activityPath, or null when no live target.
  * createdAt:   timestamp of the audit row.
  */
@@ -23,6 +26,7 @@ export interface ActivityEntry {
   actorName: string;
   summary: string;
   entityType: string;
+  entityLabel: string;
   entityPath: string | null;
   createdAt: Date;
 }
@@ -54,12 +58,16 @@ export interface ListActivityResult {
 // ─── Options ──────────────────────────────────────────────────────────────────
 
 /**
- * ListActivityOptions — caller-provided pagination options.
+ * ListActivityOptions — caller-provided pagination and display options.
  *
- * limit:  rows per page; default 50, cap 100.
- * cursor: keyset cursor from a prior call's nextCursor.
+ * limit:    rows per page; default 50, cap 100.
+ * cursor:   keyset cursor from a prior call's nextCursor.
+ * timeZone: IANA zone for the times inside summaries (e.g. a reservation's
+ *           start). Default: the server's own zone, which is what the
+ *           server-rendered pages format dates in. An unknown zone → UTC.
  */
 export interface ListActivityOptions {
   limit?: number;
   cursor?: ActivityCursor;
+  timeZone?: string;
 }

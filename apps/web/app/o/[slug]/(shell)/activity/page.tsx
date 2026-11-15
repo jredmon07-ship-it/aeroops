@@ -160,7 +160,7 @@ function TimelineEntry({ entry, slug, isLast }: TimelineEntryProps) {
           </time>
         </div>
         <p className="mt-0.5 text-[0.6875rem] text-slate-400 dark:text-slate-500 capitalize">
-          {entry.entityType.replace(/_/g, ' ')}
+          {entry.entityLabel}
         </p>
       </div>
     </div>

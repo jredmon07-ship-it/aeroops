@@ -21,6 +21,10 @@
  *   - LEFT JOIN app_user row present → full_name ?? email
  *   - LEFT JOIN app_user row missing (user hard-deleted) → "A former user"
  *
+ * TIMES IN SUMMARIES: shown in opts.timeZone, else the server's own zone (the
+ *   one the server-rendered pages format dates in), always with the zone's
+ *   name, e.g. "Reservation created starting Jul 11, 2026 09:00 CDT".
+ *
  * TWO CALLING FORMS:
  *   listActivity(session, opts?)           — app code.
  *   listActivityWithDb(db, session, opts?) — tests (inject pglite client).
@@ -37,13 +41,24 @@ import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import { extractRows } from '../db-rows.js';
 import type { AppSession } from '../auth/types.js';
-import { summarizeAuditEntry, activityPath } from '@aeroops/core';
+import { summarizeAuditEntry, activityPath, activityEntityLabel } from '@aeroops/core';
 import type { ActivityEntry, ActivityCursor, ListActivityResult, ListActivityOptions } from './types.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT     = 100;
+
+// ─── Display time zone ────────────────────────────────────────────────────────
+
+/**
+ * serverTimeZone — the server process's IANA zone (UTC on Vercel). The
+ * server-rendered pages (fleet, people, work orders) format dates in it, so
+ * activity times default to it too. UTC when the runtime can't name one.
+ */
+function serverTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+}
 
 // ─── Actor name resolution ────────────────────────────────────────────────────
 
@@ -96,6 +111,7 @@ async function _listActivityImpl(
     MAX_LIMIT,
   );
   const cursor = opts.cursor;
+  const timeZone = opts.timeZone ?? serverTimeZone();
 
   // 3. ONE withSessionOrgContextWithDb call — org_id from session only; RLS scopes.
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
@@ -159,6 +175,7 @@ async function _listActivityImpl(
         action:     row.action,
         entityType: row.entityType,
         metadata:   row.metadata,
+        timeZone,
       });
       const entityPath = activityPath({
         entityType: row.entityType,
@@ -167,12 +184,13 @@ async function _listActivityImpl(
       });
 
       return {
-        id:         row.id,
+        id:          row.id,
         actorName,
         summary,
-        entityType: row.entityType,
+        entityType:  row.entityType,
+        entityLabel: activityEntityLabel(row.entityType),
         entityPath,
-        createdAt:  row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt as string),
+        createdAt:   row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt as string),
       };
     });
 

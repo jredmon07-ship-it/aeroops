@@ -9,41 +9,126 @@
  * NOTE: grounding = operator data ("grounded N66RG"), NOT an FAA/Part-43/91
  * determination. No money in any string. No computed FAA determination.
  *
- * Two exported functions:
- *   summarizeAuditEntry({ action, entityType, metadata }) → string
+ * Three exported functions (plus ACTIVITY_ENTITY_TYPES, the labelled types):
+ *   summarizeAuditEntry({ action, entityType, metadata, timeZone? }) → string
  *   activityPath({ entityType, entityId, metadata }) → string | null
+ *   activityEntityLabel(entityType) → string
  */
 
 // ─── Entity-type humanization ─────────────────────────────────────────────────
 
+/**
+ * A label for every entity type the API writes audit rows with. A type that is
+ * not listed (a retired table, or one added later without a label) reads as a
+ * generic "record": the raw table name is never shown. activity-paths.test.ts
+ * in packages/api fails when an audit write uses a type missing from this map.
+ *
+ * Each label is a lowercase noun phrase that takes "an" exactly when it starts
+ * with a vowel letter (withIndefiniteArticle relies on that).
+ */
 const ENTITY_TYPE_LABELS: Record<string, string> = {
-  reservation:               'reservation',
-  reservation_series:        'recurring series',
-  resource:                  'resource',
-  resource_blackout:         'blackout window',
-  booking_policy:            'booking policy',
-  dispatch_ticket:           'dispatch ticket',
-  dispatch_config:           'dispatch configuration',
-  dispatch_requirement:      'dispatch requirement',
-  aircraft_grounding:        'aircraft grounding',
-  squawk:                    'squawk',
-  work_order:                'work order',
-  app_user:                  'member',
-  enrollment:                'training enrollment',
-  course:                    'training course',
-  course_lesson:             'course lesson',
-  lesson_record:             'lesson record',
-  schedule_optimization_run: 'auto-schedule run',
+  reservation:                  'reservation',
+  reservation_series:           'recurring series',
+  resource:                     'resource',
+  resource_blackout:            'blackout window',
+  resource_availability_window: 'operating-hours window',
+  booking_policy:               'booking policy',
+  booking_request:              'booking request',
+  dispatch_ticket:              'dispatch ticket',
+  dispatch_config:              'dispatch configuration',
+  dispatch_requirement:         'dispatch requirement',
+  aircraft_grounding:           'aircraft grounding',
+  squawk:                       'squawk',
+  work_order:                   'work order',
+  maintenance_item:             'maintenance item',
+  location:                     'location',
+  app_user:                     'member',
+  member_expiration:            'member expiration',
+  member_message:               'message',
+  mobile_session:               'mobile app session',
+  calendar_feed:                'calendar feed',
+  document:                     'document',
+  import_batch:                 'import',
+  org_feature_config:           'module setting',
+  enrollment:                   'training enrollment',
+  course:                       'training course',
+  course_lesson:                'course lesson',
+  lesson_record:                'lesson record',
+  lesson_signature:             'lesson signature',
+  schedule_optimization_run:    'auto-schedule run',
 };
 
-function humanizeEntityType(entityType: string): string {
+/** The label for an entity type that has none of its own. */
+const GENERIC_ENTITY_LABEL = 'record';
+
+/** Every entity type that has its own label. */
+export const ACTIVITY_ENTITY_TYPES: readonly string[] = Object.keys(ENTITY_TYPE_LABELS);
+
+/**
+ * activityEntityLabel — the human label for an audit entity type
+ * ('dispatch_ticket' → 'dispatch ticket'), or 'record' when the type has no
+ * label of its own. Never returns the raw entity type.
+ */
+export function activityEntityLabel(entityType: string): string {
   // Guard on the VALUE's type, not just nullishness: a prototype key like
   // "__proto__"/"constructor"/"toString" resolves to a truthy object/function
-  // on a plain-object lookup, which the `??` would let through and then
-  // stringify to "[object Object]" — leaking a raw object into the summary.
-  // Only accept an own string value; otherwise humanize the key itself.
+  // on a plain-object lookup, which would stringify to "[object Object]" —
+  // leaking a raw object into the summary. Only accept an own string value.
   const label = ENTITY_TYPE_LABELS[entityType];
-  return typeof label === 'string' ? label : entityType.replace(/_/g, ' ');
+  return typeof label === 'string' ? label : GENERIC_ENTITY_LABEL;
+}
+
+/** "a"/"an" + label, chosen by the label's first letter (see ENTITY_TYPE_LABELS). */
+function withIndefiniteArticle(label: string): string {
+  return /^[aeiou]/i.test(label) ? `an ${label}` : `a ${label}`;
+}
+
+// ─── Time formatting ──────────────────────────────────────────────────────────
+
+/** The start of an ISO-8601 instant as the API writes it (Date#toISOString). */
+const ISO_INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+/** True when the runtime's Intl data knows `timeZone` (an IANA zone name). */
+function isKnownTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * formatInstant — an ISO instant for people, e.g. "Jul 11, 2026 14:00 UTC".
+ *
+ * The date reads like the app's other dates ("Jul 11, 2026"), the time is
+ * 24-hour like the schedule's, and the zone's short name always follows (as in
+ * global search's "Jan 10, 2027 08:00 UTC"), so a viewer in another zone can't
+ * misread it. An unknown `timeZone` falls back to UTC. Returns undefined when
+ * `iso` is not an ISO instant, so the caller leaves the time out rather than
+ * echoing the raw value.
+ */
+function formatInstant(iso: string, timeZone: string): string | undefined {
+  if (!ISO_INSTANT_RE.test(iso)) return undefined;
+  const at = new Date(iso);
+  if (isNaN(at.getTime())) return undefined;
+  const zone = isKnownTimeZone(timeZone) ? timeZone : 'UTC';
+  const date = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(at);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZoneName: 'short',
+  }).formatToParts(at);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${date} ${part('hour')}:${part('minute')} ${part('timeZoneName')}`;
 }
 
 // ─── Safe field accessors (whitelist-only) ────────────────────────────────────
@@ -81,12 +166,26 @@ function safeNestedString(metadata: unknown, outer: string, inner: string): stri
   return safeString(outerVal, inner);
 }
 
+/**
+ * safeInstant — read an ISO-instant string field and format it for people in
+ * `timeZone` (formatInstant). Undefined when absent or not an ISO instant.
+ */
+function safeInstant(metadata: unknown, key: string, timeZone: string): string | undefined {
+  const iso = safeString(metadata, key);
+  return iso === undefined ? undefined : formatInstant(iso, timeZone);
+}
+
 // ─── Action → summary templates ───────────────────────────────────────────────
 
 export interface SummarizeAuditEntryInput {
   action: string;
   entityType: string;
   metadata: unknown;
+  /**
+   * IANA zone the summary's times are shown in (e.g. 'America/Chicago').
+   * Defaults to UTC; an unknown zone also falls back to UTC.
+   */
+  timeZone?: string;
 }
 
 /**
@@ -97,11 +196,16 @@ export interface SummarizeAuditEntryInput {
  * INVARIANT: output never contains a raw JSON fragment, never leaks a
  * non-whitelisted or PII value, is total (never throws), and is deterministic.
  */
-export function summarizeAuditEntry({ action, entityType, metadata }: SummarizeAuditEntryInput): string {
+export function summarizeAuditEntry({
+  action,
+  entityType,
+  metadata,
+  timeZone = 'UTC',
+}: SummarizeAuditEntryInput): string {
   switch (action) {
     // ── Reservation ──────────────────────────────────────────────────────────
     case 'reservation.created': {
-      const start = safeString(metadata, 'startAt');
+      const start = safeInstant(metadata, 'startAt', timeZone);
       if (start) return `Reservation created starting ${start}`;
       return 'Reservation created';
     }
@@ -133,7 +237,7 @@ export function summarizeAuditEntry({ action, entityType, metadata }: SummarizeA
 
     // ── Blackout ──────────────────────────────────────────────────────────────
     case 'resource_blackout.created': {
-      const start = safeString(metadata, 'startAt');
+      const start = safeInstant(metadata, 'startAt', timeZone);
       if (start) return `Blackout window created starting ${start}`;
       return 'Blackout window created';
     }
@@ -282,7 +386,7 @@ export function summarizeAuditEntry({ action, entityType, metadata }: SummarizeA
 
     // ── Generic fallback (unknown/future actions) ─────────────────────────────
     default:
-      return `performed an action on a ${humanizeEntityType(entityType)}`;
+      return `performed an action on ${withIndefiniteArticle(activityEntityLabel(entityType))}`;
   }
 }
 
@@ -298,12 +402,15 @@ export interface ActivityPathInput {
  * activityPath — returns a slug-less relative path to the affected entity,
  * or null when there is no live navigable target.
  *
- * Routes:
- *   reservation / reservation_series → /board (dispatch board)
+ * Routes (each is a page under apps/web/app/o/[slug]; activity-paths.test.ts
+ * in packages/api checks every path this can return against that tree):
+ *   reservation → /schedule/board (dispatch board)
+ *   reservation_series → /schedule/series/{entityId} (series view)
  *   resource / booking_policy / resource_blackout → /fleet/{entityId}
  *     (resource entityId IS the resourceId, or read resourceId from metadata)
- *   dispatch_ticket → /board
- *   dispatch_config / dispatch_requirement → /board (gate settings)
+ *   dispatch_ticket → /schedule/board
+ *   dispatch_config → /schedule/board (gate settings)
+ *   dispatch_requirement → /fleet/{resourceId} (Dispatch requirements card)
  *   aircraft_grounding / squawk → /maintenance/squawks
  *   work_order → /maintenance/work-orders/{entityId}
  *   app_user → /people/{entityId}
@@ -311,16 +418,27 @@ export interface ActivityPathInput {
  *   enrollment / lesson_record → /training/enrollments
  *   schedule_optimization_run → /schedule/auto
  *
- * NOTE: there is NO bare /maintenance page.
+ * NOTE: there is NO bare /maintenance page, and NO bare /board page.
  */
 export function activityPath({ entityType, entityId, metadata }: ActivityPathInput): string | null {
   switch (entityType) {
     case 'reservation':
-    case 'reservation_series':
     case 'dispatch_ticket':
     case 'dispatch_config':
-    case 'dispatch_requirement':
-      return '/board';
+      return '/schedule/board';
+
+    case 'reservation_series': {
+      // series audit rows carry the series id as entityId
+      if (entityId) return `/schedule/series/${entityId}`;
+      return '/schedule/board';
+    }
+    case 'dispatch_requirement': {
+      // Required tags are edited on the aircraft's page, not the board; the
+      // audit row carries the aircraft as both metadata.resourceId and entityId.
+      const resourceId = safeString(metadata, 'resourceId') ?? entityId;
+      if (resourceId) return `/fleet/${resourceId}`;
+      return null;
+    }
 
     case 'resource': {
       if (entityId) return `/fleet/${entityId}`;

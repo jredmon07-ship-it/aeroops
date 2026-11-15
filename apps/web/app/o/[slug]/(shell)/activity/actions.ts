@@ -33,6 +33,7 @@ export interface SerializedActivityEntry {
   actorName: string;
   summary: string;
   entityType: string;
+  entityLabel: string;
   entityPath: string | null;
   createdAt: string; // ISO 8601
 }
@@ -90,6 +91,7 @@ export async function listActivityAction(opts?: {
         actorName: e.actorName,
         summary: e.summary,
         entityType: e.entityType,
+        entityLabel: e.entityLabel,
         entityPath: e.entityPath,
         createdAt: e.createdAt instanceof Date
           ? e.createdAt.toISOString()
