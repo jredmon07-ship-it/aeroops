@@ -95,7 +95,10 @@ export function LoginForm({ slug }: LoginFormProps) {
   const isSubmitting = state.status === 'submitting';
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+    // method="post": submitted before hydration (slow network, a recompile),
+    // the browser's own submit would otherwise GET this URL with the email
+    // and password in the query string. A POST just re-renders the page.
+    <form method="post" onSubmit={handleSubmit} noValidate className="space-y-4">
       {state.status === 'error' && (
         <Alert variant="destructive" role="alert" aria-live="assertive">
           <AlertDescription>{state.message}</AlertDescription>
