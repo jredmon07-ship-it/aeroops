@@ -9,8 +9,12 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { Loader2 } from 'lucide-react';
 import { cn } from './utils';
 
+// aria-[current=page]:disabled:opacity-100 — a disabled button marked
+// aria-current="page" is the selected segment of a view switcher (Schedule's
+// List / Month / Board). It is disabled only so it can't be re-clicked; dimmed
+// to 50% its white-on-brand label is 2.35:1, under WCAG AA, so it stays opaque.
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50 aria-[current=page]:disabled:opacity-100',
   {
     variants: {
       variant: {

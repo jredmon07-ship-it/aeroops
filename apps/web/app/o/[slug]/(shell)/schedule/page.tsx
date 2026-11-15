@@ -26,8 +26,11 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/auth';
-import { requireCapability, hasCapability } from '@aeroops/api';
+import { requireCapability, hasCapability, getOrgFeatures } from '@aeroops/api';
+import { ALL_MODULES_ENABLED } from '@aeroops/core';
+import type { OrgFeatureFlags } from '@aeroops/core';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
+import { isNavHrefVisible } from '@/lib/nav';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
@@ -216,7 +219,19 @@ export default async function SchedulePage({
   // UI only — gate enforced by requireCapability in each server action.
   const canCreate = hasCapability(session, 'schedule:create_reservation');
   const canManageResources = hasCapability(session, 'schedule:manage_resources');
-  const canAutoSchedule = hasCapability(session, 'schedule:create_reservation');
+
+  // Auto-schedule button — shown exactly when the nav shows Auto-schedule:
+  // schedule:create_reservation AND the org's auto_schedule module on (club
+  // mode turns it off, and the auto page then answers "This area is turned
+  // off"). Per-org module toggles (Slice CLUB-MODE) — FAIL SOFT to
+  // all-enabled, like the shell nav; the auto page gates on its own read.
+  let enabledModules: OrgFeatureFlags = ALL_MODULES_ENABLED;
+  try {
+    enabledModules = (await getOrgFeatures(session)).features;
+  } catch {
+    enabledModules = ALL_MODULES_ENABLED;
+  }
+  const canAutoSchedule = isNavHrefVisible(session, '/o/[slug]/schedule/auto', enabledModules);
 
   // ── Resolve the display date + view ──────────────────────────────────────
   // Default stays List — ?view=month is opt-in (linkable), zero behavior
@@ -238,7 +253,7 @@ export default async function SchedulePage({
         title="Schedule"
         actions={
           <>
-            {/* Auto-schedule — shown only with schedule:create_reservation (UI-only; gate in action) */}
+            {/* Auto-schedule — shown only when the nav shows it (UI-only; gate in page + action) */}
             {canAutoSchedule && (
               <Button asChild variant="outline" size="sm">
                 <Link href={`/o/${slug}/schedule/auto`}>

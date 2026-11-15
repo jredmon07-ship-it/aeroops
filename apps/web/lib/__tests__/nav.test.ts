@@ -20,6 +20,8 @@
  *  [14. Activity visible to owner/manager/dispatcher/cfi/accountant; hidden from student/renter/mechanic]
  *  {15. Booking requests visible to owner/manager/dispatcher; hidden from cfi/mechanic/renter/student/accountant}
  *  16. Help — visible to ALL 8 roles (app:access); always the last nav item (Slice P1.8)
+ *  20. isNavHrefVisible — in-page shortcuts (Schedule's Auto-schedule button)
+ *      follow the nav's capability + module rule; hidden in club mode
  *
  * These are PURE unit tests — no DOM, no Next.js, no DB.
  *
@@ -53,7 +55,7 @@ import { describe, it, expect } from 'vitest';
 import { MEMBERSHIP_ROLES, ALL_MODULES_ENABLED } from '@aeroops/core';
 import type { MembershipRole, OrgFeatureFlags } from '@aeroops/core';
 import type { AppSession } from '@aeroops/api';
-import { filterNavForSession, isPortalOnly, landingPathFor, NAV_ITEMS } from '../nav';
+import { filterNavForSession, isNavHrefVisible, isPortalOnly, landingPathFor, NAV_ITEMS } from '../nav';
 import type { NavItem } from '../nav';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1189,5 +1191,87 @@ describe('19. Module toggles — landingPathFor (Slice CLUB-MODE)', () => {
   it('mechanic landing (no portal/reporting access) is unaffected by portal:false', () => {
     const portalOffFlags: OrgFeatureFlags = { ...ALL_MODULES_ENABLED, portal: false };
     expect(landingPathFor(makeSession('mechanic'), NAV_ITEMS, portalOffFlags)).toBe('/o/[slug]/fleet');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 20. isNavHrefVisible — in-page shortcuts follow the nav (Schedule's
+//     "Auto-schedule" button; it led to "This area is turned off" in club mode)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('20. isNavHrefVisible — in-page shortcuts follow the nav rule', () => {
+  const AUTO_SCHEDULE = '/o/[slug]/schedule/auto';
+  // Club-preset-shaped flags (same as section 18): training / booking /
+  // auto_schedule off, rest on.
+  const clubFlags: OrgFeatureFlags = {
+    ...ALL_MODULES_ENABLED,
+    training: false,
+    booking: false,
+    auto_schedule: false,
+  };
+  const allOff: OrgFeatureFlags = {
+    training: false,
+    maintenance: false,
+    booking: false,
+    portal: false,
+    reports: false,
+    auto_schedule: false,
+    messages: false,
+  };
+
+  it('owner with every module on → Auto-schedule shows (and the 2-arg default form agrees)', () => {
+    expect(isNavHrefVisible(makeSession('owner'), AUTO_SCHEDULE, ALL_MODULES_ENABLED)).toBe(true);
+    expect(isNavHrefVisible(makeSession('owner'), AUTO_SCHEDULE)).toBe(true);
+  });
+
+  it('club mode (auto_schedule off) hides it from every role that otherwise sees it', () => {
+    for (const role of ['owner', 'manager', 'dispatcher', 'cfi'] as MembershipRole[]) {
+      expect(isNavHrefVisible(makeSession(role), AUTO_SCHEDULE, ALL_MODULES_ENABLED), `role=${role}, module on`).toBe(true);
+      expect(isNavHrefVisible(makeSession(role), AUTO_SCHEDULE, clubFlags), `role=${role}, club mode`).toBe(false);
+    }
+  });
+
+  it('roles without schedule:create_reservation never see it, module on or off', () => {
+    for (const role of ['mechanic', 'renter', 'student', 'accountant'] as MembershipRole[]) {
+      expect(isNavHrefVisible(makeSession(role), AUTO_SCHEDULE, ALL_MODULES_ENABLED), `role=${role}`).toBe(false);
+      expect(isNavHrefVisible(makeSession(role), AUTO_SCHEDULE, clubFlags), `role=${role}`).toBe(false);
+    }
+  });
+
+  it('only the auto_schedule flag matters for it — turning other modules off leaves it alone', () => {
+    const everythingButAutoScheduleOff: OrgFeatureFlags = { ...allOff, auto_schedule: true };
+    expect(isNavHrefVisible(makeSession('owner'), AUTO_SCHEDULE, everythingButAutoScheduleOff)).toBe(true);
+    expect(isNavHrefVisible(makeSession('owner'), AUTO_SCHEDULE, { ...ALL_MODULES_ENABLED, auto_schedule: false })).toBe(false);
+  });
+
+  it('null/undefined session → false (fail-closed)', () => {
+    expect(isNavHrefVisible(null, AUTO_SCHEDULE)).toBe(false);
+    expect(isNavHrefVisible(undefined, AUTO_SCHEDULE)).toBe(false);
+  });
+
+  it('an href with no nav item → false (including a slug-resolved href)', () => {
+    expect(isNavHrefVisible(makeSession('owner'), '/o/[slug]/schedule/nope')).toBe(false);
+    expect(isNavHrefVisible(makeSession('owner'), '/o/acme/schedule/auto')).toBe(false);
+  });
+
+  it('a core item (Board — no module key) stays visible with every module off', () => {
+    expect(isNavHrefVisible(makeSession('owner'), '/o/[slug]/schedule/board', allOff)).toBe(true);
+  });
+
+  it('agrees with filterNavForSession for every role × nav item × flag set', () => {
+    for (const flags of [ALL_MODULES_ENABLED, clubFlags, allOff]) {
+      for (const role of MEMBERSHIP_ROLES) {
+        const session = makeSession(role);
+        const shown = new Set(
+          filterNavForSession(session, NAV_ITEMS, '[slug]', flags).map((i) => i.href),
+        );
+        for (const item of NAV_ITEMS) {
+          expect(
+            isNavHrefVisible(session, item.href, flags),
+            `role=${role} item=${item.label}`,
+          ).toBe(shown.has(item.href));
+        }
+      }
+    }
   });
 });

@@ -17,6 +17,10 @@
  *   Roles: portal:access WITHOUT reporting:access → portal-only.
  *   owner/manager have BOTH portal:access and reporting:access → NOT portal-only.
  *   cfi/dispatcher have reporting:access but NOT portal:access → NOT portal-only.
+ *
+ * isNavHrefVisible — would the nav show the item at this href? For in-page
+ *   shortcuts to a nav destination (the Schedule page's "Auto-schedule"
+ *   button), so they follow the same capability + module rule as the sidebar.
  */
 
 import { hasCapability } from '@aeroops/api';
@@ -267,6 +271,26 @@ export function landingPathFor(
   return first?.href ?? null;
 }
 
+// ─── isNavItemVisible ─────────────────────────────────────────────────────────
+
+/**
+ * isNavItemVisible — the one rule behind every nav item: the session's role
+ * holds the item's capability AND, for a module item, the org has that module
+ * on (Slice CLUB-MODE). Items with no module key are core and always qualify.
+ *
+ * UI ONLY — never the gate; see AUTHZ NOTE above.
+ */
+function isNavItemVisible(
+  session: AppSession,
+  item: NavItem,
+  enabledModules: OrgFeatureFlags,
+): boolean {
+  return (
+    hasCapability(session, item.requiredCapability) &&
+    (item.module === undefined || enabledModules[item.module])
+  );
+}
+
 // ─── filterNavForSession ──────────────────────────────────────────────────────
 
 /**
@@ -292,16 +316,39 @@ export function filterNavForSession(
   if (!session) return [];
 
   return items
-    .filter(
-      (item) =>
-        // UI only — never the gate; see AUTHZ NOTE above.
-        hasCapability(session, item.requiredCapability) &&
-        // Per-org module toggle (Slice CLUB-MODE): items of a disabled module
-        // disappear; items with no module key are core and always stay.
-        (item.module === undefined || enabledModules[item.module]),
-    )
+    .filter((item) => isNavItemVisible(session, item, enabledModules))
     .map((item) => ({
       ...item,
       href: item.href.replace('[slug]', slug),
     }));
+}
+
+// ─── isNavHrefVisible ─────────────────────────────────────────────────────────
+
+/**
+ * isNavHrefVisible — does the nav show the item at this href to this session?
+ *
+ * For in-page shortcuts to a nav destination (the Schedule page's
+ * "Auto-schedule" button): the shortcut follows exactly the sidebar's
+ * capability + module rule, so it disappears with its nav item when the org
+ * turns that module off (club mode turns Auto-schedule off) instead of leading
+ * to the "This area is turned off" page.
+ *
+ * PURE: no DOM, no I/O. UI ONLY — never the gate; see AUTHZ NOTE above.
+ *
+ * @param session        - AppSession (may be null/undefined → false fail-closed).
+ * @param href           - The item's [slug]-templated href, e.g. '/o/[slug]/schedule/auto'.
+ * @param enabledModules - The org's module flags (defaults to all enabled).
+ * @param items          - The nav items to look in (defaults to NAV_ITEMS).
+ * @returns              - true iff a nav item has this href and the nav shows it.
+ */
+export function isNavHrefVisible(
+  session: AppSession | null | undefined,
+  href: string,
+  enabledModules: OrgFeatureFlags = ALL_MODULES_ENABLED,
+  items: readonly NavItem[] = NAV_ITEMS,
+): boolean {
+  if (!session) return false;
+  const item = items.find((i) => i.href === href);
+  return item !== undefined && isNavItemVisible(session, item, enabledModules);
 }

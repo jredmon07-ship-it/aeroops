@@ -38,7 +38,7 @@ interface BookPageProps {
 /** Neutral card message for unknown or suspended orgs (states are merged — no enumeration). */
 function UnavailableCard() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6 dark:from-slate-950 dark:to-slate-900">
       {/* No role="main" here — <main> is already the main landmark; a child div
           with role="main" would create a duplicate landmark. */}
       <div className="w-full max-w-sm">
@@ -72,7 +72,7 @@ export default async function BookPage({ params }: BookPageProps) {
 
   // ── Active org with booking on → render the booking-request form ──────────
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6 dark:from-slate-950 dark:to-slate-900">
       {/* No role="main" on the wrapper — <main> is already the landmark. */}
       <div className="w-full max-w-lg">
         <Card>

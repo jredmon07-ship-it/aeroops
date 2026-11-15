@@ -280,9 +280,11 @@ export function CommandPalette({ slug }: CommandPaletteProps) {
         )}
       >
         <Search className="h-3.5 w-3.5" aria-hidden="true" />
-        <span className="hidden sm:inline">Search</span>
+        {/* Label + ⌘K hint from lg up; below that the header needs the room
+            for the org name and the account cluster (see (shell)/layout.tsx). */}
+        <span className="hidden lg:inline">Search</span>
         <kbd
-          className="hidden sm:inline-flex items-center gap-0.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
+          className="hidden lg:inline-flex items-center gap-0.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[0.625rem] text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
           aria-hidden="true"
         >
           ⌘K

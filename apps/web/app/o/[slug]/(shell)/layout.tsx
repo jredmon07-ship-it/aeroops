@@ -9,7 +9,8 @@
  * and therefore are NOT wrapped by this layout — they remain full-page.
  *
  * Provides:
- *   - Sticky top header: org name, user email, role badge, sign-out button.
+ *   - Sticky top header: org name, user email, role badge, sign-out button
+ *     (below md the account items move into the mobile nav drawer).
  *   - Role-filtered sidebar nav (desktop) + Sheet drawer (mobile).
  *   - Main content area that receives {children}.
  *
@@ -39,7 +40,6 @@ import { CommandPalette } from './command-palette';
 import { AlertsBell } from './alerts-bell';
 import { FieldStatusBar } from './field-status-bar';
 import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from './theme-provider';
 import { ThemeToggle } from './theme-toggle';
 
 interface OrgLayoutProps {
@@ -111,31 +111,37 @@ export default async function OrgShellLayout({
   }
 
   return (
-    <ThemeProvider>
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-800 dark:bg-slate-950">
       {/* ── Top header ──────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-slate-800 dark:bg-slate-900/95 dark:supports-[backdrop-filter]:bg-slate-900/80">
-        <div className="flex h-14 w-full items-center gap-4 px-4 sm:px-6">
-          {/* Mobile menu trigger (renders inside the MobileNav client component) */}
+        <div className="flex h-14 w-full items-center gap-2 px-4 sm:gap-4 sm:px-6">
+          {/* Mobile menu trigger (renders inside the MobileNav client component).
+              Below md the drawer also carries the account cluster (Notifications,
+              email, role, Sign out) — the header has no room for it there. */}
           <MobileNav
             items={navItems}
             currentPath={`/o/${slug}`}
             orgName={orgName}
+            slug={slug}
+            email={session.user.email}
+            roleLabel={roleLabel}
+            avatarSrc={myAvatarDataUrl}
           />
 
-          {/* Org identity — always visible (tenant isolation proof) */}
-          <div className="flex items-center gap-2.5">
+          {/* Org identity — always visible (tenant isolation proof). min-w-0 +
+              truncate: a long name shortens instead of widening the header. */}
+          <div className="flex min-w-0 items-center gap-2.5">
             {/* Square brand mark — deliberately NOT rounded (architectural). */}
             <span
               aria-hidden
-              className="grid h-7 w-7 place-items-center rounded-sm bg-brand-ink text-[0.8125rem] font-bold leading-none text-white shadow-sm"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-sm bg-brand-ink text-[0.8125rem] font-bold leading-none text-white shadow-sm"
             >
               ✈
             </span>
-            <span className="text-[0.95rem] font-semibold tracking-tightish text-slate-900 leading-tight dark:text-slate-100">
+            <span className="truncate text-[0.95rem] font-semibold tracking-tightish text-slate-900 leading-tight dark:text-slate-100">
               {orgName}
             </span>
-            <span className="hidden text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400 sm:inline dark:text-slate-500">
+            <span className="hidden shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-slate-400 lg:inline dark:text-slate-500">
               · AeroOps
             </span>
           </div>
@@ -144,7 +150,7 @@ export default async function OrgShellLayout({
           <div className="flex-1" />
 
           {/* Search trigger + user identity + role */}
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
             {/* ⌘K palette trigger — the palette itself mounts once below. */}
             <CommandPalette slug={slug} />
 
@@ -158,27 +164,31 @@ export default async function OrgShellLayout({
             {/* Light/dark theme switch — persisted per browser by next-themes. */}
             <ThemeToggle />
 
-            {/* Notification email settings — every role holds app:access;
-                self-scoped page, intentionally kept out of the primary
-                sidebar (see notifications/page.tsx doc comment). */}
-            <Link
-              href={`/o/${slug}/notifications`}
-              className="hidden text-xs font-medium text-slate-500 hover:text-slate-800 sm:block dark:text-slate-400 dark:hover:text-slate-200"
-            >
-              Notifications
-            </Link>
+            {/* Account cluster — md and up. Below md the mobile nav drawer
+                shows the same items (see mobile-nav.tsx). */}
+            <div className="hidden items-center gap-3 md:flex">
+              {/* Notification email settings — every role holds app:access;
+                  self-scoped page, intentionally kept out of the primary
+                  sidebar (see notifications/page.tsx doc comment). */}
+              <Link
+                href={`/o/${slug}/notifications`}
+                className="text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+              >
+                Notifications
+              </Link>
 
-            <Separator orientation="vertical" className="h-5" />
+              <Separator orientation="vertical" className="h-5" />
 
-            <UserAvatar name={session.user.email} src={myAvatarDataUrl} size="xs" />
-            <span className="hidden text-sm text-slate-500 sm:block dark:text-slate-400">
-              {session.user.email}
-            </span>
-            <Badge variant="secondary" aria-label={`Role: ${roleLabel}`}>
-              {roleLabel}
-            </Badge>
-            <Separator orientation="vertical" className="h-5" />
-            <SignOutButton slug={slug} />
+              <UserAvatar name={session.user.email} src={myAvatarDataUrl} size="xs" />
+              <span className="hidden text-sm text-slate-500 lg:block dark:text-slate-400">
+                {session.user.email}
+              </span>
+              <Badge variant="secondary" aria-label={`Role: ${roleLabel}`}>
+                {roleLabel}
+              </Badge>
+              <Separator orientation="vertical" className="h-5" />
+              <SignOutButton slug={slug} />
+            </div>
           </div>
         </div>
       </header>
@@ -191,7 +201,9 @@ export default async function OrgShellLayout({
           aria-label="Main navigation"
         >
           <nav className="flex-1 px-3 py-5">
-            <p className="px-3 pb-2 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-white/35">
+            {/* white/50 is the lightest step that clears WCAG AA (5.1:1) on
+                the brand-ink rail; /45 is 4.4:1. Same for "Demo build". */}
+            <p className="px-3 pb-2 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-white/50">
               Operations
             </p>
             <ul className="space-y-0.5" role="list">
@@ -213,15 +225,18 @@ export default async function OrgShellLayout({
             </ul>
           </nav>
           <div className="border-t border-white/10 px-5 py-3">
-            <span className="text-[0.625rem] font-medium uppercase tracking-wide text-white/30">
+            <span className="text-[0.625rem] font-medium uppercase tracking-wide text-white/50">
               Demo build
             </span>
           </div>
         </aside>
 
         {/* Main content area — centered to a comfortable reading width.
-            pb-16 keeps content clear of the fixed bottom status bar. */}
-        <main className="flex-1 px-4 py-7 pb-16 sm:px-8" id="main-content">
+            pb-16 keeps content clear of the fixed bottom status bar.
+            min-w-0: a flex item otherwise grows to its widest child, so wide
+            tables and the board's time track widened the whole page instead
+            of scrolling inside their own overflow-x-auto containers. */}
+        <main className="min-w-0 flex-1 px-4 py-7 pb-16 sm:px-8" id="main-content">
           <div className="mx-auto w-full max-w-screen-xl">{children}</div>
         </main>
       </div>
@@ -232,6 +247,5 @@ export default async function OrgShellLayout({
       {/* ── App-wide toast stack (toast-on-mutation standard) ─────────────── */}
       <Toaster />
     </div>
-    </ThemeProvider>
   );
 }

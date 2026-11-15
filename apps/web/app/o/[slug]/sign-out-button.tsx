@@ -9,7 +9,7 @@
  *   - Cancel button receives focus by default (safer default — Escape also cancels)
  *   - Confirm triggers the server action → redirects to /o/[slug]/login
  *
- * Used on the authenticated landing page (/o/[slug]).
+ * Used in the shell header (md and up) and in the mobile nav drawer (below md).
  * NOT used on /o/[slug]/no-access (that one signs out immediately, no confirm).
  */
 'use client';
@@ -31,9 +31,11 @@ import { signOutAction } from './actions';
 
 interface SignOutButtonProps {
   slug: string;
+  /** Extra classes for the trigger (e.g. full width in the mobile drawer). */
+  className?: string;
 }
 
-export function SignOutButton({ slug }: SignOutButtonProps) {
+export function SignOutButton({ slug, className }: SignOutButtonProps) {
   const [isPending, startTransition] = React.useTransition();
 
   function handleConfirm() {
@@ -45,7 +47,7 @@ export function SignOutButton({ slug }: SignOutButtonProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" disabled={isPending}>
+        <Button variant="outline" disabled={isPending} className={className}>
           {isPending ? 'Signing out…' : 'Sign out'}
         </Button>
       </AlertDialogTrigger>
