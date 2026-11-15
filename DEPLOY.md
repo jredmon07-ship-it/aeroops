@@ -182,10 +182,21 @@ for platform-admin inserts), then the running app connects as `aeroops_app`.
 
 **What is seeded** (identical to `pnpm demo` local experience):
 - Org: Alpha Flight School (login URL: `/o/alpha/login`)
-- 5 users (one per role), each with a real password credential
-- 4 aircraft (N172SP, N152AB, N28K, N66RG) + 1 instructor resource
-- Today's reservations, dispatch tickets, booking policies, weekly series
-- Squawks, grounded Cirrus (N66RG), dispatch gate requirements, twilight config
+  - 5 users (one per role), each with a real password credential
+  - 4 aircraft (N172SP, N152AB, N28K, N66RG) + 1 instructor resource
+  - Today's reservations and dispatch tickets, booking policies, weekly series
+  - Squawks, grounded Cirrus (N66RG), dispatch gate requirements, twilight config
+- Org: Bravo Flying Club (login URL: `/o/bravo/login`), in club mode
+  - 17 members (15 active, 2 inactive) with tags and join dates; the 3 logins
+    below plus fictional `@example.com` members
+  - 2 aircraft (N735BW, N2189K) + the club CFI as an instructor resource
+  - Four weeks of flying on both aircraft, a member's overnight trip, today's
+    flights, flying every day of the next six weeks, squawks and work orders,
+    maintenance-due items, member expiration reminders, six announcements
+- Both orgs: a month of flight history, six weeks of bookings, announcements
+- Every date is relative to the moment the seed runs, and nothing is dated
+  after it: each of today's flights is checked out only once it has started
+  and back in only once it is over
 
 **Demo logins** (password for all: `demo1234`) — see `DEMO.md` for the full
 click-through walkthrough:
@@ -197,6 +208,9 @@ click-through walkthrough:
 | `dispatch@alpha.aero` | dispatcher |
 | `cfi@alpha.aero` | instructor |
 | `student@alpha.aero` | student |
+| `owner@bravo.aero` | owner (Bravo Flying Club) |
+| `admin@bravo.aero` | manager (Bravo Flying Club) |
+| `member@bravo.aero` | renter (Bravo Flying Club) |
 
 The seed is **not idempotent** — do not run it twice on the same database.
 
@@ -268,7 +282,10 @@ Vercel Cron calls `GET /api/cron/demo-reset` at 09:00 UTC (03:00/04:00
 Chicago) — the schedule is in `apps/web/vercel.json`. The route runs the same
 allowlisted wipe + re-seed as reset-on-open (`demo/reset.ts`), but off the
 login path, so logins stay fast and visitors never reset each other. Anyone
-signed in at that moment is signed out. Set these **only** on the public demo:
+signed in at that moment is signed out. That is before the day's first
+flight, and the seed dates nothing after the moment it runs, so each day
+starts with today's flights booked, for visitors to check out and in, and only
+Bravo's overnight trip out. Set these **only** on the public demo:
 
 | Variable | Value | Notes |
 |---|---|---|

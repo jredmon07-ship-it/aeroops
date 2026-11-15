@@ -1,16 +1,20 @@
 /**
  * demo/demo-clock.ts — the wall clock the demo seed is staged in.
  *
- * Every seeded time is "N days from today at HH:MM". By default that is the
- * PROCESS's local time: a developer's laptop running `pnpm demo`, or the Mac a
- * maintainer runs `pnpm db:seed:demo` from. That behaviour is unchanged.
+ * Every seeded time is "N days from today at HH:MM". "Today" is the day of the
+ * seed's clock (seedDemo's `now`: the real time unless a test pins it), which
+ * the seed passes to every helper here as `now`. The wall clock is, by
+ * default, the PROCESS's local time: a developer's laptop running `pnpm demo`,
+ * or the Mac a maintainer runs `pnpm db:seed:demo` from. That behaviour is
+ * unchanged.
  *
  * A seed that runs on a server needs a fixed zone instead. Vercel functions run
  * in UTC, so "07:00 local" there is 07:00 UTC, which is the middle of the night
  * for the operator. AEROOPS_DEMO_TZ (an IANA zone) pins the seed to that wall
  * clock; the hosted demo's daily refresh (demo/scheduled-reset.ts) runs with it
  * set to America/Chicago. Rows that take an explicit zone follow the same clock
- * (demoWallClockZone). An invalid zone is ignored (process-local time).
+ * (demoWallClockZone), and date-only rows take its calendar date (localDateAt).
+ * An invalid zone is ignored (process-local time).
  *
  * DEMO-ONLY, like the rest of demo/.
  */
@@ -87,4 +91,15 @@ export function weekdayAt(dayOffset: number, now: Date = new Date()): number {
   if (!tz) return noon.getDay();
   const short = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' }).format(noon);
   return WEEKDAYS.indexOf(short as (typeof WEEKDAYS)[number]);
+}
+
+/**
+ * localDateAt — the calendar date ('YYYY-MM-DD') of the day `dayOffset` days
+ * from today, on the demo wall clock. For the seed's date-only rows (maintenance
+ * due dates, member expirations), so they agree with its timed rows. Read at
+ * noon, like weekdayAt.
+ */
+export function localDateAt(dayOffset: number, now: Date = new Date()): string {
+  const { year, month, day } = civilDateIn(atLocal(dayOffset, 12, 0, now), demoWallClockZone());
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }

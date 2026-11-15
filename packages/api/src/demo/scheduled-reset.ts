@@ -15,7 +15,10 @@
  * Unlike reset-on-open it runs OFF the login path: logins stay fast, and a
  * visitor is never reset mid-session by someone else's login. Sessions open at
  * the moment it runs are signed out (the orgs are recreated), which is why it
- * is scheduled for the middle of the night, US time.
+ * is scheduled for the middle of the night, US time: 09:00 UTC, 03:00 Chicago
+ * (04:00 in summer). That is before the day's first flight, and the seed dates
+ * nothing after the moment it runs (demo/seed.ts, flyAsOf), so each day starts
+ * with today's flights booked and only Bravo's overnight trip out.
  *
  * GATES, all checked before any database work:
  *   1. AEROOPS_DEMO_DAILY_RESET is truthy. It is set ONLY on the public demo, so

@@ -6,7 +6,7 @@
  * own zone (Vercel functions run in UTC), including across a DST change.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { atLocal, weekdayAt, demoTimeZone, demoWallClockZone } from '../demo/demo-clock.js';
+import { atLocal, weekdayAt, localDateAt, demoTimeZone, demoWallClockZone } from '../demo/demo-clock.js';
 
 const prevTz = process.env['AEROOPS_DEMO_TZ'];
 afterEach(() => {
@@ -33,6 +33,16 @@ describe('demo clock — process-local by default', () => {
     expect(weekdayAt(0, now)).toBe(processLocal(now, 0, 12, 0).getDay());
   });
 
+  it('dates a day by the process clock when AEROOPS_DEMO_TZ is unset', () => {
+    delete process.env['AEROOPS_DEMO_TZ'];
+    const now = new Date('2026-11-14T03:30:00Z');
+    const pad = (n: number) => String(n).padStart(2, '0');
+    for (const day of [0, 1, -5, 21, 300]) {
+      const d = processLocal(now, day, 12, 0);
+      expect(localDateAt(day, now)).toBe(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    }
+  });
+
   it('ignores an invalid zone', () => {
     process.env['AEROOPS_DEMO_TZ'] = 'Mars/Olympus_Mons';
     const now = new Date('2026-11-14T03:30:00Z');
@@ -51,6 +61,10 @@ describe('demo clock — AEROOPS_DEMO_TZ pins the wall clock', () => {
     expect(atLocal(-1, 18, 30, now).toISOString()).toBe('2026-11-13T00:30:00.000Z');
     expect(weekdayAt(0, now)).toBe(5); // Friday
     expect(weekdayAt(2, now)).toBe(0); // Sunday
+    expect(localDateAt(0, now)).toBe('2026-11-13');
+    expect(localDateAt(1, now)).toBe('2026-11-14');
+    expect(localDateAt(-5, now)).toBe('2026-11-08');
+    expect(localDateAt(21, now)).toBe('2026-12-04');
   });
 
   it('keeps the wall-clock hour across the spring-forward change', () => {

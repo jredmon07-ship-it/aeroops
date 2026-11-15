@@ -4,6 +4,80 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-11-15 — The flying-club demo looks lived-in
+
+Bravo Flying Club, the primary demo, had three members, a Warrior that had never
+flown, an empty Maintenance page and no flying on most weekdays. It now seeds a
+working small club. Demo only; no migration.
+
+**Added**
+
+- A 17-member Bravo roster on People: the three demo logins plus a mechanic, the
+  club CFI, renters, a student pilot, two new members and two who have left, with
+  tags, phone numbers and join dates back to 2009. Fictional names, `@example.com`
+  addresses and 555 numbers; no avatars. Only the three `@bravo.aero` logins are
+  advertised.
+- Four weeks of flying on both Bravo aircraft: 37 flights by eleven pilots, with
+  fuel and oil uplift, the pilots' cross-country logbook notes, and four
+  cancellations with reasons (one in each lead-time bucket on Reports).
+- Today's Board on Bravo: the Skyhawk out overnight on a member's trip to
+  Put-in-Bay, due back at 11:30, then flights through the afternoon and a new
+  member's checkout with the CFI. Weekday evenings, a Tuesday morning and
+  Thursday instruction join the weekend flying, so every day of the next six
+  weeks has a booking.
+- Morgan Ellis (CFI) as a bookable instructor, and a "Club checkout: N2189K"
+  dispatch requirement on the Warrior: Dana and Morgan pass, Riley is refused.
+- Bravo maintenance: a work order in progress and a completed one, open, deferred
+  and resolved squawks, and six maintenance-due items (two due soon, none
+  overdue). Operator reminders, not FAA determinations.
+- Warn-only expiration reminders on Bravo members: three due soon, two lapsed.
+  No seeded pilot flew after one of their own reminder dates.
+- Three more Bravo announcements (six in all), to the 15 active members.
+- `localDateAt` (demo/demo-clock.ts): the demo wall clock's calendar date, for
+  the seed's date-only rows.
+- `demo-bravo.test.ts`, on three wall clocks: the roster, monotonic meters on each
+  tail, flying every day, booking dates, maintenance with nothing overdue, and no
+  rows in the money tables or the notification log for either demo org.
+- `seedDemo(db, now)`: the seed's clock, injectable and defaulting to the real
+  time. `demo-seed-clock.test.ts` seeds at 03:00 and 23:30 Chicago on a UTC
+  server and at 15:00 in Chicago, and checks that nothing is dated after the
+  clock, today's tickets match their bookings and the meters only climb.
+
+**Changed**
+
+- Bravo's Hobbs and tach only climb. The Skyhawk's history used to end above
+  today's reading, so its Fleet page showed the meters running backwards.
+- Bravo's history tickets are dated the day they were flown, created as well as
+  opened and closed, so newest-first lists such as Fleet → recent dispatch start
+  with the latest flight. Alpha's history tickets are dated the same way, in one
+  statement instead of 112, with explicit org predicates.
+- Club staff book Bravo's flights (the scheduler for members, the CFI for
+  instruction) instead of the owner booking everything, and the coming bookings'
+  dates are spread over the previous two weeks, so the activity chart no longer
+  spikes on the day of the seed.
+- A refused Bravo history flight fails the seed instead of being skipped, like
+  the forward schedule.
+- DEMO.md no longer promises upcoming reservations in the Bravo member portal:
+  it shows the member's logbook, and club staff make the bookings. It also no
+  longer claims seeded profile photos.
+- Alpha's stage-check prep moves to 14:00 (flown by the CFI, as the Archer's
+  checkout requirement needs), and Bravo's midday flights to 12:30 and 14:00, so
+  each org has an aircraft out mid-afternoon.
+- A 03:00 reset now runs about 6,350 SQL statements instead of 5,300 (Bravo
+  1,504 → 2,663; Alpha 3,691). The hosted reset took 17.6 s at the old size, so
+  expect about 21 s, well inside the cron route's 300 s limit.
+
+**Fixed**
+
+- The demo seed no longer dates anything after the moment it runs, in either
+  org. The 03:00 Chicago reset used to check aircraft out and back in on that
+  morning's 07:00–10:00 bookings hours before they started. A flight is now
+  checked out only once it has started and back in only once it is over, so the
+  hosted demo starts each day with today's flights still booked.
+- Alpha's two recorded lessons are dated to dual flights in its history, and
+  Alpha's flights today continue its Hobbs and tach from the history; the 172
+  used to jump about 97 hours overnight.
+
 ## 2026-11-13 — The hosted demo stays current
 
 The demo seed is anchored to the day it runs, so the hosted demo had aged: the

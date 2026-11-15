@@ -131,13 +131,15 @@ describe('demo reset-on-open — wipe + re-seed restores baseline', () => {
   let db: PgliteTestClient;
   let baseline: number;
 
+  // Migrations plus the full two-org seed (and below, whole resets): well past
+  // the 60 s default when the suite runs files in parallel on a busy machine.
   beforeAll(async () => {
     const client = await createTestClient();
     db = client.db;
     await applyMigrationSql({ pglite: client.pglite as PGlite }, readAllMigrations());
     await seedDemo(db);
     baseline = await countAlphaReservations(db);
-  });
+  }, 180_000);
 
   it('seeds a non-trivial baseline', () => {
     expect(baseline).toBeGreaterThan(0);
@@ -204,7 +206,7 @@ describe('demo reset-on-open — wipe + re-seed restores baseline', () => {
     });
     expect(claims).not.toBeNull();
     expect(claims?.role).toBe('owner');
-  });
+  }, 180_000);
 
   it('throttles a second immediate reset (skips within the interval window)', async () => {
     const result = await resetDemoTenantWithDb(db, DEMO_SLUG);
@@ -222,7 +224,7 @@ describe('demo reset-on-open — works under a NON-superuser role bound by FORCE
     pglite = client.pglite as PGlite;
     await applyMigrationSql({ pglite }, readAllMigrations());
     await seedDemo(db);
-  });
+  }, 180_000);
 
   it('wipes + re-seeds as a non-superuser, non-owner role (the production RLS path)', async () => {
     // Production's owner role (Neon neondb_owner) is a NON-superuser: FORCE RLS
@@ -272,7 +274,50 @@ describe('demo reset-on-open — works under a NON-superuser role bound by FORCE
       password: DEMO_PASSWORD,
     });
     expect(claims).not.toBeNull();
-  });
+
+    // The Bravo seed's raw UPDATEs (join dates, flight dates, maintenance and
+    // booking dates) ran under the role's RLS too. Under FORCE RLS an UPDATE a
+    // policy filters out changes 0 rows without an error, which would leave
+    // every one of those dates at the moment of the reset.
+    const staged = extractRows<{
+      earliest_join: number;
+      flown_before_yesterday: number;
+      booked_just_now: number;
+      light_reported_days_ago: number;
+    }>(
+      await db.execute(sql`
+        select
+          (select min(extract(year from m.created_at))::int
+             from membership m where m.org_id = o.id) as earliest_join,
+          (select count(*)::int from dispatch_ticket dt
+            where dt.org_id = o.id and dt.closed_at < now() - interval '1 day') as flown_before_yesterday,
+          (select count(*)::int from reservation r
+            where r.org_id = o.id and r.created_at > now() - interval '1 hour') as booked_just_now,
+          (select extract(day from now() - s.reported_at)::int from squawk s
+            where s.org_id = o.id and s.title = 'Landing light inoperative') as light_reported_days_ago
+        from org o where o.slug = ${DEMO_SLUG_BRAVO}
+      `),
+    )[0];
+    expect(staged?.earliest_join).toBe(2009);
+    expect(staged?.flown_before_yesterday).toBeGreaterThanOrEqual(30);
+    expect(staged?.booked_just_now).toBe(0);
+    expect(staged?.light_reported_days_ago).toBeGreaterThanOrEqual(10);
+
+    // Both orgs date every ticket to its booking (seed.ts, dateTickets),
+    // Bravo's overnight trip included. A filtered UPDATE would leave the
+    // reset's own time on them instead.
+    const offBooking = extractRows<{ slug: string; n: number }>(
+      await db.execute(sql`
+        select o.slug, count(*)::int as n
+          from dispatch_ticket dt
+          join reservation r on r.id = dt.reservation_id
+          join org o on o.id = dt.org_id
+         where o.slug in (${DEMO_SLUG}, ${DEMO_SLUG_BRAVO}) and dt.opened_at <> r.start_at
+         group by o.slug
+      `),
+    );
+    expect(offBooking).toEqual([]);
+  }, 180_000);
 });
 
 // ─── Bravo Flying Club — the second demo org (small club, club mode) ────────
@@ -305,7 +350,7 @@ describe('demo seed — Bravo Flying Club (second demo org)', () => {
     ]);
   });
 
-  it('bravo has exactly 2 aircraft and the 3 demo logins with the right roles', async () => {
+  it('bravo has exactly 2 aircraft, the 3 demo logins with the right roles, and a club roster', async () => {
     const aircraft = extractRows<{ n: number }>(
       await db.execute(sql`
         select count(*)::int as n
@@ -325,11 +370,20 @@ describe('demo seed — Bravo Flying Club (second demo org)', () => {
         order by u.email
       `),
     );
-    expect(users).toEqual([
-      { email: 'admin@bravo.aero', role: 'manager' },
-      { email: 'member@bravo.aero', role: 'renter' },
-      { email: 'owner@bravo.aero', role: 'owner' },
-    ]);
+    expect(users).toEqual(
+      expect.arrayContaining([
+        { email: 'admin@bravo.aero', role: 'manager' },
+        { email: 'member@bravo.aero', role: 'renter' },
+        { email: 'owner@bravo.aero', role: 'owner' },
+      ]),
+    );
+    // The rest of the club (demo/seed.ts BRAVO_ROSTER): 17 members in all, an
+    // owner, a manager, a CFI, a mechanic, a student pilot, and twelve renters
+    // (two of them inactive).
+    expect(users).toHaveLength(17);
+    const byRole: Record<string, number> = {};
+    for (const u of users) byRole[u.role] = (byRole[u.role] ?? 0) + 1;
+    expect(byRole).toEqual({ owner: 1, manager: 1, cfi: 1, mechanic: 1, student: 1, renter: 12 });
   });
 
   it('bravo is in CLUB mode with training/booking/auto-schedule off (0047 applied here)', async () => {
@@ -399,5 +453,5 @@ describe('demo seed — Bravo Flying Club (second demo org)', () => {
       { slug: DEMO_SLUG, n: 1 },
       { slug: DEMO_SLUG_BRAVO, n: 1 },
     ]);
-  });
+  }, 180_000);
 });

@@ -56,22 +56,25 @@ export interface UpcomingSlot {
 /**
  * seedUpcomingReservations — book every slot occurrence from `firstDay` through
  * `lastDay` (day offsets from today) through the real gated create path.
- * Throws on the first refusal. Returns how many reservations were created.
+ * `now` is the seed's clock: "today" is its day, and the booking policies judge
+ * each booking at it. Throws on the first refusal. Returns how many
+ * reservations were created.
  */
 export async function seedUpcomingReservations(
   db: AnyDb,
   session: AppSession,
   slots: UpcomingSlot[],
   range: { firstDay: number; lastDay: number },
+  now: Date = new Date(),
 ): Promise<number> {
   const used = slots.map(() => 0);
   let created = 0;
   for (let day = range.firstDay; day <= range.lastDay; day++) {
-    const dow = weekdayAt(day);
+    const dow = weekdayAt(day, now);
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i]!;
       if (day < (slot.fromDay ?? range.firstDay) || !slot.weekdays.includes(dow)) continue;
-      const startAt = atLocal(day, slot.hour, slot.minute ?? 0);
+      const startAt = atLocal(day, slot.hour, slot.minute ?? 0, now);
       const endAt = new Date(startAt.getTime() + slot.durationMinutes * 60_000);
       const notes = slot.notes[used[i]! % slot.notes.length]!;
       used[i] = used[i]! + 1;
@@ -80,7 +83,7 @@ export async function seedUpcomingReservations(
         endAt,
         resourceIds: slot.resourceIds,
         notes,
-      });
+      }, { now: now.getTime() });
       if (!r.ok) {
         throw new Error(
           `[demo] upcoming reservation "${notes}" on day +${day} was refused (${r.reason}) — ` +
@@ -107,11 +110,15 @@ export interface DemoAnnouncement {
   role?: MembershipRole;
 }
 
-/** seedAnnouncements — insert the org's announcements (no e-mail fan-out; see above). */
+/**
+ * seedAnnouncements — insert the org's announcements (no e-mail fan-out; see
+ * above), dated back from `now`, the seed's clock.
+ */
 export async function seedAnnouncements(
   db: AnyDb,
   orgId: string,
   items: DemoAnnouncement[],
+  now: Date = new Date(),
 ): Promise<void> {
   await withOrgContext(db, orgId, async (tx) => {
     for (const m of items) {
@@ -135,7 +142,7 @@ export async function seedAnnouncements(
         audience: m.audience,
         role: m.audience === 'role' ? (m.role ?? null) : null,
         recipientCount: new Set(recipients.map((r) => r.id)).size,
-        createdAt: atLocal(-m.daysAgo, m.hour),
+        createdAt: atLocal(-m.daysAgo, m.hour, 0, now),
       });
     }
   });

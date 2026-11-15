@@ -7,22 +7,31 @@
  *      - one user per key role (owner / manager / dispatcher / cfi / student),
  *        each with a known password (see DEMO_PASSWORD) and an auth_credential.
  *      - four aircraft (by tail #) + one instructor resource (linked to the CFI).
- *      - today's reservations across several aircraft (one already flown, one
- *        currently out, two on the books) + a future reservation on the
+ *      - today's flights on three aircraft + a future reservation on the
  *        policy-gated aircraft.
  *      - a per-resource booking policy (max duration / advance / lead time).
  *      - a weekly recurring lesson series.
- *      - one CLOSED dispatch ticket (flown earlier today, Hobbs/tach recorded)
- *        and one OPEN dispatch ticket (aircraft currently checked out).
+ *      - today's dispatch tickets, as far as the seed clock has got: a CLOSED
+ *        ticket (Hobbs/tach recorded) for each flight that is over, an OPEN
+ *        one (aircraft checked out) for a flight under way, none for the rest.
+ *      - a month of history, the student's first two lessons among it.
  *      - a six-week forward schedule and four Messages announcements
  *        (demo/seed-upcoming.ts).
  *
  *   2. "Bravo Flying Club" (slug `bravo`) — a SMALL CLUB counter-example:
- *      - three logins (owner / admin / member), two aircraft, one location.
- *      - a modest slice of life: a couple of upcoming member reservations, one
- *        flown+closed dispatch ticket, one open low-severity squawk, a booking
- *        policy. NO training course (club operating mode turns training off).
- *      - its own six-week forward schedule and three announcements.
+ *      - three logins (owner / admin / member) in a 17-member roster: a
+ *        mechanic, a CFI (also a bookable instructor), renters, a student
+ *        pilot and two inactive members, with tags, join dates and
+ *        warn-only expiration reminders.
+ *      - two aircraft, one location; four weeks of flying on both aircraft by
+ *        eleven pilots (meters, fuel, logbook notes, cancellations); a
+ *        member's overnight trip, out since yesterday afternoon; today's
+ *        flights, dispatched as far as the seed clock has got; a booking
+ *        policy and a club-checkout dispatch requirement on the Warrior.
+ *      - squawk history, two work orders and maintenance-due items. NO
+ *        training course (club operating mode turns training off).
+ *      - its own six-week forward schedule, flying every day, and six
+ *        announcements.
  *      - CLUB OPERATING MODE (migration 0047, GRACEFUL ABSENCE if unapplied):
  *        the org_feature_config row is written with the 'club' preset
  *        (training/booking/auto-schedule off).
@@ -42,8 +51,14 @@
  * table/column object by design (see org-features-internal.ts / avatar.ts) —
  * those two spots use guarded raw SQL, same as their production consumers.
  *
- * Every date is relative to the moment the seed runs (demo/demo-clock.ts), so
- * a seeded demo ages; the hosted demo re-seeds daily (demo/scheduled-reset.ts).
+ * Every date is relative to the seed's clock, `now`: the moment the seed runs,
+ * or a time a test pins (demo/demo-clock.ts). So a seeded demo ages; the
+ * hosted demo re-seeds daily (demo/scheduled-reset.ts). The seed never records
+ * anything after its clock: no ticket, meter reading, squawk, sign-off, note,
+ * message or audit row is dated later than `now`, and a flight is checked out
+ * only once it has started and back in only once it is over (flyAsOf). The
+ * nightly reset runs at 03:00 Chicago, so it leaves today's flights booked,
+ * and only Bravo's overnight trip, which left the afternoon before, is out.
  *
  * This module is DEMO-ONLY. It is never imported by the production code path
  * (getDb only reaches it when AEROOPS_DEMO=1).
@@ -69,14 +84,25 @@ import type { MembershipRole } from '@aeroops/core';
 import { OPERATING_MODE_PRESETS } from '@aeroops/core';
 import { hashPassword } from '../auth/hash.js';
 import type { AppSession } from '../auth/types.js';
+import type { MemberTagColor } from '../people/types.js';
+import type { CreatedReservation, CreateReservationResult } from '../scheduling/types.js';
 import { createReservationWithDb } from '../scheduling/create-reservation.js';
+import { cancelReservationWithDb } from '../scheduling/cancel-reservation.js';
 import { upsertBookingPolicyWithDb } from '../scheduling/booking-policy-commands.js';
 import { createSeriesWithDb } from '../scheduling/create-series.js';
 import { openDispatchWithDb } from '../dispatch/open-dispatch.js';
 import { closeDispatchWithDb } from '../dispatch/close-dispatch.js';
+import { recordDispatchServiceWithDb } from '../dispatch/record-dispatch-service.js';
+import { addResourceRequiredTagWithDb } from '../dispatch-gate/requirements.js';
+import { annotateFlightWithDb } from '../logbook/annotate-flight.js';
 import { reportSquawkWithDb } from '../maintenance/report-squawk.js';
+import { updateSquawkStatusWithDb } from '../maintenance/update-squawk-status.js';
 import { groundAircraftWithDb } from '../maintenance/ground-aircraft.js';
 import { openWorkOrderWithDb } from '../maintenance/open-work-order.js';
+import { updateWorkOrderStatusWithDb } from '../maintenance/update-work-order-status.js';
+import { completeWorkOrderWithDb } from '../maintenance/complete-work-order.js';
+import { createMaintenanceItemWithDb } from '../maintenance/create-maintenance-item.js';
+import { addMemberExpirationWithDb } from '../people/member-expirations.js';
 import { createAvailabilityWindowWithDb } from '../scheduling/availability-commands.js';
 import { submitBookingRequestWithDb } from '../booking/submit-booking-request.js';
 import { createCourseWithDb } from '../training/create-course.js';
@@ -84,7 +110,7 @@ import { addCourseLessonWithDb } from '../training/add-course-lesson.js';
 import { enrollMemberWithDb } from '../training/enroll-member.js';
 import { recordLessonWithDb } from '../training/record-lesson.js';
 import { orgFeatureConfigTableExists } from '../org-features/org-features-internal.js';
-import { atLocal, demoWallClockZone } from './demo-clock.js';
+import { atLocal, demoWallClockZone, localDateAt } from './demo-clock.js';
 import { seedUpcomingReservations, seedAnnouncements, UPCOMING_DAYS } from './seed-upcoming.js';
 
 /** The org address used in the URL: /o/alpha/login */
@@ -160,8 +186,13 @@ async function maybeSeedClubMode(tx: AnyDb, orgId: string): Promise<void> {
  * seedDemo — populate a freshly-migrated PGlite client with the demo dataset.
  * MUST be called while still connected as the PGlite superuser (before
  * setTestAppRole), mirroring the test-seed contract.
+ *
+ * `now` is the seed's clock; every seeded time is relative to it, and nothing
+ * is dated after it. Every runner leaves it at the real time; tests pin it. A
+ * pinned clock must not run behind the real one, because the write paths
+ * stamp their own rows (created_at defaults, audit rows) with the real time.
  */
-export async function seedDemo(db: AnyDb): Promise<void> {
+export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void> {
   // ── 1. Control-plane: org + plan + active subscription ──────────────────
   const orgRow = await withPlatformAdminContext(db, async (tx) => {
     const [o] = await tx
@@ -333,38 +364,46 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   };
 
   const tail = (t: string) => ids.aircraftIdByTail.get(t)!;
+  /** A time on the demo wall clock, `day` days from the seed clock's today. */
+  const at = (day: number, hour: number, minute = 0) => atLocal(day, hour, minute, now);
+  /** The gates' clock: booking policies judge the seed's bookings at `now`. */
+  const clock = { now: now.getTime() };
 
   // ── 3. Reservations (through the real gated create path) ────────────────
-  // A — flown earlier today (will receive a CLOSED dispatch). 172 + instructor.
+  // Today's three flights. Each is checked out once it has started and back
+  // in once it is over (8a2), so the seed clock decides how far they have got:
+  // all three still booked at the 03:00 reset, the first two flown and the
+  // Archer out at 15:00.
+  // A — this morning's dual cross-country. 172 + instructor.
   const resA = await mustCreate(
     createReservationWithDb(db, ownerSession, {
-      startAt: atLocal(0, 7, 0),
-      endAt: atLocal(0, 9, 0),
+      startAt: at(0, 7),
+      endAt: at(0, 9),
       resourceIds: [tail('N172SP'), ids.instructorId],
       notes: 'Dual XC — KABC ▸ practice area',
-    }),
-    'reservation A (172 dual, flown)',
+    }, clock),
+    'reservation A (172 dual)',
   );
 
-  // B — currently out (will receive an OPEN dispatch). Cessna 152.
+  // B — a late-morning solo. Cessna 152.
   const resB = await mustCreate(
     createReservationWithDb(db, ownerSession, {
-      startAt: atLocal(0, 10, 0),
-      endAt: atLocal(0, 12, 0),
+      startAt: at(0, 10),
+      endAt: at(0, 12),
       resourceIds: [tail('N152AB')],
       notes: 'Solo pattern work',
-    }),
-    'reservation B (152 solo, out now)',
+    }, clock),
+    'reservation B (152 solo)',
   );
 
-  // C — on the books for this afternoon. Archer + instructor.
-  await mustCreate(
+  // C — this afternoon's stage-check prep. Archer + instructor.
+  const resC = await mustCreate(
     createReservationWithDb(db, ownerSession, {
-      startAt: atLocal(0, 13, 30),
-      endAt: atLocal(0, 15, 0),
+      startAt: at(0, 14),
+      endAt: at(0, 15, 30),
       resourceIds: [tail('N28K'), ids.instructorId],
       notes: 'Stage check prep',
-    }),
+    }, clock),
     'reservation C (Archer dual)',
   );
 
@@ -382,11 +421,11 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   // D — future reservation on the policy-gated Cirrus (passes the policy).
   await mustCreate(
     createReservationWithDb(db, ownerSession, {
-      startAt: atLocal(1, 10, 0),
-      endAt: atLocal(1, 11, 30),
+      startAt: at(1, 10),
+      endAt: at(1, 11, 30),
       resourceIds: [tail('N66RG')],
       notes: 'Transition training',
-    }),
+    }, clock),
     'reservation D (Cirrus, tomorrow)',
   );
 
@@ -400,7 +439,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     tz: demoWallClockZone(),
     resourceIds: [tail('N28K')],
     notes: 'Private pilot ground + flight block',
-  });
+  }, clock);
 
   // ── 5a. The coming six weeks (demo/seed-upcoming.ts) ───────────────────
   // A weekly pattern so every day a visitor browses to has flying on it. It
@@ -477,35 +516,12 @@ export async function seedDemo(db: AnyDb): Promise<void> {
       },
     ],
     { firstDay: 2, lastDay: UPCOMING_DAYS },
+    now,
   );
 
   // ── 6. Dispatch tickets ─────────────────────────────────────────────────
-  // Closed ticket on reservation A (flown earlier): open then close.
-  const opened = await openDispatchWithDb(db, ownerSession, {
-    reservationId: resA.id,
-    resourceId: tail('N172SP'),
-    pilotUserId: ids.studentId,
-    hobbsOut: 3450.2,
-    tachOut: 3210.5,
-    notes: 'Pre-flight complete',
-  });
-  if (!opened.ok) throw new Error(`[demo] open dispatch A failed: ${opened.reason}`);
-  const closed = await closeDispatchWithDb(db, ownerSession, {
-    ticketId: opened.ticket.id,
-    hobbsIn: 3451.8,
-    tachIn: 3212.0,
-  });
-  if (!closed.ok) throw new Error(`[demo] close dispatch A failed: ${closed.reason}`);
-
-  // Open ticket on reservation B (aircraft currently out).
-  const openedB = await openDispatchWithDb(db, ownerSession, {
-    reservationId: resB.id,
-    resourceId: tail('N152AB'),
-    pilotUserId: ids.studentId,
-    hobbsOut: 1875.4,
-    tachOut: 1790.1,
-  });
-  if (!openedB.ok) throw new Error(`[demo] open dispatch B failed: ${openedB.reason}`);
+  // Today's go in after the history (8a2): their meters pick up where it
+  // stops, and no history check-out meets an aircraft still out today.
 
   // ── 7. Squawks + grounding (Slice 3b) ───────────────────────────────────
   // A grounding-severity squawk on the Cirrus, then ground it (linked to the
@@ -566,7 +582,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
       name: 'Jordan Vance',
       email: 'jordan.vance@example.com',
       phone: '555-0142',
-      requestedStart: new Date(Date.now() + 3 * dayMs).toISOString(),
+      requestedStart: new Date(now.getTime() + 3 * dayMs).toISOString(),
       aircraftTypePref: 'C172 or similar',
       message: 'Hoping to start my private pilot training — flexible on weekday mornings.',
       website: '',
@@ -574,7 +590,7 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     {
       name: 'Maya Chen',
       email: 'maya.chen@example.com',
-      requestedStart: new Date(Date.now() + 5 * dayMs).toISOString(),
+      requestedStart: new Date(now.getTime() + 5 * dayMs).toISOString(),
       message: 'Renter checkout request — ~80 hrs TT, current. What do you need from me?',
       website: '',
     },
@@ -603,8 +619,9 @@ export async function seedDemo(db: AnyDb): Promise<void> {
 
   // ── 8. Training (Slice T1) ──────────────────────────────────────────────
   // An operator-defined Private Pilot course with five lessons, the student
-  // enrolled, and the first two lessons recorded as complete by the CFI — so
-  // the Training surface shows a populated enrollment at 2/5 (40%) progress.
+  // enrolled, and the first two lessons recorded as complete by the CFI after
+  // the dual flights they were flown on (8a1) — so the Training surface shows
+  // a populated enrollment at 2/5 (40%) progress.
   // Operator content + instructor data entry; NO computed FAA determination.
   const cfiUserId = ids.userIdByEmail.get('cfi@alpha.aero')!;
 
@@ -642,40 +659,33 @@ export async function seedDemo(db: AnyDb): Promise<void> {
   }
   const enrollmentId = enrollRes.enrollment.enrollmentId;
 
-  // Record the first two lessons complete (CFI as instructor) → 2/5 progress.
-  for (const lesson of ppCourse.lessons.slice(0, 2)) {
-    const recorded = await recordLessonWithDb(db, ownerSession, {
-      enrollmentId,
-      lessonId: lesson.lessonId,
-      instructorUserId: cfiUserId,
-      gradeLabel: 'Complete',
-    });
-    if (!recorded.ok) {
-      throw new Error(`[demo] record lesson failed (${recorded.reason}) — seed cannot continue.`);
-    }
-  }
-
   // ── 8a. Historical activity backfill (DEMO-ONLY) ────────────────────────
   // Give the dashboard activity chart, fleet utilization, and reporting trends
   // a believable month of flights instead of only today's snapshot. Each flight
-  // is created through the REAL gated write paths at a backdated (past) time;
-  // created_at (reservation) and opened_at/closed_at (ticket) are then aligned
-  // to the flight day in one UPDATE so the time-bucketed reports pick them up.
+  // is created through the REAL gated write paths at a backdated (past) time,
+  // then dated to the flight day along with today's tickets (8a2), so the
+  // time-bucketed reports pick them up.
   // DEFENSIVE: any failure is logged and skipped so the core demo still seeds.
   // Resets on every demo restart.
+  //
+  // Two trainers carry the history: the 172 (student-flown) and the Archer
+  // (CFI-flown — satisfies its 'Club checkout: complex' dispatch requirement).
+  // Meters climb with recency, and today's flights (8a2) pick up where they
+  // stop, so the fleet timeline stays monotonic.
+  // pilot must be an app_user MEMBER (ids.instructorId is the instructor
+  // *resource*, not a user — the Archer is flown by the CFI user, who also
+  // carries the 'Club checkout: complex' tag its dispatch requirement needs).
+  const histPlan = [
+    { tail: 'N172SP', pilot: ids.studentId, hobbs: 3300, tach: 3100 },
+    { tail: 'N28K', pilot: cfiUserId, hobbs: 1500, tach: 1400 },
+  ];
+  // The student's first two course lessons were flown dual in the 172, 18 and
+  // 11 days ago (on both days the CFI's own Archer flight is that morning);
+  // their check-in times, by lesson, date the training records (8a1).
+  const lessonDaysAgo = [18, 11];
+  const lessonFlownAt: Date[] = [];
   const backdated: { resId: string; ticketId: string }[] = [];
   try {
-    // Two trainers carry the history: the 172 (student-flown) and the Archer
-    // (CFI-flown — satisfies its 'Club checkout: complex' dispatch requirement).
-    // Meters start below today's readings and climb with recency, so the fleet
-    // timeline stays monotonic.
-    // pilot must be an app_user MEMBER (ids.instructorId is the instructor
-    // *resource*, not a user — the Archer is flown by the CFI user, who also
-    // carries the 'Club checkout: complex' tag its dispatch requirement needs).
-    const histPlan = [
-      { tail: 'N172SP', pilot: ids.studentId, hobbs: 3300, tach: 3100 },
-      { tail: 'N28K', pilot: cfiUserId, hobbs: 1500, tach: 1400 },
-    ];
     const durChoices = [60, 90, 90, 120, 105, 75];
     // 56 flights: BOTH trainers fly once a day for the last 28 days. Pairing the
     // day index with the aircraft keeps one flight per tail per day, so there is
@@ -693,15 +703,17 @@ export async function seedDemo(db: AnyDb): Promise<void> {
       const daysAgo = 28 - Math.floor(k / 2);
       const startH = 8 + (k % 7); // 08:00–14:00 local
       const durMin = durChoices[k % durChoices.length]!;
-      const startAt = atLocal(-daysAgo, startH, 0);
+      const startAt = at(-daysAgo, startH);
       const endAt = new Date(startAt.getTime() + durMin * 60_000);
+      // -1 unless this is one of the student's dual lessons.
+      const lesson = plan.tail === 'N172SP' ? lessonDaysAgo.indexOf(daysAgo) : -1;
       try {
         const res = await createReservationWithDb(db, ownerSession, {
           startAt,
           endAt,
-          resourceIds: [tail(plan.tail)],
-          notes: 'Training flight',
-        });
+          resourceIds: lesson < 0 ? [tail(plan.tail)] : [tail(plan.tail), ids.instructorId],
+          notes: lesson < 0 ? 'Training flight' : `Dual — ${lessonPlan[lesson]!.title.toLowerCase()}`,
+        }, clock);
         if (!res.ok) continue;
 
         const durH = durMin / 60;
@@ -725,28 +737,14 @@ export async function seedDemo(db: AnyDb): Promise<void> {
         });
         if (!cl.ok) continue;
 
-        plan.hobbs = hobbsIn + 0.4; // advance the running meter for this tail
-        plan.tach = tachIn + 0.4;
+        plan.hobbs = tenths(hobbsIn + 0.4); // advance the running meter for this tail
+        plan.tach = tenths(tachIn + 0.4);
         backdated.push({ resId: res.reservation.id, ticketId: op.ticket.id });
+        if (lesson >= 0) lessonFlownAt[lesson] = endAt;
       } catch {
         // a single refused flight (e.g. a gate) is non-fatal — skip it.
         continue;
       }
-    }
-
-    if (backdated.length > 0) {
-      await withOrgContext(db, orgId, async (tx) => {
-        for (const b of backdated) {
-          await tx.execute(sql`
-            UPDATE reservation SET created_at = start_at - interval '2 hours'
-             WHERE id = ${b.resId}`);
-          await tx.execute(sql`
-            UPDATE dispatch_ticket dt
-               SET opened_at = r.start_at, closed_at = r.end_at
-              FROM reservation r
-             WHERE dt.id = ${b.ticketId} AND r.id = ${b.resId}`);
-        }
-      });
     }
     // eslint-disable-next-line no-console
     console.log(`[demo] historical backfill: ${backdated.length} flights over ~24 days`);
@@ -754,6 +752,59 @@ export async function seedDemo(db: AnyDb): Promise<void> {
     // eslint-disable-next-line no-console
     console.warn('[demo] historical activity backfill skipped:', err);
   }
+
+  // ── 8a1. The student's first two lessons (Slice T1) ────────────────────
+  // Recorded complete by the CFI at the end of the dual flights above, so the
+  // training record, and the CFI's lessons on Reports, rest on flights that
+  // happened → 2/5 (40%) progress.
+  for (const [i, lesson] of ppCourse.lessons.slice(0, 2).entries()) {
+    const flownAt = lessonFlownAt[i];
+    if (!flownAt) {
+      throw new Error(`[demo] dual lesson "${lesson.title}" was not flown — seed cannot continue.`);
+    }
+    const recorded = await recordLessonWithDb(db, ownerSession, {
+      enrollmentId,
+      lessonId: lesson.lessonId,
+      instructorUserId: cfiUserId,
+      gradeLabel: 'Complete',
+      completedAt: flownAt.toISOString(),
+    });
+    if (!recorded.ok) {
+      throw new Error(`[demo] record lesson failed (${recorded.reason}) — seed cannot continue.`);
+    }
+  }
+
+  // ── 8a2. Today's flights, as far as the seed clock has got ──────────────
+  // Each picks up from its aircraft's last reading (the 152 has no history).
+  // The CFI flies C as pilot in command, as the Archer's checkout requirement
+  // asks; the student flies A and B.
+  const todayFlights: TodayFlight[] = [
+    { label: 'reservation A (172 dual)', booking: resA, aircraftId: tail('N172SP'), pilotUserId: ids.studentId,
+      meter: histPlan[0]!, hobbsHours: 1.6, notes: 'Pre-flight complete' },
+    { label: 'reservation B (152 solo)', booking: resB, aircraftId: tail('N152AB'), pilotUserId: ids.studentId,
+      meter: { hobbs: 1875.4, tach: 1790.1 }, hobbsHours: 1.5 },
+    { label: 'reservation C (Archer dual)', booking: resC, aircraftId: tail('N28K'), pilotUserId: cfiUserId,
+      meter: histPlan[1]!, hobbsHours: 1.2 },
+  ];
+  const todayTickets: string[] = [];
+  for (const flight of todayFlights) {
+    const ticket = await flyAsOf(db, ownerSession, flight, now);
+    if (ticket) todayTickets.push(ticket.ticketId);
+  }
+
+  // Date the flying, in ONE org-scoped context: each history booking was made
+  // two hours ahead, and every ticket, today's included, was opened, closed and
+  // created at its booked times. reservation and dispatch_ticket have UPDATE
+  // policies; explicit org predicates.
+  await withOrgContext(db, orgId, async (tx) => {
+    if (backdated.length > 0) {
+      const booked = backdated.map((b) => sql`${b.resId}::uuid`);
+      await tx.execute(sql`
+        UPDATE reservation SET created_at = start_at - interval '2 hours'
+         WHERE org_id = ${orgId}::uuid AND id IN (${sql.join(booked, sql`, `)})`);
+    }
+    await dateTickets(tx, orgId, [...backdated.map((b) => b.ticketId), ...todayTickets]);
+  });
 
   // ── 8b. Messages — operator announcements (demo/seed-upcoming.ts) ───────
   const managerUserId = ids.userIdByEmail.get('manager@alpha.aero')!;
@@ -799,18 +850,286 @@ export async function seedDemo(db: AnyDb): Promise<void> {
         'Please leave aircraft tied down with the cowl plugs in, and enter your Hobbs and tach ' +
         'readings on the Board before you head out.',
     },
-  ]);
+  ], now);
 
   // ── 8c. Second org — "Bravo Flying Club" (small club, slug `bravo`) ──
-  await seedBravoClub(db);
+  await seedBravoClub(db, now);
+}
+
+// ─── Today's flights, as far as the seed clock has got (both orgs) ──────────
+
+/** An aircraft's running Hobbs and tach: its next check-out reading. */
+interface MeterRun {
+  hobbs: number;
+  tach: number;
+}
+
+/** One of today's bookings and who flies it (flyAsOf). */
+interface TodayFlight {
+  /** Names the flight in a refusal. */
+  label: string;
+  booking: CreatedReservation;
+  aircraftId: string;
+  pilotUserId: string;
+  /** The aircraft's running meters, moved past the flight once it is over. */
+  meter: MeterRun;
+  /** Hobbs time logged once the flight is over; the tach logs 95% of it. */
+  hobbsHours: number;
+  notes?: string;
+}
+
+/**
+ * flyAsOf — dispatch one booking only as far as the seed clock `now` has got,
+ * so the seed never records a flight before it happens. Not started: no
+ * ticket, and it stays a plain booking for a visitor to check out. Under way:
+ * checked out. Over: checked out and back in, and the aircraft's meters move
+ * on (plus a little ground running). Returns the ticket, with the tach it was
+ * checked in at, or null. Refusals throw. The caller then dates the ticket to
+ * its booked times (dateTickets).
+ */
+async function flyAsOf(
+  db: AnyDb,
+  session: AppSession,
+  flight: TodayFlight,
+  now: Date,
+): Promise<{ ticketId: string; tachIn?: number } | null> {
+  if (now < flight.booking.startAt) return null;
+  const { meter } = flight;
+  const opened = await mustOk(
+    openDispatchWithDb(db, session, {
+      reservationId: flight.booking.id,
+      resourceId: flight.aircraftId,
+      pilotUserId: flight.pilotUserId,
+      hobbsOut: tenths(meter.hobbs),
+      tachOut: tenths(meter.tach),
+      ...(flight.notes ? { notes: flight.notes } : {}),
+    }),
+    `${flight.label} check-out`,
+  );
+  if (now < flight.booking.endAt) return { ticketId: opened.ticket.id };
+  const hobbsIn = tenths(meter.hobbs + flight.hobbsHours);
+  const tachIn = tenths(meter.tach + flight.hobbsHours * 0.95);
+  await mustOk(
+    closeDispatchWithDb(db, session, { ticketId: opened.ticket.id, hobbsIn, tachIn }),
+    `${flight.label} check-in`,
+  );
+  meter.hobbs = tenths(hobbsIn + 0.3);
+  meter.tach = tenths(tachIn + 0.3);
+  return { ticketId: opened.ticket.id, tachIn };
+}
+
+/**
+ * dateTickets — date dispatch tickets to their bookings, in one statement:
+ * opened and created at the booked start, closed at the booked end if checked
+ * in. Seed-only staging of tickets created above. dispatch_ticket has an
+ * UPDATE policy, and the org predicates are explicit because the seed may run
+ * as a superuser. `tx` must be org-scoped.
+ */
+async function dateTickets(tx: AnyDb, orgId: string, ticketIds: string[]): Promise<void> {
+  if (ticketIds.length === 0) return;
+  await tx.execute(sql`
+    UPDATE dispatch_ticket dt
+       SET opened_at = r.start_at, created_at = r.start_at,
+           closed_at = CASE WHEN dt.status = 'closed' THEN r.end_at END
+      FROM reservation r
+     WHERE r.id = dt.reservation_id AND r.org_id = ${orgId}::uuid
+       AND dt.org_id = ${orgId}::uuid
+       AND dt.id IN (${sql.join(ticketIds.map((id) => sql`${id}::uuid`), sql`, `)})`);
+}
+
+// ─── Bravo Flying Club: the roster and four weeks of flying ─────────────────
+
+/** Handles for the Bravo roster, used below for pilots, bookers and reporters. */
+type BravoKey =
+  | 'jordan' | 'casey' | 'riley' | 'pat' | 'morgan' | 'dana' | 'lena' | 'marcus' | 'priya'
+  | 'tom' | 'hannah' | 'victor' | 'ana' | 'ben' | 'jamie' | 'grace' | 'eli';
+
+/** One member of the Bravo roster (see BRAVO_ROSTER). */
+interface BravoMember extends DemoLogin {
+  key: BravoKey;
+  /**
+   * "Member since" (membership.created_at). A calendar date is stored at 12:00
+   * UTC, so it reads as that date from UTC-11 to UTC+11 (including the UTC
+   * server that renders the portal). A number is days before today, on the
+   * demo wall clock.
+   */
+  since: string | number;
+  /** Has a credential (DEMO_PASSWORD). Without one, People shows "No login yet". */
+  login: boolean;
+  /** Roster flag (app_user.status); People lists inactive members under "Show inactive". */
+  status?: 'inactive';
+  /** Free-text operator labels with a palette color (no regulatory meaning). */
+  tags: Array<[tag: string, color: MemberTagColor]>;
+}
+
+/**
+ * The club's aircraft checkouts, as free-text operator labels (NOT FAA
+ * endorsements). Pilots fly only the aircraft they hold the label for, and the
+ * Warrior's dispatch requirement (seedBravoClub, step 5) matches its label.
+ */
+const SKYHAWK_CHECKOUT = 'Club checkout: N735BW';
+const WARRIOR_CHECKOUT = 'Club checkout: N2189K';
+
+const [BRAVO_OWNER, BRAVO_ADMIN, BRAVO_MEMBER] = DEMO_LOGINS_BRAVO as [DemoLogin, DemoLogin, DemoLogin];
+
+/**
+ * The Bravo roster: the three demo logins plus the rest of a small club (a
+ * mechanic, a CFI, nine more renters, two of them new members, a student
+ * pilot, and two members who have left). Fictional people, @example.com
+ * addresses, 555 numbers, no avatars. Everyone with a login uses DEMO_PASSWORD,
+ * but only the three @bravo.aero logins are advertised.
+ */
+const BRAVO_ROSTER: BravoMember[] = [
+  { ...BRAVO_OWNER, key: 'jordan', since: '2011-04-02', login: true,
+    tags: [['Board: president', 'violet'], [SKYHAWK_CHECKOUT, 'sky'], [WARRIOR_CHECKOUT, 'teal']] },
+  { ...BRAVO_ADMIN, key: 'casey', since: '2013-09-14', login: true,
+    tags: [['Board: scheduling', 'violet'], [SKYHAWK_CHECKOUT, 'sky'], [WARRIOR_CHECKOUT, 'teal']] },
+  { ...BRAVO_MEMBER, key: 'riley', since: '2022-05-21', login: true,
+    tags: [[SKYHAWK_CHECKOUT, 'sky']] },
+  { key: 'pat', email: 'pat.okafor@example.com', fullName: 'Pat Okafor', role: 'mechanic', phone: '(614) 555-0211',
+    since: '2014-03-08', login: true, tags: [['A&P/IA', 'amber'], ['Maintenance officer', 'violet']] },
+  { key: 'morgan', email: 'morgan.ellis@example.com', fullName: 'Morgan Ellis', role: 'cfi', phone: '(614) 555-0212',
+    since: '2016-06-11', login: true,
+    tags: [['CFI/CFII', 'green'], ['Safety officer', 'violet'], [SKYHAWK_CHECKOUT, 'sky'], [WARRIOR_CHECKOUT, 'teal']] },
+  { key: 'dana', email: 'dana.whitfield@example.com', fullName: 'Dana Whitfield', role: 'renter', phone: '(614) 555-0213',
+    since: '2011-06-18', login: true,
+    tags: [['Board: secretary', 'violet'], ['Instrument rated', 'green'], [SKYHAWK_CHECKOUT, 'sky'], [WARRIOR_CHECKOUT, 'teal']] },
+  { key: 'lena', email: 'lena.park@example.com', fullName: 'Lena Park', role: 'renter', phone: '(614) 555-0214',
+    since: '2019-08-03', login: true,
+    tags: [['Instrument rated', 'green'], [SKYHAWK_CHECKOUT, 'sky'], [WARRIOR_CHECKOUT, 'teal']] },
+  { key: 'marcus', email: 'marcus.bell@example.com', fullName: 'Marcus Bell', role: 'renter', phone: '(614) 555-0215',
+    since: '2021-02-27', login: true, tags: [['Tailwheel', 'slate'], [SKYHAWK_CHECKOUT, 'sky']] },
+  { key: 'priya', email: 'priya.raman@example.com', fullName: 'Priya Raman', role: 'renter', phone: '(614) 555-0216',
+    since: '2018-10-06', login: true, tags: [[SKYHAWK_CHECKOUT, 'sky'], [WARRIOR_CHECKOUT, 'teal']] },
+  { key: 'tom', email: 'tom.kowalski@example.com', fullName: 'Tom Kowalski', role: 'renter', phone: '(614) 555-0217',
+    since: '2009-05-16', login: true, tags: [['Founding member', 'slate'], [WARRIOR_CHECKOUT, 'teal']] },
+  { key: 'hannah', email: 'hannah.lee@example.com', fullName: 'Hannah Lee', role: 'renter', phone: '(614) 555-0218',
+    since: '2015-07-25', login: true, tags: [[SKYHAWK_CHECKOUT, 'sky'], [WARRIOR_CHECKOUT, 'teal']] },
+  { key: 'victor', email: 'victor.nguyen@example.com', fullName: 'Victor Nguyen', role: 'renter', phone: '(614) 555-0219',
+    since: '2020-01-18', login: true, tags: [['Instrument rated', 'green'], [WARRIOR_CHECKOUT, 'teal']] },
+  { key: 'ana', email: 'ana.ruiz@example.com', fullName: 'Ana Ruiz', role: 'renter', phone: '(614) 555-0220',
+    since: 16, login: true, tags: [['New member: checkout in progress', 'amber']] },
+  { key: 'ben', email: 'ben.carter@example.com', fullName: 'Ben Carter', role: 'renter', phone: '(614) 555-0221',
+    since: 14, login: false, tags: [['New member: checkout in progress', 'amber']] },
+  { key: 'jamie', email: 'jamie.tran@example.com', fullName: 'Jamie Tran', role: 'student', phone: '(614) 555-0222',
+    since: '2024-09-07', login: true, tags: [['Student pilot', 'amber']] },
+  { key: 'grace', email: 'grace.oneill@example.com', fullName: "Grace O'Neill", role: 'renter', phone: '(614) 555-0223',
+    since: '2012-11-10', login: false, status: 'inactive', tags: [['On leave', 'slate']] },
+  { key: 'eli', email: 'eli.moreno@example.com', fullName: 'Eli Moreno', role: 'renter', phone: '(614) 555-0224',
+    since: '2017-04-22', login: false, status: 'inactive', tags: [['Moved away', 'slate']] },
+];
+
+/** BravoMember.since as the ISO timestamp stored in membership.created_at. */
+function memberSince(since: string | number, now: Date): string {
+  return typeof since === 'number' ? atLocal(-since, 10, 0, now).toISOString() : `${since}T12:00:00.000Z`;
+}
+
+/**
+ * One past Bravo flight, on the demo wall clock. Instruction (checkouts, flight
+ * reviews, lessons) books the CFI too and is dispatched to Morgan as the pilot
+ * in command; everyone else flies an aircraft they hold the checkout label for.
+ */
+interface BravoPastFlight {
+  daysAgo: number;
+  tail: 'N735BW' | 'N2189K';
+  hour: number;
+  minutes: number;
+  pilot: BravoKey;
+  note: string;
+  withCfi?: true;
+}
+
+/**
+ * Four weeks of club flying, oldest first: 37 flights by eleven pilots over
+ * the last 27 days, on both aircraft, with every day covered. At most one
+ * flight per aircraft per day (Skyhawk mornings, Warrior afternoons) and one
+ * with the CFI, so nothing collides, and the Skyhawk's evenings stay free for
+ * the cancellations. Marcus last flies 14 days ago: his flight review reminder
+ * lapsed 5 days ago, and he flies the review with Morgan tomorrow.
+ */
+const BRAVO_HISTORY: BravoPastFlight[] = [
+  { daysAgo: 27, tail: 'N735BW', hour: 9, minutes: 60, pilot: 'riley', note: 'Riley — local flight' },
+  { daysAgo: 27, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'dana', note: 'Dana — KOSU ▸ KMNN and back' },
+  { daysAgo: 26, tail: 'N735BW', hour: 10, minutes: 90, pilot: 'marcus', note: 'Marcus — pattern work' },
+  { daysAgo: 25, tail: 'N735BW', hour: 11, minutes: 120, pilot: 'lena', note: 'Lena — KOSU ▸ KLCK and back' },
+  { daysAgo: 24, tail: 'N735BW', hour: 9, minutes: 75, pilot: 'hannah', note: 'Hannah — practice area' },
+  { daysAgo: 24, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true },
+  { daysAgo: 23, tail: 'N735BW', hour: 10, minutes: 105, pilot: 'riley', note: 'Riley — KOSU ▸ KMNN and back' },
+  { daysAgo: 23, tail: 'N2189K', hour: 15, minutes: 120, pilot: 'victor', note: 'Victor — KOSU ▸ KDLZ practice approaches' },
+  { daysAgo: 22, tail: 'N735BW', hour: 11, minutes: 90, pilot: 'morgan', note: 'Flight review — Priya with Morgan', withCfi: true },
+  { daysAgo: 21, tail: 'N735BW', hour: 9, minutes: 60, pilot: 'jordan', note: 'Jordan — local flight' },
+  { daysAgo: 21, tail: 'N2189K', hour: 13, minutes: 105, pilot: 'hannah', note: 'Hannah — KOSU ▸ KLCK and back' },
+  { daysAgo: 20, tail: 'N2189K', hour: 14, minutes: 90, pilot: 'tom', note: 'Tom — proficiency flight' },
+  { daysAgo: 19, tail: 'N735BW', hour: 10, minutes: 90, pilot: 'riley', note: 'Riley — pattern work' },
+  { daysAgo: 18, tail: 'N735BW', hour: 11, minutes: 120, pilot: 'dana', note: 'Dana — scenic flight' },
+  { daysAgo: 18, tail: 'N2189K', hour: 15, minutes: 75, pilot: 'lena', note: 'Lena — pattern work' },
+  { daysAgo: 17, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true },
+  { daysAgo: 16, tail: 'N735BW', hour: 9, minutes: 105, pilot: 'priya', note: 'Priya — KOSU ▸ KMNN and back' },
+  { daysAgo: 15, tail: 'N735BW', hour: 10, minutes: 120, pilot: 'riley', note: 'Riley — KOSU ▸ KLCK and back' },
+  { daysAgo: 14, tail: 'N735BW', hour: 11, minutes: 75, pilot: 'marcus', note: 'Marcus — practice area' },
+  { daysAgo: 14, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'victor', note: 'Victor — proficiency flight' },
+  { daysAgo: 13, tail: 'N735BW', hour: 9, minutes: 90, pilot: 'casey', note: 'Casey — scenic flight' },
+  { daysAgo: 12, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Club checkout — Ana with Morgan', withCfi: true },
+  { daysAgo: 11, tail: 'N735BW', hour: 10, minutes: 90, pilot: 'riley', note: 'Riley — practice area' },
+  { daysAgo: 11, tail: 'N2189K', hour: 15, minutes: 120, pilot: 'dana', note: 'Dana — KOSU ▸ KDLZ practice approaches' },
+  { daysAgo: 10, tail: 'N735BW', hour: 11, minutes: 60, pilot: 'hannah', note: 'Hannah — pattern work' },
+  { daysAgo: 10, tail: 'N2189K', hour: 14, minutes: 105, pilot: 'jordan', note: 'Jordan — KOSU ▸ KMNN and back' },
+  { daysAgo: 9, tail: 'N735BW', hour: 9, minutes: 105, pilot: 'lena', note: 'Lena — scenic flight' },
+  { daysAgo: 8, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'priya', note: 'Priya — local flight' },
+  { daysAgo: 7, tail: 'N735BW', hour: 10, minutes: 120, pilot: 'riley', note: 'Riley — KOSU ▸ KMNN and back' },
+  { daysAgo: 6, tail: 'N735BW', hour: 11, minutes: 90, pilot: 'dana', note: 'Dana — local flight' },
+  { daysAgo: 6, tail: 'N2189K', hour: 15, minutes: 75, pilot: 'tom', note: 'Tom — pattern work' },
+  { daysAgo: 5, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Club checkout — Ana with Morgan', withCfi: true },
+  { daysAgo: 4, tail: 'N2189K', hour: 14, minutes: 120, pilot: 'lena', note: 'Lena — KOSU ▸ KMNN and back' },
+  { daysAgo: 3, tail: 'N735BW', hour: 10, minutes: 75, pilot: 'jordan', note: 'Jordan — pattern work' },
+  { daysAgo: 3, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true },
+  { daysAgo: 2, tail: 'N735BW', hour: 11, minutes: 90, pilot: 'riley', note: 'Riley — touch and goes' },
+  { daysAgo: 1, tail: 'N2189K', hour: 14, minutes: 90, pilot: 'hannah', note: 'Hannah — local flight' },
+];
+
+/** A meter reading, rounded to the tenth the Hobbs and tach record. */
+function tenths(n: number): number {
+  return Number(n.toFixed(1));
 }
 
 /**
  * seedBravoClub — the small-club counter-example org, built through the
  * SAME real write paths as Alpha above. Called once from seedDemo() so every
  * runner (bootstrap, reset, the real-Postgres script) gets both orgs for free.
+ *
+ * ORDER MATTERS: each gate goes in only after the rows it would refuse.
+ *   1. the history, before the Warrior's booking policy exists (its 60-minute
+ *      minimum lead refuses every past booking);
+ *   2. an overnight trip that left yesterday, then today and the next two
+ *      days, hand-placed, every Warrior booking still ahead of that policy
+ *      (the lead refuses any of today's flights the seed clock has reached);
+ *   3. the Warrior's booking policy, then the six-week forward schedule;
+ *   4. today's dispatches, as far as the seed clock has got (flyAsOf);
+ *   5. the Warrior's club-checkout dispatch requirement, LAST, so the gate can
+ *      never refuse one of the seed's own dispatches.
+ * Every refusal THROWS, like the forward schedule: the club must not thin out
+ * silently on the live demo. Every time is on `now`, the seed's clock, and
+ * nothing is dated after it.
+ *
+ * Roles do what they would in a real club: Casey (the scheduler) books and
+ * dispatches for the members (renters cannot book in this app), Morgan books
+ * the instruction, Pat keeps the maintenance records, and Jordan sets the
+ * aircraft rules.
+ *
+ * RAW SQL: the seed runs as the PGlite superuser locally and in tests (RLS
+ * bypassed) but as Neon's NON-superuser owner under FORCE RLS on the hosted
+ * reset. So every raw statement carries explicit org_id predicates, and raw
+ * UPDATEs touch only tables with an UPDATE policy (membership, reservation,
+ * dispatch_ticket, squawk, work_order). The append-only tables (audit_log,
+ * member_message, logbook_annotation, dispatch_service_log, …) are never
+ * updated: on Neon that UPDATE would silently change 0 rows.
  */
-async function seedBravoClub(db: AnyDb): Promise<void> {
+async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
+  /** A time on the demo wall clock, `day` days from the seed clock's today. */
+  const at = (day: number, hour: number, minute = 0) => atLocal(day, hour, minute, now);
+  /** The gates' clock: booking policies judge the seed's bookings at `now`. */
+  const clock = { now: now.getTime() };
+
   // ── Control-plane: org + plan + active subscription ──────────────────────
   const orgRow = await withPlatformAdminContext(db, async (tx) => {
     const [o] = await tx
@@ -831,30 +1150,47 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
   });
   const orgId = orgRow.id;
 
-  // ── Tenant: users + memberships + credentials + club mode + avatars ──────
+  // ── Tenant: roster + tags + join dates + club mode + base + fleet ────────
   const passwordHash = await demoPasswordHash();
 
   const ids = await withOrgContext(db, orgId, async (tx) => {
-    const userIdByEmail = new Map<string, string>();
-    for (const login of DEMO_LOGINS_BRAVO) {
+    const userIdByKey = new Map<BravoKey, string>();
+    for (const m of BRAVO_ROSTER) {
       const [u] = await tx
         .insert(appUser)
-        .values({ orgId, email: login.email, fullName: login.fullName, phone: login.phone })
+        .values({ orgId, email: m.email, fullName: m.fullName, phone: m.phone, status: m.status ?? 'active' })
         .returning();
       await tx
         .insert(membership)
-        .values({ orgId, userId: u!.id, role: login.role })
+        .values({ orgId, userId: u!.id, role: m.role })
         .returning();
-      await tx
-        .insert(authCredential)
-        .values({ orgId, userId: u!.id, passwordHash })
-        .returning();
-      userIdByEmail.set(login.email, u!.id);
+      if (m.login) {
+        await tx
+          .insert(authCredential)
+          .values({ orgId, userId: u!.id, passwordHash })
+          .returning();
+      }
+      userIdByKey.set(m.key, u!.id);
     }
 
-    const ownerUserId = userIdByEmail.get('owner@bravo.aero')!;
-    const adminUserId = userIdByEmail.get('admin@bravo.aero')!;
-    const memberUserId = userIdByEmail.get('member@bravo.aero')!;
+    // Free-text member tags (operator labels ONLY — no computed currency/medical).
+    for (const m of BRAVO_ROSTER) {
+      for (const [tag, color] of m.tags) {
+        await tx
+          .insert(memberTag)
+          .values({ orgId, userId: userIdByKey.get(m.key)!, tag, color, createdBy: userIdByKey.get('jordan')! });
+      }
+    }
+
+    // "Member since" for the whole roster in ONE statement. membership has an
+    // UPDATE policy, so this holds under FORCE RLS too.
+    const joined = BRAVO_ROSTER.map(
+      (m) => sql`(${userIdByKey.get(m.key)!}::uuid, ${memberSince(m.since, now)}::timestamptz)`,
+    );
+    await tx.execute(sql`
+      UPDATE membership m SET created_at = v.since
+        FROM (VALUES ${sql.join(joined, sql`, `)}) AS v(user_id, since)
+       WHERE m.user_id = v.user_id AND m.org_id = ${orgId}::uuid`);
 
     // CLUB OPERATING MODE (migration 0047, GRACEFUL ABSENCE — no-ops pre-0047).
     // Training / public booking / auto-scheduler off; everything else on.
@@ -900,63 +1236,256 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
       aircraftIdByTail.set(a.tailNumber, r!.id);
     }
 
-    return {
-      userIdByEmail,
-      aircraftIdByTail,
-      ownerId: ownerUserId,
-      adminId: adminUserId,
-      memberId: memberUserId,
-    };
+    // The club CFI as a bookable instructor resource. Core scheduling, not the
+    // (off) training module: checkouts, flight reviews and lessons book the
+    // aircraft AND the instructor, and the Board gets an instructor row.
+    const [instructor] = await tx
+      .insert(resource)
+      .values({
+        orgId,
+        kind: 'instructor',
+        displayName: 'Morgan Ellis (CFI)',
+        instructorUserId: userIdByKey.get('morgan')!,
+      })
+      .returning();
+
+    return { userIdByKey, aircraftIdByTail, instructorId: instructor!.id };
   });
 
-  // Owner session drives the real write paths below (full capabilities),
-  // same pattern as Alpha.
-  const ownerSession: AppSession = {
-    user: { email: 'owner@bravo.aero' },
-    userId: ids.ownerId,
-    orgId,
-    slug: DEMO_SLUG_BRAVO,
-    role: 'owner',
+  const user = (key: BravoKey) => ids.userIdByKey.get(key)!;
+  /** A roster member's session, to drive the real write paths as them. */
+  const sessionAs = (key: BravoKey): AppSession => {
+    const m = BRAVO_ROSTER.find((r) => r.key === key)!;
+    return { user: { email: m.email }, userId: user(key), orgId, slug: DEMO_SLUG_BRAVO, role: m.role };
   };
+  const ownerSession = sessionAs('jordan');
+  const adminSession = sessionAs('casey');
+  const cfiSession = sessionAs('morgan');
+  const mechanicSession = sessionAs('pat');
 
   const tail = (t: string) => ids.aircraftIdByTail.get(t)!;
+  const skyhawk = tail('N735BW');
+  const warrior = tail('N2189K');
 
-  // ── Reservations (through the real gated create path) ────────────────────
-  // Flown earlier today — will receive a CLOSED dispatch ticket.
-  const flownRes = await mustCreate(
-    createReservationWithDb(db, ownerSession, {
-      startAt: atLocal(0, 8, 0),
-      endAt: atLocal(0, 9, 0),
-      resourceIds: [tail('N735BW')],
+  // ── 1. Four weeks of history (BRAVO_HISTORY) ─────────────────────────────
+  // Booked, checked out and checked in through the real gated paths, then
+  // dated to the day it was flown (after step 4). Hobbs and tach climb per
+  // aircraft into today's flights, so the Fleet page's meters never run
+  // backwards.
+  const meters = new Map<string, MeterRun>([
+    [skyhawk, { hobbs: 845.0, tach: 806.0 }],
+    [warrior, { hobbs: 4212.3, tach: 3998.6 }],
+  ]);
+  /** Each aircraft's last check-in tach: the Fleet page's current reading. */
+  const lastTachIn = new Map<string, number>();
+  const flown: Array<BravoPastFlight & { reservationId: string; ticketId: string; hobbsHours: number }> = [];
+  for (const f of BRAVO_HISTORY) {
+    const resourceId = tail(f.tail);
+    const startAt = at(-f.daysAgo, f.hour);
+    const booked = await mustCreate(
+      createReservationWithDb(db, f.withCfi ? cfiSession : adminSession, {
+        startAt,
+        endAt: new Date(startAt.getTime() + f.minutes * 60_000),
+        resourceIds: f.withCfi ? [resourceId, ids.instructorId] : [resourceId],
+        notes: f.note,
+      }, clock),
+      `history "${f.note}" (${f.daysAgo} days ago)`,
+    );
+    const meter = meters.get(resourceId)!;
+    const opened = await mustOk(
+      openDispatchWithDb(db, adminSession, {
+        reservationId: booked.id,
+        resourceId,
+        pilotUserId: user(f.pilot),
+        hobbsOut: meter.hobbs,
+        tachOut: meter.tach,
+      }),
+      `history check-out "${f.note}"`,
+    );
+    const hours = f.minutes / 60;
+    const hobbsIn = tenths(meter.hobbs + hours);
+    const tachIn = tenths(meter.tach + hours * 0.95);
+    await mustOk(
+      closeDispatchWithDb(db, adminSession, { ticketId: opened.ticket.id, hobbsIn, tachIn }),
+      `history check-in "${f.note}"`,
+    );
+    flown.push({
+      ...f,
+      reservationId: booked.id,
+      ticketId: opened.ticket.id,
+      hobbsHours: tenths(hobbsIn - meter.hobbs),
+    });
+    lastTachIn.set(resourceId, tachIn);
+    // A little ground running between flights.
+    meter.hobbs = tenths(hobbsIn + 0.3);
+    meter.tach = tenths(tachIn + 0.3);
+  }
+
+  // Three past cancellations with reasons, on free Skyhawk evenings, one in
+  // each lead-time bucket of the Reports cancellations section.
+  const pastCancellations = [
+    { daysAgo: 20, note: 'Marcus — evening flight', reason: 'Weather: low ceilings at KOSU', leadMinutes: 3 * 60 },
+    { daysAgo: 12, note: 'Hannah — evening flight', reason: 'Gusty crosswind, above my personal limits', leadMinutes: 90 },
+    { daysAgo: 5, note: 'Priya — evening flight', reason: 'Schedule conflict, rebooked for the weekend', leadMinutes: 2 * 24 * 60 },
+  ];
+  const cancelled: Array<{ id: string; cancelledAt: Date }> = [];
+  for (const c of pastCancellations) {
+    const startAt = at(-c.daysAgo, 18);
+    const booked = await mustCreate(
+      createReservationWithDb(db, adminSession, {
+        startAt,
+        endAt: at(-c.daysAgo, 19, 30),
+        resourceIds: [skyhawk],
+        notes: c.note,
+      }, clock),
+      `cancelled booking "${c.note}"`,
+    );
+    await mustOk(
+      cancelReservationWithDb(db, adminSession, { reservationId: booked.id, reason: c.reason }),
+      `cancellation "${c.note}"`,
+    );
+    cancelled.push({ id: booked.id, cancelledAt: new Date(startAt.getTime() - c.leadMinutes * 60_000) });
+  }
+
+  // Line service and logbook notes: fuel (now and then oil) after every other
+  // flight, entered at the desk, and cross-country time (the whole Hobbs time)
+  // on the cross-countries, entered by each pilot on their own flight (members
+  // annotate their own logbook from the portal). Both tables are append-only.
+  for (const [i, f] of flown.entries()) {
+    if (i % 2 === 0) {
+      await mustOk(
+        recordDispatchServiceWithDb(db, adminSession, {
+          dispatchTicketId: f.ticketId,
+          fuelAddedGallons: 12 + (i % 5) * 3,
+          ...(i % 6 === 0 ? { oilAddedQuarts: 1 } : {}),
+        }),
+        `fuel uplift "${f.note}"`,
+      );
+    }
+    if (f.note.includes('▸')) {
+      await mustOk(
+        annotateFlightWithDb(db, sessionAs(f.pilot), {
+          dispatchTicketId: f.ticketId,
+          crossCountryHours: f.hobbsHours,
+          ...(f.note.includes('approaches')
+            ? { instrumentHours: 0.8, remarks: 'Practice approaches at KDLZ with a safety pilot' }
+            : { remarks: f.note.split(' — ')[1] }),
+        }),
+        `logbook note "${f.note}"`,
+      );
+    }
+  }
+
+  // ── 2. Today and the next two days (hand-placed) ─────────────────────────
+  // Priya took the Skyhawk to Put-in-Bay yesterday afternoon and is due back
+  // late morning, so right after the 03:00 reset the Board already has an
+  // aircraft out. The Skyhawk has no booking policy, so a trip of a night is
+  // within the club's own rules. Today, around it: a breakfast run in the
+  // Warrior, Riley's currency flight once the Skyhawk is back, Lena's scenic
+  // flight across mid-afternoon, and a new member's checkout with the CFI.
+  // Step 4 checks each out and in as far as the seed clock has got.
+  const overnightTrip = await mustCreate(
+    createReservationWithDb(db, adminSession, {
+      startAt: at(-1, 15),
+      endAt: at(0, 11, 30),
+      resourceIds: [skyhawk],
+      notes: 'Priya — overnight to Put-in-Bay (3W2)',
+    }, clock),
+    'reservation (Skyhawk, overnight trip)',
+  );
+  const breakfastRun = await mustCreate(
+    createReservationWithDb(db, adminSession, {
+      startAt: at(0, 10),
+      endAt: at(0, 12),
+      resourceIds: [warrior],
+      notes: 'Dana — breakfast run to KMNN',
+    }, clock),
+    'reservation (Warrior, this morning)',
+  );
+  const currencyFlight = await mustCreate(
+    createReservationWithDb(db, adminSession, {
+      startAt: at(0, 12, 30),
+      endAt: at(0, 13, 30),
+      resourceIds: [skyhawk],
       notes: 'Riley — club currency flight',
-    }),
-    'reservation (Skyhawk, flown)',
+    }, clock),
+    'reservation (Skyhawk, midday)',
+  );
+  const scenicFlight = await mustCreate(
+    createReservationWithDb(db, adminSession, {
+      startAt: at(0, 14),
+      endAt: at(0, 16),
+      resourceIds: [skyhawk],
+      notes: 'Lena — scenic flight',
+    }, clock),
+    'reservation (Skyhawk, this afternoon)',
+  );
+  const benCheckout = await mustCreate(
+    createReservationWithDb(db, cfiSession, {
+      startAt: at(0, 16, 30),
+      endAt: at(0, 18),
+      resourceIds: [warrior, ids.instructorId],
+      notes: 'Club checkout — Ben with Morgan',
+    }, clock),
+    'reservation (Warrior checkout, today)',
   );
 
-  // Two upcoming reservations for the member, one on each aircraft.
+  // Tomorrow: Marcus flies his flight review on the Skyhawk (his reminder
+  // lapsed, see the expirations below), then the regular flying.
   await mustCreate(
-    createReservationWithDb(db, ownerSession, {
-      startAt: atLocal(1, 10, 0),
-      endAt: atLocal(1, 11, 30),
-      resourceIds: [tail('N735BW')],
+    createReservationWithDb(db, cfiSession, {
+      startAt: at(1, 8),
+      endAt: at(1, 9, 30),
+      resourceIds: [skyhawk, ids.instructorId],
+      notes: 'Flight review — Marcus with Morgan',
+    }, clock),
+    'reservation (flight review, tomorrow)',
+  );
+  await mustCreate(
+    createReservationWithDb(db, adminSession, {
+      startAt: at(1, 10),
+      endAt: at(1, 11, 30),
+      resourceIds: [skyhawk],
       notes: 'Riley — pattern work',
-    }),
-    'reservation (Skyhawk, upcoming)',
+    }, clock),
+    'reservation (Skyhawk, tomorrow)',
   );
   await mustCreate(
-    createReservationWithDb(db, ownerSession, {
-      startAt: atLocal(2, 14, 0),
-      endAt: atLocal(2, 15, 30),
-      resourceIds: [tail('N2189K')],
-      notes: 'Riley — local area familiarization',
-    }),
-    'reservation (Warrior, upcoming)',
+    createReservationWithDb(db, adminSession, {
+      startAt: at(1, 13),
+      endAt: at(1, 15),
+      resourceIds: [warrior],
+      notes: 'Victor — proficiency flight',
+    }, clock),
+    'reservation (Warrior, tomorrow)',
   );
 
-  // ── Booking policy on the Warrior (cheap — added after its reservations) ──
+  // The day after: Riley's Warrior checkout. Riley holds only the Skyhawk
+  // checkout, which is why the Warrior's requirement (step 5) refuses Riley as
+  // its pilot until then.
+  await mustCreate(
+    createReservationWithDb(db, cfiSession, {
+      startAt: at(2, 14),
+      endAt: at(2, 15, 30),
+      resourceIds: [warrior, ids.instructorId],
+      notes: 'Riley — Warrior checkout with Morgan',
+    }, clock),
+    'reservation (Warrior checkout, day after tomorrow)',
+  );
+  await mustCreate(
+    createReservationWithDb(db, adminSession, {
+      startAt: at(2, 17, 30),
+      endAt: at(2, 19),
+      resourceIds: [skyhawk],
+      notes: 'Hannah — evening pattern work',
+    }, clock),
+    'reservation (Skyhawk, day after tomorrow)',
+  );
+
+  // ── 3. Booking policy on the Warrior, then the coming six weeks ──────────
   await mustOk(
     upsertBookingPolicyWithDb(db, ownerSession, {
-      resourceId: tail('N2189K'),
+      resourceId: warrior,
       maxDurationMinutes: 240,
       maxAdvanceDays: 45,
       minAdvanceMinutes: 60,
@@ -964,165 +1493,367 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
     'booking policy (Warrior)',
   );
 
-  // ── The coming six weeks (demo/seed-upcoming.ts) ─────────────────────────
-  // Weekend-heavy club flying plus two weekday evenings, from day 3 (days 0–2
-  // are hand-placed above). Within the Warrior's policy (≤ 4 h, ≤ 45 days out).
+  // Club flying from day 3 (days 0–2 are hand-placed above): weekends, weekday
+  // evenings, a Tuesday morning and the CFI on Thursday mornings, so every day
+  // of the six weeks has flying. One block per aircraft per time band; any
+  // collision throws. Within the Warrior's policy (≤ 4 h, ≤ 45 days out).
+  // Casey books for the members, Jordan books Jordan's own flights, and Morgan
+  // books the instruction.
   await seedUpcomingReservations(
     db,
-    ownerSession,
+    adminSession,
     [
       {
         weekdays: [6],
         hour: 9,
         durationMinutes: 180,
-        resourceIds: [tail('N735BW')],
+        resourceIds: [skyhawk],
         notes: ['Riley — weekend XC', 'Riley — breakfast flight to KMNN'],
       },
       {
         weekdays: [6],
         hour: 13,
         durationMinutes: 180,
-        resourceIds: [tail('N2189K')],
+        resourceIds: [warrior],
         notes: ['Casey — local flight', 'Casey — currency flight'],
-      },
-      {
-        weekdays: [0],
-        hour: 9,
-        durationMinutes: 120,
-        resourceIds: [tail('N2189K')],
-        notes: ['Jordan — Sunday flight', 'Jordan — proficiency flight'],
       },
       {
         weekdays: [0],
         hour: 14,
         durationMinutes: 120,
-        resourceIds: [tail('N735BW')],
+        resourceIds: [skyhawk],
         notes: ['Riley — touch and goes'],
+      },
+      {
+        weekdays: [1],
+        hour: 17,
+        minute: 30,
+        durationMinutes: 90,
+        resourceIds: [skyhawk],
+        notes: ['Hannah — evening pattern work', 'Dana — night landings'],
+      },
+      {
+        weekdays: [2],
+        hour: 9,
+        durationMinutes: 120,
+        resourceIds: [warrior],
+        notes: ['Tom — weekday local flight', 'Priya — proficiency flight'],
       },
       {
         weekdays: [3],
         hour: 17,
         minute: 30,
         durationMinutes: 90,
-        resourceIds: [tail('N735BW')],
+        resourceIds: [skyhawk],
         notes: ['Riley — evening pattern work'],
+      },
+      {
+        weekdays: [4],
+        hour: 17,
+        minute: 30,
+        durationMinutes: 90,
+        resourceIds: [skyhawk],
+        notes: ['Marcus — evening flight', 'Lena — evening flight'],
       },
       {
         weekdays: [5],
         hour: 16,
         durationMinutes: 120,
-        resourceIds: [tail('N2189K')],
+        resourceIds: [warrior],
         notes: ['Casey — sunset flight'],
       },
     ],
     { firstDay: 3, lastDay: UPCOMING_DAYS },
+    now,
+  );
+  await seedUpcomingReservations(
+    db,
+    ownerSession,
+    [
+      {
+        weekdays: [0],
+        hour: 9,
+        durationMinutes: 120,
+        resourceIds: [warrior],
+        notes: ['Jordan — Sunday flight', 'Jordan — proficiency flight'],
+      },
+    ],
+    { firstDay: 3, lastDay: UPCOMING_DAYS },
+    now,
+  );
+  await seedUpcomingReservations(
+    db,
+    cfiSession,
+    [
+      {
+        weekdays: [4],
+        hour: 9,
+        durationMinutes: 90,
+        resourceIds: [warrior, ids.instructorId],
+        notes: [
+          'Flight review — Hannah with Morgan',
+          'Club checkout — Ana with Morgan',
+          'Lesson — Jamie with Morgan',
+        ],
+      },
+    ],
+    { firstDay: 3, lastDay: UPCOMING_DAYS },
+    now,
   );
 
-  // ── Dispatch ticket — flown + closed, Hobbs/tach recorded ────────────────
-  const opened = await openDispatchWithDb(db, ownerSession, {
-    reservationId: flownRes.id,
-    resourceId: tail('N735BW'),
-    pilotUserId: ids.memberId,
-    hobbsOut: 890.4,
-    tachOut: 850.1,
-    notes: 'Pre-flight complete',
-  });
-  if (!opened.ok) throw new Error(`[demo] bravo open dispatch failed: ${opened.reason}`);
-  const closed = await closeDispatchWithDb(db, ownerSession, {
-    ticketId: opened.ticket.id,
-    hobbsIn: 891.6,
-    tachIn: 851.2,
-  });
-  if (!closed.ok) throw new Error(`[demo] bravo close dispatch failed: ${closed.reason}`);
+  // One future cancellation, more than a week out (06:30 is clear of every
+  // Skyhawk slot on any weekday).
+  const callOff = await mustCreate(
+    createReservationWithDb(db, adminSession, {
+      startAt: at(9, 6, 30),
+      endAt: at(9, 8),
+      resourceIds: [skyhawk],
+      notes: 'Lena — early local flight',
+    }, clock),
+    'reservation (Skyhawk, later cancelled)',
+  );
+  await mustOk(
+    cancelReservationWithDb(db, adminSession, {
+      reservationId: callOff.id,
+      reason: 'Member traveling, will rebook',
+    }),
+    'future cancellation',
+  );
 
-  // ── Squawk — open, low severity, on the Warrior (no grounding) ───────────
-  const squawk = await reportSquawkWithDb(db, ownerSession, {
-    resourceId: tail('N2189K'),
-    title: 'Right main tire showing wear',
-    description: 'Noted during preflight walkaround. Keep an eye on it before the next annual.',
-    severity: 'low',
-  });
-  if (!squawk.ok) {
-    throw new Error('[demo] bravo report squawk failed — seed cannot continue.');
+  // ── 4. Today's dispatches, as far as the seed clock has got (flyAsOf) ─────
+  // In time order, each picking up from its aircraft's last reading. Right
+  // after the 03:00 reset only the overnight trip is out; by 15:00 it and the
+  // morning's flights are checked in and Lena has the Skyhawk out; by evening
+  // everything is in. Morgan flies Ben's checkout as pilot in command.
+  const todayFlights: TodayFlight[] = [
+    { label: 'bravo overnight trip (Skyhawk)', booking: overnightTrip, aircraftId: skyhawk,
+      pilotUserId: user('priya'), meter: meters.get(skyhawk)!, hobbsHours: 2.4 },
+    { label: 'bravo breakfast run (Warrior)', booking: breakfastRun, aircraftId: warrior,
+      pilotUserId: user('dana'), meter: meters.get(warrior)!, hobbsHours: 1.1 },
+    { label: 'bravo currency flight (Skyhawk)', booking: currencyFlight, aircraftId: skyhawk,
+      pilotUserId: user('riley'), meter: meters.get(skyhawk)!, hobbsHours: 0.9, notes: 'Pre-flight complete' },
+    { label: 'bravo scenic flight (Skyhawk)', booking: scenicFlight, aircraftId: skyhawk,
+      pilotUserId: user('lena'), meter: meters.get(skyhawk)!, hobbsHours: 1.7 },
+    { label: 'bravo checkout (Warrior)', booking: benCheckout, aircraftId: warrior,
+      pilotUserId: user('morgan'), meter: meters.get(warrior)!, hobbsHours: 1.3 },
+  ];
+  const todayTickets: string[] = [];
+  for (const flight of todayFlights) {
+    const ticket = await flyAsOf(db, adminSession, flight, now);
+    if (!ticket) continue;
+    todayTickets.push(ticket.ticketId);
+    if (ticket.tachIn !== undefined) lastTachIn.set(flight.aircraftId, ticket.tachIn);
   }
 
-  // ── Historical activity backfill (DEMO-ONLY) ─────────────────────────────
-  // Make the club demo look lived-in, since it's the primary demo: Skyhawk
-  // flights over the last ~27 days flown by the member, with timestamps
-  // backdated so the dashboard and utilization populate. Skyhawk only — the
-  // Warrior's min-lead booking policy refuses past-dated reservations.
-  // DEFENSIVE + best-effort; resets on demo restart.
-  try {
-    const durChoices = [60, 90, 90, 120, 75];
-    let hobbs = 852;
-    let tach = 815;
-    let flown = 0;
-    // Owner (2026-09-02): 14 -> 26 flights, and the window widened to 27..2 days
-    // so the club dashboard's default 30-day view is populated too.
-    for (let k = 0; k < 26; k++) {
-      const daysAgo = 27 - k; // 27..2 days ago; meters climb toward the present
-      const startH = 9 + (k % 6); // 09:00–14:00 local
-      const durMin = durChoices[k % durChoices.length]!;
-      const startAt = atLocal(-daysAgo, startH, 0);
-      const endAt = new Date(startAt.getTime() + durMin * 60_000);
-      try {
-        const res = await createReservationWithDb(db, ownerSession, {
-          startAt,
-          endAt,
-          resourceIds: [tail('N735BW')],
-          notes: 'Club flight',
-        });
-        if (!res.ok) continue;
+  // Date the flying, in ONE org-scoped context: each past booking was made 1–6
+  // days ahead (the overnight trip six), every ticket, today's included, was
+  // opened and closed at its booked times (created_at with it, so a
+  // newest-first list by either column starts with today's flights), and each
+  // cancelled booking was made a week ahead and called off at its lead time.
+  // Seed-only staging of rows created above, like Alpha's history.
+  await withOrgContext(db, orgId, async (tx) => {
+    const leads = [
+      ...flown.map((f, i) => sql`(${f.reservationId}::uuid, ${1 + (i % 6)}::int)`),
+      sql`(${overnightTrip.id}::uuid, ${6}::int)`,
+    ];
+    await tx.execute(sql`
+      UPDATE reservation r SET created_at = r.start_at - make_interval(days => v.lead_days)
+        FROM (VALUES ${sql.join(leads, sql`, `)}) AS v(id, lead_days)
+       WHERE r.id = v.id AND r.org_id = ${orgId}::uuid`);
+    await dateTickets(tx, orgId, [...flown.map((f) => f.ticketId), ...todayTickets]);
+    const calledOff = cancelled.map((c) => sql`(${c.id}::uuid, ${c.cancelledAt.toISOString()}::timestamptz)`);
+    await tx.execute(sql`
+      UPDATE reservation r
+         SET created_at = r.start_at - interval '7 days', cancelled_at = v.cancelled_at
+        FROM (VALUES ${sql.join(calledOff, sql`, `)}) AS v(id, cancelled_at)
+       WHERE r.id = v.id AND r.org_id = ${orgId}::uuid`);
+  });
 
-        const durH = durMin / 60;
-        const hobbsOut = Number(hobbs.toFixed(1));
-        const hobbsIn = Number((hobbs + durH).toFixed(1));
-        const tachOut = Number(tach.toFixed(1));
-        const tachIn = Number((tach + durH * 0.95).toFixed(1));
-
-        const op = await openDispatchWithDb(db, ownerSession, {
-          reservationId: res.reservation.id,
-          resourceId: tail('N735BW'),
-          pilotUserId: ids.memberId,
-          hobbsOut,
-          tachOut,
-        });
-        if (!op.ok) continue;
-        const cl = await closeDispatchWithDb(db, ownerSession, {
-          ticketId: op.ticket.id,
-          hobbsIn,
-          tachIn,
-        });
-        if (!cl.ok) continue;
-        hobbs = hobbsIn + 0.3;
-        tach = tachIn + 0.3;
-        flown++;
-
-        await withOrgContext(db, orgId, async (tx) => {
-          await tx.execute(sql`
-            UPDATE reservation SET created_at = start_at - interval '2 hours'
-             WHERE id = ${res.reservation.id}`);
-          await tx.execute(sql`
-            UPDATE dispatch_ticket dt SET opened_at = r.start_at, closed_at = r.end_at
-              FROM reservation r WHERE dt.id = ${op.ticket.id} AND r.id = ${res.reservation.id}`);
-        });
-      } catch {
-        continue;
-      }
-    }
-    // eslint-disable-next-line no-console
-    console.log(`[demo] bravo backfill: ${flown} flights`);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[demo] bravo backfill skipped:', err);
+  // ── Maintenance: squawk history, work orders, items coming due ───────────
+  // Low/medium squawks only and nothing grounded, so the club stays flyable.
+  // Operator maintenance records; NO computed Part-43 / airworthiness
+  // determination ('completed' is not a return to service).
+  const tire = await mustOk(
+    reportSquawkWithDb(db, ownerSession, {
+      resourceId: warrior,
+      title: 'Right main tire showing wear',
+      description: 'Noted during preflight walkaround. Keep an eye on it before the next annual.',
+      severity: 'low',
+    }),
+    'bravo squawk (tire)',
+  );
+  const light = await mustOk(
+    reportSquawkWithDb(db, cfiSession, {
+      resourceId: skyhawk,
+      title: 'Landing light inoperative',
+      description: 'Found on the preflight walkaround.',
+      severity: 'medium',
+    }),
+    'bravo squawk (landing light)',
+  );
+  const door = await mustOk(
+    reportSquawkWithDb(db, adminSession, {
+      resourceId: skyhawk,
+      title: 'Cabin door seal whistles in cruise',
+      severity: 'low',
+    }),
+    'bravo squawk (door seal)',
+  );
+  const lastSkyhawkFlight = flown.filter((f) => f.tail === 'N735BW').at(-1)!;
+  const jack = await mustOk(
+    reportSquawkWithDb(db, adminSession, {
+      resourceId: skyhawk,
+      title: 'Right-seat headset jack crackles',
+      description: 'Intermittent static on the right-seat jack, noticed after the flight. Left seat is fine.',
+      severity: 'low',
+      dispatchTicketId: lastSkyhawkFlight.ticketId,
+    }),
+    'bravo squawk (headset jack)',
+  );
+  await mustOk(
+    updateSquawkStatusWithDb(db, mechanicSession, {
+      squawkId: door.squawk.id,
+      status: 'deferred',
+      resolutionNotes: 'Seal is on order; Pat will fit it at the next annual.',
+    }),
+    'bravo squawk deferral (door seal)',
+  );
+  const lampOrder = await mustOk(
+    openWorkOrderWithDb(db, mechanicSession, {
+      resourceId: skyhawk,
+      squawkId: light.squawk.id,
+      title: 'Replace landing light lamp',
+    }),
+    'bravo work order (landing light)',
+  );
+  const lampDone = await mustOk(
+    completeWorkOrderWithDb(db, mechanicSession, {
+      workOrderId: lampOrder.workOrder.id,
+      workPerformed: 'Replaced the landing light lamp. Light checks good.',
+      resolveSquawk: true,
+      squawkResolutionNotes: 'Lamp replaced.',
+    }),
+    'bravo work order completion (landing light)',
+  );
+  if (!lampDone.squawk) {
+    throw new Error('[demo] bravo landing-light squawk was not resolved — seed cannot continue.');
   }
+  const tireOrder = await mustOk(
+    openWorkOrderWithDb(db, mechanicSession, {
+      resourceId: warrior,
+      squawkId: tire.squawk.id,
+      title: 'Replace right main tire',
+      description: 'Tire and tube on order. Pat will fit them at the annual unless the wear gets worse first.',
+    }),
+    'bravo work order (tire)',
+  );
+  await mustOk(
+    updateWorkOrderStatusWithDb(db, mechanicSession, { workOrderId: tireOrder.workOrder.id, status: 'in_progress' }),
+    'bravo work order in progress (tire)',
+  );
+
+  // Date the maintenance records like the history: the landing light found two
+  // weeks ago and fixed two days later, the door seal deferred last week, the
+  // tire and the headset jack found this week. squawk and work_order have
+  // UPDATE policies; explicit org predicates.
+  await withOrgContext(db, orgId, async (tx) => {
+    const ts = (d: Date) => sql`${d.toISOString()}::timestamptz`;
+    await tx.execute(sql`
+      UPDATE squawk SET reported_at = ${ts(at(-14, 8, 40))}, resolved_at = ${ts(at(-12, 15, 30))}
+       WHERE id = ${light.squawk.id}::uuid AND org_id = ${orgId}::uuid`);
+    await tx.execute(sql`
+      UPDATE work_order SET opened_at = ${ts(at(-13, 14))}, signed_off_at = ${ts(at(-12, 15, 30))}
+       WHERE id = ${lampOrder.workOrder.id}::uuid AND org_id = ${orgId}::uuid`);
+    await tx.execute(sql`
+      UPDATE squawk SET reported_at = ${ts(at(-9, 12, 10))}, resolved_at = ${ts(at(-8, 16))}
+       WHERE id = ${door.squawk.id}::uuid AND org_id = ${orgId}::uuid`);
+    await tx.execute(sql`
+      UPDATE squawk SET reported_at = ${ts(at(-3, 17, 15))}
+       WHERE id = ${tire.squawk.id}::uuid AND org_id = ${orgId}::uuid`);
+    await tx.execute(sql`
+      UPDATE work_order SET opened_at = ${ts(at(-2, 9, 30))}
+       WHERE id = ${tireOrder.workOrder.id}::uuid AND org_id = ${orgId}::uuid`);
+    await tx.execute(sql`
+      UPDATE squawk SET reported_at = ${ts(at(-2, 13, 20))}
+       WHERE id = ${jack.squawk.id}::uuid AND org_id = ${orgId}::uuid`);
+  });
+
+  // Maintenance-due items: two due soon (the Skyhawk's oil change, the
+  // Warrior's annual), none overdue, so the demo never shows the club flying
+  // past one of its own limits. Hour thresholds sit above each aircraft's
+  // last recorded tach, however far today's flights have got; dates are on the
+  // demo wall clock.
+  // [VERIFY-DEMO-MX] Operator-entered tracking, not an FAA determination: the
+  // titles name the club's own reminders (annual inspection, ELT battery,
+  // transponder and pitot-static check), and the app only compares these
+  // thresholds with the last recorded meters and today's date.
+  const maintenanceItems = [
+    { resourceId: skyhawk, title: 'Oil change (50 hr)', trackBy: 'hours', meterBasis: 'tach', dueValueHours: tenths(lastTachIn.get(skyhawk)! + 3.8), warnThresholdHours: 10 },
+    { resourceId: skyhawk, title: 'Annual inspection', trackBy: 'date', dueDate: localDateAt(118, now), warnLeadDays: 30 },
+    { resourceId: skyhawk, title: 'ELT battery', trackBy: 'date', dueDate: localDateAt(300, now), warnLeadDays: 30 },
+    { resourceId: warrior, title: 'Annual inspection', trackBy: 'date', dueDate: localDateAt(21, now), warnLeadDays: 30, notes: 'Pat has it on the calendar.' },
+    { resourceId: warrior, title: 'Oil change (50 hr)', trackBy: 'hours', meterBasis: 'tach', dueValueHours: tenths(lastTachIn.get(warrior)! + 30), warnThresholdHours: 10 },
+    { resourceId: warrior, title: 'Transponder and pitot-static check', trackBy: 'date', dueDate: localDateAt(200, now), warnLeadDays: 60 },
+  ];
+  for (const item of maintenanceItems) {
+    await mustOk(createMaintenanceItemWithDb(db, mechanicSession, item), `maintenance item "${item.title}"`);
+  }
+
+  // ── Member expirations (warn-only reminders) ─────────────────────────────
+  // [VERIFY-FC-P2-A] Operator-entered reminder dates, NOT a medical, currency
+  // or legal determination; they warn at check-out and never block it. Three
+  // fall due within 30 days; Marcus's flight review lapsed five days ago (he
+  // last flew two weeks ago and flies the review tomorrow); Grace is on leave.
+  const expirations: Array<[BravoKey, string, number]> = [
+    ['riley', 'Medical', 240],
+    ['riley', 'Flight review', 400],
+    ['dana', 'Medical', 25],
+    ['dana', 'Flight review', 300],
+    ['marcus', 'Flight review', -5],
+    ['marcus', 'Medical', 500],
+    ['lena', 'Medical', 600],
+    ['lena', 'Club annual checkout', 12],
+    ['tom', 'Medical', 90],
+    ['priya', 'Club annual checkout', 200],
+    ['hannah', 'Medical', 27],
+    ['victor', 'Flight review', 150],
+    ['grace', 'Medical', -60],
+  ];
+  for (const [key, label, inDays] of expirations) {
+    await mustOk(
+      addMemberExpirationWithDb(db, adminSession, {
+        memberUserId: user(key),
+        label,
+        expiresOn: localDateAt(inDays, now),
+      }),
+      `expiration "${label}" (${key})`,
+    );
+  }
+
+  // ── 5. The Warrior's club-checkout requirement (Slice 3c gate) ───────────
+  // LAST, after every seeded dispatch. Operator label only — NOT an FAA
+  // endorsement. On the Board, Dana and Morgan pass; Riley is refused.
+  await mustOk(
+    addResourceRequiredTagWithDb(db, ownerSession, { resourceId: warrior, requiredTag: WARRIOR_CHECKOUT }),
+    'dispatch requirement (Warrior checkout)',
+  );
 
   // ── Messages — club announcements (demo/seed-upcoming.ts) ────────────────
   await seedAnnouncements(db, orgId, [
     {
+      daysAgo: 13,
+      hour: 18,
+      sentBy: user('jordan'),
+      audience: 'all_active',
+      subject: 'Welcome Ana and Ben',
+      body:
+        'Please welcome our two newest members, Ana Ruiz and Ben Carter. Morgan is flying their ' +
+        'club checkouts, so say hello at the hangar.',
+    },
+    {
       daysAgo: 9,
       hour: 10,
-      sentBy: ids.ownerId,
+      sentBy: user('jordan'),
       audience: 'all_active',
       subject: 'Club scheduling has moved',
       body:
@@ -1130,31 +1861,70 @@ async function seedBravoClub(db: AnyDb): Promise<void> {
         'aircraft page. Questions go to Casey.',
     },
     {
+      daysAgo: 6,
+      hour: 12,
+      sentBy: user('casey'),
+      audience: 'all_active',
+      subject: 'Fly-in breakfast at KMNN',
+      body:
+        'A group is flying up to Marion for the breakfast fly-in. If you have a seat to spare or ' +
+        'would like to ride along, tell me and I will pair people up.',
+    },
+    {
       daysAgo: 4,
       hour: 19,
-      sentBy: ids.ownerId,
+      sentBy: user('jordan'),
       audience: 'all_active',
       subject: 'Club meeting Thursday at 7 pm',
       body: 'In the hangar. On the agenda: a fleet update and fly-in planning. Bring ideas for the next club trip.',
     },
     {
+      daysAgo: 2,
+      hour: 9,
+      sentBy: user('casey'),
+      audience: 'all_active',
+      subject: 'Warrior annual inspection',
+      body:
+        "Pat has the Warrior's annual inspection on the calendar in about three weeks. Expect it to " +
+        'be down for a couple of days; I will move any bookings it affects.',
+    },
+    {
       daysAgo: 1,
       hour: 8,
-      sentBy: ids.adminId,
+      sentBy: user('casey'),
       audience: 'all_active',
       subject: 'Warrior tire wear',
       body:
         'There is an open squawk on N2189K for wear on the right main tire. It is still flying, but ' +
         'please give it a good look on your preflight and add a note to the squawk if it gets worse.',
     },
-  ]);
+  ], now);
+
+  // ── When the coming bookings were made ───────────────────────────────────
+  // Everything from today on was created just now, which would stand as one
+  // tall bar on the dashboard's reservations-vs-flights chart. Spread the
+  // booking dates over the previous two weeks instead: the n-th booking, in
+  // start order, was made 1 + (n mod 13) days and (n mod 9) hours before the
+  // seed clock, so before it starts. reservation has an UPDATE policy;
+  // explicit org predicates.
+  await withOrgContext(db, orgId, async (tx) => {
+    await tx.execute(sql`
+      UPDATE reservation r
+         SET created_at = ${now.toISOString()}::timestamptz
+                          - make_interval(days => 1 + (b.n % 13)::int, hours => (b.n % 9)::int)
+        FROM (SELECT id, row_number() OVER (ORDER BY start_at, id) AS n
+                FROM reservation
+               WHERE org_id = ${orgId}::uuid
+                 AND start_at >= ${at(0, 0).toISOString()}::timestamptz) b
+       WHERE r.id = b.id AND r.org_id = ${orgId}::uuid`);
+  });
 }
 
 /** Assert a createReservation result succeeded, returning the new reservation. */
 async function mustCreate(
-  p: Promise<{ ok: true; reservation: { id: string } } | { ok: false; reason: string }>,
+  p: Promise<CreateReservationResult>,
   label: string,
-): Promise<{ id: string }> {
+): Promise<CreatedReservation> {
   const r = await p;
   if (!r.ok) {
     throw new Error(`[demo] ${label} was refused (${r.reason}) — seed cannot continue.`);
@@ -1162,13 +1932,15 @@ async function mustCreate(
   return r.reservation;
 }
 
-/** Assert a generic {ok} result succeeded. */
-async function mustOk(
-  p: Promise<{ ok: true } | { ok: false; reason: string }>,
+/** Assert a generic {ok} result succeeded, returning it. */
+async function mustOk<T extends { ok: boolean }>(
+  p: Promise<T>,
   label: string,
-): Promise<void> {
+): Promise<Extract<T, { ok: true }>> {
   const r = await p;
   if (!r.ok) {
-    throw new Error(`[demo] ${label} failed (${r.reason}) — seed cannot continue.`);
+    const reason = (r as { reason?: unknown }).reason;
+    throw new Error(`[demo] ${label} failed (${String(reason)}) — seed cannot continue.`);
   }
+  return r as Extract<T, { ok: true }>;
 }

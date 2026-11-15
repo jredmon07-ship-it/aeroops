@@ -18,27 +18,35 @@
  * ║  aeroops_app for enforced RLS.                                           ║
  * ║                                                                          ║
  * ║  This seeds the SAME dataset as pnpm demo (in-memory PGlite, DEMO.md) —  ║
- * ║  TWO orgs, one seedDemo() call:                                          ║
+ * ║  TWO orgs, one seedDemo() call. Every date is relative to the moment it  ║
+ * ║  runs and none is later: today's flights are checked out and in only as  ║
+ * ║  far as the clock has got.                                               ║
  * ║                                                                          ║
  * ║    org:     Alpha Flight School (slug: alpha)                            ║
  * ║    users:   5 (one per role, each with password credential)              ║
- * ║    fleet:   N172SP / N152AB / N28K / N66RG + CFI resource               ║
- * ║    data:    today's reservations, dispatch tickets, booking policy,       ║
- * ║             weekly series, squawks, grounded Cirrus, dispatch gate,      ║
- * ║             civil-twilight config                                        ║
+ * ║    fleet:   N172SP / N152AB / N28K / N66RG + CFI resource                ║
+ * ║    data:    today's flights, a month of flight history, booking          ║
+ * ║             policy, weekly series, six weeks of bookings, squawks,       ║
+ * ║             grounded Cirrus, dispatch gate, civil-twilight config,       ║
+ * ║             a training course at 2/5, booking requests, four             ║
+ * ║             announcements                                                ║
  * ║                                                                          ║
- * ║    org:     Bravo Flying Club — small-club counter-example (slug:     ║
- * ║             bravo; club operating mode when migration 0047 is         ║
+ * ║    org:     Bravo Flying Club — small-club counter-example (slug:        ║
+ * ║             bravo; club operating mode when migration 0047 is            ║
  * ║             applied — training/booking/auto-schedule off)                ║
- * ║    users:   3 (owner / manager / renter, each with password credential) ║
- * ║    fleet:   N735BW / N2189K                                              ║
- * ║    data:    upcoming reservations, a flown dispatch ticket, an open     ║
- * ║             squawk, a booking policy                                     ║
+ * ║    users:   17 members (15 active, 2 inactive); the 3 logins below       ║
+ * ║             (owner / manager / renter) are the advertised ones           ║
+ * ║    fleet:   N735BW / N2189K + CFI resource                               ║
+ * ║    data:    four weeks of flying (37 flights, fuel, logbook notes),      ║
+ * ║             a member's overnight trip, today's flights, six weeks of     ║
+ * ║             bookings, a booking policy and a checkout requirement on     ║
+ * ║             the Warrior, squawks, work orders, maintenance-due items,    ║
+ * ║             expiration reminders, six announcements                      ║
  * ║                                                                          ║
- * ║  Logins (password: demo1234) — see DEMO.md for the full click-through:  ║
+ * ║  Logins (password: demo1234) — see DEMO.md for the full click-through:   ║
  * ║    owner@alpha.aero  /  manager@alpha.aero  /  dispatch@alpha.aero       ║
  * ║    cfi@alpha.aero    /  student@alpha.aero                               ║
- * ║    owner@bravo.aero  /  admin@bravo.aero  /  member@bravo.aero    ║
+ * ║    owner@bravo.aero  /  admin@bravo.aero  /  member@bravo.aero           ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  *
  * Usage:
@@ -59,6 +67,7 @@ import * as schema from '@aeroops/db';
 import {
   seedDemo,
   DEMO_LOGINS,
+  DEMO_LOGINS_BRAVO,
   DEMO_PASSWORD,
   DEMO_SLUG,
   DEMO_SLUG_BRAVO,
@@ -100,7 +109,7 @@ async function main(): Promise<void> {
   console.log('  ─────────────────────────────────────────────────────────');
   console.log(`  Target: ${displayUrl}`);
   console.log('');
-  console.log('  Seeding Alpha Flight School demo dataset…');
+  console.log('  Seeding the Alpha Flight School and Bravo Flying Club demo datasets…');
   console.log('  (Identical to the in-memory pnpm demo, seeded via the real write paths.)');
   console.log('');
 
@@ -146,11 +155,11 @@ async function main(): Promise<void> {
     console.log(`  Password for all accounts: ${DEMO_PASSWORD}`);
     console.log('');
     console.log('  Logins:');
-    for (const login of DEMO_LOGINS) {
+    for (const login of [...DEMO_LOGINS, ...DEMO_LOGINS_BRAVO]) {
       console.log(`    ${login.email.padEnd(28)}  ${login.role}`);
     }
     console.log('');
-    console.log(`  Login URL: https://your-domain/o/${DEMO_SLUG}/login`);
+    console.log(`  Login URLs: https://your-domain/o/${DEMO_SLUG}/login and /o/${DEMO_SLUG_BRAVO}/login`);
     console.log('');
     console.log('  IMPORTANT — app DATABASE_URL must be the aeroops_app role,');
     console.log('  NOT the owner role used here. The app must connect as the');

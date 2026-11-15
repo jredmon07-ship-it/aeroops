@@ -85,7 +85,8 @@ for (const tz of [undefined, 'America/Chicago', 'Pacific/Auckland'] as const) {
         const from = new Date(now + w * 7 * DAY_MS);
         const to = new Date(now + (w + 1) * 7 * DAY_MS);
         expect(await reservationsBetween(db, DEMO_SLUG, from, to)).toBeGreaterThanOrEqual(12);
-        expect(await reservationsBetween(db, DEMO_SLUG_BRAVO, from, to)).toBeGreaterThanOrEqual(5);
+        // Bravo: ten weekly slots, at least one on every day of the week.
+        expect(await reservationsBetween(db, DEMO_SLUG_BRAVO, from, to)).toBeGreaterThanOrEqual(9);
       }
     });
 
@@ -106,9 +107,10 @@ for (const tz of [undefined, 'America/Chicago', 'Pacific/Auckland'] as const) {
       }
       expect(alpha.filter((m) => m.audience === 'role').map((m) => m.role)).toEqual(['student']);
 
+      // 15 active Bravo members (17 on the roster, 2 inactive).
       const bravo = await announcements(db, DEMO_SLUG_BRAVO);
-      expect(bravo).toHaveLength(3);
-      expect(bravo.every((m) => m.in_past && m.audience === 'all_active' && m.recipient_count === 3)).toBe(true);
+      expect(bravo).toHaveLength(6);
+      expect(bravo.every((m) => m.in_past && m.audience === 'all_active' && m.recipient_count === 15)).toBe(true);
     });
   });
 }
