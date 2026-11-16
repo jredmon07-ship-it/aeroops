@@ -4,6 +4,52 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-11-15 — Bookings made for a member, charts by your day
+
+Renters and students can't book, so club staff book for them, but nothing
+linked a booking to the member it was for: a member's portal never listed the
+flights booked for them. Migration 0051 adds that link. Also: the charts count
+days in your time zone, the sign-in form can no longer leak a password into the
+URL, and dialogs animate.
+
+**Added**
+
+- "Booked for" on New Reservation, for a single booking or a weekly series: an
+  optional list of the org's active members. The booking records the member it
+  is for.
+- Migration 0051: a nullable `reservation.member_user_id` with a same-org
+  foreign key (deleting a user clears only the link; the booking stays), a
+  partial index, and a down migration.
+- Dialog and menu animations. The dialog and sheet components' enter and exit
+  classes need the tailwindcss-animate plugin, which was never installed. With
+  reduced motion turned on, they appear without animating.
+
+**Changed**
+
+- The member portal's "My upcoming reservations" lists the bookings made for
+  the member, marked "Booked for you", and so do the member's People page, the
+  alerts bell's "Upcoming flight" and the member's calendar feed. Each read is
+  still limited to the signed-in member.
+- The schedule shows who a booking is for: "for Riley Member" on the list card,
+  the board block and the month chip.
+- Moving a booking keeps its member. If that member has been deactivated since,
+  the move is refused with a plain message and the booking stays where it was.
+- The demo names the member on Bravo's bookings and the Alpha student's lessons,
+  so member@bravo.aero and student@alpha.aero see their upcoming flights.
+- Dashboard and Reports count days in your time zone: a flight that closed at
+  8:00 pm CST on Nov 15 shows on Nov 15's bar, not Nov 16's. "Last 30 days"
+  starts at your local midnight and shows exactly 30 daily bars (it showed 31
+  UTC days); 7 and 90 days work the same way. The longer trends start each week
+  on your local Monday, and daylight-saving days are one bar each. Every "last N
+  days" total on the dashboard and Reports covers the same window as the chart
+  beside it, and Report CSV "Period" cells use your local dates.
+
+**Fixed**
+
+- The sign-in and signup forms post. Submitted before the page had finished
+  loading, they used to fall back to a GET that put the email and password in
+  the URL.
+
 ## 2026-11-15 — Your time zone everywhere, and text you can read
 
 A second pass over the hosted demo. Outside the schedule the server (UTC on

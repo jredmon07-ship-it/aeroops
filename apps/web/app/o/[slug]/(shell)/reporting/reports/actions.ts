@@ -16,13 +16,17 @@
  * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT airworthiness.
  * [VERIFY-T1-B] Training counts = operator state; NOT Part-141 or FAA determination.
  * [VERIFY-M1-A] Maintenance counts = operator data; NOT Part-43/airworthiness/RTS.
- * [VERIFY-R1-TZ] UTC bucketing; display layer handles formatting.
+ * [VERIFY-R1-TZ] Every range read gets the viewer's zone (getViewerTimeZone):
+ *   "last N days" is that zone's N calendar days from local midnight, the
+ *   trends bucket by its local days / Mondays, and each serialized bucket
+ *   carries the `day` it covers (lib/report-buckets.ts) for labels and CSVs.
  */
 'use server';
 
 import { actionAuth as auth } from '@/lib/action-auth';
 import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 import { dayInZone } from '@/lib/schedule-day';
+import { bucketDay } from '@/lib/report-buckets';
 import {
   getUtilizationTrend,
   getHoursByTail,
@@ -64,6 +68,8 @@ export interface SerializedReportRange {
   key: string;
   from: string;
   to: string;
+  /** The zone the window and buckets are in (present when one was passed). */
+  timeZone?: string;
 }
 
 function serializeRange(r: ReportRange): SerializedReportRange {
@@ -71,11 +77,23 @@ function serializeRange(r: ReportRange): SerializedReportRange {
     key: r.key,
     from: r.from instanceof Date ? r.from.toISOString() : String(r.from),
     to: r.to instanceof Date ? r.to.toISOString() : String(r.to),
+    ...(r.timeZone !== undefined ? { timeZone: r.timeZone } : {}),
   };
+}
+
+/** A bucket start as an ISO string + the calendar day it covers in `timeZone`. */
+function serializeBucketStart(
+  bucketStart: Date | string,
+  timeZone: string | undefined,
+): { bucketStart: string; day: string } {
+  const iso = bucketStart instanceof Date ? bucketStart.toISOString() : String(bucketStart);
+  return { bucketStart: iso, day: bucketDay(iso, timeZone) };
 }
 
 export interface SerializedUtilizationBucket {
   bucketStart: string;
+  /** The day the bucket covers ("YYYY-MM-DD", the viewer's): label + CSV by this. */
+  day: string;
   flightCount: number;
   flightHours: number;
 }
@@ -94,9 +112,7 @@ function serializeUtilizationTrend(r: UtilizationTrendResult): SerializedUtiliza
     range: serializeRange(r.range),
     granularity: r.granularity,
     buckets: r.buckets.map((b) => ({
-      bucketStart: b.bucketStart instanceof Date
-        ? b.bucketStart.toISOString()
-        : String(b.bucketStart),
+      ...serializeBucketStart(b.bucketStart, r.range.timeZone),
       flightCount: b.flightCount,
       flightHours: b.flightHours,
     })),
@@ -108,6 +124,8 @@ function serializeUtilizationTrend(r: UtilizationTrendResult): SerializedUtiliza
 
 export interface SerializedReservationsVsFlightsBucket {
   bucketStart: string;
+  /** The day the bucket covers ("YYYY-MM-DD", the viewer's): label + CSV by this. */
+  day: string;
   reservationsCreated: number;
   flightsClosed: number;
 }
@@ -127,9 +145,7 @@ function serializeReservationsVsFlightsTrend(
     range: serializeRange(r.range),
     granularity: r.granularity,
     buckets: r.buckets.map((b) => ({
-      bucketStart: b.bucketStart instanceof Date
-        ? b.bucketStart.toISOString()
-        : String(b.bucketStart),
+      ...serializeBucketStart(b.bucketStart, r.range.timeZone),
       reservationsCreated: b.reservationsCreated,
       flightsClosed: b.flightsClosed,
     })),
@@ -335,8 +351,13 @@ export async function getAllReportsAction(input?: {
   const includeTraining = input?.includeTraining ?? true;
 
   try {
-    // Date reminders are due against the viewer's calendar day, not UTC's.
-    const today = dayInZone(new Date(), await getViewerTimeZone());
+    // The viewer's zone: date reminders are due against their calendar day,
+    // not UTC's, and every range read counts their days ("last 30 days" from
+    // their local midnight; trend buckets on their local days), so all the
+    // sections cover one window.
+    const timeZone = await getViewerTimeZone();
+    const today = dayInZone(new Date(), timeZone);
+    const rangeInput = { range, timeZone };
     const [
       utilizationTrend,
       hoursByTail,
@@ -350,16 +371,16 @@ export async function getAllReportsAction(input?: {
       cancellations,
     ] =
       await Promise.all([
-        getUtilizationTrend(session, { range }),
-        getHoursByTail(session, { range }),
-        getAircraftReport(session, { range }),
-        getReservationsVsFlightsTrend(session, { range }),
-        includeTraining ? getTrainingThroughput(session, { range }) : null,
-        getMaintenanceTrend(session, { range }),
-        getInstructorUtilization(session, { range }),
+        getUtilizationTrend(session, rangeInput),
+        getHoursByTail(session, rangeInput),
+        getAircraftReport(session, rangeInput),
+        getReservationsVsFlightsTrend(session, rangeInput),
+        includeTraining ? getTrainingThroughput(session, rangeInput) : null,
+        getMaintenanceTrend(session, rangeInput),
+        getInstructorUtilization(session, rangeInput),
         getSquawksReport(session, {}),
         getMaintenanceRemindersReport(session, { today }),
-        getCancellationsReport(session, { range }),
+        getCancellationsReport(session, rangeInput),
       ]);
 
     return {

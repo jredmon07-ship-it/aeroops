@@ -28,9 +28,15 @@
  * AUTHZ: requireCapability('reporting:access') FIRST.
  * READ-ONLY: zero writes, zero audit.
  *
+ * [VERIFY-R1-TZ] No timeZone: rolling UTC window [now − Nd, now)
+ *   (byte-identical). With the viewer's timeZone: that zone's last N calendar
+ *   days from local midnight (reporting/zoned-window.ts); an unknown zone
+ *   reads as UTC.
+ *
  * TWO CALLING FORMS:
- *   getAircraftReport(session, input)          — app code.
- *   getAircraftReportWithDb(db, session, input) — tests.
+ *   getAircraftReport(session, input)                — app code.
+ *   getAircraftReportWithDb(db, session, input, opts) — tests
+ *     (`opts.now` pins the clock, epoch ms).
  */
 
 import { z } from 'zod';
@@ -43,14 +49,25 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { resolveReportRange } from './internal.js';
 import type { ReportRangeKey } from './internal.js';
+import { zonedReportWindow } from './zoned-window.js';
 import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
 const ReportRangeKeySchema = z.enum(['7d', '30d', '90d', '180d', '365d']).default('30d');
-const InputSchema = z.object({ range: ReportRangeKeySchema });
+const InputSchema = z.object({
+  range: ReportRangeKeySchema,
+  timeZone: z.string().optional(),
+});
 
-export type GetAircraftReportInput = { range?: ReportRangeKey | string };
+export type GetAircraftReportInput = {
+  range?: ReportRangeKey | string;
+  /**
+   * The viewer's IANA zone. Given: that zone's last N calendar days, from
+   * local midnight; an unknown zone reads as UTC. Omitted: rolling UTC window.
+   */
+  timeZone?: string;
+};
 
 // ─── Output type ──────────────────────────────────────────────────────────────
 
@@ -72,18 +89,19 @@ async function _impl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetAircraftReportInput,
+  opts?: { now?: number },
 ): Promise<AircraftReportRow[]> {
   // 1. AUTHZ FIRST.
   requireCapability(session, 'reporting:access');
 
-  // 2. Validate range.
+  // 2. Validate range (+ optional zone).
   const parsed = InputSchema.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(`Invalid range: ${parsed.error.message}`);
   const rangeKey = parsed.data.range as ReportRangeKey;
 
-  // 3. Resolve rolling UTC window.
-  const now = new Date();
-  const { from, to } = resolveReportRange(rangeKey, now);
+  // 3. Resolve the window: rolling UTC, or the zone's last N calendar days.
+  const now = new Date(opts?.now ?? Date.now());
+  const { from, to } = zonedReportWindow(rangeKey, now, parsed.data.timeZone, resolveReportRange);
   // ISO + ::timestamptz: postgres-js (production) cannot serialize a JS Date
   // passed to db.execute(); PGlite can. Always bind ISO strings with a cast.
 
@@ -154,10 +172,12 @@ export async function getAircraftReport(
 
 // ─── Test/injectable form ─────────────────────────────────────────────────────
 
+/** Test form; `opts.now` pins the clock (epoch ms) for deterministic windows. */
 export async function getAircraftReportWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetAircraftReportInput = {},
+  opts?: { now?: number },
 ): Promise<AircraftReportRow[]> {
-  return _impl(db, session, rawInput);
+  return _impl(db, session, rawInput, opts);
 }

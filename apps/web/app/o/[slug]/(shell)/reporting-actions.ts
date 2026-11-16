@@ -10,6 +10,11 @@
  * Dates are serialized to ISO strings at the action boundary so RSC → client
  * components receive plain JSON (Dates are NOT JSON-serializable).
  *
+ * [VERIFY-R1-TZ] The range-scoped reads (KPIs, utilization table, activity
+ * chart) get the viewer's zone (getViewerTimeZone): "last N days" is that
+ * zone's N calendar days from local midnight, and the chart's buckets are its
+ * local days, each labelled by the `day` it covers (lib/report-buckets.ts).
+ *
  * BOUNDARY: imports ONLY from @aeroops/api — NEVER @aeroops/db.
  * RLS + org_id scoping are enforced inside the API functions.
  */
@@ -19,6 +24,7 @@ import { actionAuth as auth } from '@/lib/action-auth';
 import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 import { dayInZone, dayWindow } from '@/lib/schedule-day';
 import { zoneAbbreviation } from '@/lib/zoned-format';
+import { bucketDay } from '@/lib/report-buckets';
 import {
   getOrgDashboardMetrics,
   getAircraftUtilization,
@@ -58,7 +64,8 @@ function logServerError(action: string, err: unknown): void {
 
 /** OrgDashboardMetrics with Date objects replaced by ISO strings. */
 export interface SerializedOrgDashboardMetrics {
-  range: { key: string; from: string; to: string };
+  /** timeZone: the zone the window was cut in (present when one was passed). */
+  range: { key: string; from: string; to: string; timeZone?: string };
   totalFlights: number;
   totalFlightHours: number;
   reservationsInRange: number;
@@ -78,6 +85,7 @@ function serializeMetrics(m: OrgDashboardMetrics): SerializedOrgDashboardMetrics
       key: m.range.key,
       from: m.range.from instanceof Date ? m.range.from.toISOString() : String(m.range.from),
       to: m.range.to instanceof Date ? m.range.to.toISOString() : String(m.range.to),
+      ...(m.range.timeZone !== undefined ? { timeZone: m.range.timeZone } : {}),
     },
     totalFlights: m.totalFlights,
     totalFlightHours: m.totalFlightHours,
@@ -151,7 +159,9 @@ export async function getDashboardMetricsAction(input?: {
 }): Promise<GetDashboardMetricsActionResult> {
   const session = await auth();
   try {
-    const metrics = await getOrgDashboardMetrics(session, { range: input?.range ?? '30d' });
+    // "Last N days" from the viewer's local midnight — the activity chart's window.
+    const timeZone = await getViewerTimeZone();
+    const metrics = await getOrgDashboardMetrics(session, { range: input?.range ?? '30d', timeZone });
     return { ok: true, metrics: serializeMetrics(metrics) };
   } catch (err) {
     const authErr = mapAuthError(err);
@@ -169,6 +179,11 @@ export async function getDashboardMetricsAction(input?: {
 /** One bucket of the reservations-vs-flights trend, Dates → ISO strings. */
 export interface SerializedTrendBucket {
   bucketStart: string;
+  /**
+   * The calendar day the bucket covers ("YYYY-MM-DD"), in the zone the read
+   * bucketed in (the viewer's): label by this, not by bucketStart's UTC date.
+   */
+  day: string;
   reservationsCreated: number;
   flightsClosed: number;
 }
@@ -183,11 +198,16 @@ export interface SerializedReservationsTrend {
 function serializeTrend(t: ReservationsVsFlightsTrendResult): SerializedReservationsTrend {
   return {
     granularity: t.granularity,
-    buckets: t.buckets.map((b) => ({
-      bucketStart: b.bucketStart instanceof Date ? b.bucketStart.toISOString() : String(b.bucketStart),
-      reservationsCreated: b.reservationsCreated,
-      flightsClosed: b.flightsClosed,
-    })),
+    buckets: t.buckets.map((b) => {
+      const bucketStart =
+        b.bucketStart instanceof Date ? b.bucketStart.toISOString() : String(b.bucketStart);
+      return {
+        bucketStart,
+        day: bucketDay(bucketStart, t.range.timeZone),
+        reservationsCreated: b.reservationsCreated,
+        flightsClosed: b.flightsClosed,
+      };
+    }),
     totalReservationsCreated: t.totalReservationsCreated,
     totalFlightsClosed: t.totalFlightsClosed,
   };
@@ -204,7 +224,12 @@ export async function getReservationsTrendAction(input?: {
 }): Promise<GetReservationsTrendActionResult> {
   const session = await auth();
   try {
-    const trend = await getReservationsVsFlightsTrend(session, { range: input?.range ?? '30d' });
+    // Buckets are the viewer's local days: a 20:00 CST flight counts on its own day.
+    const timeZone = await getViewerTimeZone();
+    const trend = await getReservationsVsFlightsTrend(session, {
+      range: input?.range ?? '30d',
+      timeZone,
+    });
     return { ok: true, trend: serializeTrend(trend) };
   } catch (err) {
     const authErr = mapAuthError(err);
@@ -230,7 +255,9 @@ export async function getAircraftUtilizationAction(input?: {
 }): Promise<GetAircraftUtilizationActionResult> {
   const session = await auth();
   try {
-    const rows = await getAircraftUtilization(session, { range: input?.range ?? '30d' });
+    // The same viewer's-zone window as the KPIs and the activity chart.
+    const timeZone = await getViewerTimeZone();
+    const rows = await getAircraftUtilization(session, { range: input?.range ?? '30d', timeZone });
     return { ok: true, rows };
   } catch (err) {
     const authErr = mapAuthError(err);
@@ -265,7 +292,7 @@ export async function getTodaysFlightsAction(): Promise<GetTodaysFlightsActionRe
   try {
     // "Today" is the viewer's calendar day, from its first instant to the next
     // day's (DST days are 23 or 25 hours), the same window the schedule and
-    // the board query. Rolling metrics are tz-neutral.
+    // the board query. The range metrics count the viewer's days too.
     const now = new Date();
     const timeZone = await getViewerTimeZone();
     const today = dayInZone(now, timeZone);

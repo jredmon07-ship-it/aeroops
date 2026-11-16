@@ -10,10 +10,11 @@ import { dayInZone } from './schedule-day';
 /**
  * ISO timestamp string → "YYYY-MM-DD".
  *
- * Without `timeZone`: the UTC calendar date — right for report buckets, which
- * start at UTC midnight ([VERIFY-R1-TZ]). With the viewer's zone: the day the
- * event happened for them, the same date the page shows beside it (a squawk
- * reported at 19:00 CST on Nov 15 is the 15th, though its UTC date is the 16th).
+ * Without `timeZone`: the UTC calendar date. With the viewer's zone: the day
+ * the event happened for them, the same date the page shows beside it (a
+ * squawk reported at 19:00 CST on Nov 15 is the 15th, though its UTC date is
+ * the 16th). Trend-bucket rows export the bucket's own `day` instead (already
+ * the viewer's day, lib/report-buckets.ts; [VERIFY-R1-TZ]).
  */
 export function csvDate(iso: string, timeZone?: string): string {
   if (timeZone === undefined) return iso.slice(0, 10);

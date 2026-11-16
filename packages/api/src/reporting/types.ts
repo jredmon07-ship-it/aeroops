@@ -7,7 +7,10 @@
  * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT airworthiness.
  * [VERIFY-T1-B] Training counts = operator state; NOT Part-141 or FAA determination.
  * [VERIFY-M1-A] Maintenance counts = operator data; NOT Part-43/airworthiness/RTS.
- * [VERIFY-R1-TZ] All bucketing UTC; display layer handles localisation.
+ * [VERIFY-R1-TZ] Without a timeZone input: rolling UTC window, UTC buckets.
+ *   With the viewer's timeZone: the zone's last N calendar days, bucketed by
+ *   its local days/weeks (reporting/zoned-window.ts); range.timeZone says
+ *   which zone was used (UTC when the one passed was unknown).
  */
 
 import type { ReportRangeKey, BucketGranularity } from './internal.js';
@@ -18,22 +21,34 @@ export type { ReportRangeKey, BucketGranularity };
 
 export interface ReportRange {
   key: ReportRangeKey;
-  /** Inclusive lower bound (UTC). */
+  /**
+   * Inclusive lower bound. Without a timeZone input: now − N days; with one:
+   * local midnight starting the zone's N calendar days ending today.
+   */
   from: Date;
-  /** Exclusive upper bound (UTC), equals the request time. */
+  /** Exclusive upper bound, equals the request time. */
   to: Date;
+  /**
+   * The IANA zone the window and buckets are in. Present only when the caller
+   * passed timeZone ('UTC' if that zone was unknown); absent means the
+   * original rolling UTC window.
+   */
+  timeZone?: string;
 }
 
 // ─── Utilization trend ────────────────────────────────────────────────────────
 
 /**
- * UtilizationTrendBucket — one row per UTC bucket.
+ * UtilizationTrendBucket — one row per bucket (UTC, or the range's timeZone).
  *
  * [VERIFY-A] flightHours = Hobbs-derived operational utilization.
  * NOT airworthiness hours.
  */
 export interface UtilizationTrendBucket {
-  /** UTC-aligned bucket start (midnight for day; Monday 00:00 for week). */
+  /**
+   * Bucket start: UTC midnight / UTC Monday 00:00 by default; with a timeZone,
+   * the first instant of the local day / local Monday.
+   */
   bucketStart: Date;
   /** COUNT of closed dispatch tickets with closed_at in this bucket. */
   flightCount: number;
@@ -75,12 +90,13 @@ export interface UtilizationTrendResult {
 // ─── Reservations vs Flights trend ───────────────────────────────────────────
 
 /**
- * ReservationsVsFlightsBucket — one row per UTC bucket, two series.
+ * ReservationsVsFlightsBucket — one row per bucket (UTC, or the range's
+ * timeZone), two series.
  *
  * reservationsCreated INCLUDES cancelled reservations (creation-activity metric).
  */
 export interface ReservationsVsFlightsBucket {
-  /** UTC-aligned bucket start. */
+  /** Bucket start: UTC-aligned by default; local midnight with a timeZone. */
   bucketStart: Date;
   /**
    * COUNT of reservation rows with created_at in this bucket (ALL statuses,

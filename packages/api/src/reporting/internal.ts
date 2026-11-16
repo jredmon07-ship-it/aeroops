@@ -18,7 +18,10 @@
  *   - safeAvg(num, den): number — 0 when den=0, 1dp
  *
  * All helpers are PURE (no I/O, no imports from external modules).
- * [VERIFY-R1-TZ] All bucketing is UTC — not localised to any tz.
+ * [VERIFY-R1-TZ] These helpers are the UTC grain: what a read uses when the
+ *   caller passes no timeZone (unchanged). The viewer's-zone windows and
+ *   buckets (local midnight, local days / Mondays / months, DST-safe) live in
+ *   reporting/zoned-window.ts.
  */
 
 // ─── Frozen range key (existing callers — byte-identical) ────────────────────
@@ -82,7 +85,8 @@ export function resolveRange(
  *   from = now.getTime() - N * 86_400_000 ms
  *   to   = now.getTime()   (exclusive)
  *
- * [VERIFY-R1-TZ]: UTC window; display layer is responsible for localisation.
+ * [VERIFY-R1-TZ]: UTC window — the no-timeZone default. With the viewer's
+ * zone a read uses resolveZonedReportRange (reporting/zoned-window.ts).
  *
  * @param key - ReportRangeKey ('7d'|'30d'|'90d'|'180d'|'365d')
  * @param now - Injected current time (deterministic unit tests).
@@ -132,7 +136,8 @@ export function chooseGranularity(key: ReportRangeKey): BucketGranularity {
  *             Sunday (0) is treated as day +6 past the prior Monday.
  *
  * ALL arithmetic is in UTC — wall-clock DST transitions cannot affect it.
- * [VERIFY-R1-TZ]: UTC-stable; no localisation.
+ * [VERIFY-R1-TZ]: UTC-stable; the no-timeZone default. Zoned buckets:
+ * enumerateZonedBuckets (reporting/zoned-window.ts).
  *
  * @param d - Any Date (may be mid-bucket).
  * @param g - 'day' | 'week'

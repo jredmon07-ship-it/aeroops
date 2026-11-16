@@ -29,9 +29,11 @@
  * [VERIFY-A]   Hours = Hobbs-derived operational utilization; NOT airworthiness.
  * [VERIFY-T1-B] Training counts = operator state; NOT Part-141 or FAA determination.
  * [VERIFY-M1-A] Maintenance counts = operator data; NOT Part-43/airworthiness/RTS.
- * [VERIFY-R1-TZ] Trend buckets are UTC days; event dates (squawk reported,
- *   reservation cancelled / start) read in the viewer's zone, on the page and
- *   in the CSVs.
+ * [VERIFY-R1-TZ] Everything reads in the viewer's zone: "last N days" is their
+ *   N calendar days from local midnight (every section, one window), trend
+ *   buckets are their local days / Mondays (labelled and exported by the
+ *   bucket's `day`), and event dates (squawk reported, reservation cancelled /
+ *   start) are their calendar days, on the page and in the CSVs.
  */
 
 import * as React from 'react';
@@ -325,8 +327,9 @@ interface ReportsContentProps {
   showTraining: boolean;
   /**
    * The viewer's zone (getViewerTimeZone): event dates (reported, cancelled,
-   * reservation start) read as the viewer's calendar day. Trend buckets stay
-   * UTC days. [VERIFY-R1-TZ]
+   * reservation start) read as the viewer's calendar day. Trend buckets come
+   * bucketed in the same zone by getAllReportsAction, each with its `day`.
+   * [VERIFY-R1-TZ]
    */
   timeZone: string;
 }
@@ -407,7 +410,7 @@ async function ReportsContent({ slug, range, showTraining, timeZone }: ReportsCo
   const utilizationCsv: string[][] = [
     ['Period', 'Flights', 'Hours'],
     ...utilizationTrend.buckets.map((b) => [
-      csvDate(b.bucketStart),
+      b.day,
       String(b.flightCount),
       b.flightHours.toFixed(1),
     ]),
@@ -429,7 +432,7 @@ async function ReportsContent({ slug, range, showTraining, timeZone }: ReportsCo
   const reservationsCsv: string[][] = [
     ['Period', 'Reservations created', 'Flights closed'],
     ...reservationsVsFlights.buckets.map((b) => [
-      csvDate(b.bucketStart),
+      b.day,
       String(b.reservationsCreated),
       String(b.flightsClosed),
     ]),
@@ -566,7 +569,7 @@ async function ReportsContent({ slug, range, showTraining, timeZone }: ReportsCo
             {utilizationTrend.buckets.length > 0 && (
               <BarTrend
                 className="mb-5"
-                categories={utilizationTrend.buckets.map((b) => formatBucketLabel(b.bucketStart, gran))}
+                categories={utilizationTrend.buckets.map((b) => formatBucketLabel(b.day, gran))}
                 series={[
                   {
                     label: 'Flight hours',
@@ -587,7 +590,7 @@ async function ReportsContent({ slug, range, showTraining, timeZone }: ReportsCo
               <div className="space-y-2">
                 {utilizationTrend.buckets.map((bucket, i) => {
                   const barWidth = clampReportBarWidth(bucket.flightHours, maxBucketHours);
-                  const label = formatBucketLabel(bucket.bucketStart, gran);
+                  const label = formatBucketLabel(bucket.day, gran);
                   return (
                     <div key={i} className="flex items-center gap-3 text-xs">
                       <span className="nums text-slate-500 dark:text-slate-400 w-14 shrink-0 tabular-nums">
@@ -909,7 +912,7 @@ async function ReportsContent({ slug, range, showTraining, timeZone }: ReportsCo
               <BarTrend
                 className="mb-5"
                 showLegend={false}
-                categories={reservationsVsFlights.buckets.map((b) => formatBucketLabel(b.bucketStart, gran))}
+                categories={reservationsVsFlights.buckets.map((b) => formatBucketLabel(b.day, gran))}
                 series={[
                   {
                     label: 'Reservations',
@@ -935,7 +938,7 @@ async function ReportsContent({ slug, range, showTraining, timeZone }: ReportsCo
                 {reservationsVsFlights.buckets.map((bucket, i) => {
                   const resvBar = clampReportBarWidth(bucket.reservationsCreated, maxResCreated);
                   const flightBar = clampReportBarWidth(bucket.flightsClosed, maxResCreated);
-                  const label = formatBucketLabel(bucket.bucketStart, gran);
+                  const label = formatBucketLabel(bucket.day, gran);
                   return (
                     <div key={i} className="flex items-start gap-3 text-xs">
                       <span className="nums text-slate-500 dark:text-slate-400 w-14 shrink-0 tabular-nums pt-0.5">

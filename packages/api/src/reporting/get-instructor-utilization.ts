@@ -7,7 +7,9 @@
  * sit on the same Operational Reports page as get-hours-by-tail.
  *
  * Returns one row per member whose membership role is 'cfi'. For each, over the
- * rolling UTC window [now - Nd, now):
+ * rolling UTC window [now - Nd, now) — or, with the viewer's timeZone, that
+ * zone's last N calendar days from local midnight ([VERIFY-R1-TZ],
+ * reporting/zoned-window.ts; an unknown zone reads as UTC):
  *   - flightCount / flightHours — CLOSED dispatch tickets where the CFI is the
  *     recorded pilot (dispatch_ticket.pilot_user_id), bucketed by closed_at.
  *   - lessonsGiven — 'recorded' lesson_record rows where the CFI is the
@@ -28,8 +30,9 @@
  *   operator DATA-ENTRY counts, NOT a Part-141/61 or FAA determination.
  *
  * TWO CALLING FORMS:
- *   getInstructorUtilization(session, opts)          — app code.
- *   getInstructorUtilizationWithDb(db, session, opts) — tests.
+ *   getInstructorUtilization(session, input)                — app code.
+ *   getInstructorUtilizationWithDb(db, session, input, opts) — tests
+ *     (`opts.now` pins the clock, epoch ms).
  */
 
 import { z } from 'zod';
@@ -42,6 +45,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { resolveReportRange } from './internal.js';
 import type { ReportRangeKey } from './internal.js';
+import { zonedReportWindow } from './zoned-window.js';
 import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
@@ -50,10 +54,16 @@ const ReportRangeKeySchema = z.enum(['7d', '30d', '90d', '180d', '365d']).defaul
 
 const GetInstructorUtilizationInputSchema = z.object({
   range: ReportRangeKeySchema,
+  timeZone: z.string().optional(),
 });
 
 export type GetInstructorUtilizationInput = {
   range?: ReportRangeKey | string;
+  /**
+   * The viewer's IANA zone. Given: that zone's last N calendar days, from
+   * local midnight; an unknown zone reads as UTC. Omitted: rolling UTC window.
+   */
+  timeZone?: string;
 };
 
 // ─── Output types ─────────────────────────────────────────────────────────────
@@ -77,6 +87,7 @@ async function _getInstructorUtilizationImpl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetInstructorUtilizationInput,
+  opts?: { now?: number },
 ): Promise<InstructorUtilizationRow[]> {
   // 1. AUTHZ FIRST.
   requireCapability(session, 'reporting:access');
@@ -88,9 +99,9 @@ async function _getInstructorUtilizationImpl(
   }
   const rangeKey = parsed.data.range as ReportRangeKey;
 
-  // 3. Resolve rolling UTC window.
-  const now = new Date();
-  const { from, to } = resolveReportRange(rangeKey, now);
+  // 3. Resolve the window: rolling UTC, or the zone's last N calendar days.
+  const now = new Date(opts?.now ?? Date.now());
+  const { from, to } = zonedReportWindow(rangeKey, now, parsed.data.timeZone, resolveReportRange);
   // In raw sql`` templates, from/to are bound as ISO strings with an explicit
   // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
   // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
@@ -170,7 +181,8 @@ async function _getInstructorUtilizationImpl(
  * Uses the memoized production DB client (getDb()). apps/web never passes a db.
  *
  * @param session  - AppSession from auth(); throws UnauthenticatedError if null.
- * @param rawInput - { range?: '7d'|'30d'|'90d'|'180d'|'365d' } — defaults to '30d'.
+ * @param rawInput - { range?: '7d'|'30d'|'90d'|'180d'|'365d', timeZone?: IANA zone }
+ *                   — range defaults to '30d'; timeZone cuts the window in that zone.
  * @returns InstructorUtilizationRow[] ordered hours DESC, lessons DESC, name ASC.
  * @throws UnauthenticatedError, ForbiddenError, ValidationError
  */
@@ -187,12 +199,14 @@ export async function getInstructorUtilization(
 /**
  * getInstructorUtilizationWithDb — same contract but accepts an explicit db.
  *
- * Tests MUST use this form so they never trigger getDb().
+ * Tests MUST use this form so they never trigger getDb(). `opts.now` pins the
+ * clock (epoch ms) for deterministic windows.
  */
 export async function getInstructorUtilizationWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetInstructorUtilizationInput = {},
+  opts?: { now?: number },
 ): Promise<InstructorUtilizationRow[]> {
-  return _getInstructorUtilizationImpl(db, session, rawInput);
+  return _getInstructorUtilizationImpl(db, session, rawInput, opts);
 }

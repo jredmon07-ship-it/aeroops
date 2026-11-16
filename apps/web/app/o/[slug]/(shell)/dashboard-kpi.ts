@@ -16,8 +16,9 @@ export type DashboardKpi = 'flights' | 'flightHours' | 'reservations';
  *   some — names what the number counts.
  *
  * Reservations counts non-cancelled reservations overlapping the window, and
- * the window ends now ([now − N days, now)), so it never includes upcoming
- * bookings: "excl. cancelled", not "incl. upcoming".
+ * the window ends now (the viewer's last N calendar days, from local midnight
+ * up to now), so it never includes upcoming bookings: "excl. cancelled", not
+ * "incl. upcoming".
  */
 export const KPI_SUB_LABELS: Record<DashboardKpi, { none: string; some: string }> = {
   flights: { none: 'no flights in period', some: 'completed dispatches' },

@@ -1,7 +1,7 @@
 /**
  * reporting/get-reservations-vs-flights-trend.ts — Reservations vs Flights trend (R1.1).
  *
- * Two series per UTC bucket:
+ * Two series per bucket (UTC by default; the viewer's zone with `timeZone`):
  *   reservationsCreated — reservation.created_at bucketed (INCLUDES cancelled —
  *                          this is a creation-activity metric, not a confirmed count).
  *   flightsClosed       — dispatch_ticket WHERE status='closed' bucketed on closed_at.
@@ -16,7 +16,16 @@
  *                AND closed_at >= from AND closed_at < to.
  *     Voided/open excluded.
  *     Anchor: closed_at (half-open).
- *   Zero-fill: enumerateBuckets() in memory; both series share the same bucket list.
+ *   Buckets: the zero-fill list is built in memory (enumerateBuckets, or
+ *     enumerateZonedBuckets with a timeZone); both series share it. SQL puts
+ *     each row in its bucket with width_bucket over those bucket starts, so a
+ *     row counts on the day its own instant falls on in the window's zone.
+ *
+ * [VERIFY-R1-TZ] No timeZone: rolling UTC window [now − Nd, now), UTC days /
+ *   UTC Monday weeks (the original output, byte-identical). With the viewer's
+ *   timeZone: that zone's last N calendar days, local days / local Mondays,
+ *   DST days 23 or 25 hours long; an unknown zone reads as UTC
+ *   (reporting/zoned-window.ts).
  *
  * OPERATIONAL LABEL: "Reservations created includes cancelled — creation activity, not
  * confirmed bookings." (comply per spec §3 label requirement.)
@@ -26,8 +35,9 @@
  * READ-ONLY: zero writes, zero audit.
  *
  * TWO CALLING FORMS:
- *   getReservationsVsFlightsTrend(session, input)          — app code.
- *   getReservationsVsFlightsTrendWithDb(db, session, input) — tests.
+ *   getReservationsVsFlightsTrend(session, input)                — app code.
+ *   getReservationsVsFlightsTrendWithDb(db, session, input, opts) — tests
+ *     (`opts.now` pins the clock, epoch ms).
  */
 
 import { z } from 'zod';
@@ -38,21 +48,33 @@ import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
-import {
-  resolveReportRange,
-  chooseGranularity,
-  bucketStartUtc,
-  enumerateBuckets,
-} from './internal.js';
+import { resolveReportRange, chooseGranularity } from './internal.js';
 import type { ReportRangeKey, BucketGranularity } from './internal.js';
+import {
+  zonedReportWindow,
+  reportRangeHeader,
+  reportBucketStarts,
+  timestamptzArrayLiteral,
+} from './zoned-window.js';
 import type { ReservationsVsFlightsTrendResult } from './types.js';
 import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
 const ReportRangeKeySchema = z.enum(['7d', '30d', '90d', '180d', '365d']).default('30d');
-const InputSchema = z.object({ range: ReportRangeKeySchema });
-export type GetReservationsVsFlightsTrendInput = { range?: ReportRangeKey | string };
+const InputSchema = z.object({
+  range: ReportRangeKeySchema,
+  timeZone: z.string().optional(),
+});
+export type GetReservationsVsFlightsTrendInput = {
+  range?: ReportRangeKey | string;
+  /**
+   * The viewer's IANA zone (e.g. 'America/Chicago'). Given: the window is that
+   * zone's last N calendar days and the buckets are its local days/weeks; an
+   * unknown zone reads as UTC. Omitted: the rolling UTC window and UTC buckets.
+   */
+  timeZone?: string;
+};
 
 // ─── Shared implementation ────────────────────────────────────────────────────
 
@@ -60,31 +82,36 @@ async function _impl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetReservationsVsFlightsTrendInput,
+  opts?: { now?: number },
 ): Promise<ReservationsVsFlightsTrendResult> {
   // 1. AUTHZ FIRST.
   requireCapability(session, 'reporting:access');
 
-  // 2. Validate range.
+  // 2. Validate range (+ optional zone).
   const parsed = InputSchema.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(`Invalid range: ${parsed.error.message}`);
   const rangeKey = parsed.data.range as ReportRangeKey;
 
-  // 3. Resolve window + granularity.
-  const now = new Date();
-  const { from, to } = resolveReportRange(rangeKey, now);
+  // 3. Resolve window + granularity + the zero-fill bucket starts.
+  const now = new Date(opts?.now ?? Date.now());
+  const reportWindow = zonedReportWindow(rangeKey, now, parsed.data.timeZone, resolveReportRange);
+  const { from, to } = reportWindow;
   // In raw sql`` templates, from/to are bound as ISO strings with an explicit
   // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
   // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
   // while PGlite (tests + local demo) can — so tests never catch a raw Date.
+  // The bucket starts go the same way, as one timestamptz[] literal.
   const granularity: BucketGranularity = chooseGranularity(rangeKey);
-  const unit = granularity === 'day' ? 'day' : 'week';
+  const bucketStarts = reportBucketStarts(reportWindow, granularity);
+  const thresholds = timestamptzArrayLiteral(bucketStarts);
 
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     // Query 1: reservations created in range (ALL statuses, incl. cancelled).
-    // Anchor: reservation.created_at. Half-open [from, to).
+    // Anchor: reservation.created_at. Half-open [from, to). "bucket" is the
+    // 1-based index into bucketStarts (width_bucket: start[i] ≤ ts < start[i+1]).
     const resvResult = await tx.execute(sql`
       SELECT
-        date_trunc(${unit}, created_at AT TIME ZONE 'UTC') AS "bucketStart",
+        width_bucket(created_at, ${thresholds}::timestamptz[]) AS "bucket",
         COUNT(*)::int AS "reservationsCreated"
       FROM reservation
       WHERE created_at >= ${from.toISOString()}::timestamptz
@@ -94,7 +121,7 @@ async function _impl(
     `);
 
     const resvRows = extractRows<{
-      bucketStart: Date | string;
+      bucket: number | string;
       reservationsCreated: number | string;
     }>(resvResult);
 
@@ -102,7 +129,7 @@ async function _impl(
     // Anchor: dispatch_ticket.closed_at. Half-open [from, to).
     const flightResult = await tx.execute(sql`
       SELECT
-        date_trunc(${unit}, closed_at AT TIME ZONE 'UTC') AS "bucketStart",
+        width_bucket(closed_at, ${thresholds}::timestamptz[]) AS "bucket",
         COUNT(*)::int AS "flightsClosed"
       FROM dispatch_ticket
       WHERE status = 'closed'
@@ -113,45 +140,34 @@ async function _impl(
     `);
 
     const flightRows = extractRows<{
-      bucketStart: Date | string;
+      bucket: number | string;
       flightsClosed: number | string;
     }>(flightResult);
 
-    // Build lookup maps.
-    const resvMap  = new Map<string, number>();
-    const flightMap = new Map<string, number>();
-
+    // Lookup maps: bucket index (1-based) → count.
+    const resvMap   = new Map<number, number>();
+    const flightMap = new Map<number, number>();
     for (const row of resvRows) {
-      const bs = bucketStartUtc(
-        row.bucketStart instanceof Date ? row.bucketStart : new Date(row.bucketStart),
-        granularity,
-      );
-      resvMap.set(bs.toISOString(), Number(row.reservationsCreated ?? 0));
+      resvMap.set(Number(row.bucket), Number(row.reservationsCreated ?? 0));
     }
     for (const row of flightRows) {
-      const bs = bucketStartUtc(
-        row.bucketStart instanceof Date ? row.bucketStart : new Date(row.bucketStart),
-        granularity,
-      );
-      flightMap.set(bs.toISOString(), Number(row.flightsClosed ?? 0));
+      flightMap.set(Number(row.bucket), Number(row.flightsClosed ?? 0));
     }
 
     // Zero-fill + merge.
-    const allBuckets = enumerateBuckets(from, to, granularity);
     let totalReservationsCreated = 0;
     let totalFlightsClosed       = 0;
 
-    const buckets = allBuckets.map((bs) => {
-      const key                 = bs.toISOString();
-      const reservationsCreated = resvMap.get(key)   ?? 0;
-      const flightsClosed       = flightMap.get(key) ?? 0;
+    const buckets = bucketStarts.map((bs, i) => {
+      const reservationsCreated = resvMap.get(i + 1)   ?? 0;
+      const flightsClosed       = flightMap.get(i + 1) ?? 0;
       totalReservationsCreated += reservationsCreated;
       totalFlightsClosed       += flightsClosed;
       return { bucketStart: bs, reservationsCreated, flightsClosed };
     });
 
     return {
-      range:                    { key: rangeKey, from, to },
+      range:                    reportRangeHeader(rangeKey, reportWindow),
       granularity,
       buckets,
       totalReservationsCreated,
@@ -172,10 +188,12 @@ export async function getReservationsVsFlightsTrend(
 
 // ─── Test/injectable form ─────────────────────────────────────────────────────
 
+/** Test form; `opts.now` pins the clock (epoch ms) for deterministic windows. */
 export async function getReservationsVsFlightsTrendWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetReservationsVsFlightsTrendInput = {},
+  opts?: { now?: number },
 ): Promise<ReservationsVsFlightsTrendResult> {
-  return _impl(db, session, rawInput);
+  return _impl(db, session, rawInput, opts);
 }

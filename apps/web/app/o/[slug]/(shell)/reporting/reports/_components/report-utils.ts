@@ -3,8 +3,9 @@
  *
  * NO I/O, NO Next.js imports. Safe to use in RSC and tests.
  *
- * [VERIFY-R1-TZ]: bucketStart values are UTC ISO strings from the server.
- * The labels produced here show UTC dates/weeks — display-only, not localised.
+ * [VERIFY-R1-TZ]: the trend buckets arrive bucketed in the viewer's zone, each
+ * with the calendar `day` it covers ("YYYY-MM-DD", lib/report-buckets.ts).
+ * The labels here print that day as-is — the zone was applied server-side.
  */
 
 // ─── Report range key ──────────────────────────────────────────────────────────
@@ -49,22 +50,25 @@ export function reportRangeLabelFull(key: ReportRangeKey): string {
 // ─── Bucket label ──────────────────────────────────────────────────────────────
 
 /**
- * formatBucketLabel — converts a UTC ISO bucket-start string to a short label.
+ * formatBucketLabel — a bucket's calendar day as a short label.
  *
  * For 'day' granularity: "MMM D"  (e.g. "Jun 5")
  * For 'week' granularity: "MMM D–" (e.g. "Jun 2–") indicating week start.
  *
- * Always uses UTC values from the ISO string (no localisation).
+ * `bucketDay` is the bucket's `day` ("YYYY-MM-DD", already the viewer's
+ * calendar day); an ISO instant also works and reads as its UTC date. The
+ * date is printed as given — never shifted by the server's zone.
  * Returns '—' on parse failure (never throws).
  *
- * [VERIFY-R1-TZ]: UTC-only; consistent with server bucketing.
+ * [VERIFY-R1-TZ]: the zone is applied where the bucket's day is computed.
  */
 export function formatBucketLabel(
-  bucketStartIso: string,
+  bucketDay: string,
   granularity: string,
 ): string {
   try {
-    const d = new Date(bucketStartIso);
+    // A date-only "YYYY-MM-DD" parses as UTC midnight, so getUTC* is that day.
+    const d = new Date(bucketDay);
     if (isNaN(d.getTime())) return '—';
 
     const MONTHS = [

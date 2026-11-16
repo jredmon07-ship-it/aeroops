@@ -60,4 +60,25 @@ Every number OPERATIONAL operator data — NO money/billing, NO airworthiness/Pa
 NO computed FAA determination. Hours footnote verbatim (Slice-7 copy): "Utilization hours derived from recorded Hobbs at
 check-in. Operational figure only — not a billing or airworthiness statement." Operator-count captions on training +
 maintenance. [VERIFY] carry-forward (no new answer needed before build): [VERIFY-A] hours=operational; [VERIFY-T1-B]
-enrollment/lesson counts=operator state; [VERIFY-M1-A] WO/squawk/grounded=operator data; [VERIFY-R1-TZ] UTC bucketing.
+enrollment/lesson counts=operator state; [VERIFY-M1-A] WO/squawk/grounded=operator data; [VERIFY-R1-TZ] UTC bucketing
+(superseded for the web by the addendum below).
+
+## Addendum R1-TZ — the viewer's days (supersedes decision (5) for the dashboard and Reports)
+The hosted demo runs on UTC and its viewers are in America/Chicago, so the UTC grain put a 20:00 CST flight on the next
+day's bar and started "last 30 days" at a UTC midnight. Every range-based reporting read (the 8 above that take a
+`range`, plus Slice 7's `getOrgDashboardMetrics` / `getAircraftUtilization`) takes an optional `timeZone` (additive):
+- **Omitted:** the original rolling UTC window `[now − Nd, now)` and UTC day / UTC-Monday buckets, byte-identical; no
+  `range.timeZone` key. Existing callers and tests are unchanged.
+- **Given:** validated with `isValidIanaTz` (an unknown zone reads as UTC). "Last N days" = the zone's N calendar days
+  ending on the day of the window's last instant: `[local midnight of (lastDay − (N−1)), now)`, so a 30-day day-grain
+  trend always has exactly 30 buckets. Buckets are local days / ISO weeks starting local Monday (month supported in the
+  helper, unused by any range key); each starts at its day's first instant, so DST days are 23 or 25 hours. The zone is
+  echoed as `range.timeZone`.
+- **SQL:** rows are bucketed with `width_bucket(ts, $starts::timestamptz[])` over the bucket starts computed in
+  `reporting/zoned-window.ts`, not `date_trunc(… AT TIME ZONE tz)`: Postgres's tzdata can disagree with Node's ICU
+  (America/Vancouver after 2026-11-01, measured PGlite 0.5.2 vs Node 24), resolves an ambiguous local midnight to the
+  later instant (America/Havana, 2026-11-01), and reads `'+05'` as POSIX UTC−5. One clock decides every row's day.
+- **Web:** the dashboard and Reports actions pass `getViewerTimeZone()` to every range read (one window per page), and
+  each serialized trend bucket carries the local `day` it covers; labels and CSV "Period" cells print that day.
+- Tests: `packages/api/src/__tests__/reporting-time-zone.test.ts` (pure + PGlite, pinned clock) and the web action /
+  label tests.

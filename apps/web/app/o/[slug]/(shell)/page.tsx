@@ -26,8 +26,10 @@
  *
  * BOUNDARY: imports ONLY from '@aeroops/api'. Never '@aeroops/db'.
  * [VERIFY-7-TZ]: "today's flights" is the viewer's calendar day (aeroops-tz
- *   cookie, lib/viewer-time-zone.ts), labelled with the zone's short name;
- *   the activity chart's buckets are still UTC days.
+ *   cookie, lib/viewer-time-zone.ts), labelled with the zone's short name.
+ *   [VERIFY-R1-TZ]: the KPI row, utilization table and activity chart cover
+ *   the viewer's last N calendar days from local midnight; the chart's
+ *   buckets are their local days, labelled by the day each covers.
  * [VERIFY-A]: Hours shown are OPERATIONAL utilization (Hobbs-derived). NOT billable.
  */
 
@@ -63,21 +65,12 @@ import {
 import { getMaintenanceDueSummaryAction } from './maintenance/due-actions';
 import { kpiSubLabel } from './dashboard-kpi';
 import { squawkSeverityChip } from './squawk-severity';
+import { formatBucketDayShort } from '@/lib/report-buckets';
 
 // ─── Local alias ─────────────────────────────────────────────────────────────
 
 // rangeLabelFull is imported from @/lib/dashboard-utils — aliased for brevity.
 const rangeLabel = rangeLabelFull;
-
-/**
- * Short UTC axis label for a trend bucket, e.g. "7/3". [VERIFY-7-TZ]: bucket
- * starts are UTC-aligned server-side; we render them UTC-consistently.
- */
-function fmtBucketLabel(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
-}
 
 // ─── Severity chip (squawk severity) ─────────────────────────────────────────
 
@@ -583,7 +576,7 @@ async function DashboardContent({ slug, range, enabledModules }: DashboardConten
           </p>
           <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs p-5">
             <BarTrend
-              categories={trend.buckets.map((b) => fmtBucketLabel(b.bucketStart))}
+              categories={trend.buckets.map((b) => formatBucketDayShort(b.day))}
               series={[
                 {
                   label: 'Reservations',

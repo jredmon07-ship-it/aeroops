@@ -16,7 +16,9 @@
   utilization with the 3a `[VERIFY-A]` footnote.
 - **E5/[VERIFY-7-TZ] — Range = rolling `[now-Nd, now)` in UTC** (tz-neutral); the "today's flights"
   at-a-glance list is tz-sensitive → reuse the board's existing "today" tz handling, UTC-day
-  fallback with an explicit label is acceptable for the demo.
+  fallback with an explicit label is acceptable for the demo. *Superseded for the web by
+  slice-r1-reports.md § Addendum R1-TZ: the dashboard passes the viewer's zone, so "last N days"
+  is their N calendar days from local midnight (no zone → this rolling UTC window, unchanged).*
 - **NO schema change, NO migration 0009, NO money** (no rate/price/balance/dollar anywhere).
 
 Sub-slices: **7.1 backend → 7.2 web**.

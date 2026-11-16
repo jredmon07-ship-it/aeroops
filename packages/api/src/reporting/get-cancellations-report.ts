@@ -2,7 +2,7 @@
  * reporting/get-cancellations-report.ts — getCancellationsReport (FC-parity
  * canned-report menu).
  *
- * Org-wide list of CANCELLED reservations over a rolling UTC range, enriched
+ * Org-wide list of CANCELLED reservations over the report range, enriched
  * with the resource/tail label, who cancelled, the (optional) stated reason,
  * and a lead-time-before-start bucket. READ-ONLY over EXISTING tables
  * (reservation, reservation_resource, resource, app_user) — the only new
@@ -11,7 +11,7 @@
  * ── METRIC DEFINITIONS (pin here — two people must compute the same number) ──
  *
  * A cancelled reservation is one with status = 'cancelled' AND cancelled_at IN
- * [from, to) (half-open UTC window, same rule as the R1 reports). Both cancel
+ * [from, to) (half-open window, same rule as the R1 reports). Both cancel
  * paths (cancelReservation / cancelSeries) set cancelled_at, so this captures
  * single-cancel and series-cancel alike.
  *
@@ -37,11 +37,16 @@
  *   the GUC — no org_id predicate needed (house convention).
  * READ-ONLY: zero writes, zero audit rows.
  *
- * [VERIFY-R1-TZ] All range math is UTC; the display layer localises.
+ * [VERIFY-R1-TZ] No timeZone: rolling UTC window [now − Nd, now)
+ *   (byte-identical). With the viewer's timeZone: that zone's last N calendar
+ *   days from local midnight (reporting/zoned-window.ts); an unknown zone
+ *   reads as UTC; range.timeZone echoes the zone used. Row timestamps stay
+ *   instants; the display layer prints them in the viewer's zone.
  *
  * TWO CALLING FORMS:
- *   getCancellationsReport(session, input)          — app code.
- *   getCancellationsReportWithDb(db, session, input) — tests.
+ *   getCancellationsReport(session, input)                — app code.
+ *   getCancellationsReportWithDb(db, session, input, opts) — tests
+ *     (`opts.now` pins the clock, epoch ms).
  */
 
 import { z } from 'zod';
@@ -54,15 +59,26 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { resolveReportRange } from './internal.js';
 import type { ReportRangeKey } from './internal.js';
+import { zonedReportWindow, reportRangeHeader } from './zoned-window.js';
 import type { ReportRange } from './types.js';
 import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
 
 const ReportRangeKeySchema = z.enum(['7d', '30d', '90d', '180d', '365d']).default('30d');
-const InputSchema = z.object({ range: ReportRangeKeySchema });
+const InputSchema = z.object({
+  range: ReportRangeKeySchema,
+  timeZone: z.string().optional(),
+});
 
-export type GetCancellationsReportInput = { range?: ReportRangeKey | string };
+export type GetCancellationsReportInput = {
+  range?: ReportRangeKey | string;
+  /**
+   * The viewer's IANA zone. Given: that zone's last N calendar days, from
+   * local midnight; an unknown zone reads as UTC. Omitted: rolling UTC window.
+   */
+  timeZone?: string;
+};
 
 // ─── Lead-time buckets ────────────────────────────────────────────────────────
 
@@ -117,6 +133,7 @@ async function _impl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetCancellationsReportInput,
+  opts?: { now?: number },
 ): Promise<CancellationsReportResult> {
   // 1. AUTHZ FIRST.
   requireCapability(session, 'reporting:access');
@@ -131,9 +148,10 @@ async function _impl(
   }
   const rangeKey = parsed.data.range as ReportRangeKey;
 
-  // 3. Resolve the UTC window.
-  const now = new Date();
-  const { from, to } = resolveReportRange(rangeKey, now);
+  // 3. Resolve the window: rolling UTC, or the zone's last N calendar days.
+  const now = new Date(opts?.now ?? Date.now());
+  const reportWindow = zonedReportWindow(rangeKey, now, parsed.data.timeZone, resolveReportRange);
+  const { from, to } = reportWindow;
 
   return withSessionOrgContextWithDb(db, session, async (_sess, tx) => {
     // reservation (cancelled) LEFT JOIN who-cancelled + its resources.
@@ -198,7 +216,7 @@ async function _impl(
     });
 
     return {
-      range: { key: rangeKey, from, to },
+      range: reportRangeHeader(rangeKey, reportWindow),
       rows,
       totalCount: rows.length,
       lt24hCount,
@@ -220,10 +238,12 @@ export async function getCancellationsReport(
 
 // ─── Test/injectable form ─────────────────────────────────────────────────────
 
+/** Test form; `opts.now` pins the clock (epoch ms) for deterministic windows. */
 export async function getCancellationsReportWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   input: GetCancellationsReportInput = {},
+  opts?: { now?: number },
 ): Promise<CancellationsReportResult> {
-  return _impl(db, session, input);
+  return _impl(db, session, input, opts);
 }

@@ -926,7 +926,9 @@ export type {
 // training throughput, maintenance trend. All authz reporting:access FIRST;
 // org_id from session only; RLS the only org filter; zero writes.
 // [VERIFY-A] hours=operational; [VERIFY-T1-B] training=operator state;
-// [VERIFY-M1-A] maintenance=operator data; [VERIFY-R1-TZ] UTC bucketing.
+// [VERIFY-M1-A] maintenance=operator data; [VERIFY-R1-TZ] UTC bucketing by
+// default; an optional timeZone (every range-based reporting read, incl. the
+// Slice 7.1 dashboard ones) counts days in that zone (reporting/zoned-window.ts).
 // *WithDb forms are for test code only (inject a pglite client).
 
 export {

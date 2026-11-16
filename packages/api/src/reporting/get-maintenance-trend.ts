@@ -26,13 +26,19 @@
  *   operator action, not computed clearance. NOT an airworthiness or Part-43
  *   determination. NOT an FAA AW release or return-to-service determination.
  *
+ * [VERIFY-R1-TZ] No timeZone: rolling UTC window [now − Nd, now)
+ *   (byte-identical). With the viewer's timeZone: that zone's last N calendar
+ *   days from local midnight (reporting/zoned-window.ts); an unknown zone
+ *   reads as UTC; range.timeZone echoes the zone used.
+ *
  * AUTHZ: requireCapability('reporting:access') FIRST.
  * TENANT ISOLATION: org_id from session only; one withSessionOrgContextWithDb.
  * READ-ONLY: zero writes, zero audit.
  *
  * TWO CALLING FORMS:
- *   getMaintenanceTrend(session, input)          — app code.
- *   getMaintenanceTrendWithDb(db, session, input) — tests.
+ *   getMaintenanceTrend(session, input)                — app code.
+ *   getMaintenanceTrendWithDb(db, session, input, opts) — tests
+ *     (`opts.now` pins the clock, epoch ms).
  */
 
 import { z } from 'zod';
@@ -45,6 +51,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { resolveReportRange } from './internal.js';
 import type { ReportRangeKey } from './internal.js';
+import { zonedReportWindow, reportRangeHeader } from './zoned-window.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
 import type { MaintenanceTrendResult } from './types.js';
 import { extractRows } from '../db-rows.js';
@@ -52,8 +59,18 @@ import { extractRows } from '../db-rows.js';
 // ─── Input validation ─────────────────────────────────────────────────────────
 
 const ReportRangeKeySchema = z.enum(['7d', '30d', '90d', '180d', '365d']).default('30d');
-const InputSchema = z.object({ range: ReportRangeKeySchema });
-export type GetMaintenanceTrendInput = { range?: ReportRangeKey | string };
+const InputSchema = z.object({
+  range: ReportRangeKeySchema,
+  timeZone: z.string().optional(),
+});
+export type GetMaintenanceTrendInput = {
+  range?: ReportRangeKey | string;
+  /**
+   * The viewer's IANA zone. Given: that zone's last N calendar days, from
+   * local midnight; an unknown zone reads as UTC. Omitted: rolling UTC window.
+   */
+  timeZone?: string;
+};
 
 // ─── Shared implementation ────────────────────────────────────────────────────
 
@@ -61,18 +78,20 @@ async function _impl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetMaintenanceTrendInput,
+  opts?: { now?: number },
 ): Promise<MaintenanceTrendResult> {
   // 1. AUTHZ FIRST.
   requireCapability(session, 'reporting:access');
 
-  // 2. Validate range.
+  // 2. Validate range (+ optional zone).
   const parsed = InputSchema.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(`Invalid range: ${parsed.error.message}`);
   const rangeKey = parsed.data.range as ReportRangeKey;
 
-  // 3. Resolve UTC window.
-  const now = new Date();
-  const { from, to } = resolveReportRange(rangeKey, now);
+  // 3. Resolve the window: rolling UTC, or the zone's last N calendar days.
+  const now = new Date(opts?.now ?? Date.now());
+  const reportWindow = zonedReportWindow(rangeKey, now, parsed.data.timeZone, resolveReportRange);
+  const { from, to } = reportWindow;
   // In raw sql`` templates, from/to are bound as ISO strings with an explicit
   // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
   // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
@@ -154,7 +173,7 @@ async function _impl(
     }
 
     return {
-      range: { key: rangeKey, from, to },
+      range: reportRangeHeader(rangeKey, reportWindow),
       /**
        * squawksOpenedInRange — COUNT of squawk rows with reported_at in [from, to).
        * OPERATIONAL — NOT an airworthiness or Part-43 determination. [VERIFY-M1-A]
@@ -202,10 +221,12 @@ export async function getMaintenanceTrend(
 
 // ─── Test/injectable form ─────────────────────────────────────────────────────
 
+/** Test form; `opts.now` pins the clock (epoch ms) for deterministic windows. */
 export async function getMaintenanceTrendWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetMaintenanceTrendInput = {},
+  opts?: { now?: number },
 ): Promise<MaintenanceTrendResult> {
-  return _impl(db, session, rawInput);
+  return _impl(db, session, rawInput, opts);
 }

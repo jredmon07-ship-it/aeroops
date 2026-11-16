@@ -18,9 +18,15 @@
  *
  * [VERIFY-A] Hours are OPERATIONAL utilization (Hobbs-derived). NOT billable.
  *
+ * [VERIFY-R1-TZ] No timeZone: the rolling UTC window [now − Nd, now)
+ *   (resolveRange, byte-identical). With the viewer's timeZone: that zone's
+ *   last N calendar days from local midnight, the same window as the
+ *   dashboard's KPIs and activity chart (reporting/zoned-window.ts).
+ *
  * TWO CALLING FORMS:
- *   getAircraftUtilization(session, opts)          — app code.
- *   getAircraftUtilizationWithDb(db, session, opts) — tests.
+ *   getAircraftUtilization(session, input)                — app code.
+ *   getAircraftUtilizationWithDb(db, session, input, opts) — tests
+ *     (`opts.now` pins the clock, epoch ms).
  */
 
 import { z } from 'zod';
@@ -33,6 +39,7 @@ import type { AppSession } from '../auth/types.js';
 import { ValidationError } from '../scheduling/internal.js';
 import { resolveRange } from './internal.js';
 import type { RangeKey } from './internal.js';
+import { zonedReportWindow } from './zoned-window.js';
 import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
@@ -41,10 +48,16 @@ const RangeKeySchema = z.enum(['7d', '30d', '90d']).default('30d');
 
 const GetAircraftUtilizationInputSchema = z.object({
   range: RangeKeySchema,
+  timeZone: z.string().optional(),
 });
 
 export type GetAircraftUtilizationInput = {
   range?: RangeKey | string;
+  /**
+   * The viewer's IANA zone. Given: that zone's last N calendar days, from
+   * local midnight; an unknown zone reads as UTC. Omitted: rolling UTC window.
+   */
+  timeZone?: string;
 };
 
 // ─── Output types ─────────────────────────────────────────────────────────────
@@ -63,6 +76,7 @@ async function _getAircraftUtilizationImpl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetAircraftUtilizationInput,
+  opts?: { now?: number },
 ): Promise<AircraftUtilizationRow[]> {
   // 1. AUTHZ FIRST.
   requireCapability(session, 'reporting:access');
@@ -74,9 +88,9 @@ async function _getAircraftUtilizationImpl(
   }
   const rangeKey = parsed.data.range as RangeKey;
 
-  // 3. Resolve rolling UTC window.
-  const now = new Date();
-  const { from, to } = resolveRange(rangeKey, now);
+  // 3. Resolve the window: rolling UTC, or the zone's last N calendar days.
+  const now = new Date(opts?.now ?? Date.now());
+  const { from, to } = zonedReportWindow(rangeKey, now, parsed.data.timeZone, resolveRange);
   // In raw sql`` templates, from/to are bound as ISO strings with an explicit
   // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
   // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
@@ -139,7 +153,8 @@ async function _getAircraftUtilizationImpl(
  * Uses the memoized production DB client (getDb()). apps/web never passes a db.
  *
  * @param session  - AppSession from auth(); throws UnauthenticatedError if null.
- * @param rawInput - { range?: '7d'|'30d'|'90d' } — defaults to '30d'.
+ * @param rawInput - { range?: '7d'|'30d'|'90d', timeZone?: IANA zone } — range
+ *                   defaults to '30d'; timeZone cuts the window in that zone.
  * @returns AircraftUtilizationRow[] ordered hours DESC, tail ASC.
  * @throws UnauthenticatedError, ForbiddenError, ValidationError
  */
@@ -156,12 +171,14 @@ export async function getAircraftUtilization(
 /**
  * getAircraftUtilizationWithDb — same contract but accepts an explicit db.
  *
- * Tests MUST use this form so they never trigger getDb().
+ * Tests MUST use this form so they never trigger getDb(). `opts.now` pins the
+ * clock (epoch ms) for deterministic windows.
  */
 export async function getAircraftUtilizationWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetAircraftUtilizationInput = {},
+  opts?: { now?: number },
 ): Promise<AircraftUtilizationRow[]> {
-  return _getAircraftUtilizationImpl(db, session, rawInput);
+  return _getAircraftUtilizationImpl(db, session, rawInput, opts);
 }

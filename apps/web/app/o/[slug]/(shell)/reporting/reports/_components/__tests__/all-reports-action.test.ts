@@ -138,7 +138,8 @@ describe('2. Training module on → unchanged', () => {
     const result = await getAllReportsAction({ range: '30d' });
 
     expect(api.getTrainingThroughput).toHaveBeenCalledTimes(1);
-    expect(api.getTrainingThroughput).toHaveBeenCalledWith(session, { range: '30d' });
+    // Every range read now gets the viewer's zone too ([VERIFY-R1-TZ]).
+    expect(api.getTrainingThroughput).toHaveBeenCalledWith(session, { range: '30d', timeZone: 'America/Chicago' });
     if (!('ok' in result)) throw new Error('expected ok');
     expect(result.data.trainingThroughput).toEqual({
       range: {
@@ -156,7 +157,7 @@ describe('2. Training module on → unchanged', () => {
   it('includeTraining: true is the same as no flag', async () => {
     const result = await getAllReportsAction({ range: '7d', includeTraining: true });
 
-    expect(api.getTrainingThroughput).toHaveBeenCalledWith(session, { range: '7d' });
+    expect(api.getTrainingThroughput).toHaveBeenCalledWith(session, { range: '7d', timeZone: 'America/Chicago' });
     if (!('ok' in result)) throw new Error('expected ok');
     expect(result.data.trainingThroughput).not.toBeNull();
   });

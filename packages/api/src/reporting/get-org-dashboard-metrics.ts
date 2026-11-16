@@ -23,9 +23,16 @@
  * [VERIFY-A] Hours shown are OPERATIONAL utilization derived from recorded
  *   Hobbs at check-in. They are NOT billable or logbook-authoritative figures.
  *
+ * [VERIFY-R1-TZ] No timeZone: the rolling UTC window [now − Nd, now)
+ *   (resolveRange, byte-identical). With the viewer's timeZone: that zone's
+ *   last N calendar days from local midnight — the window the dashboard's
+ *   activity chart buckets, so the KPI totals and the chart agree; an
+ *   unknown zone reads as UTC (reporting/zoned-window.ts).
+ *
  * TWO CALLING FORMS:
- *   getOrgDashboardMetrics(session, opts)          — app code.
- *   getOrgDashboardMetricsWithDb(db, session, opts) — tests.
+ *   getOrgDashboardMetrics(session, input)                — app code.
+ *   getOrgDashboardMetricsWithDb(db, session, input, opts) — tests
+ *     (`opts.now` pins the clock, epoch ms).
  */
 
 import { z } from 'zod';
@@ -39,6 +46,7 @@ import { ValidationError } from '../scheduling/internal.js';
 import { loadGroundingProbe } from '../maintenance/internal.js';
 import { resolveRange } from './internal.js';
 import type { RangeKey } from './internal.js';
+import { zonedReportWindow, reportRangeHeader } from './zoned-window.js';
 import { extractRows } from '../db-rows.js';
 
 // ─── Input validation ─────────────────────────────────────────────────────────
@@ -47,10 +55,17 @@ const RangeKeySchema = z.enum(['7d', '30d', '90d']).default('30d');
 
 const GetOrgDashboardMetricsInputSchema = z.object({
   range: RangeKeySchema,
+  timeZone: z.string().optional(),
 });
 
 export type GetOrgDashboardMetricsInput = {
   range?: RangeKey | string;
+  /**
+   * The viewer's IANA zone. Given: the window is that zone's last N calendar
+   * days, from local midnight; an unknown zone reads as UTC. Omitted: the
+   * rolling UTC window [now − Nd, now).
+   */
+  timeZone?: string;
 };
 
 // ─── Output types ─────────────────────────────────────────────────────────────
@@ -59,6 +74,8 @@ export interface OrgDashboardMetricsRange {
   key: RangeKey;
   from: Date;
   to: Date;
+  /** The zone the window is in; present only when the caller passed timeZone. */
+  timeZone?: string;
 }
 
 export interface OrgDashboardMetrics {
@@ -96,6 +113,7 @@ async function _getOrgDashboardMetricsImpl(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetOrgDashboardMetricsInput,
+  opts?: { now?: number },
 ): Promise<OrgDashboardMetrics> {
   // 1. AUTHZ FIRST.
   requireCapability(session, 'reporting:access');
@@ -107,9 +125,10 @@ async function _getOrgDashboardMetricsImpl(
   }
   const rangeKey = parsed.data.range as RangeKey;
 
-  // 3. Resolve the rolling UTC window.
-  const now = new Date();
-  const { from, to } = resolveRange(rangeKey, now);
+  // 3. Resolve the window: rolling UTC, or the zone's last N calendar days.
+  const now = new Date(opts?.now ?? Date.now());
+  const reportWindow = zonedReportWindow(rangeKey, now, parsed.data.timeZone, resolveRange);
+  const { from, to } = reportWindow;
   // In raw sql`` templates, from/to are bound as ISO strings with an explicit
   // ::timestamptz cast: the postgres-js (production) driver cannot serialize a
   // JS Date passed to db.execute() (ERR_INVALID_ARG_TYPE at the wire encoder),
@@ -236,7 +255,7 @@ async function _getOrgDashboardMetricsImpl(
     const activeEnrollmentCount = Number(enrollmentRow?.activeEnrollmentCount ?? 0);
 
     return {
-      range: { key: rangeKey, from, to },
+      range: reportRangeHeader(rangeKey, reportWindow),
       totalFlights,
       totalFlightHours,
       reservationsInRange,
@@ -258,7 +277,8 @@ async function _getOrgDashboardMetricsImpl(
  * Uses the memoized production DB client (getDb()). apps/web never passes a db.
  *
  * @param session  - AppSession from auth(); throws UnauthenticatedError if null.
- * @param rawInput - { range?: '7d'|'30d'|'90d' } — defaults to '30d'.
+ * @param rawInput - { range?: '7d'|'30d'|'90d', timeZone?: IANA zone } — range
+ *                   defaults to '30d'; timeZone cuts the window in that zone.
  * @returns OrgDashboardMetrics
  * @throws UnauthenticatedError, ForbiddenError, ValidationError
  */
@@ -275,12 +295,14 @@ export async function getOrgDashboardMetrics(
 /**
  * getOrgDashboardMetricsWithDb — same contract but accepts an explicit db.
  *
- * Tests MUST use this form so they never trigger getDb().
+ * Tests MUST use this form so they never trigger getDb(). `opts.now` pins the
+ * clock (epoch ms) for deterministic windows.
  */
 export async function getOrgDashboardMetricsWithDb(
   db: AnyDb,
   session: AppSession | null | undefined,
   rawInput: GetOrgDashboardMetricsInput = {},
+  opts?: { now?: number },
 ): Promise<OrgDashboardMetrics> {
-  return _getOrgDashboardMetricsImpl(db, session, rawInput);
+  return _getOrgDashboardMetricsImpl(db, session, rawInput, opts);
 }
