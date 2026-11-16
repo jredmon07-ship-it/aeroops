@@ -15,7 +15,8 @@
  *      instructor names from resourceIds, booker/pilot chip ("Booked for you"
  *      on a booking club staff made for the member, migration 0051). Empty:
  *      "No upcoming reservations."
- *      NO book CTA (self-booking is deferred).
+ *      NO book CTA (self-booking is deferred). A "See when aircraft are free"
+ *      link opens the member Schedule (/portal/schedule, read-only).
  *   C. My training — per-enrollment: course title + status pill + progress bar
  *      + completedCount/totalLessons. Empty: "Not enrolled in a course yet."
  *      Verbatim [VERIFY-T1-B] footnote required by spec. Only when the org has
@@ -478,6 +479,15 @@ async function PortalContent({ slug, showTraining, timeZone }: PortalContentProp
         aria-label="My upcoming reservations"
       >
         <ReservationsSection reservations={summary.reservations} timeZone={timeZone} />
+        {/* The member Schedule: when aircraft are free (read-only). */}
+        <div className="border-t border-slate-100 px-5 py-3 dark:border-slate-800">
+          <Link
+            href={`/o/${slug}/portal/schedule`}
+            className="text-sm font-medium text-brand underline-offset-2 hover:underline dark:text-blue-400"
+          >
+            See when aircraft are free <span aria-hidden="true">→</span>
+          </Link>
+        </div>
       </SectionCard>
 
       {/* ── Calendar feed (Slice P1.4) ────────────────────────────────────── */}

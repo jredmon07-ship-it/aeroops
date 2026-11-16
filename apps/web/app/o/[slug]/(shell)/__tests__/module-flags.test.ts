@@ -11,7 +11,8 @@
  *   2. A failed flags read (null/undefined) fails soft to on, like the nav
  *   3. Same answer as the nav: for a role that holds every capability (owner),
  *      isModuleOn(flags, item.module) === "the nav shows the item", for every
- *      module nav item and every flag set
+ *      module nav item and every flag set. A portalOnly item (the member
+ *      Schedule) is for portal-only sessions, so it is checked for a renter.
  *
  * PURE: no DOM, no Next.js, no DB.
  */
@@ -77,9 +78,13 @@ describe('3. same module check as the nav', () => {
       allOff,
       { ...ALL_MODULES_ENABLED, training: false },
     ];
+    // The owner holds every capability but is not a portal-only session; a
+    // portalOnly item (the member Schedule) is checked for its audience.
+    const renter: AppSession = { ...owner, role: 'renter' };
     for (const flags of flagSets) {
-      const shown = new Set(filterNavForSession(owner, NAV_ITEMS, '[slug]', flags).map((i) => i.href));
       for (const item of moduleItems) {
+        const session = item.portalOnly ? renter : owner;
+        const shown = new Set(filterNavForSession(session, NAV_ITEMS, '[slug]', flags).map((i) => i.href));
         expect(isModuleOn(flags, item.module), item.label).toBe(shown.has(item.href));
       }
     }

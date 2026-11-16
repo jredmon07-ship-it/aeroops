@@ -132,7 +132,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
         'CFI — scheduling, dispatch, training records (including lesson sign-off), people, maintenance (view + squawks), and reports.',
         'Mechanic — Fleet and Maintenance only (work orders, squawks, grounding).',
         'Accountant — Dashboard, Reports, and Activity (read-only).',
-        'Renter / Student — the read-only self-service Portal only (their own reservations, training progress, and logbook).',
+        'Renter / Student — the read-only self-service Portal (their own reservations, training progress, and logbook) and a read-only Schedule of when aircraft and instructors are taken, without who booked them.',
       ] },
       { kind: 'note', text: 'Hiding a link in the sidebar is a convenience, not the security boundary — every action is re-checked on the server against your role, so directly visiting a URL you don’t have access to is refused there too.' },
     ],
@@ -397,7 +397,8 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     body: [
       { kind: 'p', text: 'Students and renters land in the Portal — a read-only view scoped entirely to their own data: their own upcoming and past reservations and their own training progress.' },
       { kind: 'p', text: 'From the Portal they can also subscribe to their personal calendar feed, and download their logbook CSV.' },
-      { kind: 'note', text: 'The portal never shows another member’s data — every read is scoped to the signed-in user, not just filtered in the browser.' },
+      { kind: 'p', text: 'The Schedule (next to Portal in the menu) shows one day at a time when each aircraft and instructor is already taken, so they can find a free time and ask staff to book it. Their own bookings are marked “Your booking”; anyone else’s reads only “Booked”.' },
+      { kind: 'note', text: 'The portal never shows another member’s data — every read is scoped to the signed-in user on the server, and the Schedule drops who booked each time before anything reaches the browser.' },
     ],
   },
   {

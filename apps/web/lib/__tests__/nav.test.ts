@@ -22,6 +22,10 @@
  *  16. Help — visible to ALL 8 roles (app:access); always the last nav item (Slice P1.8)
  *  20. isNavHrefVisible — in-page shortcuts (Schedule's Auto-schedule button)
  *      follow the nav's capability + module rule; hidden in club mode
+ *  21. Member Schedule (/portal/schedule, portalOnly) — renter + student see it
+ *      right after Portal; owner/manager/cfi/dispatcher/mechanic/accountant
+ *      never get it (staff keep the one full Schedule, "Reservations"); hidden
+ *      with the portal module; isNavHrefVisible + landingPathFor agree
  *
  * These are PURE unit tests — no DOM, no Next.js, no DB.
  *
@@ -49,6 +53,12 @@
  * Slice P1.8 changes applied:
  *   - "Help" NAV_ITEM added LAST, after "Org settings" (app:access — every role).
  *   - Total NAV_ITEMS: 16 (was 15).
+ *
+ * Member Schedule changes applied:
+ *   - "Schedule" NAV_ITEM (/o/[slug]/portal/schedule) added right after
+ *     "Portal": portal:access + module 'portal' + portalOnly → renter and
+ *     student only. Owner/manager (portal:access, but staff) do not get it.
+ *   - Total NAV_ITEMS: 17 (was 16); renter/student navs: Portal, Schedule, Help.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -98,6 +108,7 @@ const RESTRICTED_ROLES: MembershipRole[] = [
 //
 // Full matrix (items in NAV_ITEMS order):
 //   Portal           portal:access               → owner, manager, student, renter
+//   Schedule         portal:access + portalOnly  → student, renter (member Schedule)
 //   Dashboard        reporting:access            → owner, manager, dispatcher, cfi, accountant
 //   Reservations     schedule:access             → owner, manager, dispatcher, cfi
 //   Board            schedule:access             → owner, manager, dispatcher, cfi
@@ -118,8 +129,8 @@ const EXPECTED_LABELS: Record<MembershipRole, string[]> = {
   dispatcher: ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'Resources', 'People', 'Training', 'Fleet', 'Maintenance', 'Booking requests', 'Reports', 'Activity', 'Help'],
   cfi:        ['Dashboard', 'Reservations', 'Board', 'Auto-schedule', 'People', 'Training', 'Fleet', 'Maintenance', 'Reports', 'Activity', 'Help'],
   mechanic:   ['Fleet', 'Maintenance', 'Help'],
-  renter:     ['Portal', 'Help'],
-  student:    ['Portal', 'Help'],
+  renter:     ['Portal', 'Schedule', 'Help'],
+  student:    ['Portal', 'Schedule', 'Help'],
   accountant: ['Dashboard', 'Reports', 'Activity', 'Help'],
 };
 
@@ -391,18 +402,18 @@ describe('8. Items that session lacks are completely absent (not just hidden)', 
     }
   });
 
-  it('student result has exactly 2 items (Portal + Help)', () => {
+  it('student result has exactly 3 items (Portal + member Schedule + Help)', () => {
     const session = makeSession('student');
     const result = filterNavForSession(session, NAV_ITEMS, 'acme');
-    expect(result.length).toBe(2);
-    expect(result.map((i) => i.label)).toEqual(['Portal', 'Help']);
+    expect(result.length).toBe(3);
+    expect(result.map((i) => i.label)).toEqual(['Portal', 'Schedule', 'Help']);
   });
 
-  it('renter result has exactly 2 items (Portal + Help)', () => {
+  it('renter result has exactly 3 items (Portal + member Schedule + Help)', () => {
     const session = makeSession('renter');
     const result = filterNavForSession(session, NAV_ITEMS, 'acme');
-    expect(result.length).toBe(2);
-    expect(result.map((i) => i.label)).toEqual(['Portal', 'Help']);
+    expect(result.length).toBe(3);
+    expect(result.map((i) => i.label)).toEqual(['Portal', 'Schedule', 'Help']);
   });
 
   it('mechanic result has exactly 3 items (Fleet + Maintenance + Help)', () => {
@@ -459,8 +470,8 @@ describe('10. All 8 roles: filterNavForSession is consistent with RBAC matrix', 
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('11. NAV_ITEMS registry', () => {
-  it('NAV_ITEMS has exactly 16 items (Portal + Dashboard + Booking requests + Activity + Messages + Help + 10 staff items)', () => {
-    expect(NAV_ITEMS.length).toBe(16);
+  it('NAV_ITEMS has exactly 17 items (Portal + member Schedule + Dashboard + Booking requests + Activity + Messages + Help + 10 staff items)', () => {
+    expect(NAV_ITEMS.length).toBe(17);
   });
 
   it('first item is Portal with portal:access (Slice P1.2 addition)', () => {
@@ -469,10 +480,22 @@ describe('11. NAV_ITEMS registry', () => {
     expect(NAV_ITEMS[0]?.href).toBe('/o/[slug]/portal');
   });
 
-  it('second item is Dashboard with reporting:access (RAISED from app:access in Slice P1.2)', () => {
-    expect(NAV_ITEMS[1]?.label).toBe('Dashboard');
-    expect(NAV_ITEMS[1]?.requiredCapability).toBe('reporting:access');
-    expect(NAV_ITEMS[1]?.href).toBe('/o/[slug]');
+  it('second item is the member Schedule: portal:access, portal module, portalOnly', () => {
+    expect(NAV_ITEMS[1]?.label).toBe('Schedule');
+    expect(NAV_ITEMS[1]?.requiredCapability).toBe('portal:access');
+    expect(NAV_ITEMS[1]?.href).toBe('/o/[slug]/portal/schedule');
+    expect(NAV_ITEMS[1]?.module).toBe('portal');
+    expect(NAV_ITEMS[1]?.portalOnly).toBe(true);
+  });
+
+  it('third item is Dashboard with reporting:access (RAISED from app:access in Slice P1.2)', () => {
+    expect(NAV_ITEMS[2]?.label).toBe('Dashboard');
+    expect(NAV_ITEMS[2]?.requiredCapability).toBe('reporting:access');
+    expect(NAV_ITEMS[2]?.href).toBe('/o/[slug]');
+  });
+
+  it('portalOnly is set on the member Schedule alone', () => {
+    expect(NAV_ITEMS.filter((i) => i.portalOnly === true).map((i) => i.label)).toEqual(['Schedule']);
   });
 
   it('Reservations item is gated by schedule:access', () => {
@@ -1273,5 +1296,106 @@ describe('20. isNavHrefVisible — in-page shortcuts follow the nav rule', () =>
         }
       }
     }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 21. Member Schedule (/portal/schedule) — renter + student only; staff keep
+//     the one full Schedule ("Reservations") and never get a second one
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('21. Member Schedule — portal-only sessions get it; staff never get a duplicate', () => {
+  const MEMBER_SCHEDULE = '/o/[slug]/portal/schedule';
+  const STAFF_SCHEDULE = '/o/[slug]/schedule';
+  const shows = (role: MembershipRole, flags: OrgFeatureFlags = ALL_MODULES_ENABLED) =>
+    filterNavForSession(makeSession(role), NAV_ITEMS, '[slug]', flags).some(
+      (i) => i.href === MEMBER_SCHEDULE,
+    );
+
+  it('every role: renter and student see it; owner/manager/cfi/dispatcher/mechanic/accountant do not', () => {
+    const expected: Record<MembershipRole, boolean> = {
+      owner: false,
+      manager: false,
+      dispatcher: false,
+      cfi: false,
+      mechanic: false,
+      renter: true,
+      student: true,
+      accountant: false,
+    };
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(shows(role), `role=${role}`).toBe(expected[role]);
+    }
+  });
+
+  it('it is labelled "Schedule", links to the slug-resolved portal schedule, and sits right after Portal', () => {
+    for (const role of ['renter', 'student'] as MembershipRole[]) {
+      const result = filterNavForSession(makeSession(role), NAV_ITEMS, 'sky-club');
+      const idx = result.findIndex((i) => i.href === '/o/sky-club/portal/schedule');
+      expect(idx, `role=${role}`).toBe(1);
+      expect(result[0]?.label).toBe('Portal');
+      expect(result[idx]?.label).toBe('Schedule');
+      expect(result[idx]?.requiredCapability).toBe('portal:access');
+    }
+  });
+
+  it('owner and manager hold portal:access but get no second Schedule: one schedule item each (Reservations)', () => {
+    for (const role of ['owner', 'manager'] as MembershipRole[]) {
+      const hrefs = filterNavForSession(makeSession(role), NAV_ITEMS, '[slug]').map((i) => i.href);
+      expect(hrefs, `role=${role}`).toContain(STAFF_SCHEDULE);
+      expect(hrefs, `role=${role}`).not.toContain(MEMBER_SCHEDULE);
+      expect(hrefs.filter((h) => h === STAFF_SCHEDULE || h === MEMBER_SCHEDULE), `role=${role}`).toHaveLength(1);
+    }
+  });
+
+  it('no role ever sees both the member Schedule and the staff Schedule, nor two items labelled "Schedule"', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      const items = filterNavForSession(makeSession(role), NAV_ITEMS, '[slug]');
+      const hrefs = items.map((i) => i.href);
+      expect(hrefs.includes(MEMBER_SCHEDULE) && hrefs.includes(STAFF_SCHEDULE), `role=${role}`).toBe(false);
+      expect(items.filter((i) => i.label === 'Schedule').length, `role=${role}`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('it belongs to the portal module: hidden for renter/student when the org turns the portal off', () => {
+    const portalOff: OrgFeatureFlags = { ...ALL_MODULES_ENABLED, portal: false };
+    expect(shows('renter', portalOff)).toBe(false);
+    expect(shows('student', portalOff)).toBe(false);
+    // Other modules off (club preset) leave it alone.
+    const clubFlags: OrgFeatureFlags = {
+      ...ALL_MODULES_ENABLED,
+      training: false,
+      booking: false,
+      auto_schedule: false,
+    };
+    expect(shows('renter', clubFlags)).toBe(true);
+    expect(shows('student', clubFlags)).toBe(true);
+  });
+
+  it('isNavHrefVisible agrees: true for renter/student, false for every staff role and for no session', () => {
+    for (const role of MEMBERSHIP_ROLES) {
+      expect(isNavHrefVisible(makeSession(role), MEMBER_SCHEDULE), `role=${role}`).toBe(
+        role === 'renter' || role === 'student',
+      );
+    }
+    expect(isNavHrefVisible(null, MEMBER_SCHEDULE)).toBe(false);
+    expect(
+      isNavHrefVisible(makeSession('student'), MEMBER_SCHEDULE, { ...ALL_MODULES_ENABLED, portal: false }),
+    ).toBe(false);
+  });
+
+  it('a custom portalOnly item follows isPortalOnly, not just its capability', () => {
+    const items: readonly NavItem[] = [
+      { label: 'Member view', href: '/o/[slug]/m', requiredCapability: 'app:access', portalOnly: true },
+    ];
+    for (const role of MEMBERSHIP_ROLES) {
+      const shown = filterNavForSession(makeSession(role), items, 'acme').length === 1;
+      expect(shown, `role=${role}`).toBe(isPortalOnly(makeSession(role)));
+    }
+  });
+
+  it('landingPathFor is unchanged: renter/student land on the Portal, not the member Schedule', () => {
+    expect(landingPathFor(makeSession('renter'))).toBe('/o/[slug]/portal');
+    expect(landingPathFor(makeSession('student'))).toBe('/o/[slug]/portal');
   });
 });

@@ -4,6 +4,40 @@ All notable changes to AeroOps are documented here. Format based on
 [Keep a Changelog](https://keepachangelog.com/); the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 2026-11-16 — Members hear about their bookings and can see the schedule
+
+Staff can book for a member, but the member was never told, and renters and
+students had no way to see when an aircraft was free before asking for one.
+
+**Added**
+
+- An email to the member when club staff book, move or cancel a booking for
+  them. It says who made the change, names the aircraft by tail number and the
+  instructor by name, and gives the times with the time zone ("Mon, Nov 16,
+  2026, 10:00–11:30 CST"). A move shows the old and new times; a cancellation
+  gives the reason when there was one. A recurring booking sends one email for
+  the whole series. Nothing is sent when staff change their own booking or
+  cancel one that was already cancelled, and the booker's own confirmation is
+  unchanged.
+- "Bookings made for you" on the Notifications page, so any member can turn
+  these emails off.
+- A read-only Schedule for renters and students, right after Portal in the
+  menu. One day at a time, in your time zone, it lists when each aircraft and
+  instructor is already taken. Your own bookings say "Your booking", with
+  their notes; anyone else's says only "Booked", and a staff blackout says
+  "Unavailable". Who booked, their notes and the booking number never leave the
+  server. Aircraft that staff have grounded carry a "Grounded" chip.
+- A "See when aircraft are free" link under "My upcoming reservations" on the
+  portal home.
+
+**Changed**
+
+- Owners and managers keep their one Schedule; the member Schedule is not
+  added to their menu.
+- The help pages describe the member Schedule.
+
+No migration.
+
 ## 2026-11-15 — Bookings made for a member, charts by your day
 
 Renters and students can't book, so club staff book for them, but nothing

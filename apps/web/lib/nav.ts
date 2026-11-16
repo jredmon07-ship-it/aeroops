@@ -21,6 +21,11 @@
  * isNavHrefVisible — would the nav show the item at this href? For in-page
  *   shortcuts to a nav destination (the Schedule page's "Auto-schedule"
  *   button), so they follow the same capability + module rule as the sidebar.
+ *
+ * portalOnly items — shown only to portal-only sessions (isPortalOnly). The
+ *   member Schedule (/portal/schedule) is one: renters and students get a
+ *   read-only Schedule, while owner/manager (portal:access too) already have
+ *   the staff Schedule ("Reservations") and must not get a second one.
  */
 
 import { hasCapability } from '@aeroops/api';
@@ -42,6 +47,15 @@ export interface NavItem {
    * gates server-side on getOrgFeatures.
    */
   module?: OrgModuleKey;
+  /**
+   * true = shown ONLY to portal-only sessions (isPortalOnly: portal:access
+   * without reporting:access — renter, student), on top of the capability and
+   * module rules. For a member's own view of a surface staff already reach
+   * through another item: the member Schedule. Owner and manager hold
+   * portal:access too, but they have the staff Schedule, so no duplicate.
+   * Absent = no audience rule. UI only — the page gates on its capability.
+   */
+  portalOnly?: boolean;
 }
 
 // ─── Nav item registry ────────────────────────────────────────────────────────
@@ -55,6 +69,9 @@ export interface NavItem {
  * Order is intentional:
  *   1. Portal — self-service portal for student/renter (+ owner/manager preview);
  *      portal:access. FIRST so portal-only roles see it immediately.
+ *   1b. Schedule — the member Schedule (/portal/schedule): when aircraft and
+ *      instructors are free, read-only. portal:access + portalOnly → renter and
+ *      student only; right after Portal. Staff use Reservations (item 3).
  *   2. Dashboard — ops console; raised to reporting:access (Slice P1.2).
  *      Hidden from student/renter (they are redirected to Portal).
  *   3. Reservations — Schedule hub entry point (schedule:access).
@@ -84,6 +101,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
     href: '/o/[slug]/portal',
     requiredCapability: 'portal:access',
     module: 'portal',
+  },
+  // Member Schedule — renters and students see when aircraft and instructors
+  // are free (others' bookings say when, never who). Part of the portal
+  // (module 'portal'), gated like it. portalOnly: owner/manager already have
+  // the staff Schedule (Reservations), so they get no second Schedule item.
+  {
+    label: 'Schedule',
+    href: '/o/[slug]/portal/schedule',
+    requiredCapability: 'portal:access',
+    module: 'portal',
+    portalOnly: true,
   },
   {
     label: 'Dashboard',
@@ -261,13 +289,10 @@ export function landingPathFor(
     return '/o/[slug]/portal';
   }
 
-  // Everyone else (e.g. mechanic): find the first nav item they can access
-  // that belongs to an enabled module (core items always qualify).
-  const first = items.find(
-    (item) =>
-      hasCapability(session, item.requiredCapability) &&
-      (item.module === undefined || enabledModules[item.module]),
-  );
+  // Everyone else (e.g. mechanic): the first item the nav shows them — same
+  // rule as the sidebar (capability + enabled module; core items always
+  // qualify; a portalOnly item only for a portal-only session).
+  const first = items.find((item) => isNavItemVisible(session, item, enabledModules));
   return first?.href ?? null;
 }
 
@@ -276,7 +301,9 @@ export function landingPathFor(
 /**
  * isNavItemVisible — the one rule behind every nav item: the session's role
  * holds the item's capability AND, for a module item, the org has that module
- * on (Slice CLUB-MODE). Items with no module key are core and always qualify.
+ * on (Slice CLUB-MODE) AND, for a portalOnly item, the session is portal-only
+ * (isPortalOnly — renter, student). Items with no module key are core and
+ * always qualify; items without portalOnly have no audience rule.
  *
  * UI ONLY — never the gate; see AUTHZ NOTE above.
  */
@@ -287,7 +314,8 @@ function isNavItemVisible(
 ): boolean {
   return (
     hasCapability(session, item.requiredCapability) &&
-    (item.module === undefined || enabledModules[item.module])
+    (item.module === undefined || enabledModules[item.module]) &&
+    (item.portalOnly !== true || isPortalOnly(session))
   );
 }
 

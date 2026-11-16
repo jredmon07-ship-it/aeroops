@@ -1197,6 +1197,26 @@ export type {
   MyPortalSummary,
 } from './portal/types.js';
 
+// Member Schedule (read-only, no migration): when the org's active aircraft
+// and instructors are booked or blacked out in [from, to), plus each
+// aircraft's bare grounded state. portal:access FIRST; "me" = session.userId.
+// Someone else's booking says only { resourceId, startAt, endAt, kind } —
+// never who, notes, series or reservation id; the caller's own bookings
+// (booker / booked for / non-voided dispatched pilot) carry notes + labels.
+export {
+  listMemberAvailability,
+  listMemberAvailabilityWithDb,
+  MEMBER_AVAILABILITY_MAX_DAYS,
+} from './portal/list-member-availability.js';
+export type {
+  ListMemberAvailabilityInput,
+  MemberAvailabilityResource,
+  MemberAvailabilityBusyInterval,
+  MemberAvailabilityMyInterval,
+  MemberAvailabilityInterval,
+  MemberAvailabilityResult,
+} from './portal/list-member-availability.js';
+
 // ─── Slice N1.1 — In-app alerts (READ-ONLY, derived, no migration) ────────────
 // Derived-on-read per-user alerts: upcoming reservations (≤24h) and grounded
 // aircraft on upcoming reservations. NO write path, NO audit, NO migration.
