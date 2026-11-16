@@ -14,6 +14,10 @@ const EVENT_LABELS: Record<NotificationEventType, EventLabelInfo> = {
     label: 'Reservation confirmations',
     description: 'When a reservation you book is confirmed.',
   },
+  'reservation.for_member': {
+    label: 'Bookings made for you',
+    description: 'When club staff book, move or cancel a booking for you.',
+  },
   'squawk.reported': {
     label: 'Squawk report confirmations',
     description: 'When a squawk you report is recorded.',

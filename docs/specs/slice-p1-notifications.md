@@ -216,3 +216,32 @@ email + a short subject line (no rendered body).
 - `git diff HEAD -- packages/api/src/dispatch/open-dispatch.ts` — empty (byte-identical).
 - `git diff HEAD -- packages/api/src/scheduling/internal.ts` — empty (byte-identical;
   `gatedCreateOccurrence` untouched).
+
+## Addendum 2026-11-16 — `reservation.for_member` (bookings made for a member)
+
+Renters and students cannot book; club staff book for them ("Booked for",
+`reservation.member_user_id`, migration 0051). That member now gets an e-mail when staff
+**book, move or cancel** a booking for them. No migration (event types are free text).
+
+- **Event + copy** — `reservation.for_member` (`email-event-types.ts`, `templates.ts`). Template
+  data is a discriminated union on `change`: `booked` | `moved` (with `previous` window, and the
+  old labels when the aircraft/instructor changed) | `cancelled` (with `reason`, null when none).
+  Labels only — aircraft tail number, instructor display name, never ids. Times are written in
+  an explicit zone with its short name ("Mon, Nov 16, 2026, 10:00–11:30 CST"); an unknown zone
+  prints "UTC". A recurring series is ONE e-mail (count, weekdays/time, first and last dates).
+- **Facts, read server-side** — `member-booking-notice.ts`: `getMemberBookingNoticeContext` /
+  `getMemberSeriesNoticeContext` (READ-ONLY, `schedule:access`, RLS-scoped). The recipient is
+  always `reservation.member_user_id` from the row, never a member id the browser sent.
+- **Hooks (web action layer, best-effort, post-commit)** — `schedule/_utils/member-booking-notice.ts`
+  called from `schedule/actions.ts`: `createReservationAction`, `createSeriesAction` (once per
+  series), `rescheduleAction` (board drag + Move dialog), `cancelReservationAction` and
+  `cancelSeriesAction` (each reads the booking/series BEFORE cancelling, so a repeat cancel of an
+  already-cancelled booking tells no one). Only when the member is not the person acting. Times
+  use the acting staff member's zone (`getViewerTimeZone`); a series uses its own `iana_tz`. The
+  booker's own `reservation.created` receipt is unchanged.
+- **Prefs** — listed after `reservation.created` as "Bookings made for you" on the
+  Notifications page (`app:access`, so renters and students can turn it off); opted out → one
+  `skipped` log row.
+- **Tests** — `packages/api/src/__tests__/member-booking-notice.test.ts` (template variants,
+  reads, RLS, send + opt-out, prefs) and `apps/web/app/o/[slug]/(shell)/__tests__/schedule-member-notice.test.ts`
+  (action hooks with `@aeroops/api` mocked).

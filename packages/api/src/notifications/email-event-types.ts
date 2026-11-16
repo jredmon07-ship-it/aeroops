@@ -21,6 +21,10 @@
 
 export const NOTIFICATION_EVENT_TYPES = [
   'reservation.created',
+  // Club staff booked, moved or cancelled a booking FOR this member
+  // (reservation.member_user_id, migration 0051). Listed next to
+  // reservation.created so the settings page groups the two booking e-mails.
+  'reservation.for_member',
   'squawk.reported',
   'aircraft.grounded',
   'maintenance.due',
@@ -45,6 +49,69 @@ export interface ReservationCreatedData {
   /** Resource ids booked (tail-number lookup is a deferred display polish). */
   resourceIds: string[];
 }
+
+/**
+ * What a booking is for, as people read it: an aircraft's tail number (its
+ * display name when it has none), an instructor's display name, any other
+ * resource's display name (simulator, room, vehicle). NEVER a resource id.
+ */
+export interface BookingResourceLabels {
+  aircraft: string[];
+  instructors: string[];
+  otherResources: string[];
+}
+
+/**
+ * ReservationForMemberSeries — one e-mail for a whole recurring booking, not
+ * one per date. The parent's startAt/endAt are the FIRST booking it covers.
+ */
+export interface ReservationForMemberSeries {
+  /** How many bookings the change covers: booked, or cancelled. */
+  count: number;
+  /** ISO weekdays 1..7 (Mon..Sun) the series repeats on. */
+  weekdays: number[];
+  /** Repeats every N weeks (1 = every week). */
+  intervalWeeks: number;
+  /** Start of the LAST booking it covers. */
+  lastStartAt: Date;
+}
+
+interface ReservationForMemberBase extends BookingResourceLabels {
+  startAt: Date;
+  endAt: Date;
+  /**
+   * IANA zone the times are written in. The template prints the zone's short
+   * name next to them ("10:00–11:30 CST"); an unknown zone falls back to an
+   * explicit "UTC". Never a bare clock time.
+   */
+  timeZone: string;
+  /** Display name of the staff member who made the change. */
+  changedBy: string;
+  /** The org's name ("at Bravo Flying Club"); omitted from the copy when empty. */
+  orgName: string;
+  /** Present when the change covers a recurring series. */
+  series?: ReservationForMemberSeries;
+}
+
+/**
+ * ReservationForMemberData — 'reservation.for_member': club staff booked,
+ * moved or cancelled a booking FOR this member (reservation.member_user_id,
+ * migration 0051). The member never made the change, so the e-mail says who
+ * did. Discriminated on `change`:
+ *   booked    — a new booking (or recurring series) for them.
+ *   moved     — `previous` is the window it was moved from (and the labels
+ *               it had, when the aircraft or instructor changed too).
+ *   cancelled — `reason` is the reason staff gave, null when none was.
+ * Labels only (BookingResourceLabels) — never ids. PLAIN operator copy; NO
+ * FAA/currency/airworthiness determination (templates.ts).
+ */
+export type ReservationForMemberData =
+  | (ReservationForMemberBase & { change: 'booked' })
+  | (ReservationForMemberBase & {
+      change: 'moved';
+      previous: { startAt: Date; endAt: Date } & Partial<BookingResourceLabels>;
+    })
+  | (ReservationForMemberBase & { change: 'cancelled'; reason: string | null });
 
 export interface SquawkReportedData {
   resourceId: string;
@@ -86,6 +153,7 @@ export interface OrgAnnouncementData {
 /** Maps each event type to its typed template-data shape. */
 export interface NotificationTemplateDataMap {
   'reservation.created': ReservationCreatedData;
+  'reservation.for_member': ReservationForMemberData;
   'squawk.reported': SquawkReportedData;
   'aircraft.grounded': AircraftGroundedData;
   'maintenance.due': MaintenanceDueData;

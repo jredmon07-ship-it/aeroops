@@ -1428,10 +1428,31 @@ export type {
   NotificationTemplateDataMap,
   RenderedEmail,
   ReservationCreatedData,
+  ReservationForMemberData,
+  ReservationForMemberSeries,
+  BookingResourceLabels,
   SquawkReportedData,
   AircraftGroundedData,
   OrgAnnouncementData,
 } from './notifications/email-event-types.js';
+
+// 'reservation.for_member' — the facts a member's "booked / moved /
+// cancelled for you" e-mail is written from, read server-side (READ-ONLY,
+// schedule:access). The web action layer sends it after the change commits.
+export {
+  getMemberBookingNoticeContext,
+  getMemberBookingNoticeContextWithDb,
+  getMemberSeriesNoticeContext,
+  getMemberSeriesNoticeContextWithDb,
+} from './notifications/member-booking-notice.js';
+export type {
+  MemberBookingFacts,
+  MemberNoticeActor,
+  MemberBookingNoticeContext,
+  MemberSeriesNoticeContext,
+  GetMemberBookingNoticeContextInput,
+  GetMemberSeriesNoticeContextInput,
+} from './notifications/member-booking-notice.js';
 
 export {
   sendNotification,

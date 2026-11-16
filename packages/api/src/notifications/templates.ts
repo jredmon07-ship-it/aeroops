@@ -10,9 +10,11 @@
  *   is a minimal, unstyled wrapper (no external assets, no tracking pixels).
  */
 import type {
+  BookingResourceLabels,
   NotificationTemplateDataMap,
   RenderedEmail,
   ReservationCreatedData,
+  ReservationForMemberData,
   SquawkReportedData,
   AircraftGroundedData,
   MaintenanceDueData,
@@ -62,6 +64,195 @@ function renderReservationCreated(data: ReservationCreatedData): RenderedEmail {
       `Resource(s): ${tails}`,
       `Start: ${formatDateTime(data.startAt)}`,
       `End: ${formatDateTime(data.endAt)}`,
+    ]),
+  };
+}
+
+// ─── reservation.for_member ───────────────────────────────────────────────────
+//
+// Times are written in the zone the template data names, on the schedule's
+// 24-hour clock, ALWAYS followed by the zone's short name ("10:00–11:30 CST")
+// — the same convention as global search and the activity feed. A zone Intl
+// does not know falls back to an explicit "UTC". Never a bare clock time.
+
+/** `timeZone` when Intl knows it, else 'UTC' (then printed as "UTC"). */
+function knownZone(timeZone: string): string {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone });
+    return timeZone;
+  } catch {
+    return 'UTC';
+  }
+}
+
+interface ZonedParts {
+  /** "Mon, Nov 16, 2026" */
+  date: string;
+  /** "Mon, Nov 16" (subject lines) */
+  shortDate: string;
+  /** "10:00" */
+  time: string;
+  /** "CST", "CDT", "UTC", or a GMT offset where en-US has no short name. */
+  zone: string;
+}
+
+/** `d` read in `timeZone` (a zone knownZone already vetted). */
+function zoned(d: Date, timeZone: string): ZonedParts {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZoneName: 'short',
+  }).formatToParts(d);
+  // ICU versions differ on no-break spaces; plain spaces read the same everywhere.
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    (parts.find((p) => p.type === type)?.value ?? '').replace(/[\u202f\u00a0]/g, ' ');
+  const shortDate = `${part('weekday')}, ${part('month')} ${part('day')}`;
+  return {
+    date: `${shortDate}, ${part('year')}`,
+    shortDate,
+    time: `${part('hour')}:${part('minute')}`,
+    zone: part('timeZoneName'),
+  };
+}
+
+/**
+ * "Mon, Nov 16, 2026, 10:00–11:30 CST". A window that crosses midnight names
+ * both days; one that crosses a DST change names both zones.
+ */
+function formatWindow(startAt: Date, endAt: Date, timeZone: string): string {
+  const s = zoned(startAt, timeZone);
+  const e = zoned(endAt, timeZone);
+  const startZone = s.zone === e.zone ? '' : ` ${s.zone}`;
+  if (s.date === e.date) return `${s.date}, ${s.time}${startZone}–${e.time} ${e.zone}`;
+  return `${s.date}, ${s.time}${startZone} – ${e.date}, ${e.time} ${e.zone}`;
+}
+
+/** "Mon, Nov 16, 10:00 CST" — a start short enough for a subject line. */
+function formatShortStart(startAt: Date, timeZone: string): string {
+  const s = zoned(startAt, timeZone);
+  return `${s.shortDate}, ${s.time} ${s.zone}`;
+}
+
+const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+/** ISO weekdays 1..7 → "Tuesday and Thursday" ('' when none are valid). */
+function weekdayList(weekdays: number[]): string {
+  const names = [...new Set(weekdays)]
+    .filter((w) => Number.isInteger(w) && w >= 1 && w <= 7)
+    .sort((a, b) => a - b)
+    .map((w) => WEEKDAY_NAMES[w - 1]!);
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
+function sameLabels(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((label, i) => label === b[i]);
+}
+
+/**
+ * The "Aircraft: N12345" / "Instructor: Casey Reed (CFI)" / "Also booked:
+ * Redbird sim" lines. With `previous` (a move), a line whose labels changed
+ * says what it was: "Aircraft: N67890 (was N12345)".
+ */
+function resourceLines(current: BookingResourceLabels, previous?: Partial<BookingResourceLabels>): string[] {
+  const lines: string[] = [];
+  const line = (label: string, now: string[], was: string[] | undefined) => {
+    const changed = was !== undefined && !sameLabels(now, was);
+    if (now.length === 0 && !changed) return;
+    const value = now.length > 0 ? now.join(', ') : 'none';
+    lines.push(changed ? `${label}: ${value} (was ${was.length > 0 ? was.join(', ') : 'none'})` : `${label}: ${value}`);
+  };
+  line('Aircraft', current.aircraft, previous?.aircraft);
+  line(current.instructors.length > 1 ? 'Instructors' : 'Instructor', current.instructors, previous?.instructors);
+  line('Also booked', current.otherResources, previous?.otherResources);
+  return lines;
+}
+
+/**
+ * renderReservationForMember — club staff booked, moved or cancelled a
+ * booking FOR the recipient. Says who made the change, what is booked (tail
+ * numbers and names, never ids) and when (zoned, with the zone's short name).
+ * A recurring series is one e-mail: how many bookings, the weekdays and time
+ * it repeats on, and its first and last dates. Every operator-entered value
+ * (names, labels, the cancellation reason) is HTML-escaped in `html`.
+ */
+function renderReservationForMember(data: ReservationForMemberData): RenderedEmail {
+  const zone = knownZone(data.timeZone);
+  const who = data.changedBy.trim() || 'Club staff';
+  const orgName = data.orgName.trim();
+  const at = orgName ? ` at ${orgName}` : '';
+  const primary = data.aircraft[0] ?? data.instructors[0] ?? data.otherResources[0];
+  const lead = primary ? `${primary}, ` : '';
+  const when = formatWindow(data.startAt, data.endAt, zone);
+
+  let intro: string;
+  let subject: string;
+  const details: string[] = [];
+
+  if (data.change === 'moved') {
+    intro = `${who} moved a booking made for you${at}.`;
+    subject = `Booking moved: ${lead}now ${formatShortStart(data.startAt, zone)}`;
+    details.push(
+      `Was: ${formatWindow(data.previous.startAt, data.previous.endAt, zone)}`,
+      `Now: ${when}`,
+      ...resourceLines(data, data.previous),
+    );
+  } else if (data.series) {
+    const { count, weekdays, intervalWeeks, lastStartAt } = data.series;
+    const days = weekdayList(weekdays);
+    const first = zoned(data.startAt, zone);
+    const last = zoned(lastStartAt, zone);
+    // Every booking in a series has the same length.
+    const lastEndAt = new Date(lastStartAt.getTime() + (data.endAt.getTime() - data.startAt.getTime()));
+    const clock = `${first.time}–${zoned(data.endAt, zone).time} ${
+      first.zone === last.zone ? first.zone : `${first.zone}/${last.zone}`
+    }`;
+    const booked = data.change === 'booked';
+    if (booked) {
+      intro = `${who} set up a recurring booking for you${at}: ${plural(count, 'booking')}.`;
+      subject = `Recurring booking for you: ${lead}${plural(count, 'booking')} from ${first.shortDate}`;
+    } else {
+      intro = `${who} cancelled a recurring booking made for you${at}: ${plural(count, 'upcoming booking')}.`;
+      subject = `Recurring booking cancelled: ${lead}${plural(count, 'booking')} from ${first.shortDate}`;
+    }
+    if (days) {
+      details.push(`Repeats: ${intervalWeeks > 1 ? `every ${intervalWeeks} weeks on ${days}` : `every ${days}`}, ${clock}`);
+    }
+    details.push(`${booked ? 'First' : 'From'}: ${when}`);
+    if (count > 1) details.push(`${booked ? 'Last' : 'Through'}: ${formatWindow(lastStartAt, lastEndAt, zone)}`);
+    details.push(...resourceLines(data));
+  } else if (data.change === 'booked') {
+    intro = `${who} booked this for you${at}.`;
+    subject = `Booked for you: ${lead}${formatShortStart(data.startAt, zone)}`;
+    details.push(`When: ${when}`, ...resourceLines(data));
+  } else {
+    intro = `${who} cancelled a booking made for you${at}.`;
+    subject = `Booking cancelled: ${lead}${formatShortStart(data.startAt, zone)}`;
+    details.push(`When: ${when}`, ...resourceLines(data));
+  }
+
+  const reason = data.change === 'cancelled' ? data.reason?.trim() : undefined;
+  if (reason) details.push(`Reason: ${reason}`);
+
+  const closing = `Questions about this booking? Contact ${orgName || 'your club'}.`;
+  return {
+    // A subject is one header line; operator-entered labels must not break it.
+    subject: subject.replace(/[\r\n]+/g, ' '),
+    text: `${intro}\n\n${details.join('\n')}\n\n${closing}\n`,
+    html: wrapHtml([
+      escapeHtml(intro),
+      details.map((d) => escapeHtml(d)).join('<br>'),
+      escapeHtml(closing),
     ]),
   };
 }
@@ -146,6 +337,8 @@ export function renderNotificationTemplate<E extends NotificationEventType>(
   switch (eventType) {
     case 'reservation.created':
       return renderReservationCreated(data as ReservationCreatedData);
+    case 'reservation.for_member':
+      return renderReservationForMember(data as ReservationForMemberData);
     case 'squawk.reported':
       return renderSquawkReported(data as SquawkReportedData);
     case 'aircraft.grounded':

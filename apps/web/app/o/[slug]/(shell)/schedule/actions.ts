@@ -18,6 +18,15 @@ import { actionAuth as auth } from '@/lib/action-auth';
 import { dayInZone } from '@/lib/schedule-day';
 import { getViewerTimeZone } from '@/lib/viewer-time-zone';
 import {
+  notifyMemberBooked,
+  notifyMemberSeriesBooked,
+  notifyMemberMoved,
+  readCancelNotice,
+  notifyMemberCancelled,
+  readSeriesCancelNotice,
+  notifyMemberSeriesCancelled,
+} from './_utils/member-booking-notice';
+import {
   listReservations,
   createReservation,
   cancelReservation,
@@ -152,6 +161,10 @@ export async function createReservationAction(input: {
           resourceIds: result.reservation.resourceIds,
         },
       }).catch(() => {});
+      // The member it was booked FOR, when that is someone other than the
+      // booker ('reservation.for_member'). Same best-effort contract: never
+      // throws, never changes this result.
+      await notifyMemberBooked(session, result.reservation);
     }
     return result;
   } catch (err) {
@@ -179,7 +192,13 @@ export async function cancelReservationAction(input: {
 }): Promise<CancelReservationActionResult> {
   const session = await auth();
   try {
-    return await cancelReservation(session, input);
+    // Read the booking BEFORE cancelling: who it is for, and whether it is
+    // still booked (cancelling an already-cancelled one is a no-op that
+    // tells no one). Best-effort: null on any failure, never throws.
+    const notice = await readCancelNotice(session, input.reservationId);
+    const result = await cancelReservation(session, input);
+    if (result.ok) await notifyMemberCancelled(session, notice, input.reason);
+    return result;
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
@@ -487,7 +506,11 @@ export async function createSeriesAction(
 ): Promise<CreateSeriesActionResult> {
   const session = await auth();
   try {
-    return await createSeries(session, input);
+    const result = await createSeries(session, input);
+    // ONE e-mail to the member the series is for (not one per occurrence),
+    // after it committed. Best-effort: never throws.
+    await notifyMemberSeriesBooked(session, result, input);
+    return result;
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
@@ -537,7 +560,12 @@ export async function cancelSeriesAction(input: {
 }): Promise<CancelSeriesActionResult> {
   const session = await auth();
   try {
-    return await cancelSeries(session, input);
+    // Read the series' upcoming bookings BEFORE cancelling them (who they are
+    // for, first and last dates); one e-mail for the series after it commits.
+    const notice = await readSeriesCancelNotice(session, input.seriesId);
+    const result = await cancelSeries(session, input);
+    if (result.ok) await notifyMemberSeriesCancelled(session, notice, result.cancelledCount, input.reason);
+    return result;
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
@@ -984,7 +1012,12 @@ export async function rescheduleAction(input: {
 }): Promise<RescheduleActionResult> {
   const session = await auth();
   try {
-    return await rescheduleReservation(session, input);
+    const result = await rescheduleReservation(session, input);
+    // Board drag and the Move dialog both land here: tell the member the
+    // booking is for (old and new times), after the move committed.
+    // Best-effort: never throws.
+    if (result.ok) await notifyMemberMoved(session, input.reservationId, result.reservation);
+    return result;
   } catch (err) {
     const authErr = mapAuthError(err);
     if (authErr) return authErr;
