@@ -2,7 +2,8 @@
  * month-view.tsx — Month calendar view for /schedule (?view=month).
  *
  * Flight-Circle-style month grid: 7-column weeks, up to 4 reservation chips
- * per day (start time · tail/resource · booked-by short name), "+N more" →
+ * per day (start time · tail/resource · booked-by short name, or "for" the
+ * member a booking was made for — migration 0051), "+N more" →
  * the existing day board. Chips are colored per PRIMARY resource via a stable
  * hash into a fixed Tailwind palette (same resource → same color forever).
  *
@@ -40,9 +41,9 @@ import {
   formatMonthParam,
   monthLabel,
   paletteIndex,
-  shortName,
   type MonthDayCell,
 } from '@/lib/month-grid';
+import { monthChipPeople } from '@/lib/booked-for';
 import { formatTime } from '../_utils/format-time';
 import { dayInZone, dayLabel } from '@/lib/schedule-day';
 import { buildResourceMap, sortResourceIds } from '../_utils/resource-map';
@@ -144,20 +145,22 @@ function ReservationChip({
   const { resourceLabel, colorClass } = chipInfoFor(reservation, resourceMap);
   const time = formatTime(reservation.startAt, timeZone);
   const bookedBy = memberNameById.get(reservation.createdBy);
-  const bookedByShort = bookedBy ? shortName(bookedBy) : null;
+  // Who the booking is for (migration 0051; every schedule viewer gets it with
+  // the row) in place of the booker's short name, both in full in the title.
+  // A booking for no one reads exactly as before (lib/booked-for.ts).
+  const people = monthChipPeople(reservation.memberDisplayName, bookedBy);
 
-  const ariaLabel = `${time} ${resourceLabel}${
-    bookedBy ? `, booked by ${bookedBy}` : ''
-  }, ${dayLabel} — open day board`;
+  const ariaLabel = `${time} ${resourceLabel}${people.ariaClause}, ${dayLabel} — open day board`;
 
   return (
     <Link
       href={boardHref}
       aria-label={ariaLabel}
+      title={people.title}
       className={`block truncate rounded-sm border px-1 py-0.5 text-[0.6875rem] leading-4 font-medium ${colorClass}`}
     >
       <span className="font-mono">{time}</span> {resourceLabel}
-      {bookedByShort ? <span className="font-normal"> · {bookedByShort}</span> : null}
+      {people.segment ? <span className="font-normal"> · {people.segment}</span> : null}
     </Link>
   );
 }

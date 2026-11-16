@@ -5,7 +5,7 @@
  *   assembleMyPortal(tx, userId)     — the 3-facet aggregation inside an existing
  *                                      org context (RLS-scoped by the caller).
  *   readMyTraining(tx, userId)       — own enrollments + progress.
- *   readMyReservations(tx, userId)   — own upcoming reservations (booker|pilot).
+ *   readMyReservations(tx, userId)   — own upcoming reservations (booker|pilot|for me).
  *   readMyAccount(tx, userId)        — own identity + own free-text tags.
  *
  * INVARIANT: All helpers accept an AnyDb tx with the org GUC already set by the
@@ -98,8 +98,12 @@ export async function readMyTraining(
  *
  * In-scope iff status='booked' AND start > NOW() AND
  *   (reservation.created_by = me  OR  a NON-VOIDED dispatch_ticket links the
- *    reservation with pilot_user_id = me).
- * role derived from which condition(s) matched. resourceIds carries display
+ *    reservation with pilot_user_id = me  OR  reservation.member_user_id = me
+ *    — a booking club staff made FOR me, migration 0051).
+ * role derived from which condition(s) matched: booker / pilot as before, and
+ * 'for_you' when the booking was made for me and I neither made it nor am
+ * its dispatched pilot. Every predicate is me (session.userId), never a
+ * caller-supplied id. resourceIds carries display
  * labels: the aircraft tail number, else the resource's display name (an
  * instructor: "Casey Reed (CFI)"), and the resource id only if a row somehow has
  * neither (display_name is NOT NULL). Same join to `resource` as before, so
@@ -121,7 +125,8 @@ export async function readMyReservations(
         dt.id IS NOT NULL
         AND dt.pilot_user_id = ${userId}::uuid
         AND dt.status <> 'voided'
-      )                                                   AS "isPilot"
+      )                                                   AS "isPilot",
+      (r.member_user_id IS NOT DISTINCT FROM ${userId}::uuid) AS "isMember"
     FROM reservation r
     JOIN reservation_resource rr ON rr.reservation_id = r.id
     LEFT JOIN resource res ON res.id = rr.resource_id
@@ -136,8 +141,9 @@ export async function readMyReservations(
             AND dt2.pilot_user_id = ${userId}::uuid
             AND dt2.status <> 'voided'
         )
+        OR r.member_user_id = ${userId}::uuid
       )
-    GROUP BY r.id, lower(rr.during), upper(rr.during), r.series_id, rr.resource_id, res.tail_number, res.display_name, r.created_by
+    GROUP BY r.id, lower(rr.during), upper(rr.during), r.series_id, rr.resource_id, res.tail_number, res.display_name, r.created_by, r.member_user_id
     ORDER BY lower(rr.during) ASC
     LIMIT 20
   `);
@@ -150,11 +156,15 @@ export async function readMyReservations(
     resourceLabel: string;
     isBooker: boolean;
     isPilot: boolean;
+    isMember: boolean;
   }>(result);
 
   // Multiple resources on one reservation produce multiple rows; collapse them,
   // preserving start ASC order and aggregating resource labels + the role flags.
-  const byId = new Map<string, MyReservationRow & { _booker: boolean; _pilot: boolean }>();
+  const byId = new Map<
+    string,
+    MyReservationRow & { _booker: boolean; _pilot: boolean; _member: boolean }
+  >();
   for (const r of rows) {
     const existing = byId.get(r.id);
     if (existing) {
@@ -163,6 +173,7 @@ export async function readMyReservations(
       }
       existing._booker = existing._booker || r.isBooker === true;
       existing._pilot = existing._pilot || r.isPilot === true;
+      existing._member = existing._member || r.isMember === true;
     } else {
       byId.set(r.id, {
         id: r.id,
@@ -173,13 +184,22 @@ export async function readMyReservations(
         role: 'booker', // placeholder; set below
         _booker: r.isBooker === true,
         _pilot: r.isPilot === true,
+        _member: r.isMember === true,
       });
     }
   }
 
-  return [...byId.values()].map(({ _booker, _pilot, ...row }) => {
+  return [...byId.values()].map(({ _booker, _pilot, _member, ...row }) => {
+    // Booker / pilot read exactly as before; 'for_you' only for a booking made
+    // FOR me that I neither made nor am the dispatched pilot of.
     const role: MyReservationRow['role'] =
-      _booker && _pilot ? 'booker_and_pilot' : _pilot ? 'pilot' : 'booker';
+      _booker && _pilot
+        ? 'booker_and_pilot'
+        : _pilot
+          ? 'pilot'
+          : _booker || !_member
+            ? 'booker'
+            : 'for_you';
     return { ...row, role };
   });
 }

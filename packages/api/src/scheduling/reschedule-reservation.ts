@@ -26,6 +26,11 @@
  *     fresh tx, and return { reason:'conflict' }. Mirrors createReservation.
  *   - A rescheduled occurrence DETACHES from its series (seriesId:undefined →
  *     series_id NULL on the new row).
+ *   - The member the booking is for (member_user_id, migration 0051) moves
+ *     with it: the new row names the original's member (NULL stays NULL). The
+ *     gated path re-checks that member is still ACTIVE; one deactivated since
+ *     the booking was made refuses the move with a ValidationError, and the
+ *     original stays booked + intact.
  *   - AUDIT LINKAGE: reservation.cancelled (metadata reason:'reschedule',
  *     rescheduledTo:newId) + the reservation.created gatedCreateOccurrence
  *     writes + a dedicated reservation.rescheduled row (entityId:newId, metadata
@@ -114,7 +119,8 @@ async function _rescheduleReservationImpl(
   try {
     return await withSessionOrgContextWithDb(db, session, async (sess, tx): Promise<RescheduleResult> => {
       // 3. Load the original (RLS scopes to org — cross-org/unknown id is simply
-      //    not visible → not_found). Need status + notes + window for audit.
+      //    not visible → not_found). Need status + notes + window for audit, and
+      //    the member it is for (migration 0051) to carry over.
       const origRows = await tx
         .select({
           id: reservation.id,
@@ -122,6 +128,7 @@ async function _rescheduleReservationImpl(
           notes: reservation.notes,
           startAt: reservation.startAt,
           endAt: reservation.endAt,
+          memberUserId: reservation.memberUserId,
         })
         .from(reservation)
         .where(eq(reservation.id, input.reservationId))
@@ -184,8 +191,10 @@ async function _rescheduleReservationImpl(
         .where(eq(reservationResource.reservationId, input.reservationId));
 
       // 6. RECREATE through the shared gated path. seriesId:undefined → detach.
-      //    notes carried over from the original. Race (23P01) → OccurrenceRace-
-      //    Error propagates out of this callback (poisons tx → outer catch).
+      //    notes + the member it is for carried over from the original (a
+      //    booking that names no member passes no memberUserId: unchanged).
+      //    Race (23P01) → OccurrenceRaceError propagates out of this callback
+      //    (poisons tx → outer catch).
       const created: CreateReservationResult = await gatedCreateOccurrence(
         tx,
         sess,
@@ -196,6 +205,7 @@ async function _rescheduleReservationImpl(
           resourceIds: targetResourceIds,
           notes: original.notes ?? undefined,
           seriesId: undefined,
+          ...(original.memberUserId ? { memberUserId: original.memberUserId } : {}),
         },
         now,
       );

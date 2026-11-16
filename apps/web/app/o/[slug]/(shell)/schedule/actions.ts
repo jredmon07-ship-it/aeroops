@@ -129,6 +129,11 @@ export async function createReservationAction(input: {
   endAt: Date;
   resourceIds: string[];
   notes?: string;
+  /**
+   * The member the booking is for (migration 0051). Checked server-side: an
+   * active member of the session's org, else { error: 'validation' }.
+   */
+  memberUserId?: string;
 }): Promise<CreateReservationActionResult> {
   const session = await auth();
   try {

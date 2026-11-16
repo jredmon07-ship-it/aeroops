@@ -53,7 +53,7 @@ import type { MobileClaims } from '../auth/verify-login.js';
 // ─── Migration SQL ─────────────────────────────────────────────────────────────
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0042');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 // ─── Shared test state ─────────────────────────────────────────────────────────
 

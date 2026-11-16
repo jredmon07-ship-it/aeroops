@@ -12,7 +12,9 @@
  *      Rendered inside the Suspense boundary so it shows the real name,
  *      not a skeleton placeholder.
  *   B. My upcoming reservations — start/end local-formatted, tail #s and
- *      instructor names from resourceIds, booker/pilot chip. Empty: "No upcoming reservations."
+ *      instructor names from resourceIds, booker/pilot chip ("Booked for you"
+ *      on a booking club staff made for the member, migration 0051). Empty:
+ *      "No upcoming reservations."
  *      NO book CTA (self-booking is deferred).
  *   C. My training — per-enrollment: course title + status pill + progress bar
  *      + completedCount/totalLessons. Empty: "Not enrolled in a course yet."
@@ -91,7 +93,7 @@ function EnrollmentStatusPill({ status }: { status: string }) {
 function ReservationRoleChip({
   role,
 }: {
-  role: 'booker' | 'pilot' | 'booker_and_pilot';
+  role: 'booker' | 'pilot' | 'booker_and_pilot' | 'for_you';
 }) {
   return (
     <span className="inline-flex items-center rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 text-[0.6875rem] font-medium leading-4 text-slate-600 dark:text-slate-300">

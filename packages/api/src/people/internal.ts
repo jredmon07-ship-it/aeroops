@@ -11,7 +11,9 @@
  * caller's withSessionOrgContextWithDb. They NEVER set GUC themselves.
  *
  * [VERIFY-6-A]: tags are free-text opaque labels. No FAA meaning computed.
- * [VERIFY-6-C]: upcomingReservations = created_by, not flight assignment.
+ * [VERIFY-6-C]: upcomingReservations = bookings the member made (created_by)
+ *   or that were made FOR them (member_user_id, migration 0051) — not a
+ *   flight/pilot assignment or training credit.
  */
 
 import { sql } from 'drizzle-orm';
@@ -117,8 +119,10 @@ export async function assembleMemberDetail(
     createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt),
   }));
 
-  // ── 3. Upcoming reservations BOOKED BY this member ─────────────────────────
-  // [VERIFY-6-C]: reservation.created_by — booking owner, NOT flight assignment.
+  // ── 3. Upcoming reservations BOOKED BY or FOR this member ──────────────────
+  // [VERIFY-6-C]: reservation.created_by (the booking's owner) OR
+  // reservation.member_user_id (the member club staff booked it for, migration
+  // 0051) — NOT a flight/pilot assignment or training credit.
   // One row per reservation: a dual booking holds the aircraft AND the
   // instructor (two reservation_resource rows) and was listed twice.
   const reservationsResult = await tx.execute(sql`
@@ -129,7 +133,7 @@ export async function assembleMemberDetail(
       r.series_id           AS "seriesId"
     FROM reservation r
     JOIN reservation_resource rr ON rr.reservation_id = r.id
-    WHERE r.created_by = ${userId}::uuid
+    WHERE (r.created_by = ${userId}::uuid OR r.member_user_id = ${userId}::uuid)
       AND r.status = 'booked'
       AND lower(rr.during) > NOW()
     GROUP BY r.id, r.series_id

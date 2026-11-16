@@ -15,14 +15,15 @@
  *   listSeriesOccurrencesWithDb(db, session, input)    — tests; inject pglite.
  */
 
-import { eq, asc, sql } from 'drizzle-orm';
-import { reservationSeries, reservation } from '@aeroops/db';
+import { and, eq, asc, sql } from 'drizzle-orm';
+import { reservationSeries, reservation, appUser } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
 import { getDb } from '../db.js';
 import type { AppSession } from '../auth/types.js';
 import type { SeriesRow } from './types.js';
+import { memberDisplayNameOf } from './list-reservations.js';
 import type { ReservationRow } from './list-reservations.js';
 import { extractRows } from '../db-rows.js';
 
@@ -76,8 +77,16 @@ async function _listSeriesOccurrencesImpl(
         cancelledAt: reservation.cancelledAt,
         cancelledBy: reservation.cancelledBy,
         seriesId: reservation.seriesId,
+        memberUserId: reservation.memberUserId,
+        memberFullName: appUser.fullName,
+        memberEmail: appUser.email,
       })
       .from(reservation)
+      // The member each occurrence is for (migration 0051), as listReservations.
+      .leftJoin(
+        appUser,
+        and(eq(appUser.id, reservation.memberUserId), eq(appUser.orgId, reservation.orgId)),
+      )
       .where(eq(reservation.seriesId, input.seriesId))
       .orderBy(asc(reservation.startAt));
 
@@ -123,6 +132,8 @@ async function _listSeriesOccurrencesImpl(
       // Every row here is an occurrence of this series (WHERE series_id = input).
       seriesId: input.seriesId,
       resourceIds: resourceIdsByReservation.get(r.id) ?? [],
+      memberUserId: r.memberUserId ?? null,
+      memberDisplayName: memberDisplayNameOf(r.memberUserId, r.memberFullName, r.memberEmail),
     }));
 
     // 6. Map series row to SeriesRow shape.

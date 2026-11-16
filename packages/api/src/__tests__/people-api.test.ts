@@ -70,7 +70,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0042');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 // ── Shared test env ──────────────────────────────────────────────────────────
 
@@ -514,6 +514,47 @@ describe('T13c — getMemberDetail upcoming reservations, one row per booking', 
     expect(rows).toHaveLength(1);
     expect(rows[0]!.startAt.getTime()).toBe(startAt.getTime());
     expect(rows[0]!.endAt.getTime()).toBe(endAt.getTime());
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// T13d — getMemberDetail: bookings made FOR the member (member_user_id, 0051)
+// ════════════════════════════════════════════════════════════════════════════════
+
+describe('T13d — getMemberDetail upcoming reservations include bookings made for them', () => {
+  it("a booking staff made for the member is listed once on their page, never on another member's", async () => {
+    const { db, orgAId, userAId } = sharedEnv;
+    const stamp = Date.now();
+    // Fresh members, so no other test's bookings crowd the 10-row list.
+    const memberId = await seedOrgAMember(db, orgAId, `for-t13d-${stamp}@test.com`, 'renter');
+    const otherId = await seedOrgAMember(db, orgAId, `other-t13d-${stamp}@test.com`, 'renter');
+    const sess = makeSession(orgAId, userAId, 'owner');
+    const aircraft = await createResourceWithDb(db, sess, {
+      kind: 'aircraft',
+      displayName: `N-FOR-${stamp}`,
+      tailNumber:  `NF${stamp % 100000}`,
+    });
+    // Relative to the run: the list only holds bookings that start after NOW().
+    const startAt = new Date(Math.ceil((stamp + 31 * 86_400_000) / 3_600_000) * 3_600_000);
+    const endAt = new Date(startAt.getTime() + 2 * 3_600_000);
+    // The owner books it (created_by = owner) FOR the member.
+    const booked = await createReservationWithDb(db, sess, {
+      startAt,
+      endAt,
+      resourceIds: [aircraft.id],
+      memberUserId: memberId,
+    });
+    if (!booked.ok) throw new Error(`seed reservation failed: ${booked.reason}`);
+
+    const forMember = await getMemberDetailWithDb(db, sess, { userId: memberId });
+    if (!forMember.ok) throw new Error('member not found');
+    const rows = forMember.member.upcomingReservations.filter((u) => u.id === booked.reservation.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.startAt.getTime()).toBe(startAt.getTime());
+
+    const forOther = await getMemberDetailWithDb(db, sess, { userId: otherId });
+    if (!forOther.ok) throw new Error('member not found');
+    expect(forOther.member.upcomingReservations).toEqual([]);
   });
 });
 

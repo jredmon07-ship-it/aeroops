@@ -40,6 +40,12 @@ export interface CreateReservationInput {
   endAt: Date;
   resourceIds: string[];
   notes?: string;
+  /**
+   * Migration 0051: the member the booking is FOR (club staff book for renters
+   * and students). Must be an ACTIVE member of the session org, else a
+   * ValidationError and nothing is written. Omit (or null) for no one.
+   */
+  memberUserId?: string | null;
 }
 
 /**
@@ -75,9 +81,10 @@ async function _createReservationImpl(
   // 1. AUTHZ FIRST — before any data access. Throws Forbidden/Unauthenticated.
   requireCapability(session, 'schedule:create_reservation');
 
-  // 2. VALIDATE — endAt>startAt, >=1 resource, de-dup. Throws ValidationError
-  //    (distinct from a conflict result).
-  const { startAt, endAt, resourceIds, notes } = parseReservationWindow(input);
+  // 2. VALIDATE — endAt>startAt, >=1 resource, de-dup, memberUserId a UUID.
+  //    Throws ValidationError (distinct from a conflict result). Whether the
+  //    member is an active member of the org is checked in the tx (gated path).
+  const { startAt, endAt, resourceIds, notes, memberUserId } = parseReservationWindow(input);
 
   // 3. ONE transaction scoped to session.orgId (READ COMMITTED; EXCLUDE is the
   //    race backstop per ADR-0004 — no SERIALIZABLE retry loop needed).
@@ -91,7 +98,14 @@ async function _createReservationImpl(
   //    implementation (which re-probed inside gatedCreateOccurrence itself).
   try {
     return await withSessionOrgContextWithDb(db, session, (sess, tx) =>
-      gatedCreateOccurrence(tx, sess, db, { startAt, endAt, resourceIds, notes }, now),
+      gatedCreateOccurrence(
+        tx,
+        sess,
+        db,
+        // memberUserId only when named: the no-member input is unchanged.
+        { startAt, endAt, resourceIds, notes, ...(memberUserId ? { memberUserId } : {}) },
+        now,
+      ),
     );
   } catch (err) {
     if (err instanceof OccurrenceRaceError) {
@@ -117,7 +131,8 @@ async function _createReservationImpl(
  * createReservation — race-safe reservation create for the authenticated org.
  *
  * @param session - AppSession from auth(); null/undefined → UnauthenticatedError.
- * @param input   - window + resourceIds (+ optional notes).
+ * @param input   - window + resourceIds (+ optional notes, + optional
+ *                  memberUserId: the member the booking is for).
  * @returns CreateReservationResult — ok:true with the reservation, or
  *          ok:false reason:'conflict'|'policy'|'conflict_and_policy'.
  * @throws  UnauthenticatedError | ForbiddenError | ValidationError.

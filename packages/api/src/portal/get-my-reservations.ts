@@ -2,13 +2,14 @@
  * get-my-reservations.ts — Portal self-scoped reservations read (Slice P1.1).
  *
  * getMyReservations — returns the CALLER'S OWN upcoming booked reservations,
- * where the caller is either the booker (created_by) or the dispatched pilot
- * (non-voided dispatch_ticket.pilot_user_id), with a derived role chip.
+ * where the caller is the booker (created_by), the dispatched pilot
+ * (non-voided dispatch_ticket.pilot_user_id) or the member it was booked for
+ * (member_user_id, migration 0051), with a derived role chip.
  *
  * SELF-SCOPING (the load-bearing requirement): the subject is ALWAYS
  * session.userId from the verified JWT. There is NO row-identifying input.
- * The predicate is hardwired to created_by = me OR dispatched-pilot = me — a
- * portal user can NEVER read another member's reservations.
+ * The predicate is hardwired to created_by = me OR dispatched-pilot = me OR
+ * booked-for = me — a portal user can NEVER read another member's reservations.
  *
  * GUARANTEES:
  *   - requireCapability('portal:access') FIRST.

@@ -373,7 +373,8 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
   // Today's three flights. Each is checked out once it has started and back
   // in once it is over (8a2), so the seed clock decides how far they have got:
   // all three still booked at the 03:00 reset, the first two flown and the
-  // Archer out at 15:00.
+  // Archer out at 15:00. All three are the student's (memberUserId, migration
+  // 0051): the owner books them, and the student's portal lists them.
   // A — this morning's dual cross-country. 172 + instructor.
   const resA = await mustCreate(
     createReservationWithDb(db, ownerSession, {
@@ -381,6 +382,7 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
       endAt: at(0, 9),
       resourceIds: [tail('N172SP'), ids.instructorId],
       notes: 'Dual XC — KABC ▸ practice area',
+      memberUserId: ids.studentId,
     }, clock),
     'reservation A (172 dual)',
   );
@@ -392,17 +394,20 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
       endAt: at(0, 12),
       resourceIds: [tail('N152AB')],
       notes: 'Solo pattern work',
+      memberUserId: ids.studentId,
     }, clock),
     'reservation B (152 solo)',
   );
 
-  // C — this afternoon's stage-check prep. Archer + instructor.
+  // C — this afternoon's stage-check prep. Archer + instructor. The student's
+  // lesson, flown by the CFI as pilot in command (the Archer's checkout tag).
   const resC = await mustCreate(
     createReservationWithDb(db, ownerSession, {
       startAt: at(0, 14),
       endAt: at(0, 15, 30),
       resourceIds: [tail('N28K'), ids.instructorId],
       notes: 'Stage check prep',
+      memberUserId: ids.studentId,
     }, clock),
     'reservation C (Archer dual)',
   );
@@ -430,6 +435,7 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
   );
 
   // ── 5. Weekly recurring lesson series (Tue/Thu evening ground+flight) ───
+  // The student's private-pilot block: every occurrence is for the student.
   await createSeriesWithDb(db, ownerSession, {
     weekdays: [2, 4],
     intervalWeeks: 1,
@@ -439,6 +445,7 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
     tz: demoWallClockZone(),
     resourceIds: [tail('N28K')],
     notes: 'Private pilot ground + flight block',
+    memberUserId: ids.studentId,
   }, clock);
 
   // ── 5a. The coming six weeks (demo/seed-upcoming.ts) ───────────────────
@@ -449,7 +456,9 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
   // Cirrus checkouts. Any collision throws. The Cirrus slots start a week out,
   // after its maintenance (see the grounding below and the announcement).
   // Notes deliberately differ from the hand-placed reservations' notes, which
-  // tests look up by exact text.
+  // tests look up by exact text. The student's lessons and solos are booked
+  // for the student (bookedFor); the rentals and the SR20 transitions name no
+  // member (Alpha's roster has no renter for them).
   await seedUpcomingReservations(
     db,
     ownerSession,
@@ -466,6 +475,7 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
           'Dual — XC planning flight',
           'Stage check — oral & flight prep',
         ],
+        bookedFor: ids.studentId,
       },
       {
         weekdays: [2, 4],
@@ -473,6 +483,7 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
         durationMinutes: 90,
         resourceIds: [tail('N152AB')],
         notes: ['Solo — practice area', 'Solo — pattern work'],
+        bookedFor: ids.studentId,
       },
       {
         weekdays: [1, 2, 3, 4, 5],
@@ -501,6 +512,7 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
         durationMinutes: 120,
         resourceIds: [tail('N152AB')],
         notes: ['Solo — weekend practice'],
+        bookedFor: ids.studentId,
       },
       {
         weekdays: [3, 6],
@@ -675,8 +687,10 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
   // pilot must be an app_user MEMBER (ids.instructorId is the instructor
   // *resource*, not a user — the Archer is flown by the CFI user, who also
   // carries the 'Club checkout: complex' tag its dispatch requirement needs).
-  const histPlan = [
-    { tail: 'N172SP', pilot: ids.studentId, hobbs: 3300, tach: 3100 },
+  // member: who the booking is for (memberUserId) — the student's 172 flights
+  // are theirs; the CFI's own Archer flights name no member.
+  const histPlan: Array<{ tail: string; pilot: string; member?: string; hobbs: number; tach: number }> = [
+    { tail: 'N172SP', pilot: ids.studentId, member: ids.studentId, hobbs: 3300, tach: 3100 },
     { tail: 'N28K', pilot: cfiUserId, hobbs: 1500, tach: 1400 },
   ];
   // The student's first two course lessons were flown dual in the 172, 18 and
@@ -713,6 +727,7 @@ export async function seedDemo(db: AnyDb, now: Date = new Date()): Promise<void>
           endAt,
           resourceIds: lesson < 0 ? [tail(plan.tail)] : [tail(plan.tail), ids.instructorId],
           notes: lesson < 0 ? 'Training flight' : `Dual — ${lessonPlan[lesson]!.title.toLowerCase()}`,
+          ...(plan.member ? { memberUserId: plan.member } : {}),
         }, clock);
         if (!res.ok) continue;
 
@@ -1037,6 +1052,12 @@ interface BravoPastFlight {
   pilot: BravoKey;
   note: string;
   withCfi?: true;
+  /**
+   * Who the booking is for (memberUserId): the member the note names. Defaults
+   * to the pilot; instruction names the trainee, since Morgan flies it as pilot
+   * in command.
+   */
+  member?: BravoKey;
 }
 
 /**
@@ -1053,23 +1074,23 @@ const BRAVO_HISTORY: BravoPastFlight[] = [
   { daysAgo: 26, tail: 'N735BW', hour: 10, minutes: 90, pilot: 'marcus', note: 'Marcus — pattern work' },
   { daysAgo: 25, tail: 'N735BW', hour: 11, minutes: 120, pilot: 'lena', note: 'Lena — KOSU ▸ KLCK and back' },
   { daysAgo: 24, tail: 'N735BW', hour: 9, minutes: 75, pilot: 'hannah', note: 'Hannah — practice area' },
-  { daysAgo: 24, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true },
+  { daysAgo: 24, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true, member: 'jamie' },
   { daysAgo: 23, tail: 'N735BW', hour: 10, minutes: 105, pilot: 'riley', note: 'Riley — KOSU ▸ KMNN and back' },
   { daysAgo: 23, tail: 'N2189K', hour: 15, minutes: 120, pilot: 'victor', note: 'Victor — KOSU ▸ KDLZ practice approaches' },
-  { daysAgo: 22, tail: 'N735BW', hour: 11, minutes: 90, pilot: 'morgan', note: 'Flight review — Priya with Morgan', withCfi: true },
+  { daysAgo: 22, tail: 'N735BW', hour: 11, minutes: 90, pilot: 'morgan', note: 'Flight review — Priya with Morgan', withCfi: true, member: 'priya' },
   { daysAgo: 21, tail: 'N735BW', hour: 9, minutes: 60, pilot: 'jordan', note: 'Jordan — local flight' },
   { daysAgo: 21, tail: 'N2189K', hour: 13, minutes: 105, pilot: 'hannah', note: 'Hannah — KOSU ▸ KLCK and back' },
   { daysAgo: 20, tail: 'N2189K', hour: 14, minutes: 90, pilot: 'tom', note: 'Tom — proficiency flight' },
   { daysAgo: 19, tail: 'N735BW', hour: 10, minutes: 90, pilot: 'riley', note: 'Riley — pattern work' },
   { daysAgo: 18, tail: 'N735BW', hour: 11, minutes: 120, pilot: 'dana', note: 'Dana — scenic flight' },
   { daysAgo: 18, tail: 'N2189K', hour: 15, minutes: 75, pilot: 'lena', note: 'Lena — pattern work' },
-  { daysAgo: 17, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true },
+  { daysAgo: 17, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true, member: 'jamie' },
   { daysAgo: 16, tail: 'N735BW', hour: 9, minutes: 105, pilot: 'priya', note: 'Priya — KOSU ▸ KMNN and back' },
   { daysAgo: 15, tail: 'N735BW', hour: 10, minutes: 120, pilot: 'riley', note: 'Riley — KOSU ▸ KLCK and back' },
   { daysAgo: 14, tail: 'N735BW', hour: 11, minutes: 75, pilot: 'marcus', note: 'Marcus — practice area' },
   { daysAgo: 14, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'victor', note: 'Victor — proficiency flight' },
   { daysAgo: 13, tail: 'N735BW', hour: 9, minutes: 90, pilot: 'casey', note: 'Casey — scenic flight' },
-  { daysAgo: 12, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Club checkout — Ana with Morgan', withCfi: true },
+  { daysAgo: 12, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Club checkout — Ana with Morgan', withCfi: true, member: 'ana' },
   { daysAgo: 11, tail: 'N735BW', hour: 10, minutes: 90, pilot: 'riley', note: 'Riley — practice area' },
   { daysAgo: 11, tail: 'N2189K', hour: 15, minutes: 120, pilot: 'dana', note: 'Dana — KOSU ▸ KDLZ practice approaches' },
   { daysAgo: 10, tail: 'N735BW', hour: 11, minutes: 60, pilot: 'hannah', note: 'Hannah — pattern work' },
@@ -1079,10 +1100,10 @@ const BRAVO_HISTORY: BravoPastFlight[] = [
   { daysAgo: 7, tail: 'N735BW', hour: 10, minutes: 120, pilot: 'riley', note: 'Riley — KOSU ▸ KMNN and back' },
   { daysAgo: 6, tail: 'N735BW', hour: 11, minutes: 90, pilot: 'dana', note: 'Dana — local flight' },
   { daysAgo: 6, tail: 'N2189K', hour: 15, minutes: 75, pilot: 'tom', note: 'Tom — pattern work' },
-  { daysAgo: 5, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Club checkout — Ana with Morgan', withCfi: true },
+  { daysAgo: 5, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Club checkout — Ana with Morgan', withCfi: true, member: 'ana' },
   { daysAgo: 4, tail: 'N2189K', hour: 14, minutes: 120, pilot: 'lena', note: 'Lena — KOSU ▸ KMNN and back' },
   { daysAgo: 3, tail: 'N735BW', hour: 10, minutes: 75, pilot: 'jordan', note: 'Jordan — pattern work' },
-  { daysAgo: 3, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true },
+  { daysAgo: 3, tail: 'N2189K', hour: 13, minutes: 90, pilot: 'morgan', note: 'Lesson — Jamie with Morgan', withCfi: true, member: 'jamie' },
   { daysAgo: 2, tail: 'N735BW', hour: 11, minutes: 90, pilot: 'riley', note: 'Riley — touch and goes' },
   { daysAgo: 1, tail: 'N2189K', hour: 14, minutes: 90, pilot: 'hannah', note: 'Hannah — local flight' },
 ];
@@ -1114,7 +1135,9 @@ function tenths(n: number): number {
  * Roles do what they would in a real club: Casey (the scheduler) books and
  * dispatches for the members (renters cannot book in this app), Morgan books
  * the instruction, Pat keeps the maintenance records, and Jordan sets the
- * aircraft rules.
+ * aircraft rules. Every booking names the member it is for (memberUserId,
+ * migration 0051) — the pilot, or the trainee on instruction — so a member's
+ * portal lists the bookings staff made for them.
  *
  * RAW SQL: the seed runs as the PGlite superuser locally and in tests (RLS
  * bypassed) but as Neon's NON-superuser owner under FORCE RLS on the hosted
@@ -1288,6 +1311,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         endAt: new Date(startAt.getTime() + f.minutes * 60_000),
         resourceIds: f.withCfi ? [resourceId, ids.instructorId] : [resourceId],
         notes: f.note,
+        memberUserId: user(f.member ?? f.pilot),
       }, clock),
       `history "${f.note}" (${f.daysAgo} days ago)`,
     );
@@ -1323,10 +1347,12 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
 
   // Three past cancellations with reasons, on free Skyhawk evenings, one in
   // each lead-time bucket of the Reports cancellations section.
-  const pastCancellations = [
-    { daysAgo: 20, note: 'Marcus — evening flight', reason: 'Weather: low ceilings at KOSU', leadMinutes: 3 * 60 },
-    { daysAgo: 12, note: 'Hannah — evening flight', reason: 'Gusty crosswind, above my personal limits', leadMinutes: 90 },
-    { daysAgo: 5, note: 'Priya — evening flight', reason: 'Schedule conflict, rebooked for the weekend', leadMinutes: 2 * 24 * 60 },
+  const pastCancellations: Array<{
+    daysAgo: number; note: string; member: BravoKey; reason: string; leadMinutes: number;
+  }> = [
+    { daysAgo: 20, note: 'Marcus — evening flight', member: 'marcus', reason: 'Weather: low ceilings at KOSU', leadMinutes: 3 * 60 },
+    { daysAgo: 12, note: 'Hannah — evening flight', member: 'hannah', reason: 'Gusty crosswind, above my personal limits', leadMinutes: 90 },
+    { daysAgo: 5, note: 'Priya — evening flight', member: 'priya', reason: 'Schedule conflict, rebooked for the weekend', leadMinutes: 2 * 24 * 60 },
   ];
   const cancelled: Array<{ id: string; cancelledAt: Date }> = [];
   for (const c of pastCancellations) {
@@ -1337,6 +1363,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         endAt: at(-c.daysAgo, 19, 30),
         resourceIds: [skyhawk],
         notes: c.note,
+        memberUserId: user(c.member),
       }, clock),
       `cancelled booking "${c.note}"`,
     );
@@ -1390,6 +1417,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(0, 11, 30),
       resourceIds: [skyhawk],
       notes: 'Priya — overnight to Put-in-Bay (3W2)',
+      memberUserId: user('priya'),
     }, clock),
     'reservation (Skyhawk, overnight trip)',
   );
@@ -1399,6 +1427,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(0, 12),
       resourceIds: [warrior],
       notes: 'Dana — breakfast run to KMNN',
+      memberUserId: user('dana'),
     }, clock),
     'reservation (Warrior, this morning)',
   );
@@ -1408,6 +1437,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(0, 13, 30),
       resourceIds: [skyhawk],
       notes: 'Riley — club currency flight',
+      memberUserId: user('riley'),
     }, clock),
     'reservation (Skyhawk, midday)',
   );
@@ -1417,6 +1447,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(0, 16),
       resourceIds: [skyhawk],
       notes: 'Lena — scenic flight',
+      memberUserId: user('lena'),
     }, clock),
     'reservation (Skyhawk, this afternoon)',
   );
@@ -1426,6 +1457,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(0, 18),
       resourceIds: [warrior, ids.instructorId],
       notes: 'Club checkout — Ben with Morgan',
+      memberUserId: user('ben'),
     }, clock),
     'reservation (Warrior checkout, today)',
   );
@@ -1438,6 +1470,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(1, 9, 30),
       resourceIds: [skyhawk, ids.instructorId],
       notes: 'Flight review — Marcus with Morgan',
+      memberUserId: user('marcus'),
     }, clock),
     'reservation (flight review, tomorrow)',
   );
@@ -1447,6 +1480,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(1, 11, 30),
       resourceIds: [skyhawk],
       notes: 'Riley — pattern work',
+      memberUserId: user('riley'),
     }, clock),
     'reservation (Skyhawk, tomorrow)',
   );
@@ -1456,6 +1490,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(1, 15),
       resourceIds: [warrior],
       notes: 'Victor — proficiency flight',
+      memberUserId: user('victor'),
     }, clock),
     'reservation (Warrior, tomorrow)',
   );
@@ -1469,6 +1504,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(2, 15, 30),
       resourceIds: [warrior, ids.instructorId],
       notes: 'Riley — Warrior checkout with Morgan',
+      memberUserId: user('riley'),
     }, clock),
     'reservation (Warrior checkout, day after tomorrow)',
   );
@@ -1478,6 +1514,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(2, 19),
       resourceIds: [skyhawk],
       notes: 'Hannah — evening pattern work',
+      memberUserId: user('hannah'),
     }, clock),
     'reservation (Skyhawk, day after tomorrow)',
   );
@@ -1498,7 +1535,8 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
   // of the six weeks has flying. One block per aircraft per time band; any
   // collision throws. Within the Warrior's policy (≤ 4 h, ≤ 45 days out).
   // Casey books for the members, Jordan books Jordan's own flights, and Morgan
-  // books the instruction.
+  // books the instruction. Each booking names the member it is for (bookedFor,
+  // one per note where the notes alternate between members).
   await seedUpcomingReservations(
     db,
     adminSession,
@@ -1509,6 +1547,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 180,
         resourceIds: [skyhawk],
         notes: ['Riley — weekend XC', 'Riley — breakfast flight to KMNN'],
+        bookedFor: user('riley'),
       },
       {
         weekdays: [6],
@@ -1516,6 +1555,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 180,
         resourceIds: [warrior],
         notes: ['Casey — local flight', 'Casey — currency flight'],
+        bookedFor: user('casey'),
       },
       {
         weekdays: [0],
@@ -1523,6 +1563,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 120,
         resourceIds: [skyhawk],
         notes: ['Riley — touch and goes'],
+        bookedFor: user('riley'),
       },
       {
         weekdays: [1],
@@ -1531,6 +1572,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 90,
         resourceIds: [skyhawk],
         notes: ['Hannah — evening pattern work', 'Dana — night landings'],
+        bookedFor: [user('hannah'), user('dana')],
       },
       {
         weekdays: [2],
@@ -1538,6 +1580,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 120,
         resourceIds: [warrior],
         notes: ['Tom — weekday local flight', 'Priya — proficiency flight'],
+        bookedFor: [user('tom'), user('priya')],
       },
       {
         weekdays: [3],
@@ -1546,6 +1589,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 90,
         resourceIds: [skyhawk],
         notes: ['Riley — evening pattern work'],
+        bookedFor: user('riley'),
       },
       {
         weekdays: [4],
@@ -1554,6 +1598,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 90,
         resourceIds: [skyhawk],
         notes: ['Marcus — evening flight', 'Lena — evening flight'],
+        bookedFor: [user('marcus'), user('lena')],
       },
       {
         weekdays: [5],
@@ -1561,6 +1606,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 120,
         resourceIds: [warrior],
         notes: ['Casey — sunset flight'],
+        bookedFor: user('casey'),
       },
     ],
     { firstDay: 3, lastDay: UPCOMING_DAYS },
@@ -1576,6 +1622,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
         durationMinutes: 120,
         resourceIds: [warrior],
         notes: ['Jordan — Sunday flight', 'Jordan — proficiency flight'],
+        bookedFor: user('jordan'),
       },
     ],
     { firstDay: 3, lastDay: UPCOMING_DAYS },
@@ -1595,6 +1642,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
           'Club checkout — Ana with Morgan',
           'Lesson — Jamie with Morgan',
         ],
+        bookedFor: [user('hannah'), user('ana'), user('jamie')],
       },
     ],
     { firstDay: 3, lastDay: UPCOMING_DAYS },
@@ -1609,6 +1657,7 @@ async function seedBravoClub(db: AnyDb, now: Date): Promise<void> {
       endAt: at(9, 8),
       resourceIds: [skyhawk],
       notes: 'Lena — early local flight',
+      memberUserId: user('lena'),
     }, clock),
     'reservation (Skyhawk, later cancelled)',
   );

@@ -73,6 +73,8 @@ const MIGRATION_SQL = [
   readFileSync(resolve(__dirname, '../../migrations/0037_logbook_annotation.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0041_member_tag_color.sql'), 'utf-8'),
   readFileSync(resolve(__dirname, '../../migrations/0042_cancellation_reason.sql'), 'utf-8'),
+  // 0051 required: reservation now includes member_user_id (Drizzle INSERT emits every column).
+  readFileSync(resolve(__dirname, '../../migrations/0051_reservation_member.sql'), 'utf-8'),
 ];
 
 // ── Test environment ──────────────────────────────────────────────────────────

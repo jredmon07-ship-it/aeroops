@@ -44,7 +44,7 @@ import { UnauthenticatedError } from '../auth/session.js';
 import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
-const MIGRATION_SQL = loadMigrationSql('0044');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 interface TestEnv {
   db: PgliteTestClient;

@@ -99,6 +99,11 @@ export interface CreatedReservation {
   createdBy: string;
   /** The resourceIds that were booked (de-duplicated, in request order). */
   resourceIds: string[];
+  /**
+   * Migration 0051: the member the booking is FOR. Present only when the
+   * create named one, so the ok:true shape is BYTE-IDENTICAL otherwise.
+   */
+  memberUserId?: string;
 }
 
 /**
@@ -215,6 +220,11 @@ export interface CreateSeriesInput {
   tz: string;
   resourceIds: string[];
   notes?: string;
+  /**
+   * Migration 0051: the member every occurrence is FOR (an ACTIVE member of the
+   * session org, checked before anything is written). Absent = no one.
+   */
+  memberUserId?: string;
 }
 
 /**
@@ -327,7 +337,8 @@ export interface PreviewSeriesResult {
  *                     the resource set (de-duplicated, ≥1) — this is how a
  *                     cross-row drag swaps a resource.
  *
- * Notes are preserved from the original; only window + resources are editable.
+ * Notes and the member the booking is for (memberUserId, migration 0051) are
+ * preserved from the original; only window + resources are editable.
  */
 export interface RescheduleReservationInput {
   reservationId: string;

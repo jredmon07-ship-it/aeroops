@@ -56,7 +56,7 @@ Stack: Next.js, Drizzle + Postgres, Auth.js, Tailwind + shadcn/ui, Expo.
 
 Counts at this commit, and how they were taken:
 
-- **Migrations:** 51 forward migrations, `0000`–`0050` (`packages/db/migrations/*.sql`
+- **Migrations:** 52 forward migrations, `0000`–`0051` (`packages/db/migrations/*.sql`
   excluding `*.down.sql`), each with a down migration.
 - **Tests:** 125 test files (git-tracked `*.test.ts` / `*.test.tsx`: 59 in
   `packages/api`, 21 in `packages/core`, 20 in `packages/db`, 25 in `apps/web`).

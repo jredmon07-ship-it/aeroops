@@ -15,7 +15,8 @@
  * RLS + org_id scoping are enforced inside the API functions.
  *
  * [VERIFY-6-A]: tags are free-text only — no FAA/currency/medical meaning.
- * [VERIFY-6-C]: upcomingReservations = created_by, not flight assignment.
+ * [VERIFY-6-C]: upcomingReservations = created_by or member_user_id (booked by
+ *   or for them, migration 0051), not flight assignment.
  * [VERIFY-6-D]: status is a roster flag, NOT a login gate in this slice
  *   (deactivated members can't get a NEW login link, though).
  */
@@ -125,7 +126,8 @@ export interface SerializedMemberDetail {
   /** Free-text operator labels only. [VERIFY-6-A] */
   tags: SerializedMemberTagView[];
   /**
-   * Upcoming booked reservations BOOKED BY this member (created_by).
+   * Upcoming booked reservations BOOKED BY this member (created_by) or FOR
+   * them (member_user_id, migration 0051).
    * NOT a flight assignment or training credit. [VERIFY-6-C]
    */
   upcomingReservations: SerializedUpcomingMemberReservationRow[];

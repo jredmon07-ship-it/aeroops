@@ -146,6 +146,10 @@ export type { ListReservationsInput, ReservationRow } from './scheduling/list-re
 export { listOrgMembers, listOrgMembersWithDb } from './scheduling/list-org-members.js';
 export type { ListOrgMembersOptions, OrgMemberRow } from './scheduling/list-org-members.js';
 
+// "Booked for" picker (migration 0051): the active members a booking can be for.
+export { listBookingMembers, listBookingMembersWithDb } from './scheduling/list-booking-members.js';
+export type { BookingMemberRow } from './scheduling/list-booking-members.js';
+
 // Shared scheduling result/IO types (consumed by apps/web route handlers + UI).
 export type {
   ConflictHit,
@@ -642,7 +646,8 @@ export type {
 // *WithDb forms are for test code only (inject a pglite client).
 //
 // [VERIFY-6-A]: member_tag is free-text only; no FAA/currency/medical meaning.
-// [VERIFY-6-C]: upcomingReservations = reservation.created_by, not flight assignment.
+// [VERIFY-6-C]: upcomingReservations = reservation.created_by or member_user_id
+//   (booked by or for the member, migration 0051), not flight assignment.
 // [VERIFY-6-D]: status is a roster flag, NOT a login gate in this slice.
 
 export {

@@ -15,11 +15,16 @@
  *       open           → "Check in" + "Void" buttons → onCheckIn / onVoid
  *       closed         → read-only summary (flight time)
  *   - Dispatch ticket (optional) passed in; no fetching here.
+ *
+ * Migration 0051 additive: a booking made for a member names them — "for Riley
+ * Member" leads the block's second line and its accessible name. A booking for
+ * no one renders exactly as before.
  */
 'use client';
 
 import * as React from 'react';
 import { formatTimeRange } from '../../_utils/format-time';
+import { bookedForLabel, boardBlockSecondLine } from '@/lib/booked-for';
 import type { BoardBlock as BoardBlockData } from '../_utils/board-layout';
 import type { ResourceRow, DispatchTicketView } from '@aeroops/api';
 
@@ -129,6 +134,10 @@ export function BoardBlock({
     .filter((id) => id !== block.resourceId)
     .map((id) => resourceMap.get(id)?.displayName ?? 'Unknown')
     .join(', ');
+  // Who the booking is for (migration 0051, "for Riley Member"); null when it
+  // names no one. The second line leads with it, then the linked resources.
+  const bookedFor = bookedForLabel(block.reservation.memberDisplayName);
+  const secondLine = boardBlockSecondLine(block.reservation.memberDisplayName, partnerNames);
 
   const blockColor = `hsl(${hue}, 60%, 45%)`;
   const { leftPct, widthPct } = block.position;
@@ -167,6 +176,7 @@ export function BoardBlock({
 
   const ariaLabel = [
     `Reservation ${timeRange}`,
+    bookedFor,
     partnerNames ? `linked with ${partnerNames}` : null,
     block.reservation.seriesId ? 'recurring series' : null,
     isAircraft && dispatchStatus === 'open' ? 'checked out' : null,
@@ -239,10 +249,11 @@ export function BoardBlock({
           {timeRange}
         </span>
 
-        {/* Partner resource line (hidden on narrow blocks) */}
-        {!isNarrow && partnerNames && (
+        {/* Second line (hidden on narrow blocks): who the booking is for, then
+            the partner resources. Without a member it is the partner line. */}
+        {!isNarrow && secondLine && (
           <span className="text-[0.6875rem] text-white/80 leading-tight truncate">
-            {partnerNames}
+            {secondLine}
           </span>
         )}
 

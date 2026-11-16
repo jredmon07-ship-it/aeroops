@@ -91,4 +91,20 @@ a data change, not an engine change (the constraint is subtype-agnostic).
 - **`org_id WITH =` inside the exclusion / constraint on `reservation` directly:**
   rejected (redundant / cannot express per-resource exclusion for multi-resource).
 
+## Addendum (2026-11-15) — the member a booking is for (migration 0051)
+`reservation` gains a nullable `member_user_id`: the member a booking is **for**.
+Renters and students hold only `app:access` + `portal:access`, so club staff
+book for them and `created_by` is the staff member; this column is what lets the
+member's portal, People page and alerts find the booking. Same-org integrity the
+`created_by`/`cancelled_by` way: composite FK `(member_user_id, org_id) →
+app_user(id, org_id)` **ON DELETE SET NULL (`member_user_id`)** (nullable, like
+`cancelled_by`; the column list keeps `org_id` intact), plus a partial index on
+`(org_id, member_user_id) WHERE member_user_id IS NOT NULL`. It is **not a
+resource**: it takes no part in the `EXCLUDE` constraint, the conflict probe or
+the booking gates, which are unchanged. It is written only by the shared
+`gatedCreateOccurrence` path, which accepts an **active** member of the session
+org (else `ValidationError`, nothing written); a reschedule carries it to the
+new row. NULL (every earlier booking, and any booking for no one) behaves
+exactly as before.
+
 See [[aeroops-tenant-isolation-invariants]].

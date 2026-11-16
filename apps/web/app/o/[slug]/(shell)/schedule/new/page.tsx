@@ -9,6 +9,9 @@
  * DATA:
  *   listResources(session, {}) returns active resources only (includeInactive
  *   defaults to false). Resources are passed to the client form as props.
+ *   listBookingMembers(session) returns the org's active members for the
+ *   optional "Booked for" select (migration 0051). Non-fatal: on an error the
+ *   form simply leaves the select out and books for no one in particular.
  *
  * STATES:
  *   No session          → redirect to login
@@ -23,7 +26,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { PlaneTakeoff } from 'lucide-react';
 import { auth } from '@/auth';
-import { requireCapability, hasCapability, listResources } from '@aeroops/api';
+import { requireCapability, hasCapability, listResources, listBookingMembers } from '@aeroops/api';
 import { mapAuthErrorToResponse } from '@/lib/auth-errors';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -79,6 +82,15 @@ export default async function NewReservationPage({
     resourcesError = true;
   }
 
+  // ── Active members for the "Booked for" select (migration 0051) ─────────────
+  // Same capability as this page; a failure only hides the optional select.
+  let members: Awaited<ReturnType<typeof listBookingMembers>> = [];
+  try {
+    members = await listBookingMembers(session);
+  } catch {
+    members = [];
+  }
+
   // Separate by kind — active only (listResources returns active by default).
   const aircraft = resources.filter((r) => r.kind === 'aircraft');
   const instructors = resources.filter((r) => r.kind === 'instructor');
@@ -132,6 +144,7 @@ export default async function NewReservationPage({
         <NewReservationForm
           key={timeZone}
           resources={resources}
+          members={members}
           slug={slug}
           initialDate={initialDate}
           timeZone={timeZone}

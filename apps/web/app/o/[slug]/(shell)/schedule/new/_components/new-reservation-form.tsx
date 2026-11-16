@@ -9,6 +9,12 @@
  * (UNCHANGED). ON → recurrence controls + live previewSeriesAction debounce
  * + createSeriesAction submit → create-result screen.
  *
+ * "Booked for" (migration 0051): an optional select of the org's active
+ * members. Staff book for renters and students; the member chosen is sent as
+ * memberUserId on both paths, and the booking then shows up in that member's
+ * portal. Empty (the default) = no one in particular, exactly as before. A
+ * choice makes the form dirty, so the unsaved-changes guard covers it.
+ *
  * Time zones: "today" (the default date, and what makes the form dirty) and
  * the conflict times are read in `timeZone`, the viewer's zone the page
  * resolved, so the server HTML and the browser's first render agree — the
@@ -50,7 +56,7 @@ import { toast } from '@/lib/toast-store';
 import { createReservationAction, createSeriesAction, previewTwilightAction, previewAvailabilityAction, getMetarForAircraftAction } from '../../actions';
 import { getGroundingStatusAction } from '../../../maintenance/actions';
 import { dayInZone } from '@/lib/schedule-day';
-import type { ResourceRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView, PreviewTwilightResourceReport, TwilightHit, PreviewAvailabilityResourceReport, ParsedMetar } from '@aeroops/api';
+import type { ResourceRow, BookingMemberRow, ConflictHit, PolicyViolationView, CreateSeriesResult, GroundingStatusView, PreviewTwilightResourceReport, TwilightHit, PreviewAvailabilityResourceReport, ParsedMetar } from '@aeroops/api';
 import type { RecurrenceValue, RecurrenceFieldErrors } from './recurrence-controls';
 import type { TwilightPreviewState } from './twilight-indicator';
 import type { AvailabilityPreviewState } from './availability-indicator';
@@ -59,6 +65,11 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 interface NewReservationFormProps {
   resources: ResourceRow[];
+  /**
+   * The org's active members, for the optional "Booked for" select. Empty
+   * (none, or the read failed) leaves the select out.
+   */
+  members: BookingMemberRow[];
   slug: string;
   /** Initial date from ?date= query param — YYYY-MM-DD or empty */
   initialDate: string;
@@ -98,6 +109,7 @@ function browserTz(): string {
 
 export function NewReservationForm({
   resources,
+  members,
   slug,
   initialDate,
   timeZone,
@@ -117,6 +129,8 @@ export function NewReservationForm({
   const [endTime, setEndTime] = React.useState('');
   const [aircraftId, setAircraftId] = React.useState('');
   const [instructorId, setInstructorId] = React.useState('');
+  // "Booked for" — '' = no one in particular (the default).
+  const [memberUserId, setMemberUserId] = React.useState('');
   const [notes, setNotes] = React.useState('');
 
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
@@ -211,6 +225,7 @@ export function NewReservationForm({
     endTime ||
     aircraftId ||
     instructorId ||
+    memberUserId ||
     notes ||
     repeatEnabled
   );
@@ -473,6 +488,7 @@ export function NewReservationForm({
           tz: recurrence.tz,
           resourceIds,
           notes: notes.trim() || undefined,
+          memberUserId: memberUserId || undefined,
         });
 
         if ('error' in result) {
@@ -512,6 +528,7 @@ export function NewReservationForm({
         endAt,
         resourceIds,
         notes: notes.trim() || undefined,
+        memberUserId: memberUserId || undefined,
       });
 
       if ('error' in result) {
@@ -620,6 +637,7 @@ export function NewReservationForm({
           setEndTime('');
           setAircraftId('');
           setInstructorId('');
+          setMemberUserId('');
           setNotes('');
           setRecurrenceErrors({});
           setServerError(null);
@@ -991,6 +1009,32 @@ export function NewReservationForm({
             ))}
           </select>
         </div>
+
+        {/* Booked for (optional, migration 0051) — the member this booking is
+            for. Staff book for renters and students; the booking then shows up
+            in that member's portal. Hidden when there are no members to list. */}
+        {members.length > 0 && (
+          <div className="space-y-1">
+            <Label htmlFor="memberUserId">Booked for (optional)</Label>
+            <select
+              id="memberUserId"
+              value={memberUserId}
+              onChange={(e) => setMemberUserId(e.target.value)}
+              aria-describedby="memberUserId-hint"
+              className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-500 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+            >
+              <option value="">— None —</option>
+              {members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.displayName}
+                </option>
+              ))}
+            </select>
+            <p id="memberUserId-hint" className="text-xs text-slate-500 dark:text-slate-400">
+              The member this booking is for. It shows up in their portal.
+            </p>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="space-y-1">

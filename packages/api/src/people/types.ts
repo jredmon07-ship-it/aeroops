@@ -12,7 +12,8 @@
  * label ONLY. The system attaches NO FAA currency, medical, flight-review,
  * Part 61/141, endorsement, or eligibility status from a tag.
  *
- * [VERIFY-6-C]: "upcomingReservations" = reservation.created_by (booking owner),
+ * [VERIFY-6-C]: "upcomingReservations" = reservation.created_by (booking owner)
+ * OR reservation.member_user_id (the member it was booked for, migration 0051),
  * NOT a pilot/student flight assignment or logbook entry.
  *
  * [VERIFY-6-D]: status is a ROSTER FLAG, NOT a login gate. 'inactive' does not
@@ -81,8 +82,9 @@ export interface MemberTagChipView {
 
 /**
  * UpcomingMemberReservationRow — one upcoming booked reservation CREATED BY
- * this member (reservation.created_by). NOT a pilot/student assignment.
- * [VERIFY-6-C]
+ * this member (reservation.created_by) or booked FOR them
+ * (reservation.member_user_id, migration 0051). NOT a pilot/student
+ * assignment. [VERIFY-6-C]
  */
 export interface UpcomingMemberReservationRow {
   id: string;
@@ -100,7 +102,8 @@ export interface UpcomingMemberReservationRow {
  * fetched inside a single org context (no N+1, no cross-org peek).
  *
  * [VERIFY-6-A]: tags are free-text opaque labels only.
- * [VERIFY-6-C]: upcomingReservations = created_by, not flight assignment.
+ * [VERIFY-6-C]: upcomingReservations = created_by or member_user_id (booked by
+ *   or for them), not flight assignment.
  * [VERIFY-6-D]: status is a roster flag, not a login gate.
  */
 export interface MemberDetail {
@@ -123,7 +126,8 @@ export interface MemberDetail {
   /** Free-text operator labels only. [VERIFY-6-A] */
   tags: MemberTagView[];
   /**
-   * Upcoming booked reservations BOOKED BY this member (created_by).
+   * Upcoming booked reservations BOOKED BY this member (created_by) or FOR
+   * them (member_user_id, migration 0051), one row per reservation.
    * NOT a flight assignment or training credit. [VERIFY-6-C]
    * ≤10, ordered by start_at ASC.
    */

@@ -127,7 +127,7 @@ The live site at
 [aeroops-web.vercel.app](https://aeroops-web.vercel.app) is a public demo with seeded
 sample data, not a hosted service. It has no production users and no support is implied.
 
-The repo has 51 forward migrations (`packages/db/migrations/0000`–`0050`, each with a
+The repo has 52 forward migrations (`packages/db/migrations/0000`–`0051`, each with a
 `.down.sql`) and about 125 test files (`*.test.ts`/`*.test.tsx` across `packages/` and
 `apps/web`). Money features (billing, payments, dues, QuickBooks) were removed on
 2026-10-10; their tables remain in the migration history but no application code uses

@@ -41,7 +41,7 @@ import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
 // All up migrations through 0041 (adds member_tag.color).
-const MIGRATION_SQL = loadMigrationSql('0041');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 interface TestEnv {
   db: PgliteTestClient;

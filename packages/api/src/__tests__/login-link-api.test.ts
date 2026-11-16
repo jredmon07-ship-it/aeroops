@@ -64,7 +64,7 @@ import { UnauthenticatedError } from '../auth/session.js';
 import { ValidationError } from '../scheduling/internal.js';
 import type { AppSession } from '../auth/types.js';
 
-const MIGRATION_SQL = loadMigrationSql('0050');
+const MIGRATION_SQL = loadMigrationSql('0051');
 const TEST_SECRET = 'login-link-api-test-secret-32bytes!';
 
 let db: PgliteTestClient;

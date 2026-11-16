@@ -47,7 +47,7 @@ import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 import type { MembershipRole } from '@aeroops/core';
 
-const MIGRATION_SQL = loadMigrationSql('0042');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 // ── Shared env ────────────────────────────────────────────────────────────────
 

@@ -17,6 +17,7 @@
  *     8. 'booker' → 'Booker'
  *     9. 'pilot' → 'Pilot'
  *    10. 'booker_and_pilot' → 'Booker & Pilot'
+ *    10b. 'for_you' → 'Booked for you' (migration 0051)
  *
  *   isPortalOnly (apps/web/lib/nav.ts):
  *    11. null session → false
@@ -114,6 +115,10 @@ describe('reservationRoleLabel', () => {
 
   it("11. 'booker_and_pilot' → 'Booker & Pilot'", () => {
     expect(reservationRoleLabel('booker_and_pilot')).toBe('Booker & Pilot');
+  });
+
+  it("11b. 'for_you' (booked for the member by staff) → 'Booked for you'", () => {
+    expect(reservationRoleLabel('for_you')).toBe('Booked for you');
   });
 });
 

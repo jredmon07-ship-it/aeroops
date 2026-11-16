@@ -6,6 +6,10 @@
  * seed already proves the pattern never collides with the baseline seed. It
  * runs on process-local time (the local demo, CI), on the America/Chicago wall
  * clock the hosted demo's daily refresh uses, and on Pacific/Auckland.
+ *
+ * The bookings staff make FOR a member (memberUserId, migration 0051) reach
+ * that member: Riley (member@bravo.aero) and Alpha's student see upcoming
+ * bookings in the next few days through the real portal read.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
@@ -18,6 +22,8 @@ import type { PGlite } from '@electric-sql/pglite';
 
 import { seedDemo, DEMO_SLUG, DEMO_SLUG_BRAVO } from '../demo/seed.js';
 import { UPCOMING_DAYS } from '../demo/seed-upcoming.js';
+import { getMyReservationsWithDb } from '../portal/get-my-reservations.js';
+import type { AppSession } from '../auth/types.js';
 import { extractRows } from '../db-rows.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -95,6 +101,34 @@ for (const tz of [undefined, 'America/Chicago', 'Pacific/Auckland'] as const) {
       const farOut = new Date(Date.now() + 400 * DAY_MS);
       expect(await reservationsBetween(db, DEMO_SLUG, beyond, farOut)).toBe(0);
       expect(await reservationsBetween(db, DEMO_SLUG_BRAVO, beyond, farOut)).toBe(0);
+    });
+
+    it("shows Riley and Alpha's student the bookings staff made for them, in the next few days", async () => {
+      const members = [
+        [DEMO_SLUG_BRAVO, 'member@bravo.aero'],
+        [DEMO_SLUG, 'student@alpha.aero'],
+      ] as const;
+      for (const [slug, email] of members) {
+        const who = extractRows<{ org_id: string; user_id: string; role: AppSession['role'] }>(
+          await db.execute(sql`
+            select u.org_id, u.id as user_id, m.role
+              from app_user u
+              join org o on o.id = u.org_id
+              join membership m on m.user_id = u.id and m.org_id = u.org_id
+             where o.slug = ${slug} and u.email = ${email}
+          `),
+        )[0]!;
+        const session: AppSession = {
+          user: { email }, userId: who.user_id, orgId: who.org_id, slug, role: who.role,
+        };
+        // The portal's own read ("My upcoming reservations"), self-scoped.
+        const rows = await getMyReservationsWithDb(db, session);
+        expect(rows.length, email).toBeGreaterThan(0);
+        // Staff booked every one of them for the member (none is theirs to book).
+        expect(rows.every((r) => r.role === 'for_you'), email).toBe(true);
+        // The soonest is within the next few days.
+        expect(rows[0]!.startAt.getTime() - Date.now(), email).toBeLessThan(4 * DAY_MS);
+      }
     });
 
     it('puts recent announcements on both orgs\' Messages pages', async () => {

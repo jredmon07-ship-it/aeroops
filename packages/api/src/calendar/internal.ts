@@ -62,7 +62,8 @@ function toDate(v: Date | string): Date {
 
 /**
  * readCalendarEventsForUser — reservations where `userId` is the booker
- * (created_by) OR a non-voided dispatched pilot, overlapping [from, to).
+ * (created_by), the member the booking is for (member_user_id, migration 0051)
+ * OR a non-voided dispatched pilot, overlapping [from, to).
  * SELF-SCOPED: userId is ALWAYS the feed owner's user_id — never a
  * caller-supplied id from outside this module. Mirrors portal/internal.ts's
  * readMyReservations predicate exactly, minus its future-only/LIMIT-20
@@ -93,6 +94,7 @@ export async function readCalendarEventsForUser(
       AND upper(rr.during) > ${from.toISOString()}::timestamptz
       AND (
         r.created_by = ${userId}::uuid
+        OR r.member_user_id = ${userId}::uuid
         OR EXISTS (
           SELECT 1 FROM dispatch_ticket dt2
           WHERE dt2.reservation_id = r.id

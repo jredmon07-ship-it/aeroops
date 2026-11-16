@@ -47,13 +47,17 @@ export type MyEnrollmentRow = MemberEnrollmentRow;
 
 /**
  * MyReservationRow — one upcoming booked reservation the caller is involved in,
- * either as the booker (reservation.created_by = me) or as the dispatched pilot
- * (a non-voided dispatch_ticket.pilot_user_id = me), or both.
+ * as the booker (reservation.created_by = me), as the dispatched pilot (a
+ * non-voided dispatch_ticket.pilot_user_id = me), or as the member it was
+ * booked FOR (reservation.member_user_id = me, migration 0051) — club staff
+ * book for renters and students.
  *
  * `role` is derived from which condition(s) matched:
  *   'booker'            — created_by = me, no matching non-voided dispatch.
  *   'pilot'             — dispatched pilot = me, but created_by ≠ me.
  *   'booker_and_pilot'  — both.
+ *   'for_you'           — booked for me by someone else; I am not (yet) its
+ *                         dispatched pilot. The portal reads it "Booked for you".
  *
  * resourceIds carries display labels, not ids: the aircraft tail number, else
  * the resource's display name (an instructor resource: "Casey Reed (CFI)").
@@ -66,7 +70,7 @@ export interface MyReservationRow {
   seriesId: string | null;
   /** Display labels: tail numbers for aircraft, display names otherwise. */
   resourceIds: string[];
-  role: 'booker' | 'pilot' | 'booker_and_pilot';
+  role: 'booker' | 'pilot' | 'booker_and_pilot' | 'for_you';
 }
 
 // ─── MyAccountView ────────────────────────────────────────────────────────────

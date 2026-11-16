@@ -32,7 +32,7 @@ Two seeded operators. Password for **everyone**: `demo1234`
 | `manager@alpha.aero` | manager | Full scheduling + dispatch + training + settings |
 | `dispatch@alpha.aero` | dispatcher | Schedule, dispatch board, training (read) |
 | `cfi@alpha.aero` | instructor | Schedule, dispatch, training (manage) |
-| `student@alpha.aero` | student | App access only (the locked-down view) |
+| `student@alpha.aero` | student | The locked-down view: their portal, with the lessons booked for them and their training progress |
 
 **Bravo Flying Club** (`/o/bravo`) — a small club in **club mode** (17 members,
 2 aircraft and a club CFI; training, public booking, and auto-scheduler turned
@@ -42,7 +42,7 @@ off for a leaner nav):
 |---|---|---|
 | `owner@bravo.aero` | owner | Full access; see Org settings → Modules to flip club/school mode |
 | `admin@bravo.aero` | manager | Scheduling + dispatch + settings (the club's scheduler) |
-| `member@bravo.aero` | renter | The member portal: their logbook of past flights and their account. Club staff make the bookings. |
+| `member@bravo.aero` | renter | The member portal: the upcoming flights club staff booked for them, their logbook of past flights, and their account. |
 
 Sign in as **`owner@alpha.aero`** for the full walkthrough below, or
 **`owner@bravo.aero`** to see club mode.
@@ -67,6 +67,10 @@ your new org. (Self-serve tenant creation; migration 0049 staged.)
 - **Tomorrow:** a transition lesson on the Cirrus (`N66RG`).
 - **A booking policy** on the Cirrus (max 3 h, ≤ 60 days out, ≥ 60 min lead).
 - **A weekly recurring series** (Tue/Thu evenings, 8 sessions) on the Archer.
+- **Booked for the student:** today's three flights, the weekly series and the
+  student's lessons and solos in the coming weeks are booked by the owner *for*
+  Sam Student, so `student@alpha.aero`'s portal lists them under upcoming
+  reservations ("Booked for you"), and the schedule shows "for Sam Student".
 - **Dispatch tickets:** a **closed** one (Hobbs/tach recorded, flight time
   derived) for every flight in the history and each of today's that is over,
   and an **open** one (aircraft out) for a flight under way.
@@ -114,7 +118,8 @@ in club mode:
   by eleven pilots, with Hobbs/tach that only climb, fuel and oil uplift,
   cross-country notes in the pilots' logbooks, and four cancellations with
   reasons (Reports → cancellations). Club staff book the flights: the scheduler
-  for the members, the CFI for instruction.
+  for the members, the CFI for instruction. Each booking names the member it is
+  for, so the schedule reads "for Riley Member" and the member's portal lists it.
 - **Today:** Priya took the Skyhawk to Put-in-Bay overnight, so it is **checked
   out** until she is due back at 11:30. After that, a breakfast run in the
   Warrior, Riley's currency flight, Lena's scenic flight and a new member's
@@ -132,10 +137,13 @@ in club mode:
   member who is on leave). Warn-only operator dates, shown at check-out.
 - **Six announcements** from the club's officers, to the 15 active members.
 
-The member portal (`member@bravo.aero`) shows Riley's logbook (past flights,
-running totals, cross-country notes) and account details. Club staff make the
-bookings (renters cannot book in the app), so its list of upcoming reservations
-is usually empty.
+The member portal (`member@bravo.aero`) shows Riley's upcoming reservations,
+logbook (past flights, running totals, cross-country notes) and account details.
+Renters cannot book in the app, so club staff make the bookings and name the
+member each one is for: Riley's upcoming reservations are the flights the
+scheduler and the CFI booked for Riley (today's currency flight until it
+starts, tomorrow's pattern work, the Warrior checkout with Morgan the day after,
+then Riley's weekend and Wednesday-evening flying), each marked "Booked for you".
 
 The hosted demo re-seeds both orgs every night at 03:00 Chicago time (DEPLOY.md,
 "Public-demo daily refresh"), so its dates are always current. That is before
@@ -155,7 +163,8 @@ to check out, and only Priya's overnight trip out.
 3. **New reservation** (*Schedule → New*) — overlap an existing booking to watch
    **conflict detection** refuse it; try > 3 h or < 1 h-lead on the **Cirrus** to
    watch the **booking policy** refuse it; pick an evening time to see the
-   **day/night (civil-twilight)** indicator.
+   **day/night (civil-twilight)** indicator. Pick a member under **Booked for**
+   and the booking shows up in that member's portal.
 4. **Auto-scheduler** (*Schedule → Auto-schedule*) — define a few desired sessions,
    **Preview** the proposed schedule (what would be scheduled / skipped), then
    **Commit** — every proposed booking is routed through the same safety gates.

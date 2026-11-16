@@ -15,13 +15,16 @@
  *   - org_id from session only (withSessionOrgContextWithDb + RLS backstop).
  *   - Never crosses org boundaries.
  *   - Default excludes cancelled; pass includeCancelled:true for full history.
+ *   - Each row names the member the booking is for (memberUserId +
+ *     memberDisplayName, migration 0051) through a LEFT JOIN to app_user on
+ *     (id, org_id) — RLS-scoped like the rest; null when it names no one.
  *
  * TWO CALLING FORMS:
  *   listReservations(session, input)          — app code; uses getDb() internally.
  *   listReservationsWithDb(db, session, input) — tests; inject pglite client.
  */
-import { asc, sql } from 'drizzle-orm';
-import { reservation } from '@aeroops/db';
+import { and, asc, eq, sql } from 'drizzle-orm';
+import { reservation, appUser } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { requireCapability } from '../auth/require-capability.js';
 import { withSessionOrgContextWithDb } from '../auth/session.js';
@@ -61,6 +64,31 @@ export interface ReservationRow {
   seriesId: string | null;
   /** Resource ids linked to this reservation (from reservation_resource). */
   resourceIds: string[];
+  /**
+   * The member this booking is FOR (reservation.member_user_id, migration
+   * 0051), or null when it names no one. Club staff book for renters and
+   * students, so this is often not createdBy.
+   */
+  memberUserId: string | null;
+  /**
+   * That member's display name: full name, else e-mail. null when
+   * memberUserId is null.
+   */
+  memberDisplayName: string | null;
+}
+
+/**
+ * memberDisplayNameOf — the display name for a LEFT-JOINed member row
+ * (full_name ?? email), or null when the booking names no member.
+ * Shared by listReservations and listSeriesOccurrences.
+ */
+export function memberDisplayNameOf(
+  memberUserId: string | null,
+  fullName: string | null,
+  email: string | null,
+): string | null {
+  if (!memberUserId) return null;
+  return fullName ?? email ?? null;
 }
 
 // ─── Shared implementation ────────────────────────────────────────────────────
@@ -97,8 +125,17 @@ async function _listReservationsImpl(
         cancelledAt: reservation.cancelledAt,
         cancelledBy: reservation.cancelledBy,
         seriesId: reservation.seriesId,
+        memberUserId: reservation.memberUserId,
+        memberFullName: appUser.fullName,
+        memberEmail: appUser.email,
       })
       .from(reservation)
+      // The member the booking is for (migration 0051). Joined on (id, org_id),
+      // the composite FK's own key; app_user is RLS-scoped too.
+      .leftJoin(
+        appUser,
+        and(eq(appUser.id, reservation.memberUserId), eq(appUser.orgId, reservation.orgId)),
+      )
       .where(
         sql`${reservation.startAt} < ${to.toISOString()}::timestamptz
             AND ${reservation.endAt} > ${from.toISOString()}::timestamptz
@@ -156,6 +193,8 @@ async function _listReservationsImpl(
       cancelledBy: r.cancelledBy ?? null,
       seriesId: r.seriesId ?? null,
       resourceIds: resourceIdsByReservation.get(r.id) ?? [],
+      memberUserId: r.memberUserId ?? null,
+      memberDisplayName: memberDisplayNameOf(r.memberUserId, r.memberFullName, r.memberEmail),
     }));
   });
 }

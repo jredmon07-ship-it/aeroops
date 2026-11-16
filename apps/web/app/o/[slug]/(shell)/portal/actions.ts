@@ -72,7 +72,8 @@ export interface SerializedMyReservationRow {
   endAt: string;   // ISO string
   seriesId: string | null;
   resourceIds: string[];
-  role: 'booker' | 'pilot' | 'booker_and_pilot';
+  /** 'for_you' = booked for me by club staff (migration 0051). */
+  role: 'booker' | 'pilot' | 'booker_and_pilot' | 'for_you';
 }
 
 /** MyEnrollmentRow with Date objects replaced by ISO strings. */

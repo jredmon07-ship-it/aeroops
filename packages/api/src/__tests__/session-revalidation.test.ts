@@ -85,7 +85,7 @@ import { createLoginLinkWithDb, acceptLoginLinkWithDb } from '../people/login-li
 import { updateMemberWithDb } from '../people/update-member.js';
 import type { AppSession } from '../auth/types.js';
 
-const MIGRATION_SQL = loadMigrationSql('0050');
+const MIGRATION_SQL = loadMigrationSql('0051');
 const TEST_SECRET = 'session-revalidation-test-secret-32b!';
 /** Auth.js's session cookie name (and JWE salt) on an http:// origin. */
 const SESSION_COOKIE = 'authjs.session-token';

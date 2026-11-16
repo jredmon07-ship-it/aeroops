@@ -21,6 +21,9 @@
  *   P8  — getMyAccount returns own tags only; no status / hasLogin fields.
  *   P9  — getMyPortalSummary bundles the 3 self-scoped facets.
  *   P10 — an instructor on a reservation is labelled by name, never by id.
+ *   P11 — bookings made FOR the member (member_user_id, migration 0051): staff
+ *         book for A → A lists it as 'for_you'; never B's; never across orgs;
+ *         a later dispatch of A as its pilot reads 'pilot'.
  *
  * NO writes, NO audit, NO money, NO migration (read-only slice).
  */
@@ -69,7 +72,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0042');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 // ── Test env ──────────────────────────────────────────────────────────────────
 
@@ -614,5 +617,87 @@ describe('P10 — instructor resources are labelled by name, never by id', () =>
       expect(UUID_RE.test(a.title), a.title).toBe(false);
       expect(UUID_RE.test(a.detail), a.detail).toBe(false);
     }
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// P11 — bookings made FOR the member (reservation.member_user_id, migration
+// 0051). Renters and students cannot book; staff book for them. The portal's
+// "My upcoming reservations" lists those too — still self-scoped: the
+// predicate is member_user_id = session.userId, never a caller-supplied id.
+// ════════════════════════════════════════════════════════════════════════════
+
+/** The org owner books an upcoming flight FOR `memberId`. Returns ids. */
+async function seedBookingFor(
+  orgId: string,
+  ownerId: string,
+  memberId: string,
+  tail: string,
+  start: Date,
+  end: Date,
+): Promise<{ aircraftId: string; reservationId: string }> {
+  const ownerSess = makeSession(orgId, ownerId, 'owner');
+  const aircraft = await createResourceWithDb(env.db, ownerSess, {
+    kind: 'aircraft', displayName: `Aircraft ${tail}`, tailNumber: `N${tail}`,
+  });
+  const r = await createReservationWithDb(env.db, ownerSess, {
+    startAt: start, endAt: end, resourceIds: [aircraft.id], memberUserId: memberId,
+  });
+  if (!r.ok) throw new Error(`seed booking-for failed: ${r.reason}`);
+  return { aircraftId: aircraft.id, reservationId: r.reservation.id };
+}
+
+describe('P11 — bookings made for me (member_user_id)', () => {
+  it("shows a booking staff made for A, as 'for_you', in the read and the summary", async () => {
+    const { db, orgAId, ownerAId, studentAId } = env;
+    const { reservationId } = await seedBookingFor(orgAId, ownerAId, studentAId, 'FOR11', FUT(40, 8), FUT(40, 10));
+
+    const rows = await getMyReservationsWithDb(db, makeSession(orgAId, studentAId, 'student'));
+    const forMe = rows.find((r) => r.id === reservationId);
+    expect(forMe).toBeDefined();
+    expect(forMe?.role).toBe('for_you');
+    expect(forMe?.resourceIds).toEqual(['NFOR11']);
+
+    const s = await getMyPortalSummaryWithDb(db, makeSession(orgAId, studentAId, 'student'));
+    expect(s.reservations.find((r) => r.id === reservationId)?.role).toBe('for_you');
+  });
+
+  it("never shows another member's booking: B does not see the one made for A", async () => {
+    const { db, orgAId, ownerAId, studentAId, studentBId } = env;
+    const { reservationId } = await seedBookingFor(orgAId, ownerAId, studentAId, 'FOR12', FUT(41, 8), FUT(41, 10));
+
+    const bRows = await getMyReservationsWithDb(db, makeSession(orgAId, studentBId, 'student'));
+    expect(bRows.find((r) => r.id === reservationId)).toBeUndefined();
+    expect(bRows.flatMap((r) => r.resourceIds)).not.toContain('NFOR12');
+    // The booker (the owner) still sees it as theirs.
+    const ownerRows = await getMyReservationsWithDb(db, makeSession(orgAId, ownerAId, 'owner'));
+    expect(ownerRows.find((r) => r.id === reservationId)?.role).toBe('booker');
+  });
+
+  it('never crosses orgs: an org-B booking for the org-B student is invisible to org A', async () => {
+    const { db, orgAId, orgBId, ownerBId, studentAId, studentBOrgBId } = env;
+    const { reservationId } = await seedBookingFor(
+      orgBId, ownerBId, studentBOrgBId, 'FOR13', FUT(42, 8), FUT(42, 10),
+    );
+
+    const theirs = await getMyReservationsWithDb(db, makeSession(orgBId, studentBOrgBId, 'student'));
+    expect(theirs.find((r) => r.id === reservationId)?.role).toBe('for_you');
+
+    const mine = await getMyReservationsWithDb(db, makeSession(orgAId, studentAId, 'student'));
+    expect(mine.find((r) => r.id === reservationId)).toBeUndefined();
+    expect(mine.flatMap((r) => r.resourceIds)).not.toContain('NFOR13');
+  });
+
+  it("a booking made for A and then dispatched to A reads 'pilot'", async () => {
+    const { db, orgAId, ownerAId, studentAId } = env;
+    const { aircraftId, reservationId } = await seedBookingFor(
+      orgAId, ownerAId, studentAId, 'FOR14', FUT(43, 8), FUT(43, 10),
+    );
+    const opened = await openDispatchWithDb(db, makeSession(orgAId, ownerAId, 'owner'), {
+      reservationId, resourceId: aircraftId, pilotUserId: studentAId, hobbsOut: 80.0, tachOut: 80.0,
+    });
+    expect(opened.ok).toBe(true);
+    const rows = await getMyReservationsWithDb(db, makeSession(orgAId, studentAId, 'student'));
+    expect(rows.find((r) => r.id === reservationId)?.role).toBe('pilot');
   });
 });

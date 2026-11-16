@@ -5,7 +5,9 @@
  *
  *   1. A forward schedule for the coming six weeks, a repeating weekly pattern
  *      of lessons, solos and rentals, so the schedule, board and calendar views
- *      have something on every day a visitor browses to.
+ *      have something on every day a visitor browses to. A slot that is for a
+ *      member names them (bookedFor → reservation.member_user_id), so their
+ *      portal lists the bookings staff made for them.
  *   2. A few operator announcements on the Messages page, "sent" over the last
  *      two weeks.
  *
@@ -49,6 +51,13 @@ export interface UpcomingSlot {
   resourceIds: string[];
   /** Occurrence notes, used in rotation. */
   notes: string[];
+  /**
+   * Who the bookings are for (reservation.member_user_id): one app_user id for
+   * every occurrence, or one per note, index-aligned with `notes` and rotating
+   * with them (same length, else the seed throws). Omit for a slot that is for
+   * no one in particular.
+   */
+  bookedFor?: string | string[];
   /** Earliest day offset this slot may use; defaults to the pattern's first day. */
   fromDay?: number;
 }
@@ -67,6 +76,14 @@ export async function seedUpcomingReservations(
   range: { firstDay: number; lastDay: number },
   now: Date = new Date(),
 ): Promise<number> {
+  for (const slot of slots) {
+    if (Array.isArray(slot.bookedFor) && slot.bookedFor.length !== slot.notes.length) {
+      throw new Error(
+        `[demo] upcoming slot "${slot.notes[0] ?? ''}" names ${slot.bookedFor.length} members ` +
+          `for ${slot.notes.length} notes — bookedFor must line up with notes.`,
+      );
+    }
+  }
   const used = slots.map(() => 0);
   let created = 0;
   for (let day = range.firstDay; day <= range.lastDay; day++) {
@@ -76,13 +93,16 @@ export async function seedUpcomingReservations(
       if (day < (slot.fromDay ?? range.firstDay) || !slot.weekdays.includes(dow)) continue;
       const startAt = atLocal(day, slot.hour, slot.minute ?? 0, now);
       const endAt = new Date(startAt.getTime() + slot.durationMinutes * 60_000);
-      const notes = slot.notes[used[i]! % slot.notes.length]!;
+      const turn = used[i]! % slot.notes.length;
+      const notes = slot.notes[turn]!;
+      const memberUserId = Array.isArray(slot.bookedFor) ? slot.bookedFor[turn] : slot.bookedFor;
       used[i] = used[i]! + 1;
       const r = await createReservationWithDb(db, session, {
         startAt,
         endAt,
         resourceIds: slot.resourceIds,
         notes,
+        ...(memberUserId ? { memberUserId } : {}),
       }, { now: now.getTime() });
       if (!r.ok) {
         throw new Error(

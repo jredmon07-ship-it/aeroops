@@ -72,7 +72,8 @@ interface UpcomingReservationRaw {
  * Algorithm (≤2 queries):
  *   1. My upcoming reservations — CLONE the portal readMyReservations self-scoped
  *      predicate EXACTLY (status='booked' AND lower(during)>NOW() AND
- *      (created_by=me OR non-voided dispatch_ticket.pilot_user_id=me),
+ *      (created_by=me OR non-voided dispatch_ticket.pilot_user_id=me OR
+ *      member_user_id=me — booked FOR me, migration 0051),
  *      multi-resource collapse) + add raw resource_id UUIDs + tail label + start.
  *   2a. reservation_upcoming: reservations with start ≤ now+24h → one alert each.
  *   2b. aircraft_grounded: collect DISTINCT resource UUIDs across ALL upcoming
@@ -100,7 +101,9 @@ export async function deriveMyAlerts(
   // ── Query 1: my upcoming reservations (CLONE of portal predicate) ────────────
   //
   // Self-scoped: status='booked' AND lower(during)>NOW() AND
-  // (created_by=me OR non-voided dispatch_ticket.pilot_user_id=me).
+  // (created_by=me OR non-voided dispatch_ticket.pilot_user_id=me OR
+  //  member_user_id=me). The last arm (migration 0051) is a booking club staff
+  // made FOR me: its "Upcoming flight" (and grounded-aircraft) alert is mine.
   // Multi-resource: one row per (reservation, resource); we collapse below.
   // We add raw resource_id UUID (for grounding probe) AND the display label:
   // the tail #, else the resource's display name (an instructor), never the
@@ -126,6 +129,7 @@ export async function deriveMyAlerts(
             AND dt2.pilot_user_id = ${userId}::uuid
             AND dt2.status <> 'voided'
         )
+        OR r.member_user_id = ${userId}::uuid
       )
     ORDER BY lower(rr.during) ASC, (res.tail_number IS NULL) ASC, res.display_name ASC
   `);

@@ -17,6 +17,9 @@
  *   - loadBlackouts — load resource_blackout rows overlapping [start,end)
  *   - runPolicyProbe — per-resource policy+blackout load + evaluateBookingPolicy;
  *       returns PolicyViolationView[] (enriched with resourceDisplayName)
+ *   - loadActiveMember / assertBookableMember — the member a booking is FOR
+ *       (reservation.member_user_id, migration 0051) must be an ACTIVE member
+ *       of the session org.
  *
  * ADR-0004: the EXCLUDE constraint is the authoritative no-double-book
  * guarantee; this probe is for UX/messaging and to avoid relying solely on the
@@ -40,8 +43,8 @@
  *     as skipped/conflict. The outer tx remains alive and commits other occurrences.
  */
 import { z } from 'zod';
-import { sql, eq } from 'drizzle-orm';
-import { reservation, auditLog, bookingPolicy, resource } from '@aeroops/db';
+import { sql, eq, and } from 'drizzle-orm';
+import { reservation, auditLog, bookingPolicy, resource, membership, appUser } from '@aeroops/db';
 import type { AnyDb } from '@aeroops/db';
 import { withOrgContext } from '@aeroops/db';
 import {
@@ -134,6 +137,10 @@ export class OccurrenceRaceError extends Error {
  *   resourceIds length >= 1  — at least one resource.
  *   resourceIds de-duplicated — duplicates collapsed (a resource cannot
  *                               conflict with itself within one reservation).
+ *   memberUserId (optional)  — the member the booking is FOR (migration 0051):
+ *                               a UUID; null/absent = no one in particular.
+ *                               WHO it may be is checked later, in the tx
+ *                               (assertBookableMember).
  *
  * Dates must be valid Date instances (reject Invalid Date / NaN time).
  */
@@ -149,6 +156,10 @@ export const reservationWindowSchema = z
       .array(z.string().regex(UUID_RE, { message: 'resourceIds must be UUIDs' }))
       .min(1, { message: 'At least one resourceId is required' }),
     notes: z.string().optional(),
+    memberUserId: z
+      .string()
+      .regex(UUID_RE, { message: 'memberUserId must be a UUID' })
+      .nullish(),
   })
   .refine((v) => v.endAt.getTime() > v.startAt.getTime(), {
     message: 'endAt must be strictly after startAt',
@@ -161,6 +172,8 @@ export function parseReservationWindow(input: unknown): {
   endAt: Date;
   resourceIds: string[];
   notes?: string;
+  /** Present only when the input named a member (null/absent → undefined). */
+  memberUserId?: string;
 } {
   const parsed = reservationWindowSchema.safeParse(input);
   if (!parsed.success) {
@@ -183,6 +196,9 @@ export function parseReservationWindow(input: unknown): {
     endAt: parsed.data.endAt,
     resourceIds,
     notes: parsed.data.notes,
+    // Only when named, so a caller that names no member gets the same object
+    // shape as before migration 0051.
+    ...(parsed.data.memberUserId ? { memberUserId: parsed.data.memberUserId } : {}),
   };
 }
 
@@ -962,6 +978,66 @@ export function runAvailabilityGate(
   return { blocked, warnings };
 }
 
+// ─── The member a booking is FOR (migration 0051) ────────────────────────────
+
+/**
+ * loadActiveMember — `userId` as a member a booking may be FOR: an ACTIVE
+ * member of `orgId` (a membership row in this org joined to an app_user whose
+ * roster status is 'active'). Returns their display name (full name, else
+ * e-mail), or null when `userId` is not one: another org's user, a user with
+ * no membership here, a deactivated member, or no such user.
+ *
+ * The same membership ⋈ app_user check openDispatch runs on its pilot and
+ * login-link's loadActiveRole runs on a link's creator, with the explicit
+ * org_id predicates on top of RLS. Must run inside the session's org context.
+ */
+export async function loadActiveMember(
+  tx: AnyDb,
+  orgId: string,
+  userId: string,
+): Promise<{ userId: string; displayName: string } | null> {
+  const rows: Array<{ userId: string; fullName: string | null; email: string; status: string }> =
+    await tx
+      .select({
+        userId: membership.userId,
+        fullName: appUser.fullName,
+        email: appUser.email,
+        status: appUser.status,
+      })
+      .from(membership)
+      .innerJoin(appUser, eq(membership.userId, appUser.id))
+      .where(
+        and(
+          eq(membership.userId, userId),
+          eq(membership.orgId, orgId),
+          eq(appUser.orgId, orgId),
+        ),
+      )
+      .limit(1);
+  const row = rows[0];
+  if (!row || row.status !== 'active') return null;
+  return { userId: row.userId, displayName: row.fullName ?? row.email };
+}
+
+/**
+ * assertBookableMember — throws ValidationError unless `memberUserId` is an
+ * ACTIVE member of `orgId` (loadActiveMember). A refusal is a malformed
+ * request, like an unknown resource id: thrown BEFORE any probe or write, so
+ * nothing is written. The composite FK (member_user_id, org_id) is the
+ * database's own backstop for the same-org half.
+ */
+export async function assertBookableMember(
+  tx: AnyDb,
+  orgId: string,
+  memberUserId: string,
+): Promise<void> {
+  if (!(await loadActiveMember(tx, orgId, memberUserId))) {
+    throw new ValidationError(
+      '[scheduling] the member this booking is for is not an active member of this org.',
+    );
+  }
+}
+
 // ─── Bookable kinds (mirrors create-reservation.ts) ───────────────────────────
 
 /** Resource kinds that are bookable in Slice 1/2a/2b. */
@@ -988,6 +1064,15 @@ export interface GatedCreateInput {
    * spread AFTER auditMetadata so the canonical fields always win.
    */
   auditMetadata?: Record<string, unknown>;
+  /**
+   * Migration 0051 (additive): the member the booking is FOR
+   * (reservation.member_user_id). Must be an ACTIVE member of the session org
+   * (assertBookableMember → ValidationError, no write). Absent → NULL, with no
+   * extra read and no new audit key: the create stays BYTE-IDENTICAL. Passed by
+   * createReservation + createSeries (caller input) and by rescheduleReservation
+   * (the original booking's member, carried to the new row).
+   */
+  memberUserId?: string;
 }
 
 /**
@@ -999,6 +1084,8 @@ export interface GatedCreateInput {
  *
  * Gates:
  *   1. Resource validation: each resourceId must be visible, active, bookable kind.
+ *      1b. (migration 0051) memberUserId, when given, must be an ACTIVE member
+ *          of the session org — else ValidationError, nothing written.
  *   2. Conflict pre-check (runConflictProbe).
  *   3. Policy probe (runPolicyProbe).
  *   4. Refusal precedence: conflict_and_policy > policy > conflict > INSERT.
@@ -1025,7 +1112,7 @@ export async function gatedCreateOccurrence(
   input: GatedCreateInput,
   now: number,
 ): Promise<CreateReservationResult> {
-  const { startAt, endAt, resourceIds, notes, seriesId, auditMetadata } = input;
+  const { startAt, endAt, resourceIds, notes, seriesId, auditMetadata, memberUserId } = input;
 
   // Step A — load requested resources (RLS scopes to org via tx GUC).
   const resourceRows = await tx
@@ -1060,6 +1147,15 @@ export async function gatedCreateOccurrence(
     const r = byId.get(id)!;
     return { id: r.id, displayName: r.displayName };
   });
+
+  // Step A2 — the member the booking is FOR (migration 0051, additive). Absent
+  // → nothing is read and the create stays BYTE-IDENTICAL. Present → it must be
+  // an ACTIVE member of the session org, or a ValidationError before any probe
+  // or write, exactly like a bad resource id in Step A. It is not a resource:
+  // it takes no part in the conflict, policy, twilight or availability gates.
+  if (memberUserId !== undefined) {
+    await assertBookableMember(tx, sess.orgId, memberUserId);
+  }
 
   // Step B — conflict pre-check.
   const preHits = await runConflictProbe(tx, startAt, endAt, resourceIds);
@@ -1177,6 +1273,8 @@ export async function gatedCreateOccurrence(
         notes: notes ?? null,
         createdBy: sess.userId,
         seriesId: seriesId ?? null,
+        // Migration 0051: NULL unless the caller named the member it is for.
+        memberUserId: memberUserId ?? null,
       })
       .returning({
         id: reservation.id,
@@ -1219,6 +1317,9 @@ export async function gatedCreateOccurrence(
         startAt: startIso,
         endAt: endIso,
         ...(seriesId ? { seriesId } : {}),
+        // Migration 0051: who the booking is for. Only when named, so the
+        // common (no member) audit row stays BYTE-IDENTICAL.
+        ...(memberUserId ? { memberUserId } : {}),
       },
     });
 
@@ -1256,6 +1357,8 @@ export async function gatedCreateOccurrence(
         notes: resv!.notes,
         createdBy: resv!.createdBy,
         resourceIds,
+        // Migration 0051: only when named — the shape is unchanged otherwise.
+        ...(memberUserId ? { memberUserId } : {}),
       },
       // Only attach when non-empty so the ok:true shape stays byte-identical for
       // the common (nothing grounded) case — existing consumers see no new field.

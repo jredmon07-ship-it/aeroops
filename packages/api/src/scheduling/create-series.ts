@@ -16,6 +16,9 @@
  *   - Zero future occurrences is NOT an error: series row still created.
  *   - Whole-request failures throw (auth/validation); per-occurrence skips
  *     return ok:true with a skip reason in the report.
+ *   - Optional memberUserId (migration 0051): the member every occurrence is
+ *     for. It must be an ACTIVE member of the org (checked before the series
+ *     row is written); each occurrence carries it through the gated path.
  *
  * TWO CALLING FORMS:
  *   createSeries(session, input)                         — app code.
@@ -40,6 +43,7 @@ import {
   runConflictProbe,
   makeApiZonedToUtcResolver,
   isValidIanaTz,
+  assertBookableMember,
 } from './internal.js';
 import type {
   CreateReservationResult,
@@ -85,6 +89,11 @@ const createSeriesInputSchema = z.object({
     .array(z.string().regex(UUID_RE, { message: 'resourceIds must be UUIDs' }))
     .min(1, { message: 'At least one resourceId is required' }),
   notes: z.string().optional(),
+  // Migration 0051: the member every occurrence is FOR (null/absent = no one).
+  memberUserId: z
+    .string()
+    .regex(UUID_RE, { message: 'memberUserId must be a UUID' })
+    .nullish(),
 });
 
 // ─── Input parsing ────────────────────────────────────────────────────────────
@@ -146,6 +155,7 @@ function parseCreateSeriesInput(raw: unknown): CreateSeriesInput & {
     tz: d.tz,
     resourceIds,
     notes: d.notes,
+    ...(d.memberUserId ? { memberUserId: d.memberUserId } : {}),
     _parsedEnd,
     _parsedTime,
   };
@@ -169,7 +179,7 @@ async function _createSeriesImpl(
 
   // 2. VALIDATE input. Throws ValidationError on any failure.
   const parsed = parseCreateSeriesInput(input);
-  const { _parsedEnd, _parsedTime, resourceIds, durationMinutes, tz, notes, intervalWeeks } = parsed;
+  const { _parsedEnd, _parsedTime, resourceIds, durationMinutes, tz, notes, intervalWeeks, memberUserId } = parsed;
 
   // 3. Capture `now` ONCE. Shared between expand + all gatedCreateOccurrence calls.
   const now = opts?.now ?? Date.now();
@@ -205,6 +215,15 @@ async function _createSeriesImpl(
 
   // 5. ONE outer tx: INSERT series row + per-occurrence savepoints.
   return withSessionOrgContextWithDb(db, session, async (sess, tx) => {
+    // 5-pre. Migration 0051: the member every occurrence is FOR must be an
+    //   ACTIVE member of the org — checked once here, BEFORE the series row is
+    //   written (so a zero-occurrence series cannot slip one past), and again
+    //   per occurrence by the shared gated path. A refusal throws
+    //   ValidationError: a whole-request failure, nothing written.
+    if (memberUserId !== undefined) {
+      await assertBookableMember(tx, sess.orgId, memberUserId);
+    }
+
     // 5a. INSERT the reservation_series row.
     // Compose local_start_time string for DB (HH:MM:SS).
     const localStartTimeStr = `${String(_parsedTime.hour).padStart(2, '0')}:${String(_parsedTime.minute).padStart(2, '0')}:00`;
@@ -276,6 +295,8 @@ async function _createSeriesImpl(
         resourceIds,
         occurrenceCount: occurrences.length,
         truncatedByCap,
+        // Migration 0051: only when named — the no-member row is unchanged.
+        ...(memberUserId ? { memberUserId } : {}),
       },
     });
 
@@ -316,7 +337,7 @@ async function _createSeriesImpl(
             sp,
             sess,
             db,
-            { startAt, endAt, resourceIds, notes, seriesId },
+            { startAt, endAt, resourceIds, notes, seriesId, ...(memberUserId ? { memberUserId } : {}) },
             now,
           );
         });

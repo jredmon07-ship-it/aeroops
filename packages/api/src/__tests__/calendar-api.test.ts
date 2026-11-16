@@ -65,7 +65,7 @@ import { ForbiddenError } from '../auth/require-capability.js';
 import type { AppSession } from '../auth/types.js';
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0042');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 // ── Shared test environment ───────────────────────────────────────────────────
 
@@ -357,6 +357,33 @@ describe("3. buildIcsForFeed('my_reservations')", () => {
     expect(ics.startsWith('BEGIN:VCALENDAR\r\n')).toBe(true);
     expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true);
     expect(ics).toContain('SUMMARY:Reservation — N111AA\r\n');
+  });
+
+  it('3e. a booking staff made FOR a member (member_user_id) is in that member\'s feed, not another member\'s', async () => {
+    // A renter: can't book, so their bookings are made for them (migration 0051).
+    const memberA3Id = await withOrgContext(env.db, env.orgAId, async (tx) => {
+      const [u] = await tx
+        .insert(appUser)
+        .values({ orgId: env.orgAId, email: 'member3@alpha.example', fullName: 'Member Three' })
+        .returning();
+      await tx.insert(membership).values({ orgId: env.orgAId, userId: u!.id, role: 'renter' });
+      return u!.id;
+    });
+    const booked = await createReservationWithDb(env.db, makeSession(env.orgAId, env.userAId, 'owner'), {
+      resourceIds: [env.resourceAId],
+      startAt: new Date('2026-07-22T14:00:00.000Z'),
+      endAt: new Date('2026-07-22T16:00:00.000Z'),
+      notes: 'Org A, booked by owner for member three',
+      memberUserId: memberA3Id,
+    });
+    if (!booked.ok) throw new Error(`booking failed: ${booked.reason}`);
+    const uid = `UID:aeroops-reservation-${booked.reservation.id}@aeroops.app`;
+
+    const feedFor = { id: 'n/a', orgId: env.orgAId, userId: memberA3Id, scope: 'my_reservations' as const, resourceId: null };
+    expect(await buildIcsForFeed(env.db, feedFor, NOW)).toContain(uid);
+    // The booker still sees it; another member of the same org does not.
+    expect(await buildIcsForFeed(env.db, { ...feedFor, userId: env.userAId }, NOW)).toContain(uid);
+    expect(await buildIcsForFeed(env.db, { ...feedFor, userId: env.memberA2Id }, NOW)).not.toContain(uid);
   });
 });
 

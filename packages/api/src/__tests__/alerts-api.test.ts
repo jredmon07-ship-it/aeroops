@@ -10,6 +10,8 @@
  *   T-ISO    — org-A never derives from org-B rows even for a shared tail
  *   N1       — reservation_upcoming: as booker
  *   N2       — reservation_upcoming: as dispatched-pilot (non-voided dispatch ticket)
+ *   N2b      — reservation_upcoming: as the member a booking was made FOR
+ *              (member_user_id, migration 0051); another member never gets it
  *   N3       — >24h → no reservation_upcoming alert
  *   N4       — aircraft_grounded: my reservation's tail grounded (with reason text)
  *   N5       — grounded-but-no-reservation → NOT alerted
@@ -61,7 +63,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 
 // All up migrations through 0038 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0042');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -406,6 +408,42 @@ describe('N2 — reservation_upcoming as dispatched-pilot', () => {
     const result = await getMyAlertsWithDb(db, memberSess, now);
 
     expect(result.alerts.some((a) => a.id.includes(res.reservation.id))).toBe(false);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// N2b — reservation_upcoming: as the member the booking was made FOR
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('N2b — reservation_upcoming for a booking made for me', () => {
+  it('the member staff booked for gets the upcoming-flight alert; another member does not', async () => {
+    const { db, orgAId, ownerAId, memberBId } = env;
+    // A fresh member, so other tests' bookings (N11's cap) stay out of it.
+    const forId = await seedMember(db, orgAId, `for-n2b-${Date.now()}@alpha.example`, 'renter');
+    const ownerSess = makeSession(orgAId, ownerAId, 'owner');
+    const aircraft = await createResourceWithDb(db, ownerSess, {
+      kind: 'aircraft',
+      displayName: 'For-Test N2B01',
+      tailNumber: 'N2B01',
+    });
+    // Booked by the OWNER, for the member.
+    const res = await createReservationWithDb(db, ownerSess, {
+      startAt: new Date('2027-10-05T14:00:00Z'),
+      endAt: new Date('2027-10-05T16:00:00Z'),
+      resourceIds: [aircraft.id],
+      memberUserId: forId,
+    });
+    if (!res.ok) throw new Error('seed reservation failed');
+    const now = new Date('2027-10-05T13:00:00Z');
+    const wanted = alertId('reservation', [res.reservation.id, 'upcoming']);
+
+    const mine = await getMyAlertsWithDb(db, makeSession(orgAId, forId, 'renter'), now);
+    const upcoming = mine.alerts.filter((a) => a.kind === 'reservation_upcoming');
+    expect(upcoming.map((a) => a.id)).toEqual([wanted]);
+    expect(upcoming[0]!.title).toBe('Upcoming flight: N2B01');
+
+    const theirs = await getMyAlertsWithDb(db, makeSession(orgAId, memberBId, 'renter'), now);
+    expect(theirs.alerts.map((a) => a.id)).not.toContain(wanted);
   });
 });
 

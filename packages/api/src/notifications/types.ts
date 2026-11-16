@@ -14,7 +14,8 @@
 
 /**
  * AlertKind — the two derived alert kinds in Slice N1.1.
- *   reservation_upcoming  — the pilot/booker has a reservation starting ≤ now+24h.
+ *   reservation_upcoming  — the pilot/booker, or the member it was booked for
+ *                           (migration 0051), has a reservation starting ≤ now+24h.
  *   aircraft_grounded     — an aircraft on one of their upcoming reservations is
  *                           grounded (operator data — contact dispatch).
  */

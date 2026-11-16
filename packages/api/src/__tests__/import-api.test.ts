@@ -66,7 +66,7 @@ import { ValidationError } from '../scheduling/internal.js';
 import type { AppSession } from '../auth/types.js';
 
 // All up migrations through 0043 (shared loader — replaces the old hand list).
-const MIGRATION_SQL = loadMigrationSql('0043');
+const MIGRATION_SQL = loadMigrationSql('0051');
 
 // ── Shared test environment ───────────────────────────────────────────────────
 

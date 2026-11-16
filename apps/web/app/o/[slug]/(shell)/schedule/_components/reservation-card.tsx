@@ -8,6 +8,10 @@
  * badge linking to /o/[slug]/schedule/series/[seriesId]. The badge is hidden when
  * seriesId is absent (listReservations does not return seriesId — see gap note in
  * actions.ts; future: add seriesId to ReservationRow in @aeroops/api).
+ *
+ * Migration 0051 additive: a booking made for a member reads "for Riley Member"
+ * under its resources (and in the card's accessible name). A booking for no one
+ * renders exactly as before.
  */
 'use client';
 
@@ -18,6 +22,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CancelReservationDialog } from './cancel-reservation-dialog';
 import { formatTimeRange } from '../_utils/format-time';
 import { sortResourceIds } from '../_utils/resource-map';
+import { bookedForLabel } from '@/lib/booked-for';
 import type { ReservationRow, ResourceRow } from '@aeroops/api';
 
 interface ReservationCardProps {
@@ -61,7 +66,12 @@ export function ReservationCard({
     })
     .join(', ');
 
-  const ariaLabel = `Reservation ${timeRange}, ${resourceNames}, ${reservation.status}`;
+  // Who the booking is for (migration 0051): "for Riley Member", or null.
+  const bookedFor = bookedForLabel(reservation.memberDisplayName);
+
+  const ariaLabel = bookedFor
+    ? `Reservation ${timeRange}, ${resourceNames}, ${bookedFor}, ${reservation.status}`
+    : `Reservation ${timeRange}, ${resourceNames}, ${reservation.status}`;
 
   const handleSuccess = () => {
     setErrorMsg(null);
@@ -124,6 +134,11 @@ export function ReservationCard({
           );
         })}
       </div>
+
+      {/* The member the booking is for (migration 0051) */}
+      {bookedFor && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">{bookedFor}</p>
+      )}
 
       {/* Notes */}
       {reservation.notes && (

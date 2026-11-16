@@ -33,10 +33,11 @@ export function portalSubtitle(showTraining: boolean): string {
 
 /**
  * reservationRoleLabel — human-readable label for a reservation role.
+ * 'for_you' is a booking club staff made for the member (migration 0051).
  * Pure; unit-tested.
  */
 export function reservationRoleLabel(
-  role: 'booker' | 'pilot' | 'booker_and_pilot',
+  role: 'booker' | 'pilot' | 'booker_and_pilot' | 'for_you',
 ): string {
   switch (role) {
     case 'booker':
@@ -45,5 +46,7 @@ export function reservationRoleLabel(
       return 'Pilot';
     case 'booker_and_pilot':
       return 'Booker & Pilot';
+    case 'for_you':
+      return 'Booked for you';
   }
 }

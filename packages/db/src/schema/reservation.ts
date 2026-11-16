@@ -17,9 +17,23 @@
  * Composite FKs (hand-written in migration SQL):
  *   (created_by, org_id) → app_user(id, org_id) ON DELETE RESTRICT
  *   (cancelled_by, org_id) → app_user(id, org_id) ON DELETE SET NULL
+ *   (member_user_id, org_id) → app_user(id, org_id)
+ *     ON DELETE SET NULL ("member_user_id")                  (migration 0051)
  * These prevent referencing a user in a different org. Drizzle's
- * .references() cannot express multi-column FKs, so created_by and
- * cancelled_by carry NO .references().
+ * .references() cannot express multi-column FKs, so created_by,
+ * cancelled_by and member_user_id carry NO .references().
+ *
+ * member_user_id (nullable, migration 0051):
+ *   The member the booking is FOR. Renters and students cannot book, so club
+ *   staff book for them and created_by is the staff member; this names the
+ *   member, so the booking shows up in their portal, on their People page and
+ *   in their alerts. NULL = no one in particular (staff-only or CFI-alone
+ *   flights, and every booking made before 0051). Written only by the shared
+ *   create path (gatedCreateOccurrence), which accepts an ACTIVE member of the
+ *   org; a reschedule carries it to the new row. Not a resource: it plays no
+ *   part in the EXCLUDE constraint or the booking gates. SET NULL on the
+ *   member column alone (like cancelled_by, a nullable who-column): deleting
+ *   the user keeps the booking and drops only the link.
  *
  * series_id (nullable, Slice 2b / ADR-0006):
  *   Links this occurrence to its parent reservation_series row.
@@ -74,6 +88,11 @@ export const reservation = pgTable(
     // reservation_series(id, org_id) ON DELETE SET NULL is hand-written in
     // migration 0004 (Slice 2b, ADR-0006). NULL = one-off reservation.
     seriesId: uuid('series_id'),
+    // member_user_id carries no .references() — composite FK (member_user_id,
+    // org_id) → app_user(id, org_id) ON DELETE SET NULL ("member_user_id") is
+    // hand-written in migration 0051. The member the booking is FOR; NULL = no
+    // one in particular.
+    memberUserId: uuid('member_user_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -82,6 +101,10 @@ export const reservation = pgTable(
     uniqueIndex('reservation_id_org_id_unique').on(t.id, t.orgId),
     // Covers: SELECT * FROM reservation WHERE org_id = $1 AND status = $2
     index('reservation_org_id_status_idx').on(t.orgId, t.status),
+    // NOTE: the partial index (org_id, member_user_id) WHERE member_user_id IS
+    // NOT NULL behind the member's own reads is hand-written in migration 0051,
+    // like dispatch_ticket's partial index (0005): partial indexes are kept in
+    // the SQL only.
   ],
 );
 

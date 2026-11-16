@@ -11,7 +11,8 @@
  *   Populated         — header (status chip + "no login yet" hint +
  *                       Create login/reset link if people:manage);
  *                       Contact card; Tags card (add/remove if people:manage);
- *                       Upcoming reservations booked by them (created_by) [VERIFY-6-C];
+ *                       Upcoming reservations booked by or for them
+ *                       (created_by / member_user_id) [VERIFY-6-C];
  *                       Recent dispatch as pilot;
  *                       Training card only when the org has the Training
  *                       module on (club mode hides it and skips its read);
@@ -19,7 +20,8 @@
  *   Deactivated       — still renders full detail.
  *
  * BOUNDARY: imports only from '@aeroops/api'. Never '@aeroops/db'.
- * [VERIFY-6-C]: "booked by them" = reservation.created_by, NOT flight assignment.
+ * [VERIFY-6-C]: "booked by or for them" = reservation.created_by or
+ *   reservation.member_user_id (migration 0051), NOT flight assignment.
  * [VERIFY-6-D]: status is a roster flag, NOT a login gate.
  */
 import * as React from 'react';
@@ -145,11 +147,11 @@ function StaticUpcomingReservationsCard({ member, timeZone }: { member: Serializ
         <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
         {/* [VERIFY-6-C]: wording must not imply flight assignment/training credit */}
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Upcoming Reservations</h2>
-        <span className="text-xs text-slate-500 dark:text-slate-400">(booked by them)</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">(booked by or for them)</span>
       </div>
 
       {member.upcomingReservations.length === 0 ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400 italic">No upcoming reservations booked by this member.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 italic">No upcoming reservations booked by or for this member.</p>
       ) : (
         <div className="space-y-1.5">
           {member.upcomingReservations.map((res) => (

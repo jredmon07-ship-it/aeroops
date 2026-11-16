@@ -67,6 +67,8 @@ function makeReservation(
     cancelledBy: null,
     seriesId: null,
     resourceIds: ['res-1'],
+    memberUserId: null,
+    memberDisplayName: null,
     ...overrides,
   };
 }

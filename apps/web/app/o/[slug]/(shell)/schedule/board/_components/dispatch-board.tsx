@@ -385,6 +385,9 @@ export function DispatchBoard({
         cancelledBy: null,
         seriesId: null, // detaches from series on reschedule
         resourceIds: result.reservation.resourceIds,
+        // A move keeps the member the booking is for (migration 0051).
+        memberUserId: original.memberUserId,
+        memberDisplayName: original.memberDisplayName,
       };
 
       setReservations((prev) => [
@@ -642,6 +645,9 @@ export function DispatchBoard({
         cancelledBy: null,
         seriesId: null,
         resourceIds: result.reservation.resourceIds,
+        // A move keeps the member the booking is for (migration 0051).
+        memberUserId: moveDialogBlock.reservation.memberUserId,
+        memberDisplayName: moveDialogBlock.reservation.memberDisplayName,
       };
 
       setReservations((prev) => [
